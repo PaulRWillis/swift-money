@@ -4,23 +4,23 @@
 import PackageDescription
 
 let package = Package(
-    name: "swift-money",
+    name: "SwiftMoney",
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
-            name: "swift-money",
-            targets: ["swift-money"]
+            name: "SwiftMoney",
+            targets: ["SwiftMoney"]
         ),
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
         .target(
-            name: "swift-money"
+            name: "SwiftMoney"
         ),
         .testTarget(
-            name: "swift-moneyTests",
-            dependencies: ["swift-money"]
+            name: "SwiftMoneyTests",
+            dependencies: ["SwiftMoney"]
         ),
     ]
 )
