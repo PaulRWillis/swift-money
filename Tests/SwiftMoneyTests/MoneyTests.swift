@@ -3,8 +3,6 @@ import Testing
 
 private enum TST: Currency {
     public static let code: String = "TST"
-    public static let name: String = "TST Money"
-    public static let minorUnit: Int = 2
 }
 
 struct MoneyTests {
