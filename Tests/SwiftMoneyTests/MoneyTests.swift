@@ -14,7 +14,7 @@ struct MoneyTests {
     }
     
     @Test
-    func canAddMoneysOfSameCurrency() {
+    func whenAddMoneysOfSameCurrency_shouldReturnSum() {
         let a = Money<TST>(decimalValue: 2)
         let b = Money<TST>(decimalValue: 3)
         let c = Money<TST>(decimalValue: 5)
@@ -26,7 +26,29 @@ struct MoneyTests {
     }
     
     @Test
-    func canAddDecimalMoneysOfSameCurrency() {
+    func whenAddingZeroToMoneyAmount_shouldReturnSameMoneyAmount() {
+        let money = Money<TST>(decimalValue: 3)
+        let zero = Money<TST>(decimalValue: 0)
+        let expected = money
+        
+        let actual = money + zero
+        
+        #expect(actual == expected)
+    }
+    
+    @Test
+    func whenAddingMoneyAmountToZero_shouldReturnSameMoneyAmount() {
+        let zero = Money<TST>(decimalValue: 0)
+        let money = Money<TST>(decimalValue: 3)
+        let expected = money
+        
+        let actual = zero + money
+        
+        #expect(actual == expected)
+    }
+    
+    @Test
+    func whenAddDecimalMoneysOfSameCurrency_shouldReturnSum() {
         let a = Money<TST>(decimalValue: 0.1)
         let b = Money<TST>(decimalValue: 0.1)
         let c = Money<TST>(decimalValue: 0.1)
@@ -36,5 +58,4 @@ struct MoneyTests {
         
         #expect(actual == expected)
     }
-    
 }
