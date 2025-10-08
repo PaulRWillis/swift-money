@@ -7,26 +7,20 @@ private enum TST: Currency {
 
 struct MoneyTests {
     @Test
-    func moneyExists() {
-        let _ = Money<TST>(decimalValue: 1)
-    }
-    
-    @Test
-    func whenAddMoneysOfSameCurrency_shouldReturnSum() {
-        let a = Money<TST>(decimalValue: 2)
-        let b = Money<TST>(decimalValue: 3)
-        let c = Money<TST>(decimalValue: 5)
-        let expected = Money<TST>(decimalValue: 10)
+    func whenAddMoneysOfSameCurrency_shouldReturnSum() throws {
+        let a = try #require(Money<TST>(string: "2"))
+        let b = try #require(Money<TST>(string: "3"))
+        let expected = try #require(Money<TST>(string: "5"))
         
-        let actual = a + b + c
+        let actual = a + b
         
         #expect(actual == expected)
     }
     
     @Test
-    func whenAddingZeroToMoneyAmount_shouldReturnSameMoneyAmount() {
-        let money = Money<TST>(decimalValue: 3)
-        let zero = Money<TST>(decimalValue: 0)
+    func whenAddingZeroToMoneyAmount_shouldReturnSameMoneyAmount() throws {
+        let money = try #require(Money<TST>(string: "3"))
+        let zero = try #require(Money<TST>(string: "0"))
         let expected = money
         
         let actual = money + zero
@@ -35,9 +29,9 @@ struct MoneyTests {
     }
     
     @Test
-    func whenAddingMoneyAmountToZero_shouldReturnSameMoneyAmount() {
-        let zero = Money<TST>(decimalValue: 0)
-        let money = Money<TST>(decimalValue: 3)
+    func whenAddingMoneyAmountToZero_shouldReturnSameMoneyAmount() throws {
+        let zero = try #require(Money<TST>(string: "0"))
+        let money = try #require(Money<TST>(string: "3"))
         let expected = money
         
         let actual = zero + money
@@ -46,11 +40,11 @@ struct MoneyTests {
     }
     
     @Test
-    func whenAddDecimalMoneysOfSameCurrency_shouldReturnSum() {
-        let a = Money<TST>(decimalValue: 0.1)
-        let b = Money<TST>(decimalValue: 0.1)
-        let c = Money<TST>(decimalValue: 0.1)
-        let expected = Money<TST>(decimalValue: 0.3)
+    func whenAddDecimalMoneysOfSameCurrency_shouldReturnSum() throws {
+        let a = try #require(Money<TST>(string: "0.1"))
+        let b = try #require(Money<TST>(string: "0.1"))
+        let c = try #require(Money<TST>(string: "0.1"))
+        let expected = try #require(Money<TST>(string: "0.3"))
         
         let actual = a + b + c
         

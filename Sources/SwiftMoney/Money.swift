@@ -3,14 +3,22 @@ import Foundation
 public struct Money<C: Currency> {
     private let amount: Decimal
     
-    public init(decimalValue: Decimal) {
+    private init(decimal: Decimal) {
+        self.amount = decimal
+    }
+    
+    public init?(string: String, locale: Locale? = nil) {
+        guard let decimalValue = Decimal(string: string, locale: locale) else {
+            return nil
+        }
+        
         self.amount = decimalValue
     }
 }
 
 public extension Money {
     static func + (lhs: Money, rhs: Money) -> Money {
-        Money(decimalValue: lhs.amount + rhs.amount)
+        Money(decimal: lhs.amount + rhs.amount)
     }
 }
 
