@@ -36,4 +36,14 @@ struct MoneyTests {
         
         #expect(actual == expected)
     }
+
+    @Test
+    func whenAddingZeroToZero_shouldReturnZeroMoney() throws {
+        let zero = Money<TST>(0)
+
+        let actual = zero + zero
+
+        #expect(actual == zero)
+    }
+
 }
