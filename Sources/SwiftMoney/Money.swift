@@ -14,4 +14,10 @@ public extension Money {
     }
 }
 
+public extension Money {
+    static func - (lhs: Money, rhs: Money) -> Money {
+        Money(lhs.minorUnits - rhs.minorUnits)
+    }
+}
+
 extension Money: Equatable {}
