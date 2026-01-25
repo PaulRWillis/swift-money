@@ -1,10 +1,10 @@
 import Foundation
 
 public struct Money<C: Currency> {
-    private let amount: Int
+    private let minorUnits: Int
     
     private init(intValue: Int) {
-        self.amount = intValue
+        self.minorUnits = intValue
     }
     
     public init?(string: String) {
@@ -12,13 +12,13 @@ public struct Money<C: Currency> {
             return nil
         }
         
-        self.amount = intValue
+        self.minorUnits = intValue
     }
 }
 
 public extension Money {
     static func + (lhs: Money, rhs: Money) -> Money {
-        Money(intValue: lhs.amount + rhs.amount)
+        Money(intValue: lhs.minorUnits + rhs.minorUnits)
     }
 }
 
