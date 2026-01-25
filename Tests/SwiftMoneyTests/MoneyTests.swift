@@ -6,9 +6,9 @@ private enum TST: Currency {}
 struct MoneyTests {
     @Test
     func whenAddMoneysOfSameCurrency_shouldReturnSum() throws {
-        let a = try #require(Money<TST>(string: "2"))
-        let b = try #require(Money<TST>(string: "3"))
-        let expected = try #require(Money<TST>(string: "5"))
+        let a = Money<TST>(2)
+        let b = Money<TST>(3)
+        let expected = Money<TST>(5)
         
         let actual = a + b
         
@@ -17,8 +17,8 @@ struct MoneyTests {
     
     @Test
     func whenAddingZeroToMoneyAmount_shouldReturnSameMoneyAmount() throws {
-        let money = try #require(Money<TST>(string: "3"))
-        let zero = try #require(Money<TST>(string: "0"))
+        let money = Money<TST>(3)
+        let zero = Money<TST>(0)
         let expected = money
         
         let actual = money + zero
@@ -28,8 +28,8 @@ struct MoneyTests {
     
     @Test
     func whenAddingMoneyAmountToZero_shouldReturnSameMoneyAmount() throws {
-        let zero = try #require(Money<TST>(string: "0"))
-        let money = try #require(Money<TST>(string: "3"))
+        let zero = Money<TST>(0)
+        let money = Money<TST>(3)
         let expected = money
         
         let actual = zero + money
