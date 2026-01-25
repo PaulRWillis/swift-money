@@ -1,24 +1,24 @@
 import Foundation
 
 public struct Money<C: Currency> {
-    private let amount: Decimal
+    private let amount: Int
     
-    private init(decimal: Decimal) {
-        self.amount = decimal
+    private init(intValue: Int) {
+        self.amount = intValue
     }
     
-    public init?(string: String, locale: Locale? = nil) {
-        guard let decimalValue = Decimal(string: string, locale: locale) else {
+    public init?(string: String) {
+        guard let intValue = Int(string) else {
             return nil
         }
         
-        self.amount = decimalValue
+        self.amount = intValue
     }
 }
 
 public extension Money {
     static func + (lhs: Money, rhs: Money) -> Money {
-        Money(decimal: lhs.amount + rhs.amount)
+        Money(intValue: lhs.amount + rhs.amount)
     }
 }
 
