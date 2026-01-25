@@ -8,8 +8,9 @@ struct MoneyTests {
     // MARK: - ADDITION
 
     // MARK: - Addition (Positives)
+
     @Test
-    func addPositiveToPositive() throws {
+    func addPositiveToPositive() {
         let a = Money<TST>(2)
         let b = Money<TST>(3)
         let expected = Money<TST>(5)
@@ -18,17 +19,18 @@ struct MoneyTests {
         
         #expect(actual == expected)
     }
-    
+
     @Test
-    func addZeroToPositive() throws {
-        let zero = Money<TST>(0)
-        let positive = Money<TST>(3)
+    func addPositiveToNegative() {
+        let positive = Money<TST>(2)
+        let negative = Money<TST>(-3)
+        let expected = Money<TST>(-1)
 
-        let actual = positive + zero
+        let actual = negative + positive
 
-        #expect(actual == positive)
+        #expect(actual == expected)
     }
-    
+
     @Test
     func addPositiveToZero() {
         let zero = Money<TST>(0)
@@ -42,6 +44,17 @@ struct MoneyTests {
     // MARK: Addition (Negatives)
 
     @Test
+    func addNegativeToPositive() {
+        let positive = Money<TST>(2)
+        let negative = Money<TST>(-3)
+        let expected = Money<TST>(-1)
+
+        let actual = positive + negative
+
+        #expect(actual == expected)
+    }
+
+    @Test
     func addNegativeToNegative() {
         let a = Money<TST>(-2)
         let b = Money<TST>(-3)
@@ -50,16 +63,6 @@ struct MoneyTests {
         let actual = a + b
 
         #expect(actual == expected)
-    }
-
-    @Test
-    func addZeroToNegative() {
-        let zero = Money<TST>(0)
-        let negative = Money<TST>(-1)
-
-        let actual = negative + zero
-
-        #expect(actual == negative)
     }
 
     @Test
@@ -72,8 +75,27 @@ struct MoneyTests {
         #expect(actual == negative)
     }
 
-
     // MARK: Addition (Zero)
+
+    @Test
+    func addZeroToPositive() {
+        let zero = Money<TST>(0)
+        let positive = Money<TST>(3)
+
+        let actual = positive + zero
+
+        #expect(actual == positive)
+    }
+
+    @Test
+    func addZeroToNegative() {
+        let zero = Money<TST>(0)
+        let negative = Money<TST>(-1)
+
+        let actual = negative + zero
+
+        #expect(actual == negative)
+    }
 
     @Test
     func addZeroToZero() {
@@ -100,13 +122,14 @@ struct MoneyTests {
     }
 
     @Test
-    func subtractZeroFromPositive() {
-        let zero = Money<TST>(0)
-        let positive = Money<TST>(3)
+    func subtractPositiveFromNegative() {
+        let positive = Money<TST>(7)
+        let negative = Money<TST>(-3)
+        let expected = Money<TST>(-10)
 
-        let actual = positive - zero
+        let actual = negative - positive
 
-        #expect(actual == positive)
+        #expect(actual == expected)
     }
 
     @Test
@@ -123,6 +146,17 @@ struct MoneyTests {
     // MARK: - Subtraction (Negative)
 
     @Test
+    func subtractNegativeFromPositive() {
+        let positive = Money<TST>(4)
+        let negative = Money<TST>(-3)
+        let expected = Money<TST>(7)
+
+        let actual = positive - negative
+
+        #expect(actual == expected)
+    }
+
+    @Test
     func subtractNegativeFromNegative() {
         let a = Money<TST>(-3)
         let b = Money<TST>(-4)
@@ -131,16 +165,6 @@ struct MoneyTests {
         let actual = a - b
 
         #expect(actual == expected)
-    }
-
-    @Test
-    func subtractZeroFromNegative() {
-        let zero = Money<TST>(0)
-        let negative = Money<TST>(-7)
-
-        let actual = negative - zero
-
-        #expect(actual == negative)
     }
 
     @Test
@@ -155,6 +179,26 @@ struct MoneyTests {
     }
 
     // MARK: - Subtraction (Zero)
+
+    @Test
+    func subtractZeroFromPositive() {
+        let zero = Money<TST>(0)
+        let positive = Money<TST>(3)
+
+        let actual = positive - zero
+
+        #expect(actual == positive)
+    }
+
+    @Test
+    func subtractZeroFromNegative() {
+        let zero = Money<TST>(0)
+        let negative = Money<TST>(-7)
+
+        let actual = negative - zero
+
+        #expect(actual == negative)
+    }
 
     @Test
     func subtractZeroFromZero() {
@@ -181,13 +225,14 @@ struct MoneyTests {
     }
 
     @Test
-    func multiplyZeroMoneyByPositiveInt() {
-        let zeroMoney = Money<TST>(0)
-        let positiveInt: Int = 5
-        
-        let actual = zeroMoney * positiveInt
-        
-        #expect(actual == zeroMoney)
+    func multiplyPositiveMoneyByNegativeInt() {
+        let positiveMoney = Money<TST>(2)
+        let negativeInt: Int = -3
+        let expected = Money<TST>(-6)
+
+        let actual = positiveMoney * negativeInt
+
+        #expect(actual == expected)
     }
 
     @Test
@@ -203,6 +248,17 @@ struct MoneyTests {
     // MARK: - Integral multiplication (negative)
 
     @Test
+    func multiplyNegativeMoneyByPositiveInt() {
+        let negativeMoney = Money<TST>(-2)
+        let positiveInt: Int = 3
+        let expected = Money<TST>(-6)
+
+        let actual = negativeMoney * positiveInt
+
+        #expect(actual == expected)
+    }
+
+    @Test
     func multiplyNegativeMoneyByNegativeInt() {
         let negativeMoney = Money<TST>(-3)
         let negativeInt: Int = -4
@@ -211,16 +267,6 @@ struct MoneyTests {
         let actual = negativeMoney * negativeInt
 
         #expect(actual == expected)
-    }
-
-    @Test
-    func multiplyZeroMoneyByNegativeInt() {
-        let zeroMoney = Money<TST>(0)
-        let negativeInt: Int = -2
-
-        let actual = zeroMoney * negativeInt
-
-        #expect(actual == zeroMoney)
     }
 
     @Test
@@ -234,6 +280,26 @@ struct MoneyTests {
     }
 
     // MARK: - Integral multiplication (zero)
+
+    @Test
+    func multiplyZeroMoneyByPositiveInt() {
+        let zeroMoney = Money<TST>(0)
+        let positiveInt: Int = 5
+
+        let actual = zeroMoney * positiveInt
+
+        #expect(actual == zeroMoney)
+    }
+
+    @Test
+    func multiplyZeroMoneyByNegativeInt() {
+        let zeroMoney = Money<TST>(0)
+        let negativeInt: Int = -2
+
+        let actual = zeroMoney * negativeInt
+
+        #expect(actual == zeroMoney)
+    }
 
     @Test
     func multiplyZeroMoneyByZeroInt() {
