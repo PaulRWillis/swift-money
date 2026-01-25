@@ -5,10 +5,11 @@ private enum TST: Currency {}
 
 struct MoneyTests {
 
-    // MARK: - Addition
+    // MARK: - ADDITION
 
+    // MARK: - Addition (Positives)
     @Test
-    func addNonZeroToNonZero() throws {
+    func addPositiveToPositive() throws {
         let a = Money<TST>(2)
         let b = Money<TST>(3)
         let expected = Money<TST>(5)
@@ -19,26 +20,60 @@ struct MoneyTests {
     }
     
     @Test
-    func addZeroToNonZero() throws {
+    func addZeroToPositive() throws {
         let zero = Money<TST>(0)
-        let nonZero = Money<TST>(3)
-        let expected = nonZero
+        let positive = Money<TST>(3)
 
-        let actual = nonZero + zero
+        let actual = positive + zero
 
-        #expect(actual == expected)
+        #expect(actual == positive)
     }
     
     @Test
-    func addNonZeroToZero() {
+    func addPositiveToZero() {
         let zero = Money<TST>(0)
-        let nonZero = Money<TST>(3)
-        let expected = nonZero
+        let positive = Money<TST>(3)
 
-        let actual = zero + nonZero
+        let actual = zero + positive
+
+        #expect(actual == positive)
+    }
+
+    // MARK: Addition (Negatives)
+
+    @Test
+    func addNegativeToNegative() {
+        let a = Money<TST>(-2)
+        let b = Money<TST>(-3)
+        let expected = Money<TST>(-5)
+
+        let actual = a + b
 
         #expect(actual == expected)
     }
+
+    @Test
+    func addZeroToNegative() {
+        let zero = Money<TST>(0)
+        let negative = Money<TST>(-1)
+
+        let actual = negative + zero
+
+        #expect(actual == negative)
+    }
+
+    @Test
+    func addNegativeToZero() {
+        let zero = Money<TST>(0)
+        let negative = Money<TST>(-1)
+
+        let actual = zero + negative
+
+        #expect(actual == negative)
+    }
+
+
+    // MARK: Addition (Zero)
 
     @Test
     func addZeroToZero() {
@@ -49,10 +84,12 @@ struct MoneyTests {
         #expect(actual == zero)
     }
 
-    // MARK: - Subtraction
+    // MARK: - SUBTRACTION
+
+    // MARK: Subtraction (Positive)
 
     @Test
-    func subtractNonZeroFromNonZero() {
+    func subtractPositiveFromPositive() {
         let a = Money<TST>(3)
         let b = Money<TST>(2)
         let expected = Money<TST>(1)
@@ -63,26 +100,61 @@ struct MoneyTests {
     }
 
     @Test
-    func subtractZeroFromNonZero() {
+    func subtractZeroFromPositive() {
         let zero = Money<TST>(0)
-        let nonZero = Money<TST>(3)
-        let expected = nonZero
+        let positive = Money<TST>(3)
 
-        let actual = nonZero - zero
+        let actual = positive - zero
+
+        #expect(actual == positive)
+    }
+
+    @Test
+    func subtractPositiveFromZero() {
+        let zero = Money<TST>(0)
+        let positive = Money<TST>(3)
+        let expected = Money<TST>(-3)
+
+        let actual = zero - positive
+
+        #expect(actual == expected)
+    }
+
+    // MARK: - Subtraction (Negative)
+
+    @Test
+    func subtractNegativeFromNegative() {
+        let a = Money<TST>(-3)
+        let b = Money<TST>(-4)
+        let expected = Money<TST>(1)
+
+        let actual = a - b
 
         #expect(actual == expected)
     }
 
     @Test
-    func subtractNonZeroFromZero() {
+    func subtractZeroFromNegative() {
         let zero = Money<TST>(0)
-        let nonZero = Money<TST>(3)
-        let expected = Money<TST>(-3)
+        let negative = Money<TST>(-7)
 
-        let actual = zero - nonZero
+        let actual = negative - zero
+
+        #expect(actual == negative)
+    }
+
+    @Test
+    func subtractNegativeFromZero() {
+        let zero = Money<TST>(0)
+        let negative = Money<TST>(-9)
+        let expected = Money<TST>(9)
+
+        let actual = zero - negative
 
         #expect(actual == expected)
     }
+
+    // MARK: - Subtraction (Zero)
 
     @Test
     func subtractZeroFromZero() {
