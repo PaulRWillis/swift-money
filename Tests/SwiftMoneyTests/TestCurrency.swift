@@ -1,3 +1,5 @@
 import SwiftMoney
 
-enum TST: Currency {}
+enum TST: Currency {
+    static let code: String = "TST"
+}

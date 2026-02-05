@@ -1,7 +1,7 @@
 import Foundation
 
 public struct Money<C: Currency> {
-    private let minorUnits: Int
+    let minorUnits: Int
 
     public init(minorUnits: Int) {
         self.minorUnits = minorUnits
