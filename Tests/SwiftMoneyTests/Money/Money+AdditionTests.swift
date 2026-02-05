@@ -7,9 +7,9 @@ struct Money_AdditionTests {
 
     @Test
     func addPositiveToPositive() {
-        let a = Money<TST>(2)
-        let b = Money<TST>(3)
-        let expected = Money<TST>(5)
+        let a = Money<TST>(minorUnits: 2)
+        let b = Money<TST>(minorUnits: 3)
+        let expected = Money<TST>(minorUnits: 5)
         
         let actual = a + b
         
@@ -18,9 +18,9 @@ struct Money_AdditionTests {
 
     @Test
     func addPositiveToNegative() {
-        let positive = Money<TST>(2)
-        let negative = Money<TST>(-3)
-        let expected = Money<TST>(-1)
+        let positive = Money<TST>(minorUnits: 2)
+        let negative = Money<TST>(minorUnits: -3)
+        let expected = Money<TST>(minorUnits: -1)
 
         let actual = negative + positive
 
@@ -29,8 +29,8 @@ struct Money_AdditionTests {
 
     @Test
     func addPositiveToZero() {
-        let zero = Money<TST>(0)
-        let positive = Money<TST>(3)
+        let zero = Money<TST>(minorUnits: 0)
+        let positive = Money<TST>(minorUnits: 3)
 
         let actual = zero + positive
 
@@ -41,9 +41,9 @@ struct Money_AdditionTests {
 
     @Test
     func addNegativeToPositive() {
-        let positive = Money<TST>(2)
-        let negative = Money<TST>(-3)
-        let expected = Money<TST>(-1)
+        let positive = Money<TST>(minorUnits: 2)
+        let negative = Money<TST>(minorUnits: -3)
+        let expected = Money<TST>(minorUnits: -1)
 
         let actual = positive + negative
 
@@ -52,9 +52,9 @@ struct Money_AdditionTests {
 
     @Test
     func addNegativeToNegative() {
-        let a = Money<TST>(-2)
-        let b = Money<TST>(-3)
-        let expected = Money<TST>(-5)
+        let a = Money<TST>(minorUnits: -2)
+        let b = Money<TST>(minorUnits: -3)
+        let expected = Money<TST>(minorUnits: -5)
 
         let actual = a + b
 
@@ -63,8 +63,8 @@ struct Money_AdditionTests {
 
     @Test
     func addNegativeToZero() {
-        let zero = Money<TST>(0)
-        let negative = Money<TST>(-1)
+        let zero = Money<TST>(minorUnits: 0)
+        let negative = Money<TST>(minorUnits: -1)
 
         let actual = zero + negative
 
@@ -75,8 +75,8 @@ struct Money_AdditionTests {
 
     @Test
     func addZeroToPositive() {
-        let zero = Money<TST>(0)
-        let positive = Money<TST>(3)
+        let zero = Money<TST>(minorUnits: 0)
+        let positive = Money<TST>(minorUnits: 3)
 
         let actual = positive + zero
 
@@ -85,8 +85,8 @@ struct Money_AdditionTests {
 
     @Test
     func addZeroToNegative() {
-        let zero = Money<TST>(0)
-        let negative = Money<TST>(-1)
+        let zero = Money<TST>(minorUnits: 0)
+        let negative = Money<TST>(minorUnits: -1)
 
         let actual = negative + zero
 
@@ -95,7 +95,7 @@ struct Money_AdditionTests {
 
     @Test
     func addZeroToZero() {
-        let zero = Money<TST>(0)
+        let zero = Money<TST>(minorUnits: 0)
 
         let actual = zero + zero
 

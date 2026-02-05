@@ -7,9 +7,9 @@ struct Money_SubtractionTests {
 
     @Test
     func subtractPositiveFromPositive() {
-        let a = Money<TST>(3)
-        let b = Money<TST>(2)
-        let expected = Money<TST>(1)
+        let a = Money<TST>(minorUnits: 3)
+        let b = Money<TST>(minorUnits: 2)
+        let expected = Money<TST>(minorUnits: 1)
 
         let actual = a - b
 
@@ -18,9 +18,9 @@ struct Money_SubtractionTests {
 
     @Test
     func subtractPositiveFromNegative() {
-        let positive = Money<TST>(7)
-        let negative = Money<TST>(-3)
-        let expected = Money<TST>(-10)
+        let positive = Money<TST>(minorUnits: 7)
+        let negative = Money<TST>(minorUnits: -3)
+        let expected = Money<TST>(minorUnits: -10)
 
         let actual = negative - positive
 
@@ -29,9 +29,9 @@ struct Money_SubtractionTests {
 
     @Test
     func subtractPositiveFromZero() {
-        let zero = Money<TST>(0)
-        let positive = Money<TST>(3)
-        let expected = Money<TST>(-3)
+        let zero = Money<TST>(minorUnits: 0)
+        let positive = Money<TST>(minorUnits: 3)
+        let expected = Money<TST>(minorUnits: -3)
 
         let actual = zero - positive
 
@@ -42,9 +42,9 @@ struct Money_SubtractionTests {
 
     @Test
     func subtractNegativeFromPositive() {
-        let positive = Money<TST>(4)
-        let negative = Money<TST>(-3)
-        let expected = Money<TST>(7)
+        let positive = Money<TST>(minorUnits: 4)
+        let negative = Money<TST>(minorUnits: -3)
+        let expected = Money<TST>(minorUnits: 7)
 
         let actual = positive - negative
 
@@ -53,9 +53,9 @@ struct Money_SubtractionTests {
 
     @Test
     func subtractNegativeFromNegative() {
-        let a = Money<TST>(-3)
-        let b = Money<TST>(-4)
-        let expected = Money<TST>(1)
+        let a = Money<TST>(minorUnits: -3)
+        let b = Money<TST>(minorUnits: -4)
+        let expected = Money<TST>(minorUnits: 1)
 
         let actual = a - b
 
@@ -64,9 +64,9 @@ struct Money_SubtractionTests {
 
     @Test
     func subtractNegativeFromZero() {
-        let zero = Money<TST>(0)
-        let negative = Money<TST>(-9)
-        let expected = Money<TST>(9)
+        let zero = Money<TST>(minorUnits: 0)
+        let negative = Money<TST>(minorUnits: -9)
+        let expected = Money<TST>(minorUnits: 9)
 
         let actual = zero - negative
 
@@ -77,8 +77,8 @@ struct Money_SubtractionTests {
 
     @Test
     func subtractZeroFromPositive() {
-        let zero = Money<TST>(0)
-        let positive = Money<TST>(3)
+        let zero = Money<TST>(minorUnits: 0)
+        let positive = Money<TST>(minorUnits: 3)
 
         let actual = positive - zero
 
@@ -87,8 +87,8 @@ struct Money_SubtractionTests {
 
     @Test
     func subtractZeroFromNegative() {
-        let zero = Money<TST>(0)
-        let negative = Money<TST>(-7)
+        let zero = Money<TST>(minorUnits: 0)
+        let negative = Money<TST>(minorUnits: -7)
 
         let actual = negative - zero
 
@@ -97,7 +97,7 @@ struct Money_SubtractionTests {
 
     @Test
     func subtractZeroFromZero() {
-        let zero = Money<TST>(0)
+        let zero = Money<TST>(minorUnits: 0)
 
         let actual = zero - zero
 
