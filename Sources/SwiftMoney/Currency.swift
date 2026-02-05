@@ -1,6 +1,6 @@
 import Foundation
 
-public protocol Currency: Hashable {
+public protocol Currency: Equatable, Hashable, Sendable {
     static var code: String { get }
 }
 

@@ -1,7 +1,12 @@
 import Foundation
 
-public struct Money<C: Currency> {
+public struct Money<Currency: SwiftMoney.Currency> {
     let minorUnits: Int
+
+    /// The currency type
+    public var currency: any SwiftMoney.Currency.Type {
+        Currency.self
+    }
 
     public init(minorUnits: Int) {
         self.minorUnits = minorUnits
