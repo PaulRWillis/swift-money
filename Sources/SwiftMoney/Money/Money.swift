@@ -31,3 +31,9 @@ public extension Money {
 }
 
 extension Money: Equatable {}
+
+extension Money: Hashable {}
+
+extension Money: Sendable {}
+
+extension Money: Codable {}
