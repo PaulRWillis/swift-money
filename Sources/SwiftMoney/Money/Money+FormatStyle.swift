@@ -13,7 +13,7 @@ extension Money.FormatStyle: Foundation.FormatStyle {
         value.minorUnits.formatted(
             .currency(code: value.currency.code)
             .presentation(.narrow)
-            .scale(0.01)
+            .scale(1.00 / Double(value.currency.minimalQuantisation))
         )
     }
 }

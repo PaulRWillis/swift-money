@@ -17,4 +17,12 @@ struct Money_FormatStyleTests {
         let dollars = dollarFormatStyle.format(Money<USD>(minorUnits: 100))
         #expect(dollars == "$1.00")
     }
+
+    @Test
+    func whenFormatAsCurrency_shouldRespectMinimalQuantisation() {
+        // Japanese Yen (JPY) has no minor units, unlike e.g. US Dollars (USD) with 100 cents to the dollar
+        let yenFormatStyle = Money<JPY>.FormatStyle()
+        let yen = yenFormatStyle.format(Money<JPY>(minorUnits: 100))
+        #expect(yen == "¥100")
+    }
 }
