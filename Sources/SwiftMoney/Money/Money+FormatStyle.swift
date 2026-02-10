@@ -2,8 +2,13 @@ import Foundation
 
 extension Money {
     public struct FormatStyle: Equatable, Hashable, Sendable, Codable {
+        private let locale: Locale
 
-        public init() {}
+        public init(
+            locale: Locale = .autoupdatingCurrent
+        ) {
+            self.locale = locale
+        }
     }
 }
 
@@ -12,6 +17,7 @@ extension Money.FormatStyle: Foundation.FormatStyle {
     public func format(_ value: Money) -> String {
         value.minorUnits.formatted(
             .currency(code: value.currency.code)
+            .locale(self.locale)
             .presentation(.narrow)
             .scale(1.00 / Double(value.currency.minimalQuantisation))
         )

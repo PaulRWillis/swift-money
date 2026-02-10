@@ -1,3 +1,4 @@
+import Foundation
 import SwiftMoney
 import Testing
 
@@ -25,4 +26,20 @@ struct Money_FormatStyleTests {
         let yen = yenFormatStyle.format(Money<JPY>(minorUnits: 100))
         #expect(yen == "¥100")
     }
+
+    @Test
+    func whenFormatAsCurrencyWithLocale_shouldRespectLocaleCurrencyRepresentation() {
+        localesAndMoneys.forEach { (locale, expectedValue) in
+            let formatStyle = Money<EUR>.FormatStyle(locale: locale)
+            let formattedValue = formatStyle.format(Money<EUR>(minorUnits: 105))
+
+            #expect(formattedValue == expectedValue, "String representations should be equal for locale: \(locale.identifier)")
+        }
+    }
+
+    private var localesAndMoneys: [(locale: Locale, stringValue: String)] = [
+        (Locale(identifier: "en_GB"), "€1.05"),
+        (Locale(identifier: "en_US"), "€1.05"),
+        (Locale(identifier: "fr"), "1,05 €"),
+    ]
 }
