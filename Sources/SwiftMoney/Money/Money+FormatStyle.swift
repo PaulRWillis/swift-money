@@ -19,7 +19,7 @@ extension Money.FormatStyle: Foundation.FormatStyle {
             .currency(code: value.currency.code)
             .locale(self.locale)
             .presentation(.narrow)
-            .scale(1.00 / Double(value.currency.minimalQuantisation))
+            .scale(1.00 / Double(value.currency.minorUnits))
         )
     }
 }
