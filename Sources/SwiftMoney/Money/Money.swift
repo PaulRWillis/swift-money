@@ -35,6 +35,12 @@ public extension Money {
     }
 }
 
+extension Money: CustomStringConvertible {
+    public var description: String {
+        self.formatted()
+    }
+}
+
 extension Money: Equatable {}
 
 extension Money: Hashable {}
