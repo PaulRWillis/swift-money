@@ -48,17 +48,9 @@ struct Money_FormatStyleTests {
     func sign_shouldDefaultToAutomatic() {
         let formatStyle = Money<GBP>.FormatStyle()
 
-        let positiveMoney = Money<GBP>(minorUnits: 100)
-        let positiveFormatted = formatStyle.format(positiveMoney)
-        #expect(positiveFormatted == "£1.00")
-
-        let negativeMoney = Money<GBP>(minorUnits: -100)
-        let negativeFormatted = formatStyle.format(negativeMoney)
-        #expect(negativeFormatted == "-£1.00")
-
-        let zeroMoney = Money<GBP>(minorUnits: 0)
-        let zeroFormatted = formatStyle.format(zeroMoney)
-        #expect(zeroFormatted == "£0.00")
+        #expect(formatStyle.format(Money<GBP>(minorUnits: 100)) == "£1.00")
+        #expect(formatStyle.format(Money<GBP>(minorUnits: -100)) == "-£1.00")
+        #expect(formatStyle.format(Money<GBP>(minorUnits: 0)) == "£0.00")
     }
 
     @Test
@@ -66,17 +58,9 @@ struct Money_FormatStyleTests {
         let formatStyle = Money<GBP>.FormatStyle()
             .sign(strategy: .always())
 
-        let positiveMoney = Money<GBP>(minorUnits: 100)
-        let positiveFormatted = formatStyle.format(positiveMoney)
-        #expect(positiveFormatted == "+£1.00")
-
-        let negativeMoney = Money<GBP>(minorUnits: -100)
-        let negativeFormatted = formatStyle.format(negativeMoney)
-        #expect(negativeFormatted == "-£1.00")
-
-        let zeroMoney = Money<GBP>(minorUnits: 0)
-        let zeroFormatted = formatStyle.format(zeroMoney)
-        #expect(zeroFormatted == "+£0.00") // including zero
+        #expect(formatStyle.format(Money<GBP>(minorUnits: 100)) == "+£1.00")
+        #expect(formatStyle.format(Money<GBP>(minorUnits: -100)) == "-£1.00")
+        #expect(formatStyle.format(Money<GBP>(minorUnits: 0)) == "+£0.00")
     }
 
     @Test
@@ -84,17 +68,9 @@ struct Money_FormatStyleTests {
         let formatStyle = Money<GBP>.FormatStyle()
             .sign(strategy: .always(showZero: false))
 
-        let positiveMoney = Money<GBP>(minorUnits: 100)
-        let positiveFormatted = formatStyle.format(positiveMoney)
-        #expect(positiveFormatted == "+£1.00")
-
-        let negativeMoney = Money<GBP>(minorUnits: -100)
-        let negativeFormatted = formatStyle.format(negativeMoney)
-        #expect(negativeFormatted == "-£1.00")
-
-        let zeroMoney = Money<GBP>(minorUnits: 0)
-        let zeroFormatted = formatStyle.format(zeroMoney)
-        #expect(zeroFormatted == "£0.00") // except zero
+        #expect(formatStyle.format(Money<GBP>(minorUnits: 100)) == "+£1.00")
+        #expect(formatStyle.format(Money<GBP>(minorUnits: -100)) == "-£1.00")
+        #expect(formatStyle.format(Money<GBP>(minorUnits: 0)) == "£0.00")
     }
 
     @Test
@@ -102,17 +78,9 @@ struct Money_FormatStyleTests {
         let formatStyle = Money<GBP>.FormatStyle()
             .sign(strategy: .accounting)
 
-        let positiveMoney = Money<GBP>(minorUnits: 100)
-        let positiveFormatted = formatStyle.format(positiveMoney)
-        #expect(positiveFormatted == "£1.00")
-
-        let negativeMoney = Money<GBP>(minorUnits: -100)
-        let negativeFormatted = formatStyle.format(negativeMoney)
-        #expect(negativeFormatted == "(£1.00)")
-
-        let zeroMoney = Money<GBP>(minorUnits: 0)
-        let zeroFormatted = formatStyle.format(zeroMoney)
-        #expect(zeroFormatted == "£0.00")
+        #expect(formatStyle.format(Money<GBP>(minorUnits: 100)) == "£1.00")
+        #expect(formatStyle.format(Money<GBP>(minorUnits: -100)) == "(£1.00)")
+        #expect(formatStyle.format(Money<GBP>(minorUnits: 0)) == "£0.00")
     }
 
     @Test
@@ -120,17 +88,9 @@ struct Money_FormatStyleTests {
         let formatStyle = Money<GBP>.FormatStyle()
             .sign(strategy: .accountingAlways(showZero: true))
 
-        let positiveMoney = Money<GBP>(minorUnits: 100)
-        let positiveFormatted = formatStyle.format(positiveMoney)
-        #expect(positiveFormatted == "+£1.00")
-
-        let negativeMoney = Money<GBP>(minorUnits: -100)
-        let negativeFormatted = formatStyle.format(negativeMoney)
-        #expect(negativeFormatted == "(£1.00)")
-
-        let zeroMoney = Money<GBP>(minorUnits: 0)
-        let zeroFormatted = formatStyle.format(zeroMoney)
-        #expect(zeroFormatted == "+£0.00")
+        #expect(formatStyle.format(Money<GBP>(minorUnits: 100)) == "+£1.00")
+        #expect(formatStyle.format(Money<GBP>(minorUnits: -100)) == "(£1.00)")
+        #expect(formatStyle.format(Money<GBP>(minorUnits: 0)) == "+£0.00")
     }
 
     @Test
@@ -138,17 +98,9 @@ struct Money_FormatStyleTests {
         let formatStyle = Money<GBP>.FormatStyle()
             .sign(strategy: .accountingAlways(showZero: false))
 
-        let positiveMoney = Money<GBP>(minorUnits: 100)
-        let positiveFormatted = formatStyle.format(positiveMoney)
-        #expect(positiveFormatted == "+£1.00")
-
-        let negativeMoney = Money<GBP>(minorUnits: -100)
-        let negativeFormatted = formatStyle.format(negativeMoney)
-        #expect(negativeFormatted == "(£1.00)")
-
-        let zeroMoney = Money<GBP>(minorUnits: 0)
-        let zeroFormatted = formatStyle.format(zeroMoney)
-        #expect(zeroFormatted == "£0.00")
+        #expect(formatStyle.format(Money<GBP>(minorUnits: 100)) == "+£1.00")
+        #expect(formatStyle.format(Money<GBP>(minorUnits: -100)) == "(£1.00)")
+        #expect(formatStyle.format(Money<GBP>(minorUnits: 0)) == "£0.00")
     }
 
     @Test
@@ -156,17 +108,9 @@ struct Money_FormatStyleTests {
         let formatStyle = Money<GBP>.FormatStyle()
             .sign(strategy: .never)
 
-        let positiveMoney = Money<GBP>(minorUnits: 100)
-        let positiveFormatted = formatStyle.format(positiveMoney)
-        #expect(positiveFormatted == "£1.00")
-
-        let negativeMoney = Money<GBP>(minorUnits: -100)
-        let negativeFormatted = formatStyle.format(negativeMoney)
-        #expect(negativeFormatted == "£1.00")
-
-        let zeroMoney = Money<GBP>(minorUnits: 0)
-        let zeroFormatted = formatStyle.format(zeroMoney)
-        #expect(zeroFormatted == "£0.00")
+        #expect(formatStyle.format(Money<GBP>(minorUnits: 100)) == "£1.00")
+        #expect(formatStyle.format(Money<GBP>(minorUnits: -200)) == "£2.00")
+        #expect(formatStyle.format(Money<GBP>(minorUnits: 0)) == "£0.00")
     }
 
     @Test
@@ -174,16 +118,8 @@ struct Money_FormatStyleTests {
         let formatStyle = Money<GBP>.FormatStyle()
             .sign(strategy: .automatic)
 
-        let positiveMoney = Money<GBP>(minorUnits: 100)
-        let positiveFormatted = formatStyle.format(positiveMoney)
-        #expect(positiveFormatted == "£1.00")
-
-        let negativeMoney = Money<GBP>(minorUnits: -100)
-        let negativeFormatted = formatStyle.format(negativeMoney)
-        #expect(negativeFormatted == "-£1.00")
-
-        let zeroMoney = Money<GBP>(minorUnits: 0)
-        let zeroFormatted = formatStyle.format(zeroMoney)
-        #expect(zeroFormatted == "£0.00")
+        #expect(formatStyle.format(Money<GBP>(minorUnits: 100)) == "£1.00")
+        #expect(formatStyle.format(Money<GBP>(minorUnits: -100)) == "-£1.00")
+        #expect(formatStyle.format(Money<GBP>(minorUnits: 0)) == "£0.00")
     }
 }
