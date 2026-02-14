@@ -3,6 +3,11 @@ import SwiftMoney
 import Testing
 
 struct Money_FormatStyleTests {
+    private var localesAndMoneys: [(locale: Locale, stringValue: String)] = [
+        (Locale(identifier: "en_GB"), "€1.05"),
+        (Locale(identifier: "en_US"), "€1.05"),
+        (Locale(identifier: "fr"), "1,05 €"),
+    ]
 
     @Test
     func whenFormatAsCurrency_shouldRepresentAsTypedCurrency() {
@@ -37,9 +42,21 @@ struct Money_FormatStyleTests {
         }
     }
 
-    private var localesAndMoneys: [(locale: Locale, stringValue: String)] = [
-        (Locale(identifier: "en_GB"), "€1.05"),
-        (Locale(identifier: "en_US"), "€1.05"),
-        (Locale(identifier: "fr"), "1,05 €"),
-    ]
+    @Test
+    func sign_shouldSupportAlwaysShowingSign() {
+        let formatStyle = Money<GBP>.FormatStyle()
+            .sign(strategy: .always())
+
+        let positiveMoney = Money<GBP>(minorUnits: 100)
+        let positiveFormatted = formatStyle.format(positiveMoney)
+        #expect(positiveFormatted == "+£1.00")
+
+        let negativeMoney = Money<GBP>(minorUnits: -100)
+        let negativeFormatted = formatStyle.format(negativeMoney)
+        #expect(negativeFormatted == "-£1.00")
+
+        let zeroMoney = Money<GBP>(minorUnits: 0)
+        let zeroFormatted = formatStyle.format(zeroMoney)
+        #expect(zeroFormatted == "+£0.00")
+    }
 }

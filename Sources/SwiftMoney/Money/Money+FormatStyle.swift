@@ -3,11 +3,33 @@ import Foundation
 extension Money {
     public struct FormatStyle: Equatable, Hashable, Sendable, Codable {
         private let locale: Locale
+        private let signDisplayStrategy: Configuration.SignDisplayStrategy
+
+        public typealias Configuration = CurrencyFormatStyleConfiguration
 
         public init(
             locale: Locale = .autoupdatingCurrent
         ) {
             self.locale = locale
+
+            self.signDisplayStrategy = .automatic
+        }
+
+        private init(
+            locale: Locale,
+            signDisplayStrategy: Configuration.SignDisplayStrategy
+        ) {
+            self.locale = locale
+            self.signDisplayStrategy = signDisplayStrategy
+        }
+
+        public func sign(
+            strategy: Configuration.SignDisplayStrategy
+        ) -> FormatStyle {
+            Self.init(
+                locale: self.locale,
+                signDisplayStrategy: strategy
+            )
         }
     }
 }
@@ -18,6 +40,7 @@ extension Money.FormatStyle: Foundation.FormatStyle {
         value.minorUnits.formatted(
             .currency(code: value.currency.code)
             .locale(self.locale)
+            .sign(strategy: self.signDisplayStrategy)
             .presentation(.narrow)
             .scale(1.00 / Double(value.currency.minorUnits))
         )
