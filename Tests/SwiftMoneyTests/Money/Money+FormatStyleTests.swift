@@ -173,3 +173,6 @@ struct Money_FormatStyleTests {
         #expect(formatStyle.format(Money<USD>(minorUnits: 0)) == "US$0.00")
     }
 }
+
+
+#warning("Add locale to make tests resilient when tested on different machines")

@@ -114,8 +114,6 @@ extension Money {
 
  */
 
-#warning("This availability needs replacing")
-@available(macOS 12.0, *)
 extension Money.FormatStyle: Foundation.FormatStyle {
     public func format(_ value: Money) -> String {
         value.minorUnits.formatted(
