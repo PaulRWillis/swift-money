@@ -42,6 +42,25 @@ struct Money_FormatStyleTests {
         }
     }
 
+    // MARK: - Sign formatting
+
+    @Test
+    func sign_shouldDefaultToAutomatic() {
+        let formatStyle = Money<GBP>.FormatStyle()
+
+        let positiveMoney = Money<GBP>(minorUnits: 100)
+        let positiveFormatted = formatStyle.format(positiveMoney)
+        #expect(positiveFormatted == "£1.00")
+
+        let negativeMoney = Money<GBP>(minorUnits: -100)
+        let negativeFormatted = formatStyle.format(negativeMoney)
+        #expect(negativeFormatted == "-£1.00")
+
+        let zeroMoney = Money<GBP>(minorUnits: 0)
+        let zeroFormatted = formatStyle.format(zeroMoney)
+        #expect(zeroFormatted == "£0.00")
+    }
+
     @Test
     func sign_shouldSupportAlwaysShowingSign() {
         let formatStyle = Money<GBP>.FormatStyle()
@@ -57,6 +76,114 @@ struct Money_FormatStyleTests {
 
         let zeroMoney = Money<GBP>(minorUnits: 0)
         let zeroFormatted = formatStyle.format(zeroMoney)
+        #expect(zeroFormatted == "+£0.00") // including zero
+    }
+
+    @Test
+    func sign_shouldSupportAlwaysShowingSignExceptZero() {
+        let formatStyle = Money<GBP>.FormatStyle()
+            .sign(strategy: .always(showZero: false))
+
+        let positiveMoney = Money<GBP>(minorUnits: 100)
+        let positiveFormatted = formatStyle.format(positiveMoney)
+        #expect(positiveFormatted == "+£1.00")
+
+        let negativeMoney = Money<GBP>(minorUnits: -100)
+        let negativeFormatted = formatStyle.format(negativeMoney)
+        #expect(negativeFormatted == "-£1.00")
+
+        let zeroMoney = Money<GBP>(minorUnits: 0)
+        let zeroFormatted = formatStyle.format(zeroMoney)
+        #expect(zeroFormatted == "£0.00") // except zero
+    }
+
+    @Test
+    func sign_shouldSupportAccountingFormat() {
+        let formatStyle = Money<GBP>.FormatStyle()
+            .sign(strategy: .accounting)
+
+        let positiveMoney = Money<GBP>(minorUnits: 100)
+        let positiveFormatted = formatStyle.format(positiveMoney)
+        #expect(positiveFormatted == "£1.00")
+
+        let negativeMoney = Money<GBP>(minorUnits: -100)
+        let negativeFormatted = formatStyle.format(negativeMoney)
+        #expect(negativeFormatted == "(£1.00)")
+
+        let zeroMoney = Money<GBP>(minorUnits: 0)
+        let zeroFormatted = formatStyle.format(zeroMoney)
+        #expect(zeroFormatted == "£0.00")
+    }
+
+    @Test
+    func sign_shouldSupportAccountingAlways() {
+        let formatStyle = Money<GBP>.FormatStyle()
+            .sign(strategy: .accountingAlways(showZero: true))
+
+        let positiveMoney = Money<GBP>(minorUnits: 100)
+        let positiveFormatted = formatStyle.format(positiveMoney)
+        #expect(positiveFormatted == "+£1.00")
+
+        let negativeMoney = Money<GBP>(minorUnits: -100)
+        let negativeFormatted = formatStyle.format(negativeMoney)
+        #expect(negativeFormatted == "(£1.00)")
+
+        let zeroMoney = Money<GBP>(minorUnits: 0)
+        let zeroFormatted = formatStyle.format(zeroMoney)
         #expect(zeroFormatted == "+£0.00")
+    }
+
+    @Test
+    func sign_shouldSupportAccountingAlwaysExceptZero() {
+        let formatStyle = Money<GBP>.FormatStyle()
+            .sign(strategy: .accountingAlways(showZero: false))
+
+        let positiveMoney = Money<GBP>(minorUnits: 100)
+        let positiveFormatted = formatStyle.format(positiveMoney)
+        #expect(positiveFormatted == "+£1.00")
+
+        let negativeMoney = Money<GBP>(minorUnits: -100)
+        let negativeFormatted = formatStyle.format(negativeMoney)
+        #expect(negativeFormatted == "(£1.00)")
+
+        let zeroMoney = Money<GBP>(minorUnits: 0)
+        let zeroFormatted = formatStyle.format(zeroMoney)
+        #expect(zeroFormatted == "£0.00")
+    }
+
+    @Test
+    func sign_shouldSupportNeverShowingSign() {
+        let formatStyle = Money<GBP>.FormatStyle()
+            .sign(strategy: .never)
+
+        let positiveMoney = Money<GBP>(minorUnits: 100)
+        let positiveFormatted = formatStyle.format(positiveMoney)
+        #expect(positiveFormatted == "£1.00")
+
+        let negativeMoney = Money<GBP>(minorUnits: -100)
+        let negativeFormatted = formatStyle.format(negativeMoney)
+        #expect(negativeFormatted == "£1.00")
+
+        let zeroMoney = Money<GBP>(minorUnits: 0)
+        let zeroFormatted = formatStyle.format(zeroMoney)
+        #expect(zeroFormatted == "£0.00")
+    }
+
+    @Test
+    func sign_shouldSupportAutomaticConfiguration() {
+        let formatStyle = Money<GBP>.FormatStyle()
+            .sign(strategy: .automatic)
+
+        let positiveMoney = Money<GBP>(minorUnits: 100)
+        let positiveFormatted = formatStyle.format(positiveMoney)
+        #expect(positiveFormatted == "£1.00")
+
+        let negativeMoney = Money<GBP>(minorUnits: -100)
+        let negativeFormatted = formatStyle.format(negativeMoney)
+        #expect(negativeFormatted == "-£1.00")
+
+        let zeroMoney = Money<GBP>(minorUnits: 0)
+        let zeroFormatted = formatStyle.format(zeroMoney)
+        #expect(zeroFormatted == "£0.00")
     }
 }
