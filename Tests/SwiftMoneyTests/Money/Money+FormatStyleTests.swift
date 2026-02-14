@@ -21,7 +21,7 @@ struct Money_FormatStyleTests {
 
         let dollarFormatStyle = Money<USD>.FormatStyle()
         let dollars = dollarFormatStyle.format(Money<USD>(minorUnits: 100))
-        #expect(dollars == "$1.00")
+        #expect(dollars == "US$1.00")
     }
 
     @Test
@@ -29,7 +29,7 @@ struct Money_FormatStyleTests {
         // Japanese Yen (JPY) has no minor units, unlike e.g. US Dollars (USD) with 100 cents to the dollar
         let yenFormatStyle = Money<JPY>.FormatStyle()
         let yen = yenFormatStyle.format(Money<JPY>(minorUnits: 100))
-        #expect(yen == "¥100")
+        #expect(yen == "JP¥100")
     }
 
     @Test
@@ -121,5 +121,55 @@ struct Money_FormatStyleTests {
         #expect(formatStyle.format(Money<GBP>(minorUnits: 100)) == "£1.00")
         #expect(formatStyle.format(Money<GBP>(minorUnits: -100)) == "-£1.00")
         #expect(formatStyle.format(Money<GBP>(minorUnits: 0)) == "£0.00")
+    }
+
+    // MARK: - Presentation formatting
+
+    @Test
+    func presentation_shouldDefaultToAutomatic() {
+        // Can we do this for multiple currencies? Iterate over array?
+        #expect(Money<USD>.FormatStyle().format(Money<USD>(minorUnits: 201)) == "US$2.01")
+        #expect(Money<USD>.FormatStyle().format(Money<USD>(minorUnits: -201)) == "-US$2.01")
+        #expect(Money<USD>.FormatStyle().format(Money<USD>(minorUnits: 0)) == "US$0.00")
+    }
+
+    @Test
+    func presentation_shouldSupportFullCurrencyName() {
+        let formatStyle = Money<USD>.FormatStyle()
+            .presentation(.fullName)
+
+        #expect(formatStyle.format(Money<USD>(minorUnits: 307)) == "3.07 US dollars")
+        #expect(formatStyle.format(Money<USD>(minorUnits: -455)) == "-4.55 US dollars")
+        #expect(formatStyle.format(Money<USD>(minorUnits: 0)) == "0.00 US dollars")
+    }
+
+    @Test
+    func presentation_shouldSupportISOCode() {
+        let formatStyle = Money<USD>.FormatStyle()
+            .presentation(.isoCode)
+
+        #expect(formatStyle.format(Money<USD>(minorUnits: 307)) == "USD 3.07")
+        #expect(formatStyle.format(Money<USD>(minorUnits: -455)) == "-USD 4.55")
+        #expect(formatStyle.format(Money<USD>(minorUnits: 0)) == "USD 0.00")
+    }
+
+    @Test
+    func presentation_shouldSupportNarrowCurrencyName() {
+        let formatStyle = Money<USD>.FormatStyle()
+            .presentation(.narrow)
+
+        #expect(formatStyle.format(Money<USD>(minorUnits: 307)) == "$3.07")
+        #expect(formatStyle.format(Money<USD>(minorUnits: -455)) == "-$4.55")
+        #expect(formatStyle.format(Money<USD>(minorUnits: 0)) == "$0.00")
+    }
+
+    @Test
+    func presentation_shouldSupportStandardCurrencyName() {
+        let formatStyle = Money<USD>.FormatStyle()
+            .presentation(.standard)
+
+        #expect(formatStyle.format(Money<USD>(minorUnits: 307)) == "US$3.07")
+        #expect(formatStyle.format(Money<USD>(minorUnits: -455)) == "-US$4.55")
+        #expect(formatStyle.format(Money<USD>(minorUnits: 0)) == "US$0.00")
     }
 }

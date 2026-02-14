@@ -4,6 +4,7 @@ extension Money {
     public struct FormatStyle: Equatable, Hashable, Sendable, Codable {
         private let locale: Locale
         private let signDisplayStrategy: Configuration.SignDisplayStrategy
+        private let presentation: Configuration.Presentation
 
         public typealias Configuration = CurrencyFormatStyleConfiguration
 
@@ -13,14 +14,17 @@ extension Money {
             self.locale = locale
 
             self.signDisplayStrategy = .automatic
+            self.presentation = .standard
         }
 
         private init(
             locale: Locale,
-            signDisplayStrategy: Configuration.SignDisplayStrategy
+            signDisplayStrategy: Configuration.SignDisplayStrategy,
+            presentation: Configuration.Presentation
         ) {
             self.locale = locale
             self.signDisplayStrategy = signDisplayStrategy
+            self.presentation = presentation
         }
 
 //        public var attributed: FormatStyle.Attributed {
@@ -40,7 +44,8 @@ extension Money {
         ) -> FormatStyle {
             Self.init(
                 locale: self.locale,
-                signDisplayStrategy: strategy
+                signDisplayStrategy: strategy,
+                presentation: self.presentation
             )
         }
 
@@ -61,11 +66,15 @@ extension Money {
 //
 //        }
 //
-//        public func presentation(
-//            _ p: Configuration.Presentation
-//        ) -> FormatStyle {
-//
-//        }
+        public func presentation(
+            _ p: Configuration.Presentation
+        ) -> FormatStyle {
+            Self.init(
+                locale: self.locale,
+                signDisplayStrategy: self.signDisplayStrategy,
+                presentation: p
+            )
+        }
 //
 //        /// Modifies the format style to use the specified notation.
 //        ///
@@ -113,7 +122,7 @@ extension Money.FormatStyle: Foundation.FormatStyle {
             .currency(code: value.currency.code)
             .locale(self.locale)
             .sign(strategy: self.signDisplayStrategy)
-            .presentation(.narrow)
+            .presentation(self.presentation)
             .scale(1.00 / Double(value.currency.minorUnits))
         )
     }
