@@ -8,7 +8,7 @@ struct Money_IntegralMultiplicationTests {
     @Test
     func multiplyPositiveMoneyByPositiveInt() {
         let positiveMoney = Money<TST>(minorUnits: 2)
-        let positiveInt: Int = 3
+        let positiveInt: Int64 = 3
         let expected = Money<TST>(minorUnits: 6)
 
         let actual = positiveMoney * positiveInt
@@ -19,7 +19,7 @@ struct Money_IntegralMultiplicationTests {
     @Test
     func multiplyPositiveMoneyByNegativeInt() {
         let positiveMoney = Money<TST>(minorUnits: 2)
-        let negativeInt: Int = -3
+        let negativeInt: Int64 = -3
         let expected = Money<TST>(minorUnits: -6)
 
         let actual = positiveMoney * negativeInt
@@ -30,7 +30,7 @@ struct Money_IntegralMultiplicationTests {
     @Test
     func multiplyPositiveMoneyByZeroInt() {
         let zeroMoney = Money<TST>(minorUnits: 0)
-        let positiveInt: Int = 5
+        let positiveInt: Int64 = 5
 
         let actual =  positiveInt * zeroMoney
 
@@ -42,7 +42,7 @@ struct Money_IntegralMultiplicationTests {
     @Test
     func multiplyNegativeMoneyByPositiveInt() {
         let negativeMoney = Money<TST>(minorUnits: -2)
-        let positiveInt: Int = 3
+        let positiveInt: Int64 = 3
         let expected = Money<TST>(minorUnits: -6)
 
         let actual = negativeMoney * positiveInt
@@ -53,7 +53,7 @@ struct Money_IntegralMultiplicationTests {
     @Test
     func multiplyNegativeMoneyByNegativeInt() {
         let negativeMoney = Money<TST>(minorUnits: -3)
-        let negativeInt: Int = -4
+        let negativeInt: Int64 = -4
         let expected = Money<TST>(minorUnits: 12)
 
         let actual = negativeMoney * negativeInt
@@ -64,7 +64,7 @@ struct Money_IntegralMultiplicationTests {
     @Test
     func multiplyNegativeIntByZeroMoney() {
         let zeroMoney = Money<TST>(minorUnits: 0)
-        let negativeInt: Int = -5
+        let negativeInt: Int64 = -5
 
         let actual =  negativeInt * zeroMoney
 
@@ -76,7 +76,7 @@ struct Money_IntegralMultiplicationTests {
     @Test
     func multiplyZeroMoneyByPositiveInt() {
         let zeroMoney = Money<TST>(minorUnits: 0)
-        let positiveInt: Int = 5
+        let positiveInt: Int64 = 5
 
         let actual = zeroMoney * positiveInt
 
@@ -86,7 +86,7 @@ struct Money_IntegralMultiplicationTests {
     @Test
     func multiplyZeroMoneyByNegativeInt() {
         let zeroMoney = Money<TST>(minorUnits: 0)
-        let negativeInt: Int = -2
+        let negativeInt: Int64 = -2
 
         let actual = zeroMoney * negativeInt
 
@@ -96,7 +96,7 @@ struct Money_IntegralMultiplicationTests {
     @Test
     func multiplyZeroMoneyByZeroInt() {
         let zeroMoney = Money<TST>(minorUnits: 0)
-        let zeroInt = Int.zero
+        let zeroInt = Int64.zero
 
         let actual = zeroMoney * zeroInt
 

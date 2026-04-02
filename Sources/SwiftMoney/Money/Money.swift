@@ -2,14 +2,14 @@ import Foundation
 
 public struct Money<Currency: SwiftMoney.Currency> {
     @usableFromInline
-    internal let _minorUnits: Int
+    internal let _minorUnits: Int64
 
     /// The currency type
     public var currency: any SwiftMoney.Currency.Type {
         Currency.self
     }
 
-    public init(minorUnits: Int) {
+    public init(minorUnits: Int64) {
         self._minorUnits = minorUnits
     }
 }
