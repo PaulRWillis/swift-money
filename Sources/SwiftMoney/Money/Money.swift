@@ -1,7 +1,8 @@
 import Foundation
 
 public struct Money<Currency: SwiftMoney.Currency> {
-    let minorUnits: Int
+    @usableFromInline
+    internal let _minorUnits: Int
 
     /// The currency type
     public var currency: any SwiftMoney.Currency.Type {
@@ -9,29 +10,29 @@ public struct Money<Currency: SwiftMoney.Currency> {
     }
 
     public init(minorUnits: Int) {
-        self.minorUnits = minorUnits
+        self._minorUnits = minorUnits
     }
 }
 
 public extension Money {
     static func + (lhs: Money, rhs: Money) -> Money {
-        Money(minorUnits: lhs.minorUnits + rhs.minorUnits)
+        Money(minorUnits: lhs._minorUnits + rhs._minorUnits)
     }
 }
 
 public extension Money {
     static func - (lhs: Money, rhs: Money) -> Money {
-        Money(minorUnits: lhs.minorUnits - rhs.minorUnits)
+        Money(minorUnits: lhs._minorUnits - rhs._minorUnits)
     }
 }
 
 public extension Money {
     static func * (lhs: Money, rhs: Int) -> Money {
-        Money(minorUnits: lhs.minorUnits * rhs)
+        Money(minorUnits: lhs._minorUnits * rhs)
     }
 
     static func * (lhs: Int, rhs: Money) -> Money {
-        Money(minorUnits: lhs * rhs.minorUnits)
+        Money(minorUnits: lhs * rhs._minorUnits)
     }
 }
 
