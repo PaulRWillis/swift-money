@@ -14,28 +14,6 @@ public struct Money<Currency: SwiftMoney.Currency> {
     }
 }
 
-public extension Money {
-    static func + (lhs: Money, rhs: Money) -> Money {
-        Money(minorUnits: lhs._minorUnits + rhs._minorUnits)
-    }
-}
-
-public extension Money {
-    static func - (lhs: Money, rhs: Money) -> Money {
-        Money(minorUnits: lhs._minorUnits - rhs._minorUnits)
-    }
-}
-
-public extension Money {
-    static func * (lhs: Money, rhs: Int) -> Money {
-        Money(minorUnits: lhs._minorUnits * rhs)
-    }
-
-    static func * (lhs: Int, rhs: Money) -> Money {
-        Money(minorUnits: lhs * rhs._minorUnits)
-    }
-}
-
 extension Money: CustomStringConvertible {
     public var description: String {
         self.formatted()
