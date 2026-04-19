@@ -9,8 +9,27 @@ public struct Money<Currency: SwiftMoney.Currency> {
         Currency.self
     }
 
+    /// Creates a zero value.
+    ///
+    /// ```swift
+    /// let zero = Money<GBP>()
+    /// zero == .zero  // true
+    /// ```
+    @inlinable
+    public init() {
+        self._minorUnits = 0
+    }
+
     public init(minorUnits: Int64) {
         self._minorUnits = minorUnits
+    }
+
+    // MARK: - Special values
+
+    /// The zero value.
+    @inlinable
+    public static var zero: Money {
+        Money(minorUnits: 0)
     }
 }
 
