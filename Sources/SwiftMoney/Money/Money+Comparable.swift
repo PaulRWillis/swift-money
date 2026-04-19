@@ -26,3 +26,31 @@ extension Money: Equatable {
         lhs._storage == rhs._storage
     }
 }
+
+// MARK: - Comparable
+
+extension Money: Comparable {
+    /// Returns a Boolean value indicating whether the first value is less than
+    /// the second.
+    ///
+    /// NaN (`Int64.min`) compares less than all non-NaN values, providing
+    /// a strict total order suitable for sorting.
+    ///
+    /// ```swift
+    /// let a: Money<GBP> = 20
+    /// let b: Money<GBP> = 10
+    /// a < b  // true
+    ///
+    /// Money<GBP>.nan < a  // true (NaN sorts before all values)
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - lhs: A value to compare.
+    ///   - rhs: Another value to compare.
+    /// - Returns: `true` if `lhs` is strictly less than `rhs`.
+    /// - Complexity: O(1) -- single integer comparison.
+    @inlinable
+    public static func < (lhs: Self, rhs: Self) -> Bool {
+        lhs._storage < rhs._storage
+    }
+}
