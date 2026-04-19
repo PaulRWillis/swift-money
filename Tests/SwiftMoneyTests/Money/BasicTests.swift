@@ -1,5 +1,5 @@
 import Testing
-@testable import SwiftMoney
+import SwiftMoney
 
 @Suite("Basic Initialization and Properties")
 struct BasicTests {
@@ -7,7 +7,7 @@ struct BasicTests {
     @Test("Zero initialization")
     func zeroInit() {
         let zero = Money<TST>()
-        #expect(zero._storage == 0)
+        #expect(zero.minorUnits == 0)
         #expect(zero == .zero)
         #expect(!zero.isNaN)
         #expect(zero == .zero)
@@ -16,7 +16,7 @@ struct BasicTests {
     @Test("Minor units initialization")
     func minorUnitsInit() {
         let value = Money<TST>(minorUnits: 123_456_789_00)
-        #expect(value._storage == 123_456_789_00)
+        #expect(value.minorUnits == 123_456_789_00)
     }
 
     @Test("Currency is correct")
@@ -30,7 +30,7 @@ struct BasicTests {
     func nan() {
         let nan = Money<TST>.nan
         #expect(nan.isNaN)
-        #expect(nan._storage == Int64.min)
+        #expect(nan.minorUnits == Int64.min)
         #expect(nan != .zero)
     }
 
