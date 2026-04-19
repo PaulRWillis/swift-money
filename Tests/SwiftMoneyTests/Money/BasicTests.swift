@@ -19,6 +19,12 @@ struct BasicTests {
         #expect(value.minorUnits == 123_456_789_00)
     }
 
+    @Test("Negative minor units initialization")
+    func negativeIntegerInit() {
+        let value = Money<TST>(minorUnits: -123_456_789_00)
+        #expect(value.minorUnits == -123_456_789_00)
+    }
+
     @Test("Currency is correct")
     func currency() {
         let currency = Money<TST>(minorUnits: 0).currency
