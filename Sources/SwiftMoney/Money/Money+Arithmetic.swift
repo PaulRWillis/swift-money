@@ -64,10 +64,10 @@ extension Money {
     /// - Precondition: The result must fit in `Int64` after scaling.
     @inlinable
     public static func - (lhs: Self, rhs: Self) -> Self {
-        precondition(!lhs.isNaN && !rhs.isNaN, "NaN in FixedPointDecimal subtraction")
+        precondition(!lhs.isNaN && !rhs.isNaN, "NaN in Money subtraction")
         let (result, overflow) = lhs._storage.subtractingReportingOverflow(rhs._storage)
-        precondition(!overflow, "FixedPointDecimal subtraction overflow")
-        precondition(result != .min, "FixedPointDecimal subtraction produced NaN sentinel")
+        precondition(!overflow, "Money subtraction overflow")
+        precondition(result != .min, "Money subtraction produced NaN sentinel")
         return Self(minorUnits: result)
     }
 
