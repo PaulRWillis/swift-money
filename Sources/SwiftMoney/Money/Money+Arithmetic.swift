@@ -70,6 +70,24 @@ extension Money {
         precondition(result != .min, "FixedPointDecimal subtraction produced NaN sentinel")
         return Self(minorUnits: result)
     }
+
+    /// Subtracts the right-hand value from the left-hand value in place.
+    ///
+    /// Traps on overflow or NaN.
+    ///
+    /// ```swift
+    /// var balance: Money<GBP> = 100_00 // £100.00
+    /// balance -= Money<GBP>(minorUnits: 2550) // £25.50
+    /// // balance is now 7450 // £74.50
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - lhs: The value to modify.
+    ///   - rhs: The value to subtract.
+    @inlinable
+    public static func -= (lhs: inout Self, rhs: Self) {
+        lhs = lhs - rhs
+    }
 }
 
 public extension Money {
