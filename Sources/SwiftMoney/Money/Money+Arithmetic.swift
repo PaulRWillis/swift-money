@@ -7,9 +7,9 @@ extension Money {
     /// matching Swift `Int` behavior.
     ///
     /// ```swift
-    /// let a: Money<GBP> = 105 // 105p; £1.05
-    /// let b: Money<GBP> = 325 // 325p; £3.25
-    /// let sum = a + b  // 1375 (1375p or £13.75)
+    /// let a: Money<GBP> = 105 // £1.05
+    /// let b: Money<GBP> = 325 // £3.25
+    /// let sum = a + b  // 430 (£4.30)
     /// ```
     ///
     /// - Parameters:
@@ -32,9 +32,9 @@ extension Money {
     /// Traps on overflow or NaN.
     ///
     /// ```swift
-    /// var total: Money<GBP> = 100 // 1000p; £1.00
+    /// var total: Money<GBP> = 100 // £1.00
     /// total += Money<GBP>(minorUnits: 5)
-    /// // total is now 105p (£1.05)
+    /// // total is now 105 (£1.05)
     /// ```
     ///
     /// - Parameters:
@@ -51,9 +51,9 @@ extension Money {
     /// matching Swift `Int` behavior.
     ///
     /// ```swift
-    /// let a: Money<GBP> = 105
-    /// let b: Money<GBP> = 325
-    /// let diff = a - b  // 725 (725p or £7.25)
+    /// let a: Money<GBP> = 1050 // £10.50
+    /// let b: Money<GBP> = 325 // £3.25
+    /// let diff = a - b  // 725 (£7.25)
     /// ```
     ///
     /// - Parameters:
