@@ -61,6 +61,15 @@ public struct Money<Currency: SwiftMoney.Currency> {
     public static var zero: Money {
         Money(minorUnits: 0)
     }
+
+    /// A Boolean value indicating whether this value is finite (not NaN).
+    ///
+    /// `Money` has no infinity representation, so all non-NaN
+    /// values are finite.
+    @inlinable
+    public var isFinite: Bool {
+        !isNaN
+    }
 }
 
 extension Money: CustomStringConvertible {

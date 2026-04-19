@@ -48,4 +48,12 @@ struct BasicTests {
         let noMinorUnits = Money<NO_MINOR_UNITS>(minorUnits: 100)
         #expect(noMinorUnits.minorUnits == 100)
     }
+
+    @Test("isFinite returns true for non-NaN, false for NaN")
+    func isFinite() {
+        #expect(Money<TST>.zero.isFinite)
+        #expect(Money<TST>(minorUnits: 42).isFinite)
+        #expect(Money<TST>(minorUnits: -1).isFinite)
+        #expect(!Money<TST>.nan.isFinite)
+    }
 }
