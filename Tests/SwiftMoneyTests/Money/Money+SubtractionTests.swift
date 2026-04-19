@@ -5,21 +5,21 @@ struct Money_SubtractionTests {
 
     // MARK: Subtraction (Positive)
 
-    @Test
+    @Test("Subtraction of positive values")
     func subtractPositiveFromPositive() {
         let a: Money<TST> = 3
         let b: Money<TST> = 2
         #expect(a - b == 1)
     }
 
-    @Test
+    @Test("Subtraction of positive from negative")
     func subtractPositiveFromNegative() {
         let pos: Money<TST> = 7
         let neg: Money<TST> = -3
         #expect(neg - pos == -10)
     }
 
-    @Test
+    @Test("Subtraction of positive from zero")
     func subtractPositiveFromZero() {
         let pos: Money<TST> = 3
         #expect(.zero - pos == -3)
@@ -27,21 +27,21 @@ struct Money_SubtractionTests {
 
     // MARK: - Subtraction (Negative)
 
-    @Test
+    @Test("Subtraction of negative from positive")
     func subtractNegativeFromPositive() {
         let pos: Money<TST> = 4
         let neg: Money<TST> = -3
         #expect(pos - neg == 7)
     }
 
-    @Test
+    @Test("Subtraction of negative values")
     func subtractNegativeFromNegative() {
         let a: Money<TST> = -3
         let b: Money<TST> = -4
         #expect(a - b == 1)
     }
 
-    @Test
+    @Test("Subtration of negative from zero")
     func subtractNegativeFromZero() {
         let neg: Money<TST> = -9
         #expect(.zero - neg == 9)
@@ -49,19 +49,19 @@ struct Money_SubtractionTests {
 
     // MARK: - Subtraction (Zero)
 
-    @Test
+    @Test("Subtraction of zero from positive")
     func subtractZeroFromPositive() {
         let pos: Money<TST> = 3
         #expect(pos - .zero == pos)
     }
 
-    @Test
+    @Test("Subtraction of zero from negative")
     func subtractZeroFromNegative() {
         let neg: Money<TST> = -7
         #expect(neg - .zero == neg)
     }
 
-    @Test
+    @Test("Subtraction of zero values")
     func subtractZeroFromZero() {
         #expect(Money<TST>.zero - .zero == .zero)
     }
