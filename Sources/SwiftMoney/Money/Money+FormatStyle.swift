@@ -116,7 +116,7 @@ extension Money {
 
 extension Money.FormatStyle: Foundation.FormatStyle {
     public func format(_ value: Money) -> String {
-        value._minorUnits.formatted(
+        value._storage.formatted(
             .currency(code: value.currency.code)
             .locale(self.locale)
             .sign(strategy: self.signDisplayStrategy)

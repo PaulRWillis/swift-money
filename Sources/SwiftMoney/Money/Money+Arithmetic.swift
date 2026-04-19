@@ -1,21 +1,21 @@
 public extension Money {
     static func + (lhs: Money, rhs: Money) -> Money {
-        Money(minorUnits: lhs._minorUnits + rhs._minorUnits)
+        Money(minorUnits: lhs._storage + rhs._storage)
     }
 }
 
 public extension Money {
     static func - (lhs: Money, rhs: Money) -> Money {
-        Money(minorUnits: lhs._minorUnits - rhs._minorUnits)
+        Money(minorUnits: lhs._storage - rhs._storage)
     }
 }
 
 public extension Money {
     static func * (lhs: Money, rhs: Int64) -> Money {
-        Money(minorUnits: lhs._minorUnits * rhs)
+        Money(minorUnits: lhs._storage * rhs)
     }
 
     static func * (lhs: Int64, rhs: Money) -> Money {
-        Money(minorUnits: lhs * rhs._minorUnits)
+        Money(minorUnits: lhs * rhs._storage)
     }
 }

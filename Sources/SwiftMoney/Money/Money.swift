@@ -2,7 +2,7 @@ import Foundation
 
 public struct Money<Currency: SwiftMoney.Currency> {
     @usableFromInline
-    internal let _minorUnits: Int64
+    internal let _storage: Int64
 
     /// The currency type
     public var currency: any SwiftMoney.Currency.Type {
@@ -15,7 +15,7 @@ public struct Money<Currency: SwiftMoney.Currency> {
     /// let onePound = Money<GBP>(minorUnits: 100) // £1.00
     /// onePound.minorUnits  // 100
     @inlinable
-    public var minorUnits: Int64 { _minorUnits }
+    public var minorUnits: Int64 { _storage }
 
     /// Creates a zero value.
     ///
@@ -25,11 +25,11 @@ public struct Money<Currency: SwiftMoney.Currency> {
     /// ```
     @inlinable
     public init() {
-        self._minorUnits = 0
+        self._storage = 0
     }
 
     public init(minorUnits: Int64) {
-        self._minorUnits = minorUnits
+        self._storage = minorUnits
     }
 
     // MARK: - Special values
@@ -53,7 +53,7 @@ public struct Money<Currency: SwiftMoney.Currency> {
     /// A Boolean value indicating whether this value is NaN (not-a-number).
     @inlinable
     public var isNaN: Bool {
-        _minorUnits == .min
+        _storage == .min
     }
 
     /// The zero value.
