@@ -128,6 +128,7 @@ struct Money_ComparisonTests {
 
     // MARK: - Hash Consistency Across Construction Paths (inspired by rust_decimal/shopspring)
 
+    #warning("Uncomment string init once ParseableFormatStyle is added")
     @Test("Values constructed via different paths hash equally")
     func hashConsistencyAcrossConstructors() {
         let fromInt = Money<TST>(42)
