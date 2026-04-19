@@ -1,6 +1,13 @@
-// MARK: - Trapping Arithmetic (default -- matches Swift Int)
+// MARK: - AdditiveArithmetic
 
-extension Money {
+/// Conformance to `AdditiveArithmetic`, providing `+`, `-`, `+=`, `-=`, `and `.zero`.
+extension Money: AdditiveArithmetic {
+    /// The zero value.
+    @inlinable
+    public static var zero: Money {
+        Money(minorUnits: 0)
+    }
+
     /// Returns the sum of two values.
     ///
     /// Traps if either operand is NaN or if the result overflows,
@@ -20,6 +27,8 @@ extension Money {
     /// - Precondition: The result must fit in `Int64`.
     @inlinable
     public static func + (lhs: Self, rhs: Self) -> Self {
+        #warning("Add tests for overflow using #expect(processExitsWith: .failure) {}")
+        
         precondition(!lhs.isNaN && !rhs.isNaN, "NaN in Money addition")
         let (result, overflow) = lhs._storage.addingReportingOverflow(rhs._storage)
         precondition(!overflow, "Money addition overflow")

@@ -56,12 +56,6 @@ public struct Money<Currency: SwiftMoney.Currency> {
         _storage == .min
     }
 
-    /// The zero value.
-    @inlinable
-    public static var zero: Money {
-        Money(minorUnits: 0)
-    }
-
     /// A Boolean value indicating whether this value is finite (not NaN).
     ///
     /// `Money` has no infinity representation, so all non-NaN
