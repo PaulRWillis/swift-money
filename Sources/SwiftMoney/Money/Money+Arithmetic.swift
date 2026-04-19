@@ -26,6 +26,24 @@ extension Money {
         precondition(result != .min, "Money addition produced NaN sentinel")
         return Self(minorUnits: result)
     }
+
+    /// Adds the right-hand value to the left-hand value in place.
+    ///
+    /// Traps on overflow or NaN.
+    ///
+    /// ```swift
+    /// var total: Money<GBP> = 100 // 1000p; £1.00
+    /// total += Money<GBP>(minorUnits: 5)
+    /// // total is now 105p (£1.05)
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - lhs: The value to modify.
+    ///   - rhs: The value to add.
+    @inlinable
+    public static func += (lhs: inout Self, rhs: Self) {
+        lhs = lhs + rhs
+    }
 }
 
 public extension Money {

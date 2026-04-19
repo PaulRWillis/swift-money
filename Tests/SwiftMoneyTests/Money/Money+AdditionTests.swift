@@ -65,4 +65,27 @@ struct Money_AdditionTests {
     func addZeroToZero() {
         #expect(Money<TST>.zero + .zero == .zero)
     }
+
+    // MARK: Addition assignment
+
+    @Test("Addition assignment")
+    func addAssign() {
+        var a: Money<TST> = 100
+        a += 5
+        #expect(a == 105)
+    }
+
+    @Test("Addition assignment of negative")
+    func addAssignNegative() {
+        var a: Money<TST> = 100
+        a += -5
+        #expect(a == 95)
+    }
+
+    @Test("Addition assignment of two negatives")
+    func addAssignTwoNegatives() {
+        var a: Money<TST> = -50
+        a += -5
+        #expect(a == -55)
+    }
 }
