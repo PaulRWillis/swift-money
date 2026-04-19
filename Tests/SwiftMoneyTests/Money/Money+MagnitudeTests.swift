@@ -32,7 +32,7 @@ struct MagnitudeTests {
         #expect(magnitude == 42 as Money)
     }
 
-    @Test("Magnitude of .min")
+    @Test("Magnitude of min")
     func magnitudeOfMin() {
         let min = Money<TST>.min
         #expect(min.magnitude == Money<TST>.max)
