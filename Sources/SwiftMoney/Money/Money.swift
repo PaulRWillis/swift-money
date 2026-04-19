@@ -125,8 +125,6 @@ extension Money: CustomStringConvertible {
 }
 
 #warning("Add tests to ensure these are conformed to as expected")
-extension Money: Hashable {}
-
 extension Money: Sendable {}
 
 extension Money: Codable {}

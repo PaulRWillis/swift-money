@@ -54,3 +54,18 @@ extension Money: Comparable {
         lhs._storage < rhs._storage
     }
 }
+
+// MARK: - Hashable
+
+extension Money: Hashable {
+    /// Hashes the raw storage value into the given hasher.
+    ///
+    /// Two values that compare equal with `==` always produce the same hash,
+    /// satisfying the `Hashable` contract.
+    ///
+    /// - Parameter hasher: The hasher to use when combining the components of this instance.
+    @inlinable
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(_storage)
+    }
+}
