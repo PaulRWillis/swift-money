@@ -3,6 +3,7 @@ import SwiftMoney
 
 @Suite("Comparison and Ordering")
 struct Money_ComparisonTests {
+    
     @Test("Equality")
     func equality() {
         let a: Money<TST> = 12345
