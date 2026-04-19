@@ -2,7 +2,7 @@ import Foundation
 
 public struct Money<Currency: SwiftMoney.Currency> {
     @usableFromInline
-    internal let _storage: Int64
+    internal var _storage: Int64
 
     /// The currency type
     public var currency: any SwiftMoney.Currency.Type {
