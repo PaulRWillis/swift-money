@@ -67,4 +67,13 @@ struct BasicTests {
         #expect(Money<TST>.greatestFiniteMagnitude.minorUnits == Int64.max)
         #expect(Money<TST>.leastFiniteMagnitude == .min)
     }
+
+    @Test("sign returns .plus for positive/zero/NaN, .minus for negative")
+    func sign() {
+        #expect(Money<TST>(minorUnits: 42).sign == .plus)
+        #expect(Money<TST>.zero.sign == .plus)
+        #expect(Money<TST>(minorUnits: -42).sign == .minus)
+        #expect(Money<TST>.min.sign == .minus)
+        #expect(Money<TST>.nan.sign == .plus)
+    }
 }

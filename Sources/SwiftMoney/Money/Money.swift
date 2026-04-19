@@ -71,6 +71,16 @@ public struct Money<Currency: SwiftMoney.Currency> {
         !isNaN
     }
 
+    /// The sign of this value.
+    ///
+    /// Returns `.minus` for negative values (including negative zero, which
+    /// cannot occur in this type), `.plus` for zero and positive values.
+    /// NaN returns `.plus`.
+    @inlinable
+    public var sign: FloatingPointSign {
+        _storage < 0 && !isNaN ? .minus : .plus
+    }
+
     /// The largest representable value in minor units: `9,223,372,036,854,775,807`.
     @inlinable
     public static var max: Money {
