@@ -54,6 +54,17 @@ struct BasicTests {
         #expect(Money<TST>.zero.isFinite)
         #expect(Money<TST>(minorUnits: 42).isFinite)
         #expect(Money<TST>(minorUnits: -1).isFinite)
+        #expect(Money<TST>.max.isFinite)
+        #expect(Money<TST>.min.isFinite)
         #expect(!Money<TST>.nan.isFinite)
+    }
+
+    @Test("Special values")
+    func specialValues() {
+        #expect(Money<TST>.max.minorUnits == Int64.max)
+        #expect(Money<TST>.min.minorUnits == Int64.min + 1)
+        #expect(Money<TST>.leastNonzeroMagnitude.minorUnits == 1)
+        #expect(Money<TST>.greatestFiniteMagnitude.minorUnits == Int64.max)
+        #expect(Money<TST>.leastFiniteMagnitude == .min)
     }
 }

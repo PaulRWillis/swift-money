@@ -70,6 +70,42 @@ public struct Money<Currency: SwiftMoney.Currency> {
     public var isFinite: Bool {
         !isNaN
     }
+
+    /// The largest representable value in minor units: `9,223,372,036,854,775,807`.
+    @inlinable
+    public static var max: Money {
+        Money(minorUnits: .max)
+    }
+
+    /// The smallest representable value in minor units: `-9,223,372,036,854,775,807`.
+    ///
+    /// `Int64.min` is reserved as the NaN sentinel, so `.min` uses `Int64.min + 1`.
+    @inlinable
+    public static var min: Money {
+        Money(minorUnits: .min + 1)
+    }
+
+    /// The smallest positive value in minor units: `1`.
+    @inlinable
+    public static var leastNonzeroMagnitude: Money {
+        Money(minorUnits: 1)
+    }
+
+    /// The largest finite magnitude in minor units: `9,223,372,036,854,775,807`.
+    ///
+    /// Equal to ``max`` since all representable values are finite.
+    @inlinable
+    public static var greatestFiniteMagnitude: Money {
+        Money(minorUnits: .max)
+    }
+
+    /// The least (most negative) finite magnitude in minor units: `-9,223,372,036,854,775,807`.
+    ///
+    /// Equal to ``min`` since all representable values are finite.
+    @inlinable
+    public static var leastFiniteMagnitude: Money {
+        min
+    }
 }
 
 extension Money: CustomStringConvertible {
