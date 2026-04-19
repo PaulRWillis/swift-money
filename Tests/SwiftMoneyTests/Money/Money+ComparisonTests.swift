@@ -165,4 +165,49 @@ struct Money_ComparisonTests {
 
     // MARK: - minimum / maximum
 
+    @Test("minimum returns lesser value")
+    func minimumBasic() {
+        let a: Money<TST> = 3
+        let b: Money<TST> = 5
+        #expect(Money<TST>.minimum(a, b) == a)
+        #expect(Money<TST>.minimum(b, a) == a)
+    }
+
+    @Test("maximum returns greater value")
+    func maximumBasic() {
+        let a: Money<TST> = 3
+        let b: Money<TST> = 5
+        #expect(Money<TST>.maximum(a, b) == b)
+        #expect(Money<TST>.maximum(b, a) == b)
+    }
+
+    @Test("minimum/maximum with equal values")
+    func minimumMaximumEqual() {
+        let a: Money<TST> = 42
+        let b: Money<TST> = 42
+        #expect(Money<TST>.minimum(a, b) == a)
+        #expect(Money<TST>.maximum(a, b) == a)
+    }
+
+    @Test("minimum/maximum with negative values")
+    func minimumMaximumNegative() {
+        let a: Money<TST> = -10
+        let b: Money<TST> = 5
+        #expect(Money<TST>.minimum(a, b) == a)
+        #expect(Money<TST>.maximum(a, b) == b)
+    }
+
+    @Test("minimum/maximum with .min and .max")
+    func minimumMaximumBoundaries() {
+        #expect(Money<TST>.minimum(.min, .max) == .min)
+        #expect(Money<TST>.maximum(.min, .max) == .max)
+    }
+
+    @Test("minimum/maximum with zero")
+    func minimumMaximumZero() {
+        let pos: Money<TST> = 1
+        let neg: Money<TST> = -1
+        #expect(Money<TST>.minimum(.zero, pos) == .zero)
+        #expect(Money<TST>.maximum(.zero, neg) == .zero)
+    }
 }
