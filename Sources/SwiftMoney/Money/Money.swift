@@ -26,6 +26,28 @@ public struct Money<Currency: SwiftMoney.Currency> {
 
     // MARK: - Special values
 
+    /// The NaN (not-a-number) sentinel value.
+    ///
+    /// Uses `Int64.min` (-9,223,372,036,854,775,808) as the sentinel because:
+    /// - It has no valid negation in `Int64` (negating `Int64.min` overflows)
+    /// - It is outside the range of any practical financial value
+    /// - Checking `.isNaN` is a single integer comparison
+    ///
+    /// ```swift
+    /// let missing: Money<GBP> = .nan
+    /// missing.isNaN  // true
+    /// ```
+    @inlinable
+    public static var nan: Money {
+        Money(minorUnits: .min)
+    }
+
+    /// A Boolean value indicating whether this value is NaN (not-a-number).
+    @inlinable
+    public var isNaN: Bool {
+        _minorUnits == .min
+    }
+
     /// The zero value.
     @inlinable
     public static var zero: Money {

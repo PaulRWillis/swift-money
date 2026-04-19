@@ -9,6 +9,7 @@ struct BasicTests {
         let zero = Money<TST>()
         #expect(zero._minorUnits == 0)
         #expect(zero == .zero)
+        #expect(!zero.isNaN)
         #expect(zero == .zero)
     }
 
@@ -23,5 +24,13 @@ struct BasicTests {
         let currency = Money<TST>(minorUnits: 0).currency
         let isEqual = currency == TST.self
         #expect(isEqual)
+    }
+
+    @Test("NaN")
+    func nan() {
+        let nan = Money<TST>.nan
+        #expect(nan.isNaN)
+        #expect(nan._minorUnits == Int64.min)
+        #expect(nan != .zero)
     }
 }
