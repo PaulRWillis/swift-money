@@ -4,6 +4,10 @@ public struct Money<Currency: SwiftMoney.Currency> {
     @usableFromInline
     internal let _storage: Int64
 
+    /// The scale factor: 10⁸ = 100,000,000.
+    @usableFromInline
+    internal static var scaleFactor: Int64 { 100 }
+
     /// The currency type
     public var currency: any SwiftMoney.Currency.Type {
         Currency.self

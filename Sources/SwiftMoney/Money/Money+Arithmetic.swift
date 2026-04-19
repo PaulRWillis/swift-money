@@ -9,7 +9,7 @@ extension Money {
     /// ```swift
     /// let a: Money<GBP> = 105 // 105p; £1.05
     /// let b: Money<GBP> = 325 // 325p; £3.25
-    /// let sum = a + b  // 1375p; £13.75
+    /// let sum = a + b  // 1375 (1375p or £13.75)
     /// ```
     ///
     /// - Parameters:
@@ -44,11 +44,31 @@ extension Money {
     public static func += (lhs: inout Self, rhs: Self) {
         lhs = lhs + rhs
     }
-}
 
-public extension Money {
-    static func - (lhs: Money, rhs: Money) -> Money {
-        Money(minorUnits: lhs._storage - rhs._storage)
+    /// Returns the difference of two values.
+    ///
+    /// Traps if either operand is NaN or if the result overflows,
+    /// matching Swift `Int` behavior.
+    ///
+    /// ```swift
+    /// let a: Money<GBP> = 105
+    /// let b: Money<GBP> = 325
+    /// let diff = a - b  // 725 (725p or £7.25)
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - lhs: The minuend.
+    ///   - rhs: The subtrahend.
+    /// - Returns: The difference of `lhs` and `rhs`.
+    /// - Precondition: Neither operand may be NaN.
+    /// - Precondition: The result must fit in `Int64` after scaling.
+    @inlinable
+    public static func - (lhs: Self, rhs: Self) -> Self {
+        precondition(!lhs.isNaN && !rhs.isNaN, "NaN in FixedPointDecimal subtraction")
+        let (result, overflow) = lhs._storage.subtractingReportingOverflow(rhs._storage)
+        precondition(!overflow, "FixedPointDecimal subtraction overflow")
+        precondition(result != .min, "FixedPointDecimal subtraction produced NaN sentinel")
+        return Self(minorUnits: result)
     }
 }
 
