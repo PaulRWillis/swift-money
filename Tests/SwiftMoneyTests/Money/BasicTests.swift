@@ -33,4 +33,13 @@ struct BasicTests {
         #expect(nan._minorUnits == Int64.min)
         #expect(nan != .zero)
     }
+
+    @Test("intValue is correct")
+    func intValue() {
+        let hundredMinorUnits = Money<TST>(minorUnits: 100)
+        #expect(hundredMinorUnits.minorUnits == 100)
+
+        let noMinorUnits = Money<NO_MINOR_UNITS>(minorUnits: 100)
+        #expect(noMinorUnits.minorUnits == 100)
+    }
 }

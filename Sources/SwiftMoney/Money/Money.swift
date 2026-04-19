@@ -9,6 +9,14 @@ public struct Money<Currency: SwiftMoney.Currency> {
         Currency.self
     }
 
+    /// The raw minor units of a money value in a given currency.
+    ///
+    /// ```swift
+    /// let onePound = Money<GBP>(minorUnits: 100) // £1.00
+    /// onePound.minorUnits  // 100
+    @inlinable
+    public var minorUnits: Int64 { _minorUnits }
+
     /// Creates a zero value.
     ///
     /// ```swift
