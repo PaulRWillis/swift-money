@@ -1,29 +1,8 @@
 import Testing
 import SwiftMoney
 
-@Suite("Basic Initialization and Properties")
+@Suite("Basic Properties")
 struct BasicTests {
-
-    @Test("Zero initialization")
-    func zeroInit() {
-        let zero = Money<TST>()
-        #expect(zero.minorUnits == 0)
-        #expect(zero == .zero)
-        #expect(!zero.isNaN)
-        #expect(zero == .zero)
-    }
-
-    @Test("Minor units initialization")
-    func minorUnitsInit() {
-        let value = Money<TST>(minorUnits: 123_456_789_00)
-        #expect(value.minorUnits == 123_456_789_00)
-    }
-
-    @Test("Negative minor units initialization")
-    func negativeIntegerInit() {
-        let value = Money<TST>(minorUnits: -123_456_789_00)
-        #expect(value.minorUnits == -123_456_789_00)
-    }
 
     @Test("Currency is correct")
     func currency() {

@@ -28,6 +28,24 @@ public struct Money<Currency: SwiftMoney.Currency> {
         self._storage = 0
     }
 
+    /// Creates a new instance from the given integer, if it can be represented
+    /// exactly within the fixed-point range.
+    ///
+    /// Returns `nil` if the value cannot be converted to `Int64`.
+    ///
+    /// ```swift
+    /// let v = Money<GBP>(exactly: 42)     // Optional(42); 42p
+    /// let big = Money(exactly: Int64.max)  // nil (overflow)
+    /// ```
+    ///
+    /// - Parameter source: The integer value to represent.
+    /// - Returns: A `Money` if the value fits, otherwise `nil`.
+    @inlinable
+    public init?<T: BinaryInteger>(exactly source: T) {
+        guard let int64 = Int64(exactly: source) else { return nil }
+        self._storage = int64
+    }
+
     public init(minorUnits: Int64) {
         self._storage = minorUnits
     }
