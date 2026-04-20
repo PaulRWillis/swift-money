@@ -13,13 +13,9 @@ struct ConversionTests {
         #expect(Int(value) == 12399)
     }
 
-    @Test("Int min traps as NaN")
-    func intMinIsNaN() async {
-        await #expect(processExitsWith: .failure) {
-            let intMin = Int64.min
-            let value = Money<TST>(minorUnits: intMin)
-            _ = Int(value)
-        }
+    @Test("Int traps on NaN")
+    func intTrapsOnNaN() async {
+        await #expect(processExitsWith: .failure) { _ = Int(Money<TST>.nan) }
     }
 
     @Test("Int min + 1 round trips")
@@ -45,10 +41,9 @@ struct ConversionTests {
         #expect(Int(exactly: value) == 12399)
     }
 
-    @Test("Exact money init traps as NaN on Int.min")
+    @Test("Exact money init traps on NaN")
     func exactInitForIntMin() {
-        let intMin = Int.min
-        let value = Money<TST>(minorUnits: intMin)
+        let value = Money<TST>.nan
         #expect(Int(exactly: value) == nil)
     }
 
@@ -75,13 +70,9 @@ struct ConversionTests {
         #expect(Int64(value) == 12399)
     }
 
-    @Test("Int64 min traps as NaN")
-    func int64MinIsNaN() async {
-        await #expect(processExitsWith: .failure) {
-            let int64Min = Int64.min
-            let value = Money<TST>(minorUnits: int64Min)
-            _ = Int64(value)
-        }
+    @Test("Int64 traps on NaN")
+    func int64TrapsOnNaN() async {
+        await #expect(processExitsWith: .failure) { _ = Int64(Money<TST>.nan) }
     }
 
     @Test("Int64 min + 1 round trips")
@@ -107,10 +98,9 @@ struct ConversionTests {
         #expect(Int64(exactly: value) == 12399)
     }
 
-    @Test("Exact money init traps as NaN on Int64.min")
+    @Test("Exact money init traps on Int64 NaN")
     func exactInitForInt64Min() {
-        let int64Min = Int64.min
-        let value = Money<TST>(minorUnits: int64Min)
+        let value = Money<TST>.nan
         #expect(Int64(exactly: value) == nil)
     }
 
@@ -137,8 +127,13 @@ struct ConversionTests {
         #expect(Int32(value) == 12399)
     }
 
+    @Test("Int32 traps on NaN")
+    func int32TrapsOnNaN() async {
+        await #expect(processExitsWith: .failure) { _ = Int32(Money<TST>.nan) }
+    }
+
     @Test("Int32 min round trips")
-    func int32MinIsNaN() async {
+    func int32Min() async {
         let int32Min = Int32.min
         let value = Money<TST>(exactly: int32Min)!
         #expect(Int32(value) == int32Min)
@@ -151,6 +146,24 @@ struct ConversionTests {
         #expect(Int32(value) == int32Max)
     }
 
+    @Test("Int32 nil on underflow")
+    func int32Underflow() async {
+        await #expect(processExitsWith: .failure) {
+            let int32Underflow = Int64(Int32.min) - 1
+            let value = Money<TST>(minorUnits: int32Underflow)
+            _ = Int32(value)
+        }
+    }
+
+    @Test("Int32 nil on overflow")
+    func int32Overflow() async {
+        await #expect(processExitsWith: .failure) {
+            let int32Overflow = Int64(Int32.max) + 1
+            let value = Money<TST>(minorUnits: int32Overflow)
+            _ = Int32(value)
+        }
+    }
+
     // MARK: - Exact Int32 Conversions
 
     @Test("Exact money init success on Int32")
@@ -158,6 +171,13 @@ struct ConversionTests {
         let int32 = Int32(12399)
         let value = Money<TST>(exactly: int32)!
         #expect(Int32(exactly: value) == 12399)
+    }
+
+
+    @Test("Exact money init is nil on Int32 NaN")
+    func exactInitForInt32NaN() {
+        let value = Money<TST>.nan
+        #expect(Int32(exactly: value) == nil)
     }
 
     @Test("Exact money init success on Int32.min")
@@ -172,5 +192,19 @@ struct ConversionTests {
         let int32Max = Int32.max
         let value = Money<TST>(exactly: int32Max)!
         #expect(Int32(value) == int32Max)
+    }
+
+    @Test("Exact money init is nil on Int32 underflow")
+    func exactInitForInt32Underflow() {
+        let int32Underflow = Int64(Int32.min) - 1
+        let value = Money<TST>(minorUnits: int32Underflow)
+        #expect(Int32(exactly: value) == nil)
+    }
+
+    @Test("Exact money init is nil on Int32 overflow")
+    func exactInitForInt32Overflow() {
+        let int32Overflow = Int64(Int32.max) + 1
+        let value = Money<TST>(minorUnits: int32Overflow)
+        #expect(Int32(exactly: value) == nil)
     }
 }
