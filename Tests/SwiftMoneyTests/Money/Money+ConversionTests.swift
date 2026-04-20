@@ -133,16 +133,16 @@ struct ConversionTests {
     }
 
     @Test("Int32 min round trips")
-    func int32Min() async {
+    func int32Min() async throws {
         let int32Min = Int32.min
-        let value = Money<TST>(exactly: int32Min)!
+        let value = try #require(Money<TST>(exactly: int32Min))
         #expect(Int32(value) == int32Min)
     }
 
     @Test("Int32 max round trips")
-    func int32Max() {
+    func int32Max() throws {
         let int32Max = Int32.max
-        let value = Money<TST>(exactly: int32Max)!
+        let value = try #require(Money<TST>(exactly: int32Max))
         #expect(Int32(value) == int32Max)
     }
 
@@ -167,12 +167,11 @@ struct ConversionTests {
     // MARK: - Exact Int32 Conversions
 
     @Test("Exact money init success on Int32")
-    func exactInitForInt32() {
+    func exactInitForInt32() throws {
         let int32 = Int32(12399)
-        let value = Money<TST>(exactly: int32)!
+        let value = try #require(Money<TST>(exactly: int32))
         #expect(Int32(exactly: value) == 12399)
     }
-
 
     @Test("Exact money init is nil on Int32 NaN")
     func exactInitForInt32NaN() {
@@ -181,30 +180,30 @@ struct ConversionTests {
     }
 
     @Test("Exact money init success on Int32.min")
-    func exactInitForInt32Min() {
+    func exactInitForInt32Min() throws {
         let int32Min = Int32.min
-        let value = Money<TST>(exactly: int32Min)!
+        let value = try #require(Money<TST>(exactly: int32Min))
         #expect(Int32(exactly: value) == Int32.min)
     }
 
     @Test("Exact money init success on Int32.max")
-    func exactInitForInt32Max() {
+    func exactInitForInt32Max() throws {
         let int32Max = Int32.max
-        let value = Money<TST>(exactly: int32Max)!
+        let value = try #require(Money<TST>(exactly: int32Max))
         #expect(Int32(value) == int32Max)
     }
 
     @Test("Exact money init is nil on Int32 underflow")
-    func exactInitForInt32Underflow() {
+    func exactInitForInt32Underflow() throws {
         let int32Underflow = Int64(Int32.min) - 1
-        let value = Money<TST>(minorUnits: int32Underflow)
+        let value = try #require(Money<TST>(exactly: int32Underflow))
         #expect(Int32(exactly: value) == nil)
     }
 
     @Test("Exact money init is nil on Int32 overflow")
-    func exactInitForInt32Overflow() {
+    func exactInitForInt32Overflow() throws {
         let int32Overflow = Int64(Int32.max) + 1
-        let value = Money<TST>(minorUnits: int32Overflow)
+        let value = try #require(Money<TST>(exactly: int32Overflow))
         #expect(Int32(exactly: value) == nil)
     }
 }
