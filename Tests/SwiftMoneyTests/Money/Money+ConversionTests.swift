@@ -123,4 +123,50 @@ struct ConversionTests {
         let value = Money<TST>(minorUnits: int64Max)
         #expect(Int64(value) == int64Max)
     }
+    
+    // MARK: - Int32 Conversions
+
+    @Test("Int32 value round trips")
+    func int32Value() throws {
+        let int32 = Int32(12399)
+        let value = try #require(Money<TST>(exactly: int32))
+        #expect(Int32(value) == 12399)
+    }
+
+    @Test("Int32 min round trips")
+    func int32MinIsNaN() async {
+        let int32Min = Int32.min
+        let value = Money<TST>(exactly: int32Min)!
+        #expect(Int32(value) == int32Min)
+    }
+
+    @Test("Int32 max round trips")
+    func int32Max() {
+        let int32Max = Int32.max
+        let value = Money<TST>(exactly: int32Max)!
+        #expect(Int32(value) == int32Max)
+    }
+
+    // MARK: - Exact Int32 Conversions
+
+    @Test("Exact money init success on Int32")
+    func exactInitForInt32() {
+        let int32 = Int32(12399)
+        let value = Money<TST>(exactly: int32)!
+        #expect(Int32(exactly: value) == 12399)
+    }
+
+    @Test("Exact money init success on Int32.min")
+    func exactInitForInt32Min() {
+        let int32Min = Int32.min
+        let value = Money<TST>(exactly: int32Min)!
+        #expect(Int32(exactly: value) == Int32.min)
+    }
+
+    @Test("Exact money init success on Int32.max")
+    func exactInitForInt32Max() {
+        let int32Max = Int32.max
+        let value = Money<TST>(exactly: int32Max)!
+        #expect(Int32(value) == int32Max)
+    }
 }
