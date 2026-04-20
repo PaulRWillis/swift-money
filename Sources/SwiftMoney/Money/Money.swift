@@ -65,6 +65,11 @@ public struct Money<Currency: SwiftMoney.Currency> {
         self._storage = Int64(minorUnits)
     }
 
+    public init?(minorUnits: UInt) {
+        guard let int64 = Int64(exactly: minorUnits) else { return nil }
+        self._storage = int64
+    }
+
     // MARK: - Special values
 
     /// The NaN (not-a-number) sentinel value.

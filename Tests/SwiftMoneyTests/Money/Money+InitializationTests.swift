@@ -203,4 +203,24 @@ struct InitializationTests {
         #expect(Int8Min != nil)
         #expect(Int8Min?.minorUnits == Int64(Int8.min))
     }
+
+    // MARK: - UInt init
+
+    @Test("Init success for UInt")
+    func uintInit() {
+        let value = Money<TST>(minorUnits: UInt(123_456_789))
+        #expect(value?.minorUnits == 123_456_789)
+    }
+
+    @Test("Init overflow for UInt.max")
+    func uintMaxInit() {
+        let uintMax = Money<TST>(minorUnits: UInt.max)
+        #expect(uintMax == nil)
+    }
+
+    @Test("Init success for UInt.min")
+    func uintMinInit() {
+        let uintMin = Money<TST>(minorUnits: UInt.min)
+        #expect(uintMin?.minorUnits == Int64(UInt.min))
+    }
 }
