@@ -65,59 +65,34 @@ extension Money {
     }
 }
 
-//extension Decimal {
-//    /// Creates a `Decimal` from a `Money`.
-//    ///
-//    /// ```swift
-//    /// let v = Money<GBP>(minorUnits: 42) // 42p or £0.42
-//    /// Int(v)  // 42
-//    /// ```
-//    ///
-//    /// The `Int` value represents the number of minor units in the money
-//    /// type, not the major unit of the money value.
-//    ///
-//    /// ```swift
-//    /// let pounds = Money<GBP>(minorUnits: 153) // 153p or £1.53
-//    /// Int(pounds) // 153
-//    ///
-//    /// let yen = Money<JPY>(minorUnits: 153) // ¥153
-//    /// Int(yen) // 153
-//    /// ```
-//    ///
-//    /// - Parameter value: The money value to convert.
-//    /// - Precondition: The value must not be NaN.
-//    @inlinable
-//    public init<C: Currency>(_ value: Money<C>) {
-//        precondition(!value.isNaN, "Cannot convert NaN to Int")
-//        guard let narrow = Int(exactly: value.minorUnits) else {
-//            preconditionFailure("Money minor units, \(value.minorUnits), exceeds Int range")
-//        }
-//        self = narrow
-//    }
+extension Decimal {
+    /// Creates a `Decimal` from a `Money`. Always exact.
+    ///
+    /// ```swift
+    /// let money = Money<GBP>(99.95)   // £99.95
+    /// let decimal = Decimal(money)    // Decimal(99.95)
+    /// ```
+    ///
+    /// - Parameter value: The money value to convert.
+    @inlinable
+    public init<C: Currency>(_ value: Money<C>) {
+        self = value.decimalValue
+    }
 
-//    /// Creates a `Decimal` from a `Money`, returning `nil` if the
-//    /// value is NaN.
-//    ///
-//    /// ```swift
-//    /// Decimal(exactly: Money<GBP>(minorUnits: 42))   // Optional(42.0)
-//    /// Decimal(exactly: Money<GBP>.nan)    // nil
-//    /// ```
-//    ///
-//    /// The `Decimal` value represents the decimal representation of the money value.
-//    ///
-//    /// ```swift
-//    /// let pounds = Money<GBP>(minorUnits: 153) // 153p or £1.53
-//    /// Decimal(exactly: pounds) // Optional(1.53)
-//    ///
-//    /// let yen = Money<JPY>(minorUnits: 153) // ¥153
-//    /// Decimal(exactly: yen) // Optional(1.53)
-//    /// ```
-//    ///
-//    /// - Parameter value: The money value to convert.
-//    /// - Returns: A `Decimal` if the conversion is exact, otherwise `nil`.
-//    @inlinable
-//    public init?<C: Currency>(exactly value: Money<C>) {
-//        if value.isNaN { return nil }
-//        self = value.decimalValue
-//    }
-//}
+    /// Creates a `Decimal` from a `Money`, returning `nil` for NaN.
+    ///
+    /// ```swift
+    /// let money = Money<GBP>(99.95)   // £99.95
+    /// let decimal = Decimal(exactly: money)   // Optional(Decimal(99.95))
+    ///
+    /// let nan = Decimal(exactly: Money.nan)  // nil
+    /// ```
+    ///
+    /// - Parameter value: The money value to convert.
+    /// - Returns: A `Decimal` if the value is not NaN, otherwise `nil`.
+    @inlinable
+    public init?<C: Currency>(exactly value: Money<C>) {
+        if value.isNaN { return nil }
+        self = value.decimalValue
+    }
+}

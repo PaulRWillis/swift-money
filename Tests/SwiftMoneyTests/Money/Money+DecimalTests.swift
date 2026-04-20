@@ -64,7 +64,7 @@ struct DecimalTests {
     func decimalInitWithNaN() {
         let decimalNaN = Decimal.nan
         let value = Money<GBP>(decimalNaN)
-        #expect(value == .nan)
+        #expect(value.isNaN)
     }
 
     @Test("Money init from Decimal traps on scaled NaN")
@@ -107,98 +107,38 @@ struct DecimalTests {
         }
     }
 
-//    // MARK: - Decimal convenience init
-//
-//    @Test("Decimal convenience initializer")
-//    func decimalConvenienceInit() {
-//        let fixed: Money<TST> = 12345
-//        let decimal = Decimal(exactly: fixed)
-//        #expect(decimal == Decimal(string: "123.45"))
-//    }
-//
-//    @Test("Decimal NaN handling")
-//    func decimalNaN() {
-//        let nan = FixedPointDecimal.nan
-//        #expect(Decimal(nan).isNaN)
-//
-//        let d = Decimal.nan
-//        let fixed = FixedPointDecimal(d)
-//        #expect(fixed.isNaN)
-//    }
-//
-//    @Test("Decimal rounding beyond 8 digits")
-//    func decimalTruncation() {
-//        let decimal = Decimal(string: "123.123456789")!
-//        let fixed = FixedPointDecimal(decimal)
-//        // 9th digit is 9 > 5, rounds up to 123.12345679
-//        #expect(fixed == 123.12345679 as FixedPointDecimal)
-//    }
-//
-//    @Test("Decimal exact initializer — overflow returns nil")
-//    func decimalExactOverflow() {
-//        let huge = Decimal(string: "999999999999")!  // > 92 billion
-//        let result = FixedPointDecimal(exactly: huge)
-//        #expect(result == nil)
-//    }
+    @Test("Money init from Decimal literal value")
+    func decimalInitWithLiteralValue() {
+        let value = Money<GBP>(99.95)
+        #expect(value.decimalValue == Decimal(99.95))
+    }
 
+    // MARK: - Decimal convenience init
 
+    @Test("Decimal convenience initializer")
+    func decimalConvenienceInit() {
+        let fixed: Money<TST> = 12345
+        let decimal = Decimal(exactly: fixed)
+        #expect(decimal == Decimal(string: "123.45"))
+    }
 
+    @Test("Decimal NaN handling")
+    func decimalNaN() {
+        let moneyNaN = Money<TST>.nan
+        #expect(Decimal(moneyNaN).isNaN)
+    }
 
+    @Test("Decimal exact init returns nil on NaN")
+    func decimalExactInitNaN() {
+        let moneyNaN = Money<TST>.nan
+        #expect(Decimal(exactly: moneyNaN) == nil)
+    }
 
-
-
-//    @Test("Decimal value round trips")
-//    func decimalValue() {
-//        let decimal = Decimal(12399)
-//        let value = Money<TST>(decimal)
-//        #expect(Int(value) == 12399)
-//    }
-//
-//    @Test("Decimal traps on NaN")
-//    func decimalTrapsOnNaN() async {
-//        await #expect(processExitsWith: .failure) { _ = Int(Money<TST>.nan) }
-//    }
-//
-//    @Test("Decimal min round trips")
-//    func decimalMin() {
-//        let intNearMin = Int.min + 1
-//        let value = Money<TST>(minorUnits: intNearMin)
-//        #expect(Int(value) == intNearMin)
-//    }
-//
-//    @Test("Decimal max round trips")
-//    func decimalMax() {
-//        let intMax = Int.max
-//        let value = Money<TST>(minorUnits: intMax)
-//        #expect(Int(value) == intMax)
-//    }
-//
-//    // MARK: - Exact Int conversions
-//
-//    @Test("Decimal exact conversion succeeds for Money within Decimal bounds")
-//    func exactInitForDecimal() {
-//        let int = Int(12399)
-//        let value = Money<TST>(minorUnits: int)
-//        #expect(Int(exactly: value) == 12399)
-//    }
-//
-//    @Test("Decimal exact conversion traps on NaN")
-//    func exactInitForDecimalNaN() {
-//        let value = Money<TST>.nan
-//        #expect(Int(exactly: value) == nil)
-//    }
-//
-//    @Test("Decimal exact conversion succeeds for Money of Decimal.min value")
-//    func exactInitForDecimalMin() {
-//        let intNearMin = Int.min + 1
-//        let value = Money<TST>(minorUnits: intNearMin)
-//        #expect(Int(exactly: value) == intNearMin)
-//    }
-//
-//    @Test("Decimal exact conversion succeeds for Money of Decimal.max value")
-//    func exactInitForDecimalMax() {
-//        let intMax = Int.max
-//        let value = Money<TST>(minorUnits: intMax)
-//        #expect(Int(value) == intMax)
-//    }
+    @Test("Decimal exact init returns value on non-NaN")
+    func decimalExactInitNonNaN() {
+        let decimal = Decimal(42)
+        let money = Money<TST>(decimal)
+        let roundTrip = Decimal(exactly: money)
+        #expect(roundTrip == decimal)
+    }
 }
