@@ -352,4 +352,84 @@ struct ConversionTests {
         let value = Money<TST>(minorUnits: uint64Underflow)
         #expect(UInt64(exactly: value) == nil)
     }
+    
+    // MARK: - UInt32 Conversions
+
+    @Test("UInt32 value round trips")
+    func uint32Value() throws {
+        let uint32 = UInt32(12399)
+        let value = try #require(Money<TST>(exactly: uint32))
+        #expect(UInt32(value) == 12399)
+    }
+
+    @Test("UInt32 traps on NaN")
+    func uint32TrapsOnNaN() async {
+        await #expect(processExitsWith: .failure) { _ = UInt32(Money<TST>.nan) }
+    }
+
+    @Test("UInt32 min round trips")
+    func uint32Min() async throws {
+        let uint32Min = UInt32.min
+        let value = try #require(Money<TST>(exactly: uint32Min))
+        #expect(UInt32(value) == uint32Min)
+    }
+
+    @Test("UInt32 max round trips")
+    func uint32Max() throws {
+        let uint32Max = UInt32.max
+        let value = try #require(Money<TST>(exactly: uint32Max))
+        #expect(UInt32(value) == uint32Max)
+    }
+
+    @Test("UInt32 nil on underflow")
+    func uint32Underflow() async {
+        await #expect(processExitsWith: .failure) {
+            let uint32Underflow = Int64(UInt32.min) - 1
+            let value = Money<TST>(minorUnits: uint32Underflow)
+            _ = UInt32(value)
+        }
+    }
+
+    // MARK: - Exact UInt32 Conversions
+
+    @Test("Exact money init success on UInt32")
+    func exactInitForUInt32() throws {
+        let uint32 = UInt32(12399)
+        let value = try #require(Money<TST>(exactly: uint32))
+        #expect(UInt32(exactly: value) == 12399)
+    }
+
+    @Test("Exact money init is nil on UInt32 NaN")
+    func exactInitForUInt32NaN() {
+        let value = Money<TST>.nan
+        #expect(UInt32(exactly: value) == nil)
+    }
+
+    @Test("Exact money init success on UInt32.min")
+    func exactInitForUInt32Min() throws {
+        let uint32Min = UInt32.min
+        let value = try #require(Money<TST>(exactly: uint32Min))
+        #expect(UInt32(exactly: value) == UInt32.min)
+    }
+
+    @Test("Exact money init success on UInt32.max")
+    func exactInitForUInt32Max() throws {
+        let uint32Max = UInt32.max
+        let value = try #require(Money<TST>(exactly: uint32Max))
+        #expect(UInt32(exactly: value) == uint32Max)
+    }
+
+    @Test("Exact money init is nil on UInt32 underflow")
+    func exactInitForUInt32Underflow() {
+        let uint32Underflow = Int64(UInt32.min) - 1
+        let value = Money<TST>(minorUnits: uint32Underflow)
+        #expect(UInt32(exactly: value) == nil)
+    }
+
+    @Test("Exact money init is nil on UInt32 overflow")
+    func exactInitForUInt32Overflow() throws {
+        let uint32Overflow = Int64(Int32.max) + 1
+        let value = try #require(Money<TST>(exactly: uint32Overflow))
+        #expect(Int32(exactly: value) == nil)
+    }
 }
