@@ -12,6 +12,10 @@ public struct Money<Currency: SwiftMoney.Currency> {
         Currency.self
     }
 
+    /// The scale factor based on the currency.
+    @usableFromInline
+    internal static var scaleFactor: Int64 { Currency.minorUnits }
+
     /// The raw minor units of a money value in a given currency.
     ///
     /// ```swift

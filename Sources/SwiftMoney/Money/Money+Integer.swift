@@ -236,7 +236,7 @@ extension UInt {
     /// - Returns: A `UInt` if the conversion is exact, otherwise `nil`.
     @inlinable
     public init?<C: Currency>(exactly value: Money<C>) {
-        guard !value.isNaN else { return nil }
+        if value.isNaN { return nil }
         guard let narrow = UInt(exactly: value.minorUnits) else { return nil }
         self = narrow
     }
@@ -297,7 +297,7 @@ extension UInt64 {
     /// - Returns: A `UInt64` if the conversion is exact, otherwise `nil`.
     @inlinable
     public init?<C: Currency>(exactly value: Money<C>) {
-        guard !value.isNaN else { return nil }
+        if value.isNaN { return nil }
         guard let narrow = UInt64(exactly: value.minorUnits) else { return nil }
         self = narrow
     }
@@ -358,7 +358,7 @@ extension UInt32 {
     /// - Returns: A `UInt32` if the conversion is exact, otherwise `nil`.
     @inlinable
     public init?<C: Currency>(exactly value: Money<C>) {
-        guard !value.isNaN else { return nil }
+        if value.isNaN { return nil }
         guard let narrow = UInt32(exactly: value.minorUnits) else { return nil }
         self = narrow
     }

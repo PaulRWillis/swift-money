@@ -1,8 +1,8 @@
 import SwiftMoney
 import Testing
 
-@Suite("Type Conversions")
-struct ConversionTests {
+@Suite("Integer Type Conversions")
+struct IntegerTests {
 
     // MARK: - Int Conversions
 
@@ -42,7 +42,7 @@ struct ConversionTests {
     }
 
     @Test("Exact money init traps on NaN")
-    func exactInitForIntMin() {
+    func exactInitTrapsForIntNaN() {
         let value = Money<TST>.nan
         #expect(Int(exactly: value) == nil)
     }
@@ -99,7 +99,7 @@ struct ConversionTests {
     }
 
     @Test("Exact money init traps on Int64 NaN")
-    func exactInitForInt64Min() {
+    func exactInitForInt64NaN() {
         let value = Money<TST>.nan
         #expect(Int64(exactly: value) == nil)
     }

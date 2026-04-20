@@ -121,7 +121,7 @@ extension Money.FormatStyle: Foundation.FormatStyle {
             .locale(self.locale)
             .sign(strategy: self.signDisplayStrategy)
             .presentation(self.presentation)
-            .scale(1.00 / Double(value.currency.minorUnits))
+            .scale(1.00 / Double(Money<Currency>.scaleFactor))
         )
     }
 }

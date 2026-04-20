@@ -5,7 +5,7 @@ enum TST: Currency {
     static let minorUnits: Int64 = 100
 }
 
-enum NO_MINOR_UNITS: Currency {
-    static let code: String = "NO_MINOR_UNITS"
+enum TST_0: Currency {
+    static let code: String = "TST_0"
     static let minorUnits: Int64 = 0
 }
