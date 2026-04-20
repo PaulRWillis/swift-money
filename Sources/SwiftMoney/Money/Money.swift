@@ -2,6 +2,9 @@ import Foundation
 
 public struct Money<Currency: SwiftMoney.Currency> {
     @usableFromInline
+    internal typealias Storage = Int64
+
+    @usableFromInline
     internal var _storage: Int64
 
     /// The currency type
@@ -29,7 +32,7 @@ public struct Money<Currency: SwiftMoney.Currency> {
     }
 
     /// Creates a new instance from the given integer, if it can be represented
-    /// exactly within the fixed-point range.
+    /// exactly within the Int64 range.
     ///
     /// Returns `nil` if the value cannot be converted to `Int64`.
     ///
@@ -46,8 +49,20 @@ public struct Money<Currency: SwiftMoney.Currency> {
         self._storage = int64
     }
 
+    public init(minorUnits: Int) {
+        self._storage = Int64(minorUnits)
+    }
+
     public init(minorUnits: Int64) {
         self._storage = minorUnits
+    }
+
+    public init(minorUnits: Int32) {
+        self._storage = Int64(minorUnits)
+    }
+
+    public init(minorUnits: Int16) {
+        self._storage = Int64(minorUnits)
     }
 
     // MARK: - Special values
@@ -65,7 +80,7 @@ public struct Money<Currency: SwiftMoney.Currency> {
     /// ```
     @inlinable
     public static var nan: Money {
-        Money(minorUnits: .min)
+        Money(minorUnits: Storage.min)
     }
 
     /// A Boolean value indicating whether this value is NaN (not-a-number).
@@ -96,7 +111,7 @@ public struct Money<Currency: SwiftMoney.Currency> {
     /// The largest representable value in minor units: `9,223,372,036,854,775,807`.
     @inlinable
     public static var max: Money {
-        Money(minorUnits: .max)
+        Money(minorUnits: Storage.max)
     }
 
     /// The smallest representable value in minor units: `-9,223,372,036,854,775,807`.
@@ -104,7 +119,7 @@ public struct Money<Currency: SwiftMoney.Currency> {
     /// `Int64.min` is reserved as the NaN sentinel, so `.min` uses `Int64.min + 1`.
     @inlinable
     public static var min: Money {
-        Money(minorUnits: .min + 1)
+        Money(minorUnits: Storage.min + 1)
     }
 
     /// The smallest positive value in minor units: `1`.
@@ -118,7 +133,7 @@ public struct Money<Currency: SwiftMoney.Currency> {
     /// Equal to ``max`` since all representable values are finite.
     @inlinable
     public static var greatestFiniteMagnitude: Money {
-        Money(minorUnits: .max)
+        Money(minorUnits: Storage.max)
     }
 
     /// The least (most negative) finite magnitude in minor units: `-9,223,372,036,854,775,807`.
