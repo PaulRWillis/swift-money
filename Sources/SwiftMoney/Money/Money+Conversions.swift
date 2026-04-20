@@ -206,7 +206,7 @@ extension UInt {
     /// - Precondition: The integer part must fit in `UInt`.
     @inlinable
     public init<C: Currency>(_ value: Money<C>) {
-        precondition(!value.isNaN, "Cannot convert NaN to Int")
+        precondition(!value.isNaN, "Cannot convert NaN to UInt")
         guard let narrow = UInt(exactly: value.minorUnits) else {
             preconditionFailure("Money minor units, \(value.minorUnits), exceeds UInt range")
         }
@@ -238,6 +238,67 @@ extension UInt {
     public init?<C: Currency>(exactly value: Money<C>) {
         guard !value.isNaN else { return nil }
         guard let narrow = UInt(exactly: value.minorUnits) else { return nil }
+        self = narrow
+    }
+}
+
+extension UInt64 {
+    /// Creates a `UInt64` from a `Money`.
+    /// Traps if the integer part exceeds `UInt64` range.
+    ///
+    /// ```swift
+    /// let v = Money<GBP>(minorUnits: 42) // 42p or £0.42
+    /// UInt64(v)  // 42
+    /// ```
+    ///
+    /// The `Int` value represents the number of minor units in the money
+    /// type, not the major unit of the money value.
+    ///
+    /// ```swift
+    /// let pounds = Money<GBP>(minorUnits: 153) // 153p or £1.53
+    /// UInt64(pounds) // 153
+    ///
+    /// let yen = Money<JPY>(minorUnits: 153) // ¥153
+    /// UInt64(yen) // 153
+    /// ```
+    ///
+    /// - Parameter value: The money value to convert.
+    /// - Precondition: The value must not be NaN.
+    /// - Precondition: The integer part must fit in `UInt64`.
+    @inlinable
+    public init<C: Currency>(_ value: Money<C>) {
+        precondition(!value.isNaN, "Cannot convert NaN to UInt64")
+        guard let narrow = UInt64(exactly: value.minorUnits) else {
+            preconditionFailure("Money minor units, \(value.minorUnits), exceeds UInt64 range")
+        }
+        self = narrow
+    }
+
+    /// Creates a `UInt64` from a `Money`, returning `nil` if the
+    /// value is NaN or exceeds`UInt64` range.
+    ///
+    /// ```swift
+    /// UInt64(exactly: Money<GBP>(minorUnits: 42)    // Optional(42)
+    /// UInt64(exactly: Money<GBP>.nan)   // nil
+    /// ```
+    ///
+    /// The `UInt64` value represents the number of minor units in the money
+    /// type, not the major unit of the money value.
+    ///
+    /// ```swift
+    /// let pounds = Money<GBP>(minorUnits: 153) // 153p or £1.53
+    /// UInt64(exactly: pounds) // Optional(153)
+    ///
+    /// let yen = Money<JPY>(minorUnits: 153) // ¥153
+    /// UInt64(exactly: yen) // Optional(153)
+    /// ```
+    ///
+    /// - Parameter value: The money value to convert.
+    /// - Returns: A `UInt64` if the conversion is exact, otherwise `nil`.
+    @inlinable
+    public init?<C: Currency>(exactly value: Money<C>) {
+        guard !value.isNaN else { return nil }
+        guard let narrow = UInt64(exactly: value.minorUnits) else { return nil }
         self = narrow
     }
 }

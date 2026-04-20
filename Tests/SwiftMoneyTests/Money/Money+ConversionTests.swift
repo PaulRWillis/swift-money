@@ -279,4 +279,77 @@ struct ConversionTests {
         let value = Money<TST>(minorUnits: uintUnderflow)
         #expect(UInt(exactly: value) == nil)
     }
+
+    // MARK: - UInt64 Conversions
+
+    @Test("UInt64 value round trips")
+    func uint64Value() throws {
+        let uint64 = UInt64(12399)
+        let value = try #require(Money<TST>(exactly: uint64))
+        #expect(UInt64(value) == 12399)
+    }
+
+    @Test("UInt64 value round trips up to Int64 upper bound")
+    func uint64ValueUpToInt64UpperBound() throws {
+        let uint64 = UInt64(Int64.max)
+        let value = try #require(Money<TST>(exactly: uint64))
+        #expect(UInt64(value) == Int64.max)
+    }
+
+    @Test("UInt64 traps on NaN")
+    func uint64TrapsOnNaN() async {
+        await #expect(processExitsWith: .failure) { _ = UInt64(Money<TST>.nan) }
+    }
+
+    @Test("UInt64 min round trips")
+    func uint64Min() async {
+        let uint64Min = Int64(UInt64.min)
+        let value = Money<TST>(minorUnits: uint64Min)
+        #expect(UInt64(value) == uint64Min)
+    }
+
+    @Test("UInt64 max traps on overflow")
+    func uint64Max() {
+        let uint64Max = UInt64.max
+        let value = Money<TST>(exactly: uint64Max)
+        #expect(value == nil)
+    }
+
+    @Test("UInt64 nil on underflow")
+    func uint64Underflow() async {
+        await #expect(processExitsWith: .failure) {
+            let uint64Underflow = Int64(UInt64.min) - 1
+            let value = Money<TST>(minorUnits: uint64Underflow)
+            _ = UInt64(value)
+        }
+    }
+
+    // MARK: - Exact UInt64 Conversions
+
+    @Test("Exact money init success on UInt64")
+    func exactInitForUInt64() throws {
+        let uint64 = UInt64(12399)
+        let value = try #require(Money<TST>(exactly: uint64))
+        #expect(UInt64(exactly: value) == 12399)
+    }
+
+    @Test("Exact money init is nil on UInt64 NaN")
+    func exactInitForUInt64NaN() {
+        let value = Money<TST>.nan
+        #expect(UInt64(exactly: value) == nil)
+    }
+
+    @Test("Exact money init success on UInt64.min")
+    func exactInitForUInt64Min() throws {
+        let uint64Min = UInt64.min
+        let value = try #require(Money<TST>(exactly: uint64Min))
+        #expect(UInt64(exactly: value) == UInt64.min)
+    }
+
+    @Test("Exact money init is nil on UInt64 underflow")
+    func exactInitForUInt64Underflow() {
+        let uint64Underflow = Int64(UInt64.min) - 1
+        let value = Money<TST>(minorUnits: uint64Underflow)
+        #expect(UInt64(exactly: value) == nil)
+    }
 }
