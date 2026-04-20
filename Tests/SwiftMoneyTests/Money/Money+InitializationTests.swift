@@ -65,58 +65,6 @@ struct InitializationTests {
         #expect(int64Min.minorUnits == Int64.min)
     }
 
-    // MARK: - Int32 init
-
-    @Test("Init success for Int32")
-    func int32Init() {
-        let value = Money<TST>(minorUnits: Int32(123_456_789))
-        #expect(value.minorUnits == 123_456_789)
-    }
-
-    @Test("Init success for negative Int32")
-    func int32NegativeIntegerInit() {
-        let value = Money<TST>(minorUnits: Int32(-123_456_789))
-        #expect(value.minorUnits == -123_456_789)
-    }
-
-    @Test("Init success for Int32.max")
-    func int32MaxInit() {
-        let int32Max = Money<TST>(minorUnits: Int32.max)
-        #expect(int32Max.minorUnits == Int32.max)
-    }
-
-    @Test("Init sucesss for Int32.min")
-    func int32MinInit() {
-        let int32Min = Money<TST>(minorUnits: Int32.min)
-        #expect(int32Min.minorUnits == Int32.min)
-    }
-
-    // MARK: - Int16 init
-
-    @Test("Init success for Int16")
-    func int16Init() {
-        let value = Money<TST>(minorUnits: Int16(123))
-        #expect(value.minorUnits == 123)
-    }
-
-    @Test("Init success for negative Int16")
-    func int16NegativeIntegerInit() {
-        let value = Money<TST>(minorUnits: Int16(-123))
-        #expect(value.minorUnits == -123)
-    }
-
-    @Test("Init success for Int16.max")
-    func int16MaxInit() {
-        let int16Max = Money<TST>(minorUnits: Int16.max)
-        #expect(int16Max.minorUnits == Int16.max)
-    }
-
-    @Test("Init sucesss for Int16.min")
-    func int16MinInit() {
-        let int16Min = Money<TST>(minorUnits: Int16.min)
-        #expect(int16Min.minorUnits == Int16.min)
-    }
-
     // MARK: - Exact integer init for Int128
 
     @available(macOS 15.0, *)
@@ -204,23 +152,23 @@ struct InitializationTests {
         #expect(Int8Min?.minorUnits == Int64(Int8.min))
     }
 
-    // MARK: - UInt init
+    // MARK: - Exact integer init for UInt
 
     @Test("Init success for UInt")
-    func uintInit() {
-        let value = Money<TST>(minorUnits: UInt(123_456_789))
-        #expect(value?.minorUnits == 123_456_789)
+    func uintInit() throws {
+        let value = try #require(Money<TST>(exactly: UInt(123_456_789)))
+        #expect(value.minorUnits == 123_456_789)
     }
 
     @Test("Init overflow for UInt.max")
     func uintMaxInit() {
-        let uintMax = Money<TST>(minorUnits: UInt.max)
+        let uintMax = Money<TST>(exactly: UInt.max)
         #expect(uintMax == nil)
     }
 
     @Test("Init success for UInt.min")
-    func uintMinInit() {
-        let uintMin = Money<TST>(minorUnits: UInt.min)
-        #expect(uintMin?.minorUnits == Int64(UInt.min))
+    func uintMinInit() throws {
+        let uintMin = try #require(Money<TST>(exactly: UInt.min))
+        #expect(uintMin.minorUnits == Int64(UInt.min))
     }
 }
