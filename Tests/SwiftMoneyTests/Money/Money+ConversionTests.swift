@@ -15,9 +15,11 @@ struct ConversionTests {
 
     @Test("Int min traps as NaN")
     func intMinIsNaN() async {
-        let intMin = Int64.min
-        let value = Money<TST>(minorUnits: intMin)
-        async #expect(processExitsWith: .failure) { _ = Int(value) }
+        await #expect(processExitsWith: .failure) {
+            let intMin = Int64.min
+            let value = Money<TST>(minorUnits: intMin)
+            _ = Int(value)
+        }
     }
 
     @Test("Int min + 1 round trips")
@@ -75,9 +77,11 @@ struct ConversionTests {
 
     @Test("Int64 min traps as NaN")
     func int64MinIsNaN() async {
-        let int64Min = Int64.min
-        let value = Money<TST>(minorUnits: int64Min)
-        async #expect(processExitsWith: .failure) { _ = Int64(value) }
+        await #expect(processExitsWith: .failure) {
+            let int64Min = Int64.min
+            let value = Money<TST>(minorUnits: int64Min)
+            _ = Int64(value)
+        }
     }
 
     @Test("Int64 min + 1 round trips")
