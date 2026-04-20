@@ -14,16 +14,16 @@ extension Money {
 
 extension Money {
     /// Creates a value from a `Foundation.Decimal`.
-    /// The Decimal value must be a valid representation of a `Money` amount
+    /// The `Decimal` value must be a valid representation of a `Money` amount
     /// in its given currency.
     ///
     /// Creates `.nan` if the input is `Decimal.nan`.
     ///
     /// ```swift
-    /// let pounds = Decimal(string: "123.45")!
-    /// let value = Money<GBP>(pounds)  // £123.45
+    /// let pounds = Decimal(123.45)
+    /// _ = Money<GBP>(pounds)  // £123.45
     ///
-    /// let invalidPounds = Decimal(string: "123.456")!
+    /// let invalidPounds = Decimal(123.456)
     /// _ = Money<GBP>(invalidPounds)   // terminates execution on precondition
     /// ```
     ///
@@ -60,6 +60,47 @@ extension Money {
             int64Value != .min,
             "Decimal value \(decimal) maps to NaN sentinel"
         )
+
+        self._storage = int64Value
+    }
+
+    /// Creates a value from a `Foundation.Decimal`. Returns `nil` if the
+    /// scaled result does not fit in `Int64`, if the `scaleFactor` of the currency is 0,
+    /// or if the `Decimal` value is not a valid representation of a `Money` amount
+    /// in its given currency
+    ///
+    /// Creates `.nan` if the input is `Decimal.nan`.
+    ///
+    /// ```swift
+    /// let pounds = Decimal(123.45)
+    /// _ = Money<GBP>(exactly: pounds)  // Optional(Money<GBP>(123.45))
+    ///
+    /// let invalidPounds = Decimal(123.456)
+    /// _ = Money<GBP>(exactly: invalidPounds)   // nil
+    /// ```
+    ///
+    /// - Parameter decimal: The `Foundation.Decimal` value to convert.
+    /// - Returns: A `Money` if the value is representable, otherwise `nil`.
+    public init?(exactly decimal: Decimal) {
+        if decimal.isNaN {
+            self = .nan
+            return
+        }
+        var scaled = Decimal()
+        var value = decimal
+        var factor = Decimal(Self.scaleFactor)
+
+        guard factor != .zero else { return nil }
+
+        _ = NSDecimalMultiply(&scaled, &value, &factor, .plain)
+
+        let int64Value = NSDecimalNumber(decimal: scaled).int64Value
+
+        // Overflow check: round-trip must match
+        guard Decimal(int64Value) == scaled else { return nil }
+
+        // Guard against NaN sentinel
+        guard int64Value != .min else { return nil }
 
         self._storage = int64Value
     }

@@ -107,13 +107,80 @@ struct DecimalTests {
         }
     }
 
-    @Test("Money init from Decimal literal value")
+    @Test("Money init from Decimal with literal value")
     func decimalInitWithLiteralValue() {
         let value = Money<GBP>(99.95)
         #expect(value.decimalValue == Decimal(99.95))
     }
 
-    // MARK: - Decimal convenience init
+    // MARK: - Money init from exact Decimal
+
+    @Test("Money init from exact Decimal with exact precision currency allows")
+    func decimalExactInitWithExactPrecision() throws {
+        let decimal = Decimal(1.23) // valid money represenation in TST currency
+        let value = try #require(Money<TST>(exactly: decimal))
+        #expect(value.minorUnits == 123)
+    }
+
+    @Test("Money init from exact Decimal returns nil on greater precision than currency allows")
+    func decimalExactInitWithGreaterPrecision() {
+        let decimal = Decimal(1.234) // invalid money representation in TST currency
+        #expect(Money<TST>(exactly: decimal) == nil)
+    }
+
+    @Test("Money init from exact Decimal with less precision than currency allows")
+    func decimalExactInitWithLessPrecision() throws {
+        let decimal = Decimal(1)
+        let value = try #require(Money<TST>(exactly: decimal))
+        #expect(value.minorUnits == 100)
+    }
+
+    @Test("Money init from exact Decimal returns nil on NaN")
+    func decimalExactInitWithNaN() throws {
+        let decimalNaN = Decimal.nan
+        let value = try #require(Money<GBP>(exactly: decimalNaN))
+        #expect(value.isNaN)
+    }
+
+    @Test("Money init from exact Decimal returns nil on scaled NaN")
+    func decimalExactInitWithScaledNaN() {
+        let decimal = Decimal(-92233720368547758.08) // 1/100 of Int.min
+        #expect(Money<TST>(exactly: decimal) == nil)
+    }
+
+    @Test("Money init from exact Decimal returns nil on overflow")
+    func decimalExactInitTrapsOnOverflow() {
+        let decimal = Decimal.greatestFiniteMagnitude
+        #expect(Money<TST>(exactly: decimal) == nil)
+    }
+
+    @Test("Money init from exact Decimal returns nil on underflow")
+    func decimalExactInitTrapsOnUnderflow() {
+        let decimal = Decimal.leastFiniteMagnitude
+        #expect(Money<TST>(exactly: decimal) == nil)
+    }
+
+    @Test("Money init from exact Decimal with zero")
+    func decimalExactInitWithZero() {
+        let decimal = Decimal.zero
+        let value = Money<TST>(exactly: decimal)
+        #expect(value == .zero)
+    }
+
+    @Test("Money init from exact Decimal returns nil on 0 scaleFactor")
+    func decimalExactInitWithZeroScaleFactor() {
+        // TST_0 currency gives scale factor of 0 - see `Money.scaleFactor`
+        let decimal = Decimal(42)
+        #expect(Money<TST_0>(exactly: decimal) == nil)
+    }
+
+    @Test("Money init from exact Decimal with literal value")
+    func decimalExactInitWithLiteralValue() throws {
+        let value = try #require(Money<GBP>(exactly: 99.95))
+        #expect(value.decimalValue == Decimal(99.95))
+    }
+
+    // MARK: - Decimal init from Money
 
     @Test("Decimal convenience initializer")
     func decimalConvenienceInit() {
@@ -127,6 +194,8 @@ struct DecimalTests {
         let moneyNaN = Money<TST>.nan
         #expect(Decimal(moneyNaN).isNaN)
     }
+
+    // MARK: - Decimal init from exact Money
 
     @Test("Decimal exact init returns nil on NaN")
     func decimalExactInitNaN() {
