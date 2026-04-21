@@ -26,9 +26,9 @@ enum TST_100: Currency {
 }
 
 /// A test currency that emulates currencies with
-/// 10,000,000 minor units to 1 major unit, such as bitcoin
+/// 100,000,000 minor units to 1 major unit, such as bitcoin
 /// (BTC).
-enum TST_10_000_000: Currency {
-    static let code: String = "TST_10_000_000"
-    static let minorUnitRatio: Int64 = 10_000_000
+enum TST_100_000_000: Currency {
+    static let code: String = "TST_100_000_000"
+    static let minorUnitRatio: Int64 = 100_000_000
 }

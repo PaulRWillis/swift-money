@@ -229,4 +229,48 @@ struct DecimalTests {
             _ = Money<TST_1>(decimal)
         }
     }
+
+    // 1 bitcoin (1₿ or 1 BTC) = 100_000_000 "satoshis".
+    // 1 satoshi = 0.00_000_001 BTC.
+    @Test("Money init from decimal for BTC analogue")
+    func decimalInitForBTCAnalogue() {
+        let decimal = Decimal(153.0) // Analogous to 153 BTC.
+        let value = Money<TST_100_000_000>(decimal)
+        #expect(value.decimalValue == decimal)
+        #expect(value.minorUnits == 15_300_000_000)
+    }
+
+    @Test("Money init from decimal for BTC analogue traps on underflow")
+    func decimalInitForBTCAnalogueTrapsOnUnderflow() async {
+        await #expect(processExitsWith: .failure) {
+            let decimal = Decimal(1.000_000_001) // Analogous to invalid 1.000_000_001 BTC
+            _ = Money<TST_100_000_000>(decimal)
+        }
+    }
+
+    @Test("Money init from decimal for BTC analogue - min satoshi edge case")
+    func decimalInitForBTCAnalogueMin() throws {
+        let decimal = try #require(Decimal(string: "1.00000001")) // Analogous to 1.00_000_001 BTC
+        let value = Money<TST_100_000_000>(decimal)
+        #expect(value.decimalValue == decimal)
+        #expect(value.minorUnits == 100_000_001)
+    }
+
+    @Test("Money init from decimal for BTC analogue - max satoshi edge case")
+    func decimalInitForBTCAnalogueMax() throws {
+        let scaledInt64Max = Int64.max / TST_100_000_000.minorUnitRatio
+        let decimal = try #require(Decimal(string: String(scaledInt64Max)))
+        let value = Money<TST_100_000_000>(decimal)
+        #expect(value.decimalValue == decimal)
+        #expect(value.minorUnits == 92_233_720_368_00_000_000) // 92,233,720,368.00_000_000 bitcoin
+    }
+
+    @Test("Money init from decimal for BTC analogue - overflow")
+    func decimalInitForBTCAnalogueOverflow() async throws {
+        await #expect(processExitsWith: .failure) {
+            let overflowByOne = (Int64.max / TST_100_000_000.minorUnitRatio) + 1
+            let decimal = try #require(Decimal(string: String(overflowByOne)))
+            _ = Money<TST_100_000_000>(decimal)
+        }
+    }
 }
