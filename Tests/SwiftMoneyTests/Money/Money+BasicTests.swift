@@ -24,7 +24,7 @@ struct BasicTests {
         let hundredMinorUnits = Money<TST_100>(minorUnits: 100)
         #expect(hundredMinorUnits.minorUnits == 100)
 
-        let noMinorUnits = Money<TST_0>(minorUnits: 100)
+        let noMinorUnits = Money<TST_1>(minorUnits: 100)
         #expect(noMinorUnits.minorUnits == 100)
     }
 
