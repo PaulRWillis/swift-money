@@ -4,25 +4,18 @@ import Testing
 
 @Suite("Decimal Conversions")
 struct DecimalTests {
-    // Decimal
-    //  340282366920938463463374607431768211455
-    // -340282366920938463463374607431768211455
-
-    // Int128
-    //  170141183460469231731687303715884105727
-    // -170141183460469231731687303715884105728
 
     // MARK: - decimalValue
 
     @Test("decimalValue returns Decimal.nan for Money.nan")
     func decimalValueForNaN() {
-        let moneyNaN = Money<TST>.nan
+        let moneyNaN = Money<TST_100>.nan
         #expect(moneyNaN.decimalValue == .nan)
     }
 
     @Test("decimalValue returns correct Decimal for Money")
     func decimalValue() {
-        let value = Money<TST>(minorUnits: 42)
+        let value = Money<TST_100>(minorUnits: 42)
         #expect(value.decimalValue == Decimal(0.42))
     }
 
@@ -31,8 +24,8 @@ struct DecimalTests {
     @Test("Money init from Decimal with exact precision currency allows")
     func decimalInitWithExactPrecision() async {
         await #expect(processExitsWith: .success) {
-            let decimal = Decimal(1.23) // valid money represenation in TST currency
-            let value = Money<TST>(decimal)
+            let decimal = Decimal(1.23) // valid money represenation in TST_100 currency
+            let value = Money<TST_100>(decimal)
             #expect(value.minorUnits == 123)
         }
     }
@@ -40,8 +33,8 @@ struct DecimalTests {
     @Test("Money init from Decimal traps on greater precision than currency allows")
     func decimalInitWithGreaterPrecision() async {
         await #expect(processExitsWith: .failure) {
-            let decimal = Decimal(1.234) // invalid money representation in TST currency
-            _ = Money<TST>(decimal)
+            let decimal = Decimal(1.234) // invalid money representation in TST_100 currency
+            _ = Money<TST_100>(decimal)
         }
     }
 
@@ -49,13 +42,13 @@ struct DecimalTests {
     func decimalInitWithLessPrecision() async {
         await #expect(processExitsWith: .success) {
             let decimal = Decimal(1.2)
-            let value = Money<TST>(decimal)
+            let value = Money<TST_100>(decimal)
             #expect(value.minorUnits == 120)
         }
 
         await #expect(processExitsWith: .success) {
             let decimal = Decimal(1)
-            let value = Money<TST>(decimal)
+            let value = Money<TST_100>(decimal)
             #expect(value.minorUnits == 100)
         }
     }
@@ -71,7 +64,7 @@ struct DecimalTests {
     func decimalInitWithScaledNaN() async {
         await #expect(processExitsWith: .failure) {
             let decimal = Decimal(-92233720368547758.08) // 1/100 of Int.min
-            _ = Money<TST>(decimal)
+            _ = Money<TST_100>(decimal)
         }
     }
 
@@ -79,7 +72,7 @@ struct DecimalTests {
     func decimalInitTrapsOnOverflow() async {
         await #expect(processExitsWith: .failure) {
             let decimal = Decimal.greatestFiniteMagnitude
-            _ = Money<TST>(decimal)
+            _ = Money<TST_100>(decimal)
         }
     }
 
@@ -87,14 +80,14 @@ struct DecimalTests {
     func decimalInitTrapsOnUnderflow() async {
         await #expect(processExitsWith: .failure) {
             let decimal = Decimal.leastFiniteMagnitude
-            _ = Money<TST>(decimal)
+            _ = Money<TST_100>(decimal)
         }
     }
 
     @Test("Money init from Decimal with zero")
     func decimalInitWithZero() {
         let decimal = Decimal.zero
-        let value = Money<TST>(decimal)
+        let value = Money<TST_100>(decimal)
         #expect(value == .zero)
     }
 
@@ -117,21 +110,21 @@ struct DecimalTests {
 
     @Test("Money init from exact Decimal with exact precision currency allows")
     func decimalExactInitWithExactPrecision() throws {
-        let decimal = Decimal(1.23) // valid money represenation in TST currency
-        let value = try #require(Money<TST>(exactly: decimal))
+        let decimal = Decimal(1.23) // valid money represenation in TST_100 currency
+        let value = try #require(Money<TST_100>(exactly: decimal))
         #expect(value.minorUnits == 123)
     }
 
     @Test("Money init from exact Decimal returns nil on greater precision than currency allows")
     func decimalExactInitWithGreaterPrecision() {
-        let decimal = Decimal(1.234) // invalid money representation in TST currency
-        #expect(Money<TST>(exactly: decimal) == nil)
+        let decimal = Decimal(1.234) // invalid money representation in TST_100 currency
+        #expect(Money<TST_100>(exactly: decimal) == nil)
     }
 
     @Test("Money init from exact Decimal with less precision than currency allows")
     func decimalExactInitWithLessPrecision() throws {
         let decimal = Decimal(1)
-        let value = try #require(Money<TST>(exactly: decimal))
+        let value = try #require(Money<TST_100>(exactly: decimal))
         #expect(value.minorUnits == 100)
     }
 
@@ -145,25 +138,25 @@ struct DecimalTests {
     @Test("Money init from exact Decimal returns nil on scaled NaN")
     func decimalExactInitWithScaledNaN() {
         let decimal = Decimal(-92233720368547758.08) // 1/100 of Int.min
-        #expect(Money<TST>(exactly: decimal) == nil)
+        #expect(Money<TST_100>(exactly: decimal) == nil)
     }
 
     @Test("Money init from exact Decimal returns nil on overflow")
     func decimalExactInitTrapsOnOverflow() {
         let decimal = Decimal.greatestFiniteMagnitude
-        #expect(Money<TST>(exactly: decimal) == nil)
+        #expect(Money<TST_100>(exactly: decimal) == nil)
     }
 
     @Test("Money init from exact Decimal returns nil on underflow")
     func decimalExactInitTrapsOnUnderflow() {
         let decimal = Decimal.leastFiniteMagnitude
-        #expect(Money<TST>(exactly: decimal) == nil)
+        #expect(Money<TST_100>(exactly: decimal) == nil)
     }
 
     @Test("Money init from exact Decimal with zero")
     func decimalExactInitWithZero() {
         let decimal = Decimal.zero
-        let value = Money<TST>(exactly: decimal)
+        let value = Money<TST_100>(exactly: decimal)
         #expect(value == .zero)
     }
 
@@ -184,14 +177,14 @@ struct DecimalTests {
 
     @Test("Decimal convenience initializer")
     func decimalConvenienceInit() {
-        let fixed: Money<TST> = 12345
+        let fixed: Money<TST_100> = 12345
         let decimal = Decimal(exactly: fixed)
         #expect(decimal == Decimal(string: "123.45"))
     }
 
     @Test("Decimal NaN handling")
     func decimalNaN() {
-        let moneyNaN = Money<TST>.nan
+        let moneyNaN = Money<TST_100>.nan
         #expect(Decimal(moneyNaN).isNaN)
     }
 
@@ -199,14 +192,14 @@ struct DecimalTests {
 
     @Test("Decimal exact init returns nil on NaN")
     func decimalExactInitNaN() {
-        let moneyNaN = Money<TST>.nan
+        let moneyNaN = Money<TST_100>.nan
         #expect(Decimal(exactly: moneyNaN) == nil)
     }
 
     @Test("Decimal exact init returns value on non-NaN")
     func decimalExactInitNonNaN() {
         let decimal = Decimal(42)
-        let money = Money<TST>(decimal)
+        let money = Money<TST_100>(decimal)
         let roundTrip = Decimal(exactly: money)
         #expect(roundTrip == decimal)
     }

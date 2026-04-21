@@ -8,14 +8,14 @@ struct NegationTests {
 
     @Test("Negating positive with `negate()`")
     func negatePositive() {
-        var value: Money<TST> = 425
+        var value: Money<TST_100> = 425
         value.negate()
         #expect(value == -425)
     }
 
     @Test("Negating negative with `negate()`")
     func negateNegative() {
-        var value: Money<TST> = -201
+        var value: Money<TST_100> = -201
         value.negate()
         #expect(value == 201)
     }
@@ -23,21 +23,21 @@ struct NegationTests {
     @Test("Negating NaN traps with `negate()`")
     func negateNaN() async {
         await #expect(processExitsWith: .failure) {
-            var nan = Money<TST>.nan
+            var nan = Money<TST_100>.nan
             nan.negate()
         }
     }
 
     @Test("Negating zero with `negate()`")
     func negateZero() {
-        var zero = Money<TST>.zero
+        var zero = Money<TST_100>.zero
         zero.negate()
         #expect(zero == .zero)
     }
 
     @Test("Negative of min with `negate()`")
     func negativeOfMin() {
-        var min = Money<TST>.min
+        var min = Money<TST_100>.min
         min.negate()
         #expect(min == .max)
     }
@@ -46,28 +46,28 @@ struct NegationTests {
 
     @Test("Negating positive with `negate()`")
     func negatePositiveWithPrefixOperator() {
-        let pos: Money<TST> = 425
+        let pos: Money<TST_100> = 425
         #expect(-pos == -425)
     }
 
     @Test("Negating negative with `negate()`")
     func negateNegativeWithPrefixOperator() {
-        let neg: Money<TST> = -201
+        let neg: Money<TST_100> = -201
         #expect(-neg == 201)
     }
 
     @Test("Negating NaN traps with `negate()`")
     func negateNaNWithPrefixOperator() async {
-        await #expect(processExitsWith: .failure) { _ = -Money<TST>.nan }
+        await #expect(processExitsWith: .failure) { _ = -Money<TST_100>.nan }
     }
 
     @Test("Negating zero with `negate()`")
     func negateZeroWithPrefixOperator() {
-        #expect(-Money<TST>.zero == .zero)
+        #expect(-Money<TST_100>.zero == .zero)
     }
 
     @Test("Negative of min with `negate()`")
     func negativeOfMinWithPrefixOperator() {
-        #expect(-Money<TST>.min == .max)
+        #expect(-Money<TST_100>.min == .max)
     }
 }

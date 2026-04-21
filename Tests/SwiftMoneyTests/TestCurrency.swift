@@ -1,7 +1,7 @@
 import SwiftMoney
 
-enum TST: Currency {
-    static let code: String = "TST"
+enum TST_100: Currency {
+    static let code: String = "TST_100"
     static let minorUnits: Int64 = 100
 }
 
