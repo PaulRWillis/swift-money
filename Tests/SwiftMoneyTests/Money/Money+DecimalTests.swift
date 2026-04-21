@@ -91,12 +91,12 @@ struct DecimalTests {
         #expect(value == .zero)
     }
 
-    @Test("Money init from Decimal with 1 scaleFactor")
-    func decimalInitWithOneScaleFactor() async {
+    @Test("Money init from Decimal with 0 scaleFactor")
+    func decimalInitWithZeroScaleFactor() async {
         await #expect(processExitsWith: .failure) {
-            // TST_1 currency gives scale factor of 1 - see `Money.scaleFactor`
+            // TST_0 currency gives scale factor of 0 - see `Money.scaleFactor`
             let decimal = Decimal(42)
-            _ = Money<TST_1>(decimal)
+            _ = Money<TST_0>(decimal)
         }
     }
 
@@ -160,11 +160,11 @@ struct DecimalTests {
         #expect(value == .zero)
     }
 
-    @Test("Money init from exact Decimal returns nil on 1 scaleFactor")
-    func decimalExactInitWithOneScaleFactor() {
-        // TST_1 currency gives scale factor of 1 - see `Money.scaleFactor`
+    @Test("Money init from exact Decimal returns nil on 0 scaleFactor")
+    func decimalExactInitWithZeroScaleFactor() {
+        // TST_0 currency gives scale factor of 0 - see `Money.scaleFactor`
         let decimal = Decimal(42)
-        #expect(Money<TST_1>(exactly: decimal) == nil)
+        #expect(Money<TST_0>(exactly: decimal) == nil)
     }
 
     @Test("Money init from exact Decimal with literal value")
