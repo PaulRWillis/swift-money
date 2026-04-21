@@ -203,4 +203,30 @@ struct DecimalTests {
         let roundTrip = Decimal(exactly: money)
         #expect(roundTrip == decimal)
     }
+
+    // MARK: - Decimal inits for different minimal quantisations
+
+    @Test("Money init from decimal for currency with 1:100 major:minor unit ratio")
+    func decimalInitFor100MinorUnitCurrency() {
+        let decimal = Decimal(10.99) // Analogous to £10.99
+        let value = Money<TST_100>(decimal)
+        #expect(value.decimalValue == decimal)
+        #expect(value.minorUnits == 1099)
+    }
+
+    @Test("Money init from decimal for currency with no minor units")
+    func decimalInitForNoMinorUnitCurrency() {
+        let decimal = Decimal(153.0) // Analogous to ¥153 (153 JPY).
+        let value = Money<TST_1>(decimal)
+        #expect(value.decimalValue == decimal)
+        #expect(value.minorUnits == 153)
+    }
+
+    @Test("Money init from decimal for currency with no minor units - traps on invalid decimal")
+    func decimalInitForNoMinorUnitCurrencyTrapsOnInvalidDecimal() async {
+        await #expect(processExitsWith: .failure) {
+            let decimal = Decimal(153.12) // Analogous to invalid ¥153.12 (153.12 JPY).
+            _ = Money<TST_1>(decimal)
+        }
+    }
 }

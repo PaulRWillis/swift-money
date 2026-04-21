@@ -1,7 +1,9 @@
 import Foundation
 
 public protocol Currency: Equatable, Hashable, Sendable {
+    #warning("Replace with `CurrencyCode` typed object")
     static var code: String { get }
+    #warning("Replace with typed object such as `MinorUnitRatio`")
     /// The ratio of major units to minor units in the decimalized
     /// currency.
     ///

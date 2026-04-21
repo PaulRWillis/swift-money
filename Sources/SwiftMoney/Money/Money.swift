@@ -16,6 +16,7 @@ public struct Money<Currency: SwiftMoney.Currency> {
     @usableFromInline
     internal static var scaleFactor: Int64 { Currency.minorUnitRatio }
 
+    #warning("Rename to minimal quantisations")
     /// The raw minor units of a money value in a given currency.
     ///
     /// ```swift
