@@ -37,17 +37,15 @@ extension Money {
             self = .nan
             return
         }
-        var scaled = Decimal()
-        var value = decimal
-        var factor = Decimal(Self.scaleFactor)
+
+        let factor = Decimal(Self.scaleFactor)
 
         precondition(
             factor != .zero,
             "Currency scaleFactor is zero. Divide by zero error"
         )
 
-        _ = NSDecimalMultiply(&scaled, &value, &factor, .plain)
-
+        let scaled = decimal * factor
         let int64Value = NSDecimalNumber(decimal: scaled).int64Value
 
         // Overflow check: round-trip must match
@@ -86,14 +84,12 @@ extension Money {
             self = .nan
             return
         }
-        var scaled = Decimal()
-        var value = decimal
-        var factor = Decimal(Self.scaleFactor)
+
+        let factor = Decimal(Self.scaleFactor)
 
         guard factor != .zero else { return nil }
 
-        _ = NSDecimalMultiply(&scaled, &value, &factor, .plain)
-
+        let scaled = decimal * factor
         let int64Value = NSDecimalNumber(decimal: scaled).int64Value
 
         // Overflow check: round-trip must match
