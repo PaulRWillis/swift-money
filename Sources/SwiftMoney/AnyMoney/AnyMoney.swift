@@ -67,15 +67,21 @@ public struct AnyMoney: Sendable {
         self.currency = C.self
     }
 
-    /// Creates an `AnyMoney` from raw scalars, without a known currency metatype.
+    /// Creates an `AnyMoney` from raw scalars, with an optional currency metatype.
     ///
-    /// Used internally by `Codable` decoding and `MoneyBag` arithmetic. The
-    /// resulting value's ``currency`` property is `nil`.
-    internal init(minorUnits: Int64, currencyCode: CurrencyCode, minimalQuantisation: MinimalQuantisation) {
+    /// Pass `currency: C.self` when the concrete type is known (e.g. in
+    /// `MoneyBag.add`). Omit it (defaulting to `nil`) for `Codable` decoding
+    /// where only the scalar fields are available.
+    internal init(
+        minorUnits: Int64,
+        currencyCode: CurrencyCode,
+        minimalQuantisation: MinimalQuantisation,
+        currency: (any Currency.Type)? = nil
+    ) {
         self.minorUnits = minorUnits
         self.currencyCode = currencyCode
         self.minimalQuantisation = minimalQuantisation
-        self.currency = nil
+        self.currency = currency
     }
 
     // MARK: - Special value queries

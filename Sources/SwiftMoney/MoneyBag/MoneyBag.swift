@@ -137,7 +137,8 @@ public struct MoneyBag: Sendable {
         _storage[C.code] = AnyMoney(
             minorUnits: result,
             currencyCode: C.code,
-            minimalQuantisation: C.minimalQuantisation
+            minimalQuantisation: C.minimalQuantisation,
+            currency: C.self
         )
     }
 
@@ -164,7 +165,8 @@ public struct MoneyBag: Sendable {
         _storage[C.code] = AnyMoney(
             minorUnits: result,
             currencyCode: C.code,
-            minimalQuantisation: C.minimalQuantisation
+            minimalQuantisation: C.minimalQuantisation,
+            currency: C.self
         )
     }
 
