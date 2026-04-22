@@ -1,4 +1,4 @@
-public struct Money<Currency: SwiftMoney.Currency> {
+public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     /// The storage type for money's minor-unit count.
     ///
     /// Currently `Int64`. A future version may widen this to `Int128`;
@@ -179,20 +179,10 @@ public struct Money<Currency: SwiftMoney.Currency> {
     }
 }
 
-extension Money: Sendable {}
-
-extension Money: Codable {}
-
-
-
-
 /*
     - formatting
         > Attributed as a FormatStyle
         > Custom currency symbols that are used to replace attributed symbol in AttributedString?
-
-    - serialisation
-        > custom encoding + decoding
 
     - additional type-safe values
         > `PositiveMoney` typealias `Credit`?
