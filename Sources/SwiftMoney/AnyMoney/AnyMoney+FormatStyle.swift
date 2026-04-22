@@ -27,7 +27,6 @@ extension AnyMoney {
         private var grouping: Configuration.Grouping?
         private var precision: Configuration.Precision?
         private var decimalSeparatorStrategy: Configuration.DecimalSeparatorDisplayStrategy?
-        private var userScale: Double?
         private var roundedRule: Configuration.RoundingRule?
         private var roundedIncrement: Int?
         private var notation: Configuration.Notation?
@@ -41,7 +40,6 @@ extension AnyMoney {
             self.grouping = nil
             self.precision = nil
             self.decimalSeparatorStrategy = nil
-            self.userScale = nil
             self.roundedRule = nil
             self.roundedIncrement = nil
             self.notation = nil
@@ -82,10 +80,6 @@ extension AnyMoney {
             var s = self; s.roundedRule = rule; s.roundedIncrement = increment; return s
         }
 
-        public func scale(_ multiplicand: Double) -> FormatStyle {
-            var s = self; s.userScale = multiplicand; return s
-        }
-
         public func notation(_ n: Configuration.Notation) -> FormatStyle {
             var s = self; s.notation = n; return s
         }
@@ -97,14 +91,13 @@ extension AnyMoney {
 extension AnyMoney.FormatStyle: Foundation.FormatStyle {
     public func format(_ value: AnyMoney) -> String {
         let minQScale = 1.0 / Double(value.minimalQuantisation.int64Value)
-        let effectiveScale = userScale.map { minQScale * $0 } ?? minQScale
 
         var style = IntegerFormatStyle<Int64>.Currency(
             code: value.currencyCode.stringValue,
             locale: locale
         )
         style = style.presentation(presentation)
-        style = style.scale(effectiveScale)
+        style = style.scale(minQScale)
         // Only set sign when non-automatic: explicitly setting sign-auto in the ICU skeleton
         // conflicts with group-off on macOS 15+/26, and auto is ICU's implicit default anyway.
         if signDisplayStrategy != .automatic { style = style.sign(strategy: signDisplayStrategy) }

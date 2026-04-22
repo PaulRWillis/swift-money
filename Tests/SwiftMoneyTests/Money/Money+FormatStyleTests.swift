@@ -195,20 +195,6 @@ struct Money_FormatStyleTests {
         #expect(style.format(Money<JPY>(minorUnits: 10_000)) == "JP¥10000")
     }
 
-    @Test("scale(2.0) doubles the displayed major-unit value")
-    func scaleDoubles() {
-        // £1.50 × 2 = £3.00
-        let style = Money<GBP>.FormatStyle(locale: enGB).scale(2.0)
-        #expect(style.format(Money<GBP>(minorUnits: 150)) == "£3.00")
-    }
-
-    @Test("scale(0.5) halves the displayed major-unit value")
-    func scaleHalves() {
-        // £2.00 × 0.5 = £1.00
-        let style = Money<GBP>.FormatStyle(locale: enGB).scale(0.5)
-        #expect(style.format(Money<GBP>(minorUnits: 200)) == "£1.00")
-    }
-
     @Test("notation(.compactName) abbreviates large amounts")
     func notationCompactName() {
         // en_GB compact-short uses lowercase k (ICU CLDR convention)

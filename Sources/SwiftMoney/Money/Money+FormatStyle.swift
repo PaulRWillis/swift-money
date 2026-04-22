@@ -8,7 +8,7 @@ extension Money {
     ///
     /// `Money.FormatStyle` mirrors the modifier API of `IntegerFormatStyle.Currency`
     /// and delegates to it internally, automatically scaling minor units to major
-    /// units for display.
+    /// units for display via the currency's `minimalQuantisation`.
     ///
     /// ```swift
     /// let style = Money<GBP>.FormatStyle(locale: Locale(identifier: "en_GB"))
@@ -16,12 +16,6 @@ extension Money {
     ///
     /// style.format(Money<GBP>(minorUnits: 150))  // "+£1.50"
     /// ```
-    ///
-    /// ## Scale compounding
-    ///
-    /// The built-in `1 / minimalQuantisation` scaling (minor → major units) is always
-    /// applied. `.scale(_:)` compounds on top of it: `.scale(2.0)` on a GBP amount
-    /// doubles the displayed pound value (effective scale `2 / 100`).
     public struct FormatStyle: Equatable, Hashable, Sendable, Codable {
 
         public typealias Configuration = CurrencyFormatStyleConfiguration
@@ -34,7 +28,6 @@ extension Money {
         private var grouping: Configuration.Grouping?
         private var precision: Configuration.Precision?
         private var decimalSeparatorStrategy: Configuration.DecimalSeparatorDisplayStrategy?
-        private var userScale: Double?
         private var roundedRule: Configuration.RoundingRule?
         private var roundedIncrement: Int?
         private var notation: Configuration.Notation?
@@ -48,7 +41,6 @@ extension Money {
             self.grouping = nil
             self.precision = nil
             self.decimalSeparatorStrategy = nil
-            self.userScale = nil
             self.roundedRule = nil
             self.roundedIncrement = nil
             self.notation = nil
@@ -89,29 +81,25 @@ extension Money {
             var s = self; s.roundedRule = rule; s.roundedIncrement = increment; return s
         }
 
-        public func scale(_ multiplicand: Double) -> FormatStyle {
-            var s = self; s.userScale = multiplicand; return s
-        }
-
         public func notation(_ n: Configuration.Notation) -> FormatStyle {
             var s = self; s.notation = n; return s
         }
     }
 }
 
-// MARK: - Foundation.FormatStyle conformance
+// MARK: - Internal style builders
 
-extension Money.FormatStyle: Foundation.FormatStyle {
-    public func format(_ value: Money) -> String {
+extension Money.FormatStyle {
+    /// Builds the `IntegerFormatStyle<Int64>.Currency` that `format(_:)` uses.
+    internal func _integerFormatStyle() -> IntegerFormatStyle<Int64>.Currency {
         let minQScale = 1.0 / Double(Money<Currency>.minimalQuantisation.int64Value)
-        let effectiveScale = userScale.map { minQScale * $0 } ?? minQScale
 
         var style = IntegerFormatStyle<Int64>.Currency(
-            code: value.currency.code.stringValue,
+            code: Currency.code.stringValue,
             locale: locale
         )
         style = style.presentation(presentation)
-        style = style.scale(effectiveScale)
+        style = style.scale(minQScale)
         // Only set sign when non-automatic: explicitly setting sign-auto in the ICU skeleton
         // conflicts with group-off on macOS 15+/26, and auto is ICU's implicit default anyway.
         if signDisplayStrategy != .automatic { style = style.sign(strategy: signDisplayStrategy) }
@@ -120,7 +108,64 @@ extension Money.FormatStyle: Foundation.FormatStyle {
         if let d = decimalSeparatorStrategy  { style = style.decimalSeparator(strategy: d) }
         if let r = roundedRule               { style = style.rounded(rule: r, increment: roundedIncrement) }
         if let n = notation                  { style = style.notation(n) }
-        return value._storage.formatted(style)
+        return style
+    }
+
+    /// Builds a `Decimal.FormatStyle.Currency` with the same display parameters
+    /// as `_integerFormatStyle()` but **without** the minor-unit scale.
+    ///
+    /// Used by `Money.ParseStrategy` to convert a formatted currency string back
+    /// to a major-unit `Decimal` before manually inverting the scale.
+    ///
+    /// `IntegerFormatStyle<Int64>.Currency.parseStrategy` cannot be used for this
+    /// because it does not invert the scale; it truncates the displayed value to
+    /// an integer directly. Parsing via `Decimal.FormatStyle.Currency` (same ICU
+    /// locale data, same display modifiers, no scale) gives us the exact
+    /// displayed decimal value, from which scale inversion is straightforward.
+    internal func _decimalFormatStyle() -> Decimal.FormatStyle.Currency {
+        var style = Decimal.FormatStyle.Currency(
+            code: Currency.code.stringValue,
+            locale: locale
+        )
+        style = style.presentation(presentation)
+        // Mirror the sign-auto guard from _integerFormatStyle().
+        if signDisplayStrategy != .automatic { style = style.sign(strategy: signDisplayStrategy) }
+        if let g = grouping                  { style = style.grouping(g) }
+        if let p = precision                 { style = style.precision(p) }
+        if let d = decimalSeparatorStrategy  { style = style.decimalSeparator(strategy: d) }
+        if let r = roundedRule               { style = style.rounded(rule: r, increment: roundedIncrement) }
+        if let n = notation                  { style = style.notation(n) }
+        // scale is intentionally NOT applied — the caller inverts scale manually.
+        return style
+    }
+
+    /// Parses a formatted currency string back to a `Money` value.
+    ///
+    /// Algorithm:
+    /// 1. Parse the string via `_decimalFormatStyle()` → displayed major-unit `Decimal`.
+    /// 2. Convert: `minor_units = displayed × minQ`.
+    /// 3. Round half-up and convert to `Int64`.
+    internal func _parse(_ value: String) throws -> Money<Currency> {
+        let minQ = Decimal(Money<Currency>.minimalQuantisation.int64Value)
+
+        let displayed = try _decimalFormatStyle().parseStrategy.parse(value)
+
+        var product = displayed * minQ
+        var rounded = Decimal()
+        NSDecimalRound(&rounded, &product, 0, .plain)   // round half-up
+
+        let int64 = (rounded as NSDecimalNumber).int64Value
+        guard Decimal(int64) == rounded else { throw Money<Currency>.ParseStrategy.ParseError.overflow }
+        guard int64 != .min             else { throw Money<Currency>.ParseStrategy.ParseError.overflow }
+        return Money<Currency>(_unchecked: int64)
+    }
+}
+
+// MARK: - Foundation.FormatStyle conformance
+
+extension Money.FormatStyle: Foundation.FormatStyle {
+    public func format(_ value: Money) -> String {
+        value._storage.formatted(_integerFormatStyle())
     }
 }
 

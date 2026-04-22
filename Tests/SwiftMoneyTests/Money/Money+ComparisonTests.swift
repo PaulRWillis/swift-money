@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 import SwiftMoney
 
@@ -129,18 +130,21 @@ struct Money_ComparisonTests {
 
     // MARK: - Hash Consistency Across Construction Paths (inspired by rust_decimal/shopspring)
 
-    #warning("Uncomment string init once ParseableFormatStyle is added")
     @Test("Values constructed via different paths hash equally")
-    func hashConsistencyAcrossConstructors() {
-        let fromInt = Money<TST_100>(42)
-//        let fromString = Money<TST>("42")!
-        let fromRaw = Money<TST_100>(minorUnits: 42)
+    func hashConsistencyAcrossConstructors() throws {
+        // 42 pence = £0.42 — three construction paths that must all produce equal values.
+        let fromLiteral: Money<GBP> = 42                        // integerLiteral => _storage = 42
+        let fromMinorUnits = Money<GBP>(minorUnits: 42)
+        let formatStyle    = Money<GBP>.FormatStyle(locale: Locale(identifier: "en_GB"))
+        let fromString     = try Money<GBP>("£0.42", format: formatStyle)
 
-//        #expect(fromInt == fromString)
-        #expect(fromInt == fromRaw)
+        #expect(fromLiteral   == fromMinorUnits)
+        #expect(fromLiteral   == fromString)
+        #expect(fromMinorUnits == fromString)
 
-//        #expect(fromInt.hashValue == fromString.hashValue)
-        #expect(fromInt.hashValue == fromRaw.hashValue)
+        #expect(fromLiteral.hashValue    == fromMinorUnits.hashValue)
+        #expect(fromLiteral.hashValue    == fromString.hashValue)
+        #expect(fromMinorUnits.hashValue == fromString.hashValue)
     }
 
     // MARK: - Comparison Boundary Values (inspired by OpenJDK CompareToTests)
