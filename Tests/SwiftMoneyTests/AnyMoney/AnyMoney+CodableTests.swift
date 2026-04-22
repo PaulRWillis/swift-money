@@ -159,3 +159,201 @@ struct AnyMoney_CodableTests {
         #expect(decoded.asMoney(TST_1.self) == nil)
     }
 }
+
+// MARK: - .object strategy
+
+@Suite("AnyMoney – Codable – .object strategy")
+struct AnyMoney_CodableTests_ObjectStrategy {
+
+    private let resolver: @Sendable (CurrencyCode) -> MinimalQuantisation? = { code in
+        switch code.stringValue {
+        case "TST_100": return 100
+        case "TST_1": return 1
+        case "GBP": return 100
+        default: return nil
+        }
+    }
+
+    private func makeSortedEncoder(strategy: AnyMoneyEncodingStrategy) -> JSONEncoder {
+        var enc = JSONEncoder()
+        enc.outputFormatting = [.sortedKeys]
+        enc.anyMoneyEncodingStrategy = strategy
+        return enc
+    }
+
+    private func roundTrip(
+        _ value: AnyMoney,
+        encoding: AnyMoneyEncodingStrategy,
+        decoding: AnyMoneyDecodingStrategy
+    ) throws -> AnyMoney {
+        var enc = JSONEncoder()
+        enc.anyMoneyEncodingStrategy = encoding
+        var dec = JSONDecoder()
+        dec.anyMoneyDecodingStrategy = decoding
+        return try dec.decode(AnyMoney.self, from: enc.encode(value))
+    }
+
+    // MARK: Encoding shape
+
+    @Test(".object(majorUnits): JSON has currencyCode and amount, not minimalQuantisation")
+    func objectMajorUnitsEncodingShape() throws {
+        let any = Money<TST_100>(minorUnits: 500).erased
+        let data = try makeSortedEncoder(strategy: .object(amount: .majorUnits)).encode(any)
+        let json = try #require(String(data: data, encoding: .utf8))
+        #expect(json.contains("\"currencyCode\""))
+        #expect(json.contains("\"amount\""))
+        #expect(!json.contains("\"minimalQuantisation\""))
+        #expect(!json.contains("\"minorUnits\""))
+    }
+
+    @Test(".object(minorUnits): JSON amount is the raw minor-unit integer")
+    func objectMinorUnitsEncodingShape() throws {
+        let any = Money<TST_100>(minorUnits: 500).erased
+        let data = try makeSortedEncoder(strategy: .object(amount: .minorUnits)).encode(any)
+        let json = try #require(String(data: data, encoding: .utf8))
+        // sortedKeys: "amount" < "currencyCode"
+        #expect(json == #"{"amount":500,"currencyCode":"TST_100"}"#)
+    }
+
+    @Test(".object static shorthand is equivalent to .object(amount: .majorUnits)")
+    func objectStaticShorthand() throws {
+        let any = Money<TST_100>(minorUnits: 500).erased
+        let j1 = try #require(String(data: makeSortedEncoder(strategy: .object).encode(any), encoding: .utf8))
+        let j2 = try #require(String(data: makeSortedEncoder(strategy: .object(amount: .majorUnits)).encode(any), encoding: .utf8))
+        #expect(j1 == j2)
+    }
+
+    // MARK: Round-trips
+
+    @Test(".object(majorUnits): TST_100 round-trips correctly")
+    func objectMajorUnitsTST100RoundTrip() throws {
+        let original = Money<TST_100>(minorUnits: 750).erased
+        let decoded = try roundTrip(original,
+            encoding: .object(amount: .majorUnits),
+            decoding: .object(amount: .majorUnits, resolver: resolver))
+        #expect(decoded == original)
+    }
+
+    @Test(".object(majorUnits): TST_1 (ratio-1) round-trips correctly")
+    func objectMajorUnitsTST1RoundTrip() throws {
+        let original = Money<TST_1>(minorUnits: 1000).erased
+        let decoded = try roundTrip(original,
+            encoding: .object(amount: .majorUnits),
+            decoding: .object(amount: .majorUnits, resolver: resolver))
+        #expect(decoded == original)
+    }
+
+    @Test(".object(majorUnits): negative amount round-trips correctly")
+    func objectMajorUnitsNegativeRoundTrip() throws {
+        let original = Money<TST_100>(minorUnits: -250).erased
+        let decoded = try roundTrip(original,
+            encoding: .object(amount: .majorUnits),
+            decoding: .object(amount: .majorUnits, resolver: resolver))
+        #expect(decoded == original)
+    }
+
+    @Test(".object(minorUnits): TST_100 round-trips correctly")
+    func objectMinorUnitsTST100RoundTrip() throws {
+        let original = Money<TST_100>(minorUnits: 999).erased
+        let decoded = try roundTrip(original,
+            encoding: .object(amount: .minorUnits),
+            decoding: .object(amount: .minorUnits, resolver: resolver))
+        #expect(decoded == original)
+    }
+
+    @Test(".object(minorUnits): NaN is preserved")
+    func objectMinorUnitsNaNPreserved() throws {
+        let original = Money<TST_100>.nan.erased
+        let decoded = try roundTrip(original,
+            encoding: .object(amount: .minorUnits),
+            decoding: .object(amount: .minorUnits, resolver: resolver))
+        #expect(decoded.isNaN)
+        #expect(decoded.currencyCode == TST_100.code)
+    }
+
+    @Test(".object(string): GBP round-trips correctly")
+    func objectStringGBPRoundTrip() throws {
+        let locale = Locale(identifier: "en_GB")
+        let original = Money<GBP>(minorUnits: 12_345).erased
+        let decoded = try roundTrip(original,
+            encoding: .object(amount: .string(locale: locale)),
+            decoding: .object(amount: .string(locale: locale), resolver: resolver))
+        #expect(decoded == original)
+    }
+
+    // MARK: NaN error handling
+
+    @Test(".object(majorUnits): encoding NaN throws EncodingError")
+    func objectMajorUnitsNaNThrows() throws {
+        let nan = Money<TST_100>.nan.erased
+        #expect(throws: EncodingError.self) {
+            try makeSortedEncoder(strategy: .object(amount: .majorUnits)).encode(nan)
+        }
+    }
+
+    @Test(".object(string): encoding NaN throws EncodingError")
+    func objectStringNaNThrows() throws {
+        let nan = Money<TST_100>.nan.erased
+        #expect(throws: EncodingError.self) {
+            try makeSortedEncoder(strategy: .object(amount: .string(locale: .current))).encode(nan)
+        }
+    }
+
+    // MARK: Resolver errors
+
+    @Test(".object: resolver returning nil throws DecodingError")
+    func objectResolverNilThrows() throws {
+        let json = #"{"currencyCode":"UNKNOWN","amount":5.0}"#
+        let data = try #require(json.data(using: .utf8))
+        var decoder = JSONDecoder()
+        decoder.anyMoneyDecodingStrategy = .object(amount: .majorUnits, resolver: { _ in nil })
+        #expect(throws: DecodingError.self) {
+            try decoder.decode(AnyMoney.self, from: data)
+        }
+    }
+}
+
+// MARK: - Strategy property API
+
+@Suite("AnyMoney – Codable – Strategy property API")
+struct AnyMoney_CodableTests_StrategyAPI {
+
+    @Test("JSONEncoder.anyMoneyEncodingStrategy defaults to .full")
+    func encoderDefaultStrategyIsFull() throws {
+        let encoder = JSONEncoder()
+        let data = try encoder.encode(Money<TST_100>(minorUnits: 500).erased)
+        let json = try #require(String(data: data, encoding: .utf8))
+        // .full includes minimalQuantisation; .object does not
+        #expect(json.contains("minimalQuantisation"))
+    }
+
+    @Test("JSONEncoder.anyMoneyEncodingStrategy setter is respected")
+    func encoderStrategySetterRespected() throws {
+        var encoder = JSONEncoder()
+        encoder.anyMoneyEncodingStrategy = .object(amount: .minorUnits)
+        let data = try encoder.encode(Money<TST_100>(minorUnits: 500).erased)
+        let json = try #require(String(data: data, encoding: .utf8))
+        #expect(!json.contains("minimalQuantisation"))
+        #expect(json.contains("amount"))
+    }
+
+    @Test("JSONDecoder.anyMoneyDecodingStrategy defaults to .full")
+    func decoderDefaultStrategyIsFull() throws {
+        let fullJSON = #"{"minorUnits":500,"currencyCode":"TST_100","minimalQuantisation":100}"#
+        let data = try #require(fullJSON.data(using: .utf8))
+        let any = try JSONDecoder().decode(AnyMoney.self, from: data)
+        #expect(any.minorUnits == 500)
+        #expect(any.currencyCode.stringValue == "TST_100")
+    }
+
+    @Test("JSONDecoder.anyMoneyDecodingStrategy setter is respected")
+    func decoderStrategySetterRespected() throws {
+        let objectJSON = #"{"currencyCode":"TST_100","amount":500}"#
+        let data = try #require(objectJSON.data(using: .utf8))
+        var decoder = JSONDecoder()
+        decoder.anyMoneyDecodingStrategy = .object(amount: .minorUnits, resolver: { _ in MinimalQuantisation(100) })
+        let any = try decoder.decode(AnyMoney.self, from: data)
+        #expect(any.minorUnits == 500)
+        #expect(any.currencyCode.stringValue == "TST_100")
+    }
+}

@@ -1,41 +1,120 @@
+import Foundation
+
+// MARK: - Codable
+
 extension AnyMoney: Codable {
-    private enum CodingKeys: String, CodingKey {
-        case minorUnits
-        case currencyCode
-        case minimalQuantisation
+
+    /// Encodes this ``AnyMoney`` value using the strategy configured on the encoder.
+    ///
+    /// The active strategy is read from `encoder.userInfo[.anyMoneyEncodingStrategy]`
+    /// (set via ``JSONEncoder/anyMoneyEncodingStrategy``). Defaults to
+    /// ``AnyMoneyEncodingStrategy/full`` when not set.
+    ///
+    /// - SeeAlso: ``JSONEncoder/anyMoneyEncodingStrategy``
+    public func encode(to encoder: any Encoder) throws {
+        let strategy = encoder.userInfo[.anyMoneyEncodingStrategy] as? AnyMoneyEncodingStrategy ?? .full
+        try _encode(strategy: strategy, to: encoder)
     }
 
-    /// Encodes this value into the given encoder.
+    /// Creates an ``AnyMoney`` by decoding from the given decoder.
     ///
-    /// Encodes the three scalar fields — ``minorUnits``, ``currencyCode``, and
-    /// ``minimalQuantisation`` — as a keyed container. The ``currency`` metatype is
-    /// not encoded; it is a runtime-only convenience.
+    /// The active strategy is read from `decoder.userInfo[.anyMoneyDecodingStrategy]`
+    /// (set via ``JSONDecoder/anyMoneyDecodingStrategy``). Defaults to
+    /// ``AnyMoneyDecodingStrategy/full`` when not set.
     ///
-    /// Example JSON output:
-    /// ```json
-    /// { "currencyCode": "GBP", "minimalQuantisation": 100, "minorUnits": 500 }
-    /// ```
-    public func encode(to encoder: any Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
+    /// The decoding strategy **must** match the encoding strategy that produced
+    /// the data, or a `DecodingError` will be thrown.
+    ///
+    /// - SeeAlso: ``JSONDecoder/anyMoneyDecodingStrategy``
+    public init(from decoder: any Decoder) throws {
+        let strategy = decoder.userInfo[.anyMoneyDecodingStrategy] as? AnyMoneyDecodingStrategy ?? .full
+        self = try AnyMoney._decode(strategy: strategy, from: decoder)
+    }
+}
+
+// MARK: - Internal helpers (used by MoneyBag+Codable.swift)
+//
+// These bypass the userInfo dispatch so MoneyBag can control per-entry encoding
+// without the outer encoder's anyMoneyEncodingStrategy bleeding through.
+
+extension AnyMoney {
+
+    // MARK: Coding keys
+
+    fileprivate enum FullKey: String, CodingKey {
+        case minorUnits, currencyCode, minimalQuantisation
+    }
+
+    fileprivate enum ObjectKey: String, CodingKey {
+        case currencyCode, amount
+    }
+
+    // MARK: Dispatch
+
+    /// Encodes using an explicit strategy. Called by `MoneyBag+Codable.swift`.
+    internal func _encode(strategy: AnyMoneyEncodingStrategy, to encoder: any Encoder) throws {
+        switch strategy {
+        case .full:
+            try _encodeFull(to: encoder)
+        case .object(let amountStrategy):
+            try _encodeObject(amountStrategy: amountStrategy, to: encoder)
+        }
+    }
+
+    /// Decodes using an explicit strategy. Called by `MoneyBag+Codable.swift`.
+    internal static func _decode(strategy: AnyMoneyDecodingStrategy, from decoder: any Decoder) throws -> AnyMoney {
+        switch strategy {
+        case .full:
+            return try _decodeFull(from: decoder)
+        case .object(let amountStrategy, let resolver):
+            return try _decodeObject(amountStrategy: amountStrategy, resolver: resolver, from: decoder)
+        }
+    }
+
+    // MARK: Encode helpers
+
+    private func _encodeFull(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: FullKey.self)
         try container.encode(minorUnits, forKey: .minorUnits)
         try container.encode(currencyCode.stringValue, forKey: .currencyCode)
         try container.encode(minimalQuantisation.int64Value, forKey: .minimalQuantisation)
     }
 
-    /// Creates an `AnyMoney` by decoding from the given decoder.
-    ///
-    /// Decodes ``minorUnits``, ``currencyCode``, and ``minimalQuantisation`` from a
-    /// keyed container. The ``currency`` metatype will be `nil` on the decoded
-    /// value — only the scalar fields are persisted.
-    ///
-    /// To recover a typed value after decoding, use ``asMoney(_:)``:
-    ///
-    /// ```swift
-    /// let decoded = try JSONDecoder().decode(AnyMoney.self, from: data)
-    /// let typed: Money<GBP>? = decoded.asMoney(GBP.self)
-    /// ```
-    public init(from decoder: any Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
+    private func _encodeObject(amountStrategy: MoneyAmountEncodingStrategy, to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: ObjectKey.self)
+        try container.encode(currencyCode.stringValue, forKey: .currencyCode)
+        switch amountStrategy {
+        case .minorUnits:
+            try container.encode(minorUnits, forKey: .amount)
+        case .majorUnits:
+            guard !isNaN else {
+                throw EncodingError.invalidValue(
+                    self,
+                    EncodingError.Context(
+                        codingPath: encoder.codingPath,
+                        debugDescription: "AnyMoney.nan cannot be encoded using .object(amount: .majorUnits). Use .full or .object(amount: .minorUnits) to preserve NaN."
+                    )
+                )
+            }
+            try container.encode(decimalValue, forKey: .amount)
+        case .string(let locale):
+            guard !isNaN else {
+                throw EncodingError.invalidValue(
+                    self,
+                    EncodingError.Context(
+                        codingPath: encoder.codingPath,
+                        debugDescription: "AnyMoney.nan cannot be encoded using .object(amount: .string). Use .full or .object(amount: .minorUnits) to preserve NaN."
+                    )
+                )
+            }
+            try container.encode(formatted(AnyMoney.FormatStyle(locale: locale)), forKey: .amount)
+        }
+    }
+
+    // MARK: Decode helpers
+
+    private static func _decodeFull(from decoder: any Decoder) throws -> AnyMoney {
+        let container = try decoder.container(keyedBy: FullKey.self)
         let minorUnits = try container.decode(Int64.self, forKey: .minorUnits)
         let currencyCodeString = try container.decode(String.self, forKey: .currencyCode)
         let quantisationInt = try container.decode(Int64.self, forKey: .minimalQuantisation)
@@ -53,10 +132,107 @@ extension AnyMoney: Codable {
                 debugDescription: "AnyMoney minimalQuantisation must be > 0 (decoded \(quantisationInt))"
             )
         }
-        self.init(
+        return AnyMoney(
             minorUnits: minorUnits,
             currencyCode: CurrencyCode(currencyCodeString),
             minimalQuantisation: MinimalQuantisation(quantisationInt)
         )
+    }
+
+    private static func _decodeObject(
+        amountStrategy: MoneyAmountDecodingStrategy,
+        resolver: @Sendable (CurrencyCode) -> MinimalQuantisation?,
+        from decoder: any Decoder
+    ) throws -> AnyMoney {
+        let container = try decoder.container(keyedBy: ObjectKey.self)
+        let currencyCodeString = try container.decode(String.self, forKey: .currencyCode)
+        guard !currencyCodeString.isEmpty else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .currencyCode,
+                in: container,
+                debugDescription: "AnyMoney currencyCode cannot be empty"
+            )
+        }
+        let code = CurrencyCode(currencyCodeString)
+        guard let minQ = resolver(code) else {
+            throw DecodingError.dataCorrupted(
+                DecodingError.Context(
+                    codingPath: container.codingPath,
+                    debugDescription: "No MinimalQuantisation found for currency '\(code)'. Provide a resolver that covers this currency."
+                )
+            )
+        }
+        let minorUnits: Int64
+        switch amountStrategy {
+        case .minorUnits:
+            minorUnits = try container.decode(Int64.self, forKey: .amount)
+        case .majorUnits:
+            let decimal = try container.decode(Decimal.self, forKey: .amount)
+            minorUnits = try _decimalToMinorUnits(decimal, minQ: minQ, codingPath: container.codingPath)
+        case .string(let locale):
+            let string = try container.decode(String.self, forKey: .amount)
+            let decimal = try _parseFormattedAmount(
+                string, currencyCode: code, locale: locale, codingPath: container.codingPath
+            )
+            minorUnits = try _decimalToMinorUnits(decimal, minQ: minQ, codingPath: container.codingPath)
+        }
+        return AnyMoney(minorUnits: minorUnits, currencyCode: code, minimalQuantisation: minQ)
+    }
+
+    // MARK: Shared arithmetic helpers (internal so MoneyBag+Codable.swift can reuse them)
+
+    /// Multiplies a major-unit Decimal by `minQ`, rounds to nearest minor unit (`.plain`),
+    /// and converts to `Int64`. Throws on overflow or NaN-sentinel collision.
+    internal static func _decimalToMinorUnits(
+        _ decimal: Decimal,
+        minQ: MinimalQuantisation,
+        codingPath: [any CodingKey]
+    ) throws -> Int64 {
+        let minQDecimal = Decimal(minQ.int64Value)
+        var product = decimal * minQDecimal
+        var rounded = Decimal()
+        NSDecimalRound(&rounded, &product, 0, .plain)
+        let int64 = (rounded as NSDecimalNumber).int64Value
+        guard Decimal(int64) == rounded else {
+            throw DecodingError.dataCorrupted(
+                DecodingError.Context(
+                    codingPath: codingPath,
+                    debugDescription: "Decoded major-unit value \(decimal) overflows the Int64 minor-unit range."
+                )
+            )
+        }
+        guard int64 != .min else {
+            throw DecodingError.dataCorrupted(
+                DecodingError.Context(
+                    codingPath: codingPath,
+                    debugDescription: "Decoded minor-unit value \(int64) collides with the NaN sentinel (Int64.min)."
+                )
+            )
+        }
+        return int64
+    }
+
+    /// Parses a locale-formatted currency string to a major-unit `Decimal`.
+    /// Throws `DecodingError.dataCorrupted` on parse failure.
+    internal static func _parseFormattedAmount(
+        _ string: String,
+        currencyCode: CurrencyCode,
+        locale: Locale,
+        codingPath: [any CodingKey]
+    ) throws -> Decimal {
+        let formatter = Decimal.FormatStyle.Currency(
+            code: currencyCode.stringValue,
+            locale: locale
+        )
+        do {
+            return try formatter.parseStrategy.parse(string)
+        } catch {
+            throw DecodingError.dataCorrupted(
+                DecodingError.Context(
+                    codingPath: codingPath,
+                    debugDescription: "Could not parse '\(string)' as currency amount for '\(currencyCode)' using the configured locale."
+                )
+            )
+        }
     }
 }
