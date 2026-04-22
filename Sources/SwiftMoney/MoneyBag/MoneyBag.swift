@@ -45,7 +45,7 @@ public struct MoneyBag: Sendable {
     // MARK: - Storage
 
     /// Currency code → accumulated `AnyMoney` for that currency.
-    private var _storage: [String: AnyMoney]
+    internal var _storage: [String: AnyMoney]
 
     // MARK: - Initializers
 
