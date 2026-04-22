@@ -6,6 +6,9 @@ import SwiftMoney
 @Suite("AnyMoney – Formatting")
 struct AnyMoney_FormatStyleTests {
 
+    private let enUS = Locale(identifier: "en_US")
+    private let enGB = Locale(identifier: "en_GB")
+
     // MARK: - formatted()
 
     @Test("formatted() produces a non-empty string")
@@ -17,24 +20,26 @@ struct AnyMoney_FormatStyleTests {
     @Test("formatted() matches Money<GBP> output for GBP")
     func formattedMatchesTypedGBP() {
         let money = Money<GBP>(minorUnits: 100)
-        #expect(money.erased.formatted() == money.formatted())
+        let style = Money<GBP>.FormatStyle(locale: enGB)
+        #expect(money.erased.formatted(AnyMoney.FormatStyle(locale: enGB)) == money.formatted(style))
     }
 
     @Test("formatted() matches Money<EUR> output for EUR")
     func formattedMatchesTypedEUR() {
         let money = Money<EUR>(minorUnits: 100)
-        #expect(money.erased.formatted() == money.formatted())
+        let style = Money<EUR>.FormatStyle(locale: enGB)
+        #expect(money.erased.formatted(AnyMoney.FormatStyle(locale: enGB)) == money.formatted(style))
     }
 
     @Test("formatted() matches Money<JPY> output for JPY (ratio-1 currency)")
     func formattedMatchesTypedJPY() {
         let money = Money<JPY>(minorUnits: 500)
-        #expect(money.erased.formatted() == money.formatted())
+        let style = Money<JPY>.FormatStyle(locale: enUS)
+        #expect(money.erased.formatted(AnyMoney.FormatStyle(locale: enUS)) == money.formatted(style))
     }
 
-    #warning("Might need to set locale for tests for reproducibility")
     @Test(
-        "formatted() produces correct currency symbol",
+        "formatted(_:) produces correct currency symbol",
         arguments: zip(
             [
                 Money<GBP>(minorUnits: 100).erased,
@@ -45,7 +50,8 @@ struct AnyMoney_FormatStyleTests {
         )
     )
     func formattedCurrencySymbol(any: AnyMoney, expected: String) {
-        #expect(any.formatted() == expected)
+        // en_GB: GBP→£, EUR→€, JPY→JP¥ (foreign-currency disambiguation symbols)
+        #expect(any.formatted(AnyMoney.FormatStyle(locale: Locale(identifier: "en_GB"))) == expected)
     }
 
     // MARK: - CustomStringConvertible
