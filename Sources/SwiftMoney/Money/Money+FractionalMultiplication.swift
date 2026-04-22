@@ -42,28 +42,25 @@ extension Money {
             return FractionalMultiplicationResult(result: .zero, actualRate: rate)
         }
 
-        // Compute the theoretical (unrounded) result entirely in minor units,
-        // using Decimal arithmetic to avoid Int64 intermediate overflow.
-        var a = Decimal(_storage)
-        var n = Decimal(rate.numeratorValue)
-        var d = Decimal(rate.denominatorValue)
-        var product = Decimal()
-        var unrounded = Decimal()
-        NSDecimalMultiply(&product, &a, &n, .plain)
-        NSDecimalDivide(&unrounded, &product, &d, .plain)
+        // Multiply in Int128 to avoid Int64 overflow (max product ≈ 8.5×10³⁷ < Int128.max).
+        let product = Int128(_storage) * Int128(rate.numeratorValue)
+        let denominator = Int128(rate.denominatorValue)
+        let (truncated, remainder) = product.quotientAndRemainder(dividingBy: denominator)
 
-        // Round to the nearest whole minor unit.
-        var rounded = Decimal()
-        NSDecimalRound(&rounded, &unrounded, 0, _nsRoundingMode(rounding, for: unrounded))
+        // Apply the caller's rounding rule using pure integer comparisons.
+        let minorUnits128 = _roundInt128(
+            truncated: truncated,
+            remainder: remainder,
+            denominator: denominator,
+            rule: rounding
+        )
 
-        // Convert the rounded Decimal to Int64.
-        let minorUnits = NSDecimalNumber(decimal: rounded).int64Value
-        // Overflow check: round-trip must reproduce the rounded Decimal.
+        // Bounds check: result must fit in Int64 and must not equal the NaN sentinel.
         precondition(
-            Decimal(minorUnits) == rounded,
+            minorUnits128 >= Int128(Int64.min) && minorUnits128 <= Int128(Int64.max),
             "Money fractional multiplication result overflows Int64"
         )
-        // Guard against NaN sentinel.
+        let minorUnits = Int64(minorUnits128)
         precondition(
             minorUnits != .min,
             "Money fractional multiplication produced NaN sentinel"
@@ -140,34 +137,69 @@ extension Money {
     }
 }
 
-// MARK: - Private helpers
+// MARK: - Internal helpers
 
-/// Maps a `FloatingPointRoundingRule` to the equivalent `NSDecimalNumber.RoundingMode`.
+/// Applies a `FloatingPointRoundingRule` to an integer division result expressed
+/// as `truncated + remainder/denominator`.
 ///
-/// For the direction-sensitive rules (`.towardZero`, `.awayFromZero`), the
-/// sign of the intermediate (pre-rounding) `value` determines which mode to use.
-private func _nsRoundingMode(
-    _ rule: FloatingPointRoundingRule,
-    for value: Decimal
-) -> NSDecimalNumber.RoundingMode {
+/// `truncated` is the result of truncating division (toward zero). `remainder`
+/// carries the same sign as the dividend (Swift's `%` contract). `denominator`
+/// is always positive (enforced by `FractionalRate`).
+///
+/// Proof that the tie comparison `abs(r)*2` never overflows `Int128`:
+/// - `abs(remainder) < denominator ≤ Int64.max`
+/// - Therefore `abs(remainder)*2 < 2×Int64.max ≪ Int128.max`
+internal func _roundInt128(
+    truncated: Int128,
+    remainder: Int128,
+    denominator: Int128,
+    rule: FloatingPointRoundingRule
+) -> Int128 {
+    guard remainder != 0 else { return truncated }
+
     switch rule {
-    case .toNearestOrAwayFromZero:
-        return .plain
-    case .toNearestOrEven:
-        return .bankers
-    case .up:
-        return .up
-    case .down:
-        return .down
     case .towardZero:
-        // Truncate: round toward zero.
-        // Positive values → floor (.down); negative values → ceiling (.up).
-        return value.isSignMinus ? .up : .down
+        // Truncating division already rounds toward zero.
+        return truncated
+
+    case .down:
+        // Floor: subtract 1 if there is a negative fractional part.
+        return remainder < 0 ? truncated - 1 : truncated
+
+    case .up:
+        // Ceiling: add 1 if there is a positive fractional part.
+        return remainder > 0 ? truncated + 1 : truncated
+
     case .awayFromZero:
-        // Round away from zero.
-        // Positive values → ceiling (.up); negative values → floor (.down).
-        return value.isSignMinus ? .down : .up
+        // Away from zero: add 1 for positive remainder, subtract 1 for negative.
+        return remainder > 0 ? truncated + 1 : truncated - 1
+
+    case .toNearestOrAwayFromZero:
+        // Round half away from zero (HALF_UP / commercial rounding).
+        let absR = remainder < 0 ? -remainder : remainder
+        let halfway = absR * 2 >= denominator
+        if !halfway { return truncated }
+        return remainder > 0 ? truncated + 1 : truncated - 1
+
+    case .toNearestOrEven:
+        // Banker's rounding (IEEE 754 default): round half to even.
+        let absR = remainder < 0 ? -remainder : remainder
+        let doubleR = absR * 2
+        if doubleR < denominator { return truncated }          // below half: truncate
+        if doubleR > denominator {                              // above half: round away
+            return remainder > 0 ? truncated + 1 : truncated - 1
+        }
+        // Exact half: round to even — adjust only if truncated is odd.
+        if truncated % 2 != 0 {
+            return remainder > 0 ? truncated + 1 : truncated - 1
+        }
+        return truncated
+
     @unknown default:
-        return .plain
+        // Safe fallback: HALF_UP.
+        let absR = remainder < 0 ? -remainder : remainder
+        let halfway = absR * 2 >= denominator
+        if !halfway { return truncated }
+        return remainder > 0 ? truncated + 1 : truncated - 1
     }
 }

@@ -69,14 +69,12 @@ struct Money_InitializationTests {
 
     // MARK: - Exact integer init for Int128
 
-    @available(macOS 15.0, *)
     @Test("Exact integer init oveflow for Int128.max")
     func exactIntegerInitOverflowForInt128Max() {
         let int128Max = Money<TST_100>(exactly: Int128.max)
         #expect(int128Max == nil)
     }
 
-    @available(macOS 15.0, *)
     @Test("Exact integer init oveflow for Int128.min")
     func exactIntegerInitOverflowForInt128Min() {
         let int128Min = Money<TST_100>(exactly: Int128.min)

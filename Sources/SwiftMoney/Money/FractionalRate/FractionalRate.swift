@@ -1,5 +1,3 @@
-import Foundation
-
 /// A rational fraction used as a multiplication rate for monetary amounts.
 ///
 /// `FractionalRate` represents a rate as an irreducible integer fraction
@@ -16,14 +14,6 @@ import Foundation
 /// Fractions are automatically reduced at initialisation time using the
 /// Euclidean GCD, so `FractionalRate(numerator: 22, denominator: 200)` stores
 /// as `11/100` and compares equal to `FractionalRate(numerator: 11, denominator: 100)`.
-///
-/// ## Initialising from `Decimal`
-///
-/// When initialising from a `Decimal`, the exact integer significand and
-/// decimal exponent are extracted losslessly. The method works without any
-/// rounding for any `Decimal` constructed from `Decimal(string:)` whose
-/// significand fits within `Int64` (up to 18 significant decimal digits).
-/// Returns `nil` for NaN values or when the magnitude would overflow `Int64`.
 public struct FractionalRate: Sendable {
 
     // MARK: - Storage (internal — not part of the public API)
@@ -69,57 +59,6 @@ public struct FractionalRate: Sendable {
         self.init(_unchecked: numerator, denominator: denominator)
     }
 
-    // MARK: - Decimal initialiser
-
-    /// Creates a `FractionalRate` from a `Foundation.Decimal` value.
-    ///
-    /// Extracts the exact integer significand and decimal exponent from the
-    /// `Decimal`'s internal representation and constructs the fraction without
-    /// any loss of precision. The method is lossless for any `Decimal` constructed
-    /// from `Decimal(string:)` whose significand fits within `Int64` (up to 18
-    /// significant decimal digits).
-    ///
-    /// ```swift
-    /// FractionalRate(Decimal(string: "0.11")!)            // 11/100
-    /// FractionalRate(Decimal(string: "1.5")!)             // 3/2
-    /// FractionalRate(Decimal(string: "0.12345678901234")!) // 6172839450617/50000000000000
-    /// ```
-    ///
-    /// - Parameter decimal: The rate as a `Decimal`.
-    /// - Returns: `nil` if `decimal` is NaN, if the exponent's absolute value is ≥ 19
-    ///   (10¹⁹ exceeds `Int64`), or if the significand does not fit within `Int64`.
-    public init?(_ decimal: Decimal) {
-        guard !decimal.isNaN else { return nil }
-
-        let exp = decimal.exponent   // Int; Foundation stores as Int8 internally (-128...127)
-
-        // Extract the exact integer significand by multiplying by 10^(-exp).
-        // NSDecimalMultiplyByPowerOf10 only adjusts the internal exponent field;
-        // it does not perform any lossy arithmetic, so this is zero-precision-loss.
-        var input = decimal
-        var significandDecimal = Decimal()
-        NSDecimalMultiplyByPowerOf10(&significandDecimal, &input, Int16(-exp), .plain)
-
-        let significand = NSDecimalNumber(decimal: significandDecimal).int64Value
-        // Round-trip check: the significand as a Decimal must reproduce the
-        // scaled value exactly. Fails if the significand exceeds Int64 range.
-        guard Decimal(significand) == significandDecimal, significand != .min else { return nil }
-
-        if exp >= 0 {
-            // value = significand × 10^exp  →  fraction = (significand × 10^exp) / 1
-            guard exp < _pow10Table.count else { return nil }
-            let (numerator, overflow) = significand.multipliedReportingOverflow(by: _pow10Table[exp])
-            guard !overflow, numerator != .min else { return nil }
-            self.init(_unchecked: numerator, denominator: 1)
-        } else {
-            // value = significand / 10^(-exp)  →  fraction = significand / 10^(-exp)
-            let negExp = -exp
-            guard negExp < _pow10Table.count else { return nil }
-            let denominator = _pow10Table[negExp]
-            self.init(_unchecked: significand, denominator: denominator)
-        }
-    }
-
     // MARK: - Accessors
 
     /// The numerator of the reduced fraction.
@@ -134,34 +73,22 @@ public struct FractionalRate: Sendable {
 
 // MARK: - Private helpers
 
-/// Precomputed powers of 10 for exponents 0...18.
-///
-/// `Int64.max ≈ 9.22 × 10¹⁸`, so `10¹⁹` does not fit; the table stops at index 18.
-private let _pow10Table: [Int64] = [
-    1,                          // 10^0
-    10,                         // 10^1
-    100,                        // 10^2
-    1_000,                      // 10^3
-    10_000,                     // 10^4
-    100_000,                    // 10^5
-    1_000_000,                  // 10^6
-    10_000_000,                 // 10^7
-    100_000_000,                // 10^8
-    1_000_000_000,              // 10^9
-    10_000_000_000,             // 10^10
-    100_000_000_000,            // 10^11
-    1_000_000_000_000,          // 10^12
-    10_000_000_000_000,         // 10^13
-    100_000_000_000_000,        // 10^14
-    1_000_000_000_000_000,      // 10^15
-    10_000_000_000_000_000,     // 10^16
-    100_000_000_000_000_000,    // 10^17
-    1_000_000_000_000_000_000,  // 10^18
-]
-
 /// Euclidean GCD. `a` must be ≥ 0; `b` must be > 0.
 /// Returns 1 when `a` is 0 so callers can always divide safely.
-private func _gcd(_ a: Int64, _ b: Int64) -> Int64 {
+internal func _gcd(_ a: Int64, _ b: Int64) -> Int64 {
+    var a = a
+    var b = b
+    while b != 0 {
+        let t = b
+        b = a % b
+        a = t
+    }
+    return a == 0 ? 1 : a
+}
+
+/// Euclidean GCD for `Int128`. `a` must be ≥ 0; `b` must be > 0.
+/// Returns 1 when `a` is 0 so callers can always divide safely.
+internal func _gcd(_ a: Int128, _ b: Int128) -> Int128 {
     var a = a
     var b = b
     while b != 0 {
