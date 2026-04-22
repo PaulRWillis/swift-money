@@ -1,29 +1,39 @@
 import Foundation
 
 public struct Money<Currency: SwiftMoney.Currency> {
-    @usableFromInline
-    internal typealias Storage = Int64
+    /// The storage type for money's minor-unit count.
+    ///
+    /// Currently `Int64`. A future version may widen this to `Int128`;
+    /// code that refers to `Money<C>.MinorUnits` rather than `Int64`
+    /// directly will require only a recompile rather than source edits.
+    public typealias MinorUnits = Int64
 
     @usableFromInline
-    internal var _storage: Int64
+    internal typealias Storage = MinorUnits
+
+    @usableFromInline
+    internal var _storage: Storage
 
     /// The currency type
     public var currency: any SwiftMoney.Currency.Type {
         Currency.self
     }
 
-    /// The scale factor based on the currency.
+    /// The minimal quantisation of this currency (number of minor units per major unit).
     @usableFromInline
-    internal static var scaleFactor: Int64 { Currency.minorUnitRatio }
+    internal static var minimalQuantisation: MinimalQuantisation { Currency.minimalQuantisation }
 
-    #warning("Rename to minimal quantisations")
-    /// The raw minor units of a money value in a given currency.
+    /// The raw minor units of this money value.
+    ///
+    /// Represents the value in the currency's smallest denomination.
+    /// For example, `Money<GBP>(minorUnits: 150)` represents £1.50.
     ///
     /// ```swift
     /// let onePound = Money<GBP>(minorUnits: 100) // £1.00
     /// onePound.minorUnits  // 100
+    /// ```
     @inlinable
-    public var minorUnits: Int64 { _storage }
+    public var minorUnits: MinorUnits { _storage }
 
     /// Creates a zero value.
     ///
@@ -54,12 +64,41 @@ public struct Money<Currency: SwiftMoney.Currency> {
         self._storage = int64
     }
 
+    /// Creates a `Money` value with the given number of minor units.
+    ///
+    /// - Precondition: `minorUnits` must not equal `Int.min` on 64-bit platforms
+    ///   (equivalently `Int64.min`), which is reserved as the NaN sentinel.
+    ///   Use `Money.nan` to obtain a NaN value explicitly.
     public init(minorUnits: Int) {
-        self._storage = Int64(minorUnits)
+        let value = Storage(minorUnits)
+        precondition(
+            value != Storage.min,
+            "Use Money.nan — \(Storage.min) is reserved as the NaN sentinel"
+        )
+        self._storage = value
     }
 
-    public init(minorUnits: Int64) {
+    /// Creates a `Money` value with the given number of minor units.
+    ///
+    /// - Precondition: `minorUnits` must not equal `MinorUnits.min` (`Int64.min`),
+    ///   which is reserved as the NaN sentinel. Use `Money.nan` to obtain a NaN
+    ///   value explicitly.
+    public init(minorUnits: MinorUnits) {
+        precondition(
+            minorUnits != Storage.min,
+            "Use Money.nan — \(Storage.min) is reserved as the NaN sentinel"
+        )
         self._storage = minorUnits
+    }
+
+    /// Creates a `Money` value directly from the raw storage integer, bypassing
+    /// the NaN-sentinel guard.
+    ///
+    /// Used internally by factory properties (`nan`, `max`, `min`, etc.) and
+    /// by `Codable` decoding where the sentinel value must be preserved.
+    @usableFromInline
+    internal init(_unchecked storage: Storage) {
+        self._storage = storage
     }
 
     // MARK: - Special values
@@ -77,7 +116,7 @@ public struct Money<Currency: SwiftMoney.Currency> {
     /// ```
     @inlinable
     public static var nan: Money {
-        Money(minorUnits: Storage.min)
+        Money(_unchecked: Storage.min)
     }
 
     /// A Boolean value indicating whether this value is NaN (not-a-number).

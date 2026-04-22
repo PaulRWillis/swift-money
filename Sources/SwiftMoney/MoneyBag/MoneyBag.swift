@@ -45,7 +45,7 @@ public struct MoneyBag: Sendable {
     // MARK: - Storage
 
     /// Currency code → accumulated `AnyMoney` for that currency.
-    internal var _storage: [String: AnyMoney]
+    internal var _storage: [CurrencyCode: AnyMoney]
 
     // MARK: - Initializers
 
@@ -78,7 +78,7 @@ public struct MoneyBag: Sendable {
     }
 
     /// The set of currency codes for all currencies currently in the bag.
-    public var currencyCodes: Set<String> {
+    public var currencyCodes: Set<CurrencyCode> {
         Set(_storage.keys)
     }
 
@@ -137,7 +137,7 @@ public struct MoneyBag: Sendable {
         _storage[C.code] = AnyMoney(
             minorUnits: result,
             currencyCode: C.code,
-            minorUnitRatio: C.minorUnitRatio
+            minimalQuantisation: C.minimalQuantisation
         )
     }
 
@@ -164,7 +164,7 @@ public struct MoneyBag: Sendable {
         _storage[C.code] = AnyMoney(
             minorUnits: result,
             currencyCode: C.code,
-            minorUnitRatio: C.minorUnitRatio
+            minimalQuantisation: C.minimalQuantisation
         )
     }
 

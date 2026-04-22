@@ -117,11 +117,11 @@ extension Money {
 extension Money.FormatStyle: Foundation.FormatStyle {
     public func format(_ value: Money) -> String {
         value._storage.formatted(
-            .currency(code: value.currency.code)
+            .currency(code: value.currency.code.stringValue)
             .locale(self.locale)
             .sign(strategy: self.signDisplayStrategy)
             .presentation(self.presentation)
-            .scale(1.00 / Double(Money<Currency>.scaleFactor))
+            .scale(1.00 / Double(Money<Currency>.minimalQuantisation.int64Value))
         )
     }
 }

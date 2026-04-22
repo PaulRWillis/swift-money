@@ -1,4 +1,3 @@
-#warning("Should this be an `if canImport`?")
 import Foundation
 
 extension Money {
@@ -8,7 +7,7 @@ extension Money {
     @inlinable
     public var decimalValue: Decimal {
         if isNaN { return Decimal.nan }
-        return Decimal(_storage) / Decimal(Self.scaleFactor)
+        return Decimal(_storage) / Decimal(Self.minimalQuantisation.int64Value)
     }
 }
 
@@ -38,11 +37,11 @@ extension Money {
             return
         }
 
-        let factor = Decimal(Self.scaleFactor)
+        let factor = Decimal(Self.minimalQuantisation.int64Value)
 
         precondition(
             factor != .zero,
-            "Currency scaleFactor is zero. Divide by zero error"
+            "Currency minimalQuantisation is zero — divide by zero error"
         )
 
         let scaled = decimal * factor
@@ -85,7 +84,7 @@ extension Money {
             return
         }
 
-        let factor = Decimal(Self.scaleFactor)
+        let factor = Decimal(Self.minimalQuantisation.int64Value)
 
         guard factor != .zero else { return nil }
 

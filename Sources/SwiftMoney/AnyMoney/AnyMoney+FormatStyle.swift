@@ -15,8 +15,8 @@ extension AnyMoney {
     /// ```
     public func formatted() -> String {
         minorUnits.formatted(
-            .currency(code: currencyCode)
-            .scale(1.0 / Double(minorUnitRatio))
+            .currency(code: currencyCode.stringValue)
+            .scale(1.0 / Double(minimalQuantisation.int64Value))
         )
     }
 }

@@ -1,43 +1,44 @@
-import Foundation
-
 public protocol Currency: Equatable, Hashable, Sendable {
-    #warning("Replace with `CurrencyCode` typed object")
-    static var code: String { get }
-    #warning("Replace with typed object such as `MinorUnitRatio`")
-    /// The ratio of major units to minor units in the decimalized
-    /// currency.
+    /// The currency code, e.g. `CurrencyCode("GBP")`.
     ///
-    /// For example, the US Dollar (USD) has a ratio of 1 dollar
-    /// to 100 cents, or 1:100, represented as `100`.
+    /// Because `code` is a `CurrencyCode` (not a raw `String`), the type system
+    /// guarantees it is non-empty at the point of declaration.
+    static var code: CurrencyCode { get }
+
+    /// The number of minimal units that make one major unit.
     ///
-    /// Currencies with no minor units, such as Japanese Yen (JPY),
-    /// must have a ratio of `1`.
+    /// For example:
+    /// - GBP → `100`  (100 pence = £1)
+    /// - JPY → `1`    (no minor units; ¥1 = ¥1)
+    /// - BTC → `100_000_000` (10⁸ satoshis = 1 BTC)
     ///
-    /// A ratio of `0` is not allowed and will cause runtime crashes.
-    static var minorUnitRatio: Int64 {  get }
+    /// A value of `0` is rejected by `MinimalQuantisation`, so the type
+    /// system prevents the division-by-zero crash that would otherwise
+    /// occur in Decimal conversions.
+    static var minimalQuantisation: MinimalQuantisation { get }
 }
 
 public enum EUR: Currency {
-    public static let code: String = "EUR"
-    public static let minorUnitRatio: Int64 = 100
+    public static let code: CurrencyCode = "EUR"
+    public static let minimalQuantisation: MinimalQuantisation = 100
 }
 
 public enum GBP: Currency {
-    public static let code: String = "GBP"
-    public static let minorUnitRatio: Int64 = 100
+    public static let code: CurrencyCode = "GBP"
+    public static let minimalQuantisation: MinimalQuantisation = 100
 }
 
 public enum USD: Currency {
-    public static let code: String = "USD"
-    public static let minorUnitRatio: Int64 = 100
+    public static let code: CurrencyCode = "USD"
+    public static let minimalQuantisation: MinimalQuantisation = 100
 }
 
 public enum JPY: Currency {
-    public static let code: String = "JPY"
-    public static let minorUnitRatio: Int64 = 1
+    public static let code: CurrencyCode = "JPY"
+    public static let minimalQuantisation: MinimalQuantisation = 1
 }
 
 public enum CHF: Currency {
-    public static let code: String = "CHF"
-    public static let minorUnitRatio: Int64 = 100
+    public static let code: CurrencyCode = "CHF"
+    public static let minimalQuantisation: MinimalQuantisation = 100
 }

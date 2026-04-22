@@ -13,6 +13,6 @@ extension AnyMoney {
     @inlinable
     public var decimalValue: Decimal {
         if isNaN { return Decimal.nan }
-        return Decimal(minorUnits) / Decimal(minorUnitRatio)
+        return Decimal(minorUnits) / Decimal(minimalQuantisation.int64Value)
     }
 }

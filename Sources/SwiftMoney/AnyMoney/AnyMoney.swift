@@ -35,12 +35,12 @@ public struct AnyMoney: Sendable {
     /// Uses `Int64.min` as the NaN sentinel, matching `Money<C>` semantics.
     public let minorUnits: Int64
 
-    /// The ISO 4217 currency code, e.g. `"GBP"`.
-    public let currencyCode: String
+    /// The ISO 4217 or custom currency code, e.g. `CurrencyCode("GBP")`.
+    public let currencyCode: CurrencyCode
 
-    /// The number of minor units per major unit for this currency, e.g. `100`
+    /// The number of minimal units per major unit for this currency, e.g. `100`
     /// for GBP (100 pence per pound) or `1` for JPY (no minor units).
-    public let minorUnitRatio: Int64
+    public let minimalQuantisation: MinimalQuantisation
 
     /// The concrete currency metatype, if known.
     ///
@@ -63,18 +63,18 @@ public struct AnyMoney: Sendable {
     public init<C: Currency>(_ money: Money<C>) {
         self.minorUnits = money.minorUnits
         self.currencyCode = C.code
-        self.minorUnitRatio = C.minorUnitRatio
+        self.minimalQuantisation = C.minimalQuantisation
         self.currency = C.self
     }
 
     /// Creates an `AnyMoney` from raw scalars, without a known currency metatype.
     ///
-    /// Used internally by `Codable` decoding. The resulting value's
-    /// ``currency`` property is `nil`.
-    internal init(minorUnits: Int64, currencyCode: String, minorUnitRatio: Int64) {
+    /// Used internally by `Codable` decoding and `MoneyBag` arithmetic. The
+    /// resulting value's ``currency`` property is `nil`.
+    internal init(minorUnits: Int64, currencyCode: CurrencyCode, minimalQuantisation: MinimalQuantisation) {
         self.minorUnits = minorUnits
         self.currencyCode = currencyCode
-        self.minorUnitRatio = minorUnitRatio
+        self.minimalQuantisation = minimalQuantisation
         self.currency = nil
     }
 
