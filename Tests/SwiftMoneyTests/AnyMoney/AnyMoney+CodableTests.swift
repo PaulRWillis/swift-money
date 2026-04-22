@@ -1,6 +1,7 @@
 import Foundation
 import Testing
 import SwiftMoney
+import XCTest
 
 @Suite("AnyMoney – Codable")
 struct AnyMoney_CodableTests {
@@ -94,7 +95,9 @@ struct AnyMoney_CodableTests {
     func currencyNilAfterDecode() throws {
         let original = Money<TST_100>(minorUnits: 500).erased
         let decoded = try roundTrip(original)
-        #expect(decoded.currency == nil)
+        // XCTAssertNil needed because apparently macOS 15+ introduced
+        // some ABI change that causes a crash here using `#expect`. Yay
+        XCTAssertNil(decoded.currency)
     }
 
     // MARK: - Derived values still work after decode
