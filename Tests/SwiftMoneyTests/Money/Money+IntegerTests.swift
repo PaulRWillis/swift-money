@@ -1,8 +1,8 @@
 import SwiftMoney
 import Testing
 
-@Suite("Integer Type Conversions")
-struct IntegerTests {
+@Suite("Money - Integer Type Conversions")
+struct Money_IntegerTests {
 
     // MARK: - Int Conversions
 

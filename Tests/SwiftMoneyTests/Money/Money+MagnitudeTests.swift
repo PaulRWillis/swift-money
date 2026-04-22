@@ -1,8 +1,8 @@
 import SwiftMoney
 import Testing
 
-@Suite("Magnitude")
-struct MagnitudeTests {
+@Suite("Money - Magnitude")
+struct Money_MagnitudeTests {
     @Test("Numeric magnitude for positive")
     func magnitudePositive() {
         let value: Money<TST_100> = 425

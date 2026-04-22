@@ -1,6 +1,7 @@
 import SwiftMoney
 import Testing
 
+@Suite("Money - Integral Multiplication")
 struct Money_IntegralMultiplicationTests {
 
     // MARK: - Integral multiplication (Positive)

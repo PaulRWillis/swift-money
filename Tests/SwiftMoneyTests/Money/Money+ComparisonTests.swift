@@ -1,7 +1,7 @@
 import Testing
 import SwiftMoney
 
-@Suite("Comparison and Ordering")
+@Suite("Money - Comparison and Ordering")
 struct Money_ComparisonTests {
     
     @Test("Equality")

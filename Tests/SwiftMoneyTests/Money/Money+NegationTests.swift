@@ -1,8 +1,8 @@
 import SwiftMoney
 import Testing
 
-@Suite("Negation")
-struct NegationTests {
+@Suite("Money - Negation")
+struct Money_NegationTests {
 
     // MARK: - Negation with `negate()`
 

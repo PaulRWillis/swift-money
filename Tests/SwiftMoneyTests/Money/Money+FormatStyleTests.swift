@@ -2,6 +2,7 @@ import Foundation
 import SwiftMoney
 import Testing
 
+@Suite("Money - FormatStyle")
 struct Money_FormatStyleTests {
     private var localesAndMoneys: [(locale: Locale, stringValue: String)] = [
         (Locale(identifier: "en_GB"), "€1.05"),

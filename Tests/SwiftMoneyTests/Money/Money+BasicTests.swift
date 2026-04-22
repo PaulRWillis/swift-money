@@ -1,8 +1,8 @@
 import Testing
 import SwiftMoney
 
-@Suite("Basic Properties")
-struct BasicTests {
+@Suite("Money - Basic Properties")
+struct Money_BasicTests {
 
     @Test("Currency is correct")
     func currency() {

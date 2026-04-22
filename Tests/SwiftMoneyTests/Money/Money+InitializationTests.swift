@@ -1,8 +1,8 @@
 import Testing
 import SwiftMoney
 
-@Suite("Initialization")
-struct InitializationTests {
+@Suite("Money - Initialization")
+struct Money_InitializationTests {
 
     @Test("Zero initialization")
     func zeroInit() {

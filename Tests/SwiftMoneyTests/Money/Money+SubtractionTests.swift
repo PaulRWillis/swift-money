@@ -1,6 +1,7 @@
 import SwiftMoney
 import Testing
 
+@Suite("Money - Subtraction")
 struct Money_SubtractionTests {
 
     // MARK: Subtraction (Positive)

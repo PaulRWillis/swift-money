@@ -2,6 +2,7 @@ import SwiftMoney
 import Testing
 
 #warning("Lots of tests will fail when the test device locale is changed. This needs addressing through proper test infrastructure. Direct comparison with Int FormatStyle?")
+@Suite("Money - Custom String Convertible")
 struct Money_CustomStringConvertibleTests {
     @Test
     func whenPrintDescription_shouldUseFormattedStringValue() {
