@@ -26,7 +26,7 @@ extension FractionalRate: Codable {
                 debugDescription: "FractionalRate numerator must not be Int64.min"
             )
         }
-        self.init(numerator: numerator, denominator: denominator)
+        self.init(_unchecked: numerator, denominator: denominator)
     }
 
     public func encode(to encoder: any Encoder) throws {

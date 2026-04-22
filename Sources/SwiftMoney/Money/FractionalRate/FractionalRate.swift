@@ -17,12 +17,13 @@ import Foundation
 /// Euclidean GCD, so `FractionalRate(numerator: 22, denominator: 200)` stores
 /// as `11/100` and compares equal to `FractionalRate(numerator: 11, denominator: 100)`.
 ///
-/// ## Precision when initialising from `Decimal`
+/// ## Initialising from `Decimal`
 ///
-/// When initialising from a `Decimal`, the value is scaled by 10¹⁰ before
-/// rounding to an integer pair. This gives approximately 10 decimal places of
-/// precision. Rates requiring more decimal places will be rounded during
-/// initialisation.
+/// When initialising from a `Decimal`, the exact integer significand and
+/// decimal exponent are extracted losslessly. The method works without any
+/// rounding for any `Decimal` constructed from `Decimal(string:)` whose
+/// significand fits within `Int64` (up to 18 significant decimal digits).
+/// Returns `nil` for NaN values or when the magnitude would overflow `Int64`.
 public struct FractionalRate: Sendable {
 
     // MARK: - Storage (internal — not part of the public API)
@@ -33,6 +34,22 @@ public struct FractionalRate: Sendable {
     /// The denominator of the reduced fraction. Always greater than zero.
     internal let _denominator: Int64
 
+    // MARK: - Designated initialiser (internal)
+
+    /// Creates a `FractionalRate` from a pre-validated numerator/denominator pair.
+    ///
+    /// Callers **must** guarantee:
+    /// - `denominator > 0`
+    /// - `numerator != .min`
+    ///
+    /// No preconditions are checked. Used internally after explicit guard checks.
+    internal init(_unchecked numerator: Int64, denominator: Int64) {
+        let absNumerator = numerator < 0 ? -numerator : numerator
+        let g = _gcd(absNumerator, denominator)
+        _numerator = numerator / g
+        _denominator = denominator / g
+    }
+
     // MARK: - Integer pair initialiser
 
     /// Creates a `FractionalRate` from an explicit integer numerator and denominator.
@@ -40,21 +57,16 @@ public struct FractionalRate: Sendable {
     /// The fraction is stored in reduced (lowest-terms) form. For example,
     /// `FractionalRate(numerator: 22, denominator: 200)` stores as `11/100`.
     ///
+    /// Returns `nil` if `denominator <= 0` or `numerator == Int64.min` (whose
+    /// absolute value overflows `Int64` and cannot be GCD-reduced).
+    ///
     /// - Parameters:
     ///   - numerator: The numerator of the fraction. May be any `Int64` value
     ///     except `Int64.min`.
     ///   - denominator: The denominator of the fraction. Must be greater than zero.
-    /// - Precondition: `denominator > 0`.
-    /// - Precondition: `numerator != Int64.min`.
-    public init(numerator: Int64, denominator: Int64) {
-        precondition(denominator > 0,
-                     "FractionalRate denominator must be > 0; got \(denominator)")
-        precondition(numerator != .min,
-                     "FractionalRate numerator must not be Int64.min")
-        let absNumerator = numerator < 0 ? -numerator : numerator
-        let g = _gcd(absNumerator, denominator)
-        _numerator = numerator / g
-        _denominator = denominator / g
+    public init?(numerator: Int64, denominator: Int64) {
+        guard denominator > 0, numerator != .min else { return nil }
+        self.init(_unchecked: numerator, denominator: denominator)
     }
 
     // MARK: - Decimal initialiser
@@ -73,13 +85,11 @@ public struct FractionalRate: Sendable {
     /// FractionalRate(Decimal(string: "0.12345678901234")!) // 6172839450617/50000000000000
     /// ```
     ///
-    /// - Parameter decimal: The rate as a `Decimal`. Must not be NaN.
-    /// - Precondition: `decimal` must not be NaN.
-    /// - Precondition: The absolute exponent must be less than 19
-    ///   (denominators of 10¹⁹ or greater exceed `Int64`).
-    /// - Precondition: The significand must fit within `Int64`.
-    public init(_ decimal: Decimal) {
-        precondition(!decimal.isNaN, "FractionalRate cannot be initialised from NaN")
+    /// - Parameter decimal: The rate as a `Decimal`.
+    /// - Returns: `nil` if `decimal` is NaN, if the exponent's absolute value is ≥ 19
+    ///   (10¹⁹ exceeds `Int64`), or if the significand does not fit within `Int64`.
+    public init?(_ decimal: Decimal) {
+        guard !decimal.isNaN else { return nil }
 
         let exp = decimal.exponent   // Int; Foundation stores as Int8 internally (-128...127)
 
@@ -93,38 +103,20 @@ public struct FractionalRate: Sendable {
         let significand = NSDecimalNumber(decimal: significandDecimal).int64Value
         // Round-trip check: the significand as a Decimal must reproduce the
         // scaled value exactly. Fails if the significand exceeds Int64 range.
-        precondition(
-            Decimal(significand) == significandDecimal,
-            "FractionalRate decimal \(decimal) has a significand too large for Int64"
-        )
-        precondition(
-            significand != .min,
-            "FractionalRate decimal \(decimal) significand maps to Int64.min"
-        )
+        guard Decimal(significand) == significandDecimal, significand != .min else { return nil }
 
         if exp >= 0 {
             // value = significand × 10^exp  →  fraction = (significand × 10^exp) / 1
-            precondition(exp < _pow10Table.count,
-                         "FractionalRate decimal exponent \(exp) is too large (max 18)")
+            guard exp < _pow10Table.count else { return nil }
             let (numerator, overflow) = significand.multipliedReportingOverflow(by: _pow10Table[exp])
-            precondition(!overflow,
-                         "FractionalRate decimal \(decimal) numerator overflows Int64")
-            precondition(numerator != .min,
-                         "FractionalRate decimal \(decimal) numerator maps to Int64.min")
-            let absNumerator = numerator < 0 ? -numerator : numerator
-            let g = _gcd(absNumerator, 1)
-            _numerator = numerator / g
-            _denominator = 1 / g
+            guard !overflow, numerator != .min else { return nil }
+            self.init(_unchecked: numerator, denominator: 1)
         } else {
             // value = significand / 10^(-exp)  →  fraction = significand / 10^(-exp)
             let negExp = -exp
-            precondition(negExp < _pow10Table.count,
-                         "FractionalRate decimal exponent \(exp) is too small (min -18)")
+            guard negExp < _pow10Table.count else { return nil }
             let denominator = _pow10Table[negExp]
-            let absSignificand = significand < 0 ? -significand : significand
-            let g = _gcd(absSignificand, denominator)
-            _numerator = significand / g
-            _denominator = denominator / g
+            self.init(_unchecked: significand, denominator: denominator)
         }
     }
 

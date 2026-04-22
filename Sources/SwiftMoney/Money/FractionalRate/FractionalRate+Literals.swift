@@ -23,6 +23,7 @@ extension FractionalRate: ExpressibleByIntegerLiteral {
     /// let identity: FractionalRate = 1   // numerator: 1, denominator: 1
     /// ```
     public init(integerLiteral value: Int64) {
-        self.init(numerator: value, denominator: 1)
+        precondition(value != .min, "FractionalRate integer literal must not be Int64.min")
+        self.init(_unchecked: value, denominator: 1)
     }
 }

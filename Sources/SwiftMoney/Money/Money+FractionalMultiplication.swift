@@ -73,12 +73,13 @@ extension Money {
 
         // Build the actual rate = result / input (in lowest terms).
         // Normalise so that the denominator is positive (FractionalRate contract).
+        // Inputs are validated above: minorUnits != .min, _storage != 0 and != .min.
         let actualRate: FractionalRate
         if _storage > 0 {
-            actualRate = FractionalRate(numerator: minorUnits, denominator: _storage)
+            actualRate = FractionalRate(_unchecked: minorUnits, denominator: _storage)
         } else {
             // _storage < 0 (non-zero, non-NaN): flip both signs so denominator > 0.
-            actualRate = FractionalRate(numerator: -minorUnits, denominator: -_storage)
+            actualRate = FractionalRate(_unchecked: -minorUnits, denominator: -_storage)
         }
 
         return FractionalMultiplicationResult(result: resultMoney, actualRate: actualRate)
@@ -127,13 +128,15 @@ extension Money {
     /// // let r = Money<GBP>(minorUnits: 101) * 0.01  ← avoid
     /// ```
     ///
+    /// - Returns: `nil` if `rhs` cannot be converted to a `FractionalRate`
+    ///   (e.g. it is NaN, has an exponent ≥ 19, or its significand overflows `Int64`).
     /// - Precondition: `lhs` must not be NaN.
-    /// - Precondition: `rhs` must not be NaN.
     public static func * (
         lhs: Money,
         rhs: Decimal
-    ) -> FractionalMultiplicationResult<Currency> {
-        lhs.multiplied(by: FractionalRate(rhs))
+    ) -> FractionalMultiplicationResult<Currency>? {
+        guard let rate = FractionalRate(rhs) else { return nil }
+        return lhs.multiplied(by: rate)
     }
 }
 
