@@ -78,10 +78,10 @@ struct MoneyBag_CodableTests {
         // entries array has one element with three scalar keys
         #expect(json.contains("\"entries\""))
         #expect(json.contains("\"currencyCode\""))
-        #expect(json.contains("\"minorUnitRatio\""))
+        #expect(json.contains("\"minimalQuantisation\""))
         #expect(json.contains("\"minorUnits\""))
         #expect(json.contains("500"))
-        #expect(json.contains(TST_100.code))
+        #expect(json.contains(TST_100.code.stringValue))
     }
 
     // MARK: - Decoded queries
@@ -135,8 +135,8 @@ struct MoneyBag_CodableTests {
         // Manually craft JSON with two entries for the same currency code
         let json = """
         {"entries":[
-            {"minorUnits":100,"currencyCode":"TST_100","minorUnitRatio":100},
-            {"minorUnits":200,"currencyCode":"TST_100","minorUnitRatio":100}
+            {"minorUnits":100,"currencyCode":"TST_100","minimalQuantisation":100},
+            {"minorUnits":200,"currencyCode":"TST_100","minimalQuantisation":100}
         ]}
         """
         let data = try #require(json.data(using: .utf8))

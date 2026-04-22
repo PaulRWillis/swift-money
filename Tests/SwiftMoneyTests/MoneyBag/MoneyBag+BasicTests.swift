@@ -92,7 +92,7 @@ struct MoneyBag_BasicTests {
         let bag = MoneyBag()
             .adding(Money<TST_1>(minorUnits: 200))
             .adding(Money<TST_100>(minorUnits: 100))
-        let codes = bag.breakdown.map(\.currencyCode)
+        let codes = bag.breakdown.map { String($0.currencyCode) }
         #expect(codes == ["TST_1", "TST_100"])
     }
 

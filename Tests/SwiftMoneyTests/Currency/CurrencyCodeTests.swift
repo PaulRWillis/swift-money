@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 import SwiftMoney
 
@@ -38,8 +39,8 @@ struct CurrencyCodeTests {
     }
 
     @Test("init traps on empty string")
-    func initEmptyStringTraps() {
-        #expect(processExitsWith: .failure) {
+    func initEmptyStringTraps() async {
+        await #expect(processExitsWith: .failure) {
             _ = CurrencyCode("")
         }
     }

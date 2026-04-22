@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 import SwiftMoney
 
@@ -31,22 +32,22 @@ struct MinimalQuantisationTests {
     }
 
     @Test("init traps on 0")
-    func initZeroTraps() {
-        #expect(processExitsWith: .failure) {
+    func initZeroTraps() async {
+        await #expect(processExitsWith: .failure) {
             _ = MinimalQuantisation(0)
         }
     }
 
     @Test("init traps on negative values")
-    func initNegativeTraps() {
-        #expect(processExitsWith: .failure) {
+    func initNegativeTraps() async {
+        await #expect(processExitsWith: .failure) {
             _ = MinimalQuantisation(-1)
         }
     }
 
     @Test("init traps on Int64.min")
-    func initMinTraps() {
-        #expect(processExitsWith: .failure) {
+    func initMinTraps() async {
+        await #expect(processExitsWith: .failure) {
             _ = MinimalQuantisation(.min)
         }
     }

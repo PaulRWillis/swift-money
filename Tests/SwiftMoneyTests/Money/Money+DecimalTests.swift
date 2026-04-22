@@ -91,15 +91,6 @@ struct Money_DecimalTests {
         #expect(value == .zero)
     }
 
-    @Test("Money init from Decimal with 0 scaleFactor")
-    func decimalInitWithZeroScaleFactor() async {
-        await #expect(processExitsWith: .failure) {
-            // TST_0 currency gives scale factor of 0 - see `Money.scaleFactor`
-            let decimal = Decimal(42)
-            _ = Money<TST_0>(decimal)
-        }
-    }
-
     @Test("Money init from Decimal with literal value")
     func decimalInitWithLiteralValue() {
         let value = Money<GBP>(99.95)
@@ -158,13 +149,6 @@ struct Money_DecimalTests {
         let decimal = Decimal.zero
         let value = Money<TST_100>(exactly: decimal)
         #expect(value == .zero)
-    }
-
-    @Test("Money init from exact Decimal returns nil on 0 scaleFactor")
-    func decimalExactInitWithZeroScaleFactor() {
-        // TST_0 currency gives scale factor of 0 - see `Money.scaleFactor`
-        let decimal = Decimal(42)
-        #expect(Money<TST_0>(exactly: decimal) == nil)
     }
 
     @Test("Money init from exact Decimal with literal value")
@@ -258,7 +242,7 @@ struct Money_DecimalTests {
 
     @Test("Money init from decimal for BTC analogue - max satoshi edge case")
     func decimalInitForBTCAnalogueMax() throws {
-        let scaledInt64Max = Int64.max / TST_100_000_000.minorUnitRatio
+        let scaledInt64Max = Int64.max / TST_100_000_000.minimalQuantisation.int64Value
         let decimal = try #require(Decimal(string: String(scaledInt64Max)))
         let value = Money<TST_100_000_000>(decimal)
         #expect(value.decimalValue == decimal)
@@ -268,7 +252,7 @@ struct Money_DecimalTests {
     @Test("Money init from decimal for BTC analogue - overflow")
     func decimalInitForBTCAnalogueOverflow() async throws {
         await #expect(processExitsWith: .failure) {
-            let overflowByOne = (Int64.max / TST_100_000_000.minorUnitRatio) + 1
+            let overflowByOne = (Int64.max / TST_100_000_000.minimalQuantisation.int64Value) + 1
             let decimal = try #require(Decimal(string: String(overflowByOne)))
             _ = Money<TST_100_000_000>(decimal)
         }

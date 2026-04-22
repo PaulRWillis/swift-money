@@ -40,7 +40,7 @@ extension MoneyBag: Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let entries = try container.decode([AnyMoney].self, forKey: .entries)
 
-        var storage: [CurrencyCode: AnyMoney] = []
+        var storage: [CurrencyCode: AnyMoney] = [:]
         storage.reserveCapacity(entries.count)
         for entry in entries {
             guard storage[entry.currencyCode] == nil else {

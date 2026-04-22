@@ -18,16 +18,16 @@ struct AnyMoney_BasicTests {
         #expect(any.currencyCode == TST_100.code)
     }
 
-    @Test("minorUnitRatio is preserved for ratio-100 currency")
-    func minorUnitRatioRatio100() {
+    @Test("minimalQuantisation is preserved for ratio-100 currency")
+    func minimalQuantisationRatio100() {
         let any = Money<TST_100>(minorUnits: 500).erased
-        #expect(any.minorUnitRatio == 100)
+        #expect(any.minimalQuantisation.int64Value == 100)
     }
 
-    @Test("minorUnitRatio is preserved for ratio-1 currency")
-    func minorUnitRatioRatio1() {
+    @Test("minimalQuantisation is preserved for ratio-1 currency")
+    func minimalQuantisationRatio1() {
         let any = Money<TST_1>(minorUnits: 500).erased
-        #expect(any.minorUnitRatio == 1)
+        #expect(any.minimalQuantisation.int64Value == 1)
     }
 
     @Test("currency metatype is set on init from TST_100")

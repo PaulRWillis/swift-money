@@ -15,7 +15,7 @@ struct AnyMoney_CodableTests {
     private struct RawDecoded: Decodable {
         let minorUnits: Int64
         let currencyCode: String
-        let minorUnitRatio: Int64
+        let minimalQuantisation: Int64
     }
 
     private func encodeAndDecodeRaw(_ value: AnyMoney) throws -> RawDecoded {
@@ -41,21 +41,21 @@ struct AnyMoney_CodableTests {
     func encodedCurrencyCode() throws {
         let any = Money<TST_100>(minorUnits: 500).erased
         let raw = try encodeAndDecodeRaw(any)
-        #expect(raw.currencyCode == TST_100.code)
+        #expect(raw.currencyCode == TST_100.code.stringValue)
     }
 
-    @Test("Encoded JSON contains correct minorUnitRatio")
-    func encodedMinorUnitRatio() throws {
+    @Test("Encoded JSON contains correct minimalQuantisation")
+    func encodedMinimalQuantisation() throws {
         let any = Money<TST_100>(minorUnits: 500).erased
         let raw = try encodeAndDecodeRaw(any)
-        #expect(raw.minorUnitRatio == 100)
+        #expect(raw.minimalQuantisation == 100)
     }
 
-    @Test("Encoded JSON contains correct minorUnitRatio for ratio-1 currency")
-    func encodedMinorUnitRatioRatio1() throws {
+    @Test("Encoded JSON contains correct minimalQuantisation for ratio-1 currency")
+    func encodedMinimalQuantisationRatio1() throws {
         let any = Money<TST_1>(minorUnits: 500).erased
         let raw = try encodeAndDecodeRaw(any)
-        #expect(raw.minorUnitRatio == 1)
+        #expect(raw.minimalQuantisation == 1)
     }
 
     // MARK: - Round-trip scalar preservation
@@ -74,11 +74,11 @@ struct AnyMoney_CodableTests {
         #expect(decoded.currencyCode == original.currencyCode)
     }
 
-    @Test("Round-trip preserves minorUnitRatio")
-    func roundTripMinorUnitRatio() throws {
+    @Test("Round-trip preserves minimalQuantisation")
+    func roundTripMinimalQuantisation() throws {
         let original = Money<TST_100>(minorUnits: 9876).erased
         let decoded = try roundTrip(original)
-        #expect(decoded.minorUnitRatio == original.minorUnitRatio)
+        #expect(decoded.minimalQuantisation == original.minimalQuantisation)
     }
 
     @Test("Round-trip decoded value equals original (Equatable)")
@@ -136,7 +136,7 @@ struct AnyMoney_CodableTests {
         let original = Money<TST_1>(minorUnits: 500).erased
         let decoded = try roundTrip(original)
         #expect(decoded == original)
-        #expect(decoded.minorUnitRatio == 1)
+        #expect(decoded.minimalQuantisation.int64Value == 1)
     }
 
     // MARK: - asMoney still works after decode
