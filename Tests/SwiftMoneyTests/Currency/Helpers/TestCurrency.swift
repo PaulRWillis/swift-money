@@ -22,3 +22,14 @@ enum TST_100_000_000: Currency {
     static let code: CurrencyCode = "TST_100_000_000"
     static let minimalQuantisation: MinimalQuantisation = 100_000_000
 }
+
+/// A test currency backed by the real ISO 4217 code "KWD"
+/// (Kuwaiti Dinar), which has 1000 fils to the dinar.
+///
+/// Used in localisation tests to exercise 3-decimal-place currencies.
+/// Using the real ISO code ensures Foundation's formatter renders a
+/// recognisable symbol and the fidelity comparison is meaningful.
+enum TestKWD: Currency {
+    static let code: CurrencyCode = "KWD"
+    static let minimalQuantisation: MinimalQuantisation = 1000
+}
