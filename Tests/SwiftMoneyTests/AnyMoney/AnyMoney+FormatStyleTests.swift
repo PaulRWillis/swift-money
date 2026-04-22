@@ -1,4 +1,3 @@
-#warning("Support testing on Linux where Foundation is not always consistent or available?")
 import Foundation
 import Testing
 import SwiftMoney

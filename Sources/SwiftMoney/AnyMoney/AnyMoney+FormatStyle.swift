@@ -132,3 +132,19 @@ extension AnyMoney: CustomStringConvertible {
         formatted()
     }
 }
+
+extension AnyMoney: CustomDebugStringConvertible {
+    /// A debug-friendly representation showing the currency code, raw minor
+    /// units, and formatted value.
+    ///
+    /// ```swift
+    /// Money<GBP>(minorUnits: 150).erased.debugDescription
+    /// // "AnyMoney(GBP, minorUnits: 150) — \"£1.50\""
+    /// ```
+    public var debugDescription: String {
+        if minorUnits == .min {
+            return "AnyMoney(\(currencyCode), NaN)"
+        }
+        return "AnyMoney(\(currencyCode), minorUnits: \(minorUnits)) — \"\(formatted())\""
+    }
+}

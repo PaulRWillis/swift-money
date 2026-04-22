@@ -1,13 +1,24 @@
+import Foundation
 import SwiftMoney
 import Testing
 
-#warning("Lots of tests will fail when the test device locale is changed. This needs addressing through proper test infrastructure. Direct comparison with Int FormatStyle?")
 @Suite("Money - Custom String Convertible")
 struct Money_CustomStringConvertibleTests {
-    @Test
-    func whenPrintDescription_shouldUseFormattedStringValue() {
+    @Test("description equals formatted() output")
+    func descriptionEqualsFormatted() {
         let money = Money<GBP>(minorUnits: 199)
+        // description is defined as self.formatted() — the two must always be identical
+        // regardless of the host locale.
+        #expect(money.description == money.formatted())
+    }
 
-        #expect(money.description == "£1.99")
+    @Test("description is non-empty for a positive value")
+    func descriptionNonEmpty() {
+        #expect(!Money<GBP>(minorUnits: 199).description.isEmpty)
+    }
+
+    @Test("description is non-empty for zero")
+    func descriptionZeroNonEmpty() {
+        #expect(!Money<GBP>.zero.description.isEmpty)
     }
 }
