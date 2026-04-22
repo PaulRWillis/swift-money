@@ -1,56 +1,201 @@
+import Foundation
+
 extension MoneyBag: Codable {
-    private enum CodingKeys: String, CodingKey {
+
+    // MARK: Coding key for .full (wrapped entries array)
+
+    private enum EntriesKey: String, CodingKey {
         case entries
     }
 
-    /// Encodes this bag into the given encoder.
+    // MARK: Encoding
+
+    /// Encodes this ``MoneyBag`` using the strategy configured on the encoder.
     ///
-    /// The bag is encoded as a keyed object with a single `entries` array
-    /// containing each accumulated `AnyMoney` value. The order of entries in
-    /// the `entries` array is sorted by currency code for determinism.
+    /// The active strategy is read from `encoder.userInfo[.moneyBagEncodingStrategy]`
+    /// (set via ``JSONEncoder/moneyBagEncodingStrategy``). Defaults to
+    /// ``MoneyBagEncodingStrategy/full`` when not set.
     ///
-    /// Example JSON output for a two-currency bag:
-    /// ```json
-    /// {
-    ///   "entries": [
-    ///     { "currencyCode": "EUR", "minimalQuantisation": 100, "minorUnits": 1000 },
-    ///     { "currencyCode": "GBP", "minimalQuantisation": 100, "minorUnits": 500 }
-    ///   ]
-    /// }
-    /// ```
+    /// Entries are always output in ascending currency-code order for determinism.
+    ///
+    /// - SeeAlso: ``JSONEncoder/moneyBagEncodingStrategy``
     public func encode(to encoder: any Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        // Encode in sorted order so output is deterministic.
-        try container.encode(_storage.values.sorted(), forKey: .entries)
+        let strategy = encoder.userInfo[.moneyBagEncodingStrategy] as? MoneyBagEncodingStrategy ?? .full
+        let sorted = _storage.values.sorted()
+        switch strategy {
+
+        case .full:
+            // {"entries": [...full AnyMoney objects...]}
+            // Each entry is encoded in AnyMoney.full format regardless of any
+            // anyMoneyEncodingStrategy set on the outer encoder.
+            var outer = encoder.container(keyedBy: EntriesKey.self)
+            var array = outer.nestedUnkeyedContainer(forKey: .entries)
+            for entry in sorted {
+                let sub = array.superEncoder()
+                try entry._encode(strategy: .full, to: sub)
+            }
+
+        case .array(let entryStrategy):
+            // [...per-entry AnyMoney objects...]
+            var array = encoder.unkeyedContainer()
+            for entry in sorted {
+                let sub = array.superEncoder()
+                try entry._encode(strategy: entryStrategy, to: sub)
+            }
+
+        case .dictionary(let amountStrategy):
+            // {"GBP": 1.25, "JPY": 500, ...}
+            var dict = encoder.container(keyedBy: _StringCodingKey.self)
+            for entry in sorted {
+                let key = _StringCodingKey(stringValue: entry.currencyCode.stringValue)
+                switch amountStrategy {
+                case .minorUnits:
+                    try dict.encode(entry.minorUnits, forKey: key)
+                case .majorUnits:
+                    guard !entry.isNaN else {
+                        throw EncodingError.invalidValue(
+                            entry,
+                            EncodingError.Context(
+                                codingPath: encoder.codingPath,
+                                debugDescription: "NaN AnyMoney cannot be encoded using .dictionary(amount: .majorUnits). Use .full or .minorUnits to preserve NaN."
+                            )
+                        )
+                    }
+                    try dict.encode(entry.decimalValue, forKey: key)
+                case .string(let locale):
+                    guard !entry.isNaN else {
+                        throw EncodingError.invalidValue(
+                            entry,
+                            EncodingError.Context(
+                                codingPath: encoder.codingPath,
+                                debugDescription: "NaN AnyMoney cannot be encoded using .dictionary(amount: .string). Use .full or .minorUnits to preserve NaN."
+                            )
+                        )
+                    }
+                    try dict.encode(entry.formatted(AnyMoney.FormatStyle(locale: locale)), forKey: key)
+                }
+            }
+        }
     }
 
-    /// Creates a `MoneyBag` by decoding from the given decoder.
-    ///
-    /// Decodes the `entries` array and reconstructs `_storage`. Each entry's
-    /// `currencyCode` must be unique; duplicate currency codes in the encoded
-    /// payload are treated as corrupt data and cause a `DecodingError` to be
-    /// thrown.
-    ///
-    /// The `currency` metatype on each entry will be `nil` after decoding —
-    /// only the scalar fields are persisted. Use `amount(in:)` to
-    /// retrieve typed `Money<C>` values.
-    public init(from decoder: any Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        let entries = try container.decode([AnyMoney].self, forKey: .entries)
+    // MARK: Decoding
 
+    /// Creates a ``MoneyBag`` by decoding from the given decoder.
+    ///
+    /// The active strategy is read from `decoder.userInfo[.moneyBagDecodingStrategy]`
+    /// (set via ``JSONDecoder/moneyBagDecodingStrategy``). Defaults to
+    /// ``MoneyBagDecodingStrategy/full`` when not set.
+    ///
+    /// Duplicate currency codes in the decoded payload are rejected with
+    /// `DecodingError.dataCorrupted`.
+    ///
+    /// - SeeAlso: ``JSONDecoder/moneyBagDecodingStrategy``
+    public init(from decoder: any Decoder) throws {
+        let strategy = decoder.userInfo[.moneyBagDecodingStrategy] as? MoneyBagDecodingStrategy ?? .full
+        switch strategy {
+
+        case .full:
+            // {"entries": [...full AnyMoney objects...]}
+            // Each entry is decoded in AnyMoney.full format regardless of any
+            // anyMoneyDecodingStrategy set on the outer decoder.
+            let outer = try decoder.container(keyedBy: EntriesKey.self)
+            var array = try outer.nestedUnkeyedContainer(forKey: .entries)
+            var entries: [AnyMoney] = []
+            while !array.isAtEnd {
+                let sub = try array.superDecoder()
+                entries.append(try AnyMoney._decode(strategy: .full, from: sub))
+            }
+            self._storage = try MoneyBag._buildStorage(from: entries, codingPath: decoder.codingPath)
+
+        case .array(let entryStrategy):
+            // [...per-entry AnyMoney objects...]
+            var array = try decoder.unkeyedContainer()
+            var entries: [AnyMoney] = []
+            while !array.isAtEnd {
+                let sub = try array.superDecoder()
+                entries.append(try AnyMoney._decode(strategy: entryStrategy, from: sub))
+            }
+            self._storage = try MoneyBag._buildStorage(from: entries, codingPath: decoder.codingPath)
+
+        case .dictionary(let amountStrategy, let resolver):
+            // {"GBP": 1.25, "JPY": 500, ...}
+            let dict = try decoder.container(keyedBy: _StringCodingKey.self)
+            var storage: [CurrencyCode: AnyMoney] = [:]
+            for key in dict.allKeys {
+                let code = CurrencyCode(key.stringValue)
+                guard let minQ = resolver(code) else {
+                    throw DecodingError.dataCorrupted(
+                        DecodingError.Context(
+                            codingPath: dict.codingPath,
+                            debugDescription: "No MinimalQuantisation found for currency '\(code)'. Provide a resolver that covers this currency."
+                        )
+                    )
+                }
+                guard storage[code] == nil else {
+                    throw DecodingError.dataCorrupted(
+                        DecodingError.Context(
+                            codingPath: dict.codingPath,
+                            debugDescription: "Duplicate currency code '\(code)' in MoneyBag dictionary."
+                        )
+                    )
+                }
+                let minorUnits: Int64
+                switch amountStrategy {
+                case .minorUnits:
+                    minorUnits = try dict.decode(Int64.self, forKey: key)
+                case .majorUnits:
+                    let decimal = try dict.decode(Decimal.self, forKey: key)
+                    minorUnits = try AnyMoney._decimalToMinorUnits(
+                        decimal, minQ: minQ, codingPath: dict.codingPath
+                    )
+                case .string(let locale):
+                    let string = try dict.decode(String.self, forKey: key)
+                    let decimal = try AnyMoney._parseFormattedAmount(
+                        string, currencyCode: code, locale: locale, codingPath: dict.codingPath
+                    )
+                    minorUnits = try AnyMoney._decimalToMinorUnits(
+                        decimal, minQ: minQ, codingPath: dict.codingPath
+                    )
+                }
+                storage[code] = AnyMoney(
+                    minorUnits: minorUnits,
+                    currencyCode: code,
+                    minimalQuantisation: minQ
+                )
+            }
+            self._storage = storage
+        }
+    }
+
+    // MARK: Private helpers
+
+    /// Builds `_storage` from a decoded array of entries, rejecting duplicate currency codes.
+    private static func _buildStorage(
+        from entries: [AnyMoney],
+        codingPath: [any CodingKey]
+    ) throws -> [CurrencyCode: AnyMoney] {
         var storage: [CurrencyCode: AnyMoney] = [:]
         storage.reserveCapacity(entries.count)
         for entry in entries {
             guard storage[entry.currencyCode] == nil else {
                 throw DecodingError.dataCorrupted(
                     DecodingError.Context(
-                        codingPath: decoder.codingPath + [CodingKeys.entries],
-                        debugDescription: "Duplicate currency code '\(String(entry.currencyCode))' in MoneyBag entries."
+                        codingPath: codingPath,
+                        debugDescription: "Duplicate currency code '\(entry.currencyCode)' in MoneyBag entries."
                     )
                 )
             }
             storage[entry.currencyCode] = entry
         }
-        self._storage = storage
+        return storage
     }
+}
+
+// MARK: - Dynamic string CodingKey (used by .dictionary strategy)
+
+private struct _StringCodingKey: CodingKey {
+    let stringValue: String
+    var intValue: Int? { nil }
+    init(stringValue: String) { self.stringValue = stringValue }
+    init?(intValue: Int) { nil }
 }
