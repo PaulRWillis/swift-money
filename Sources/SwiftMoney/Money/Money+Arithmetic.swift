@@ -27,8 +27,6 @@ extension Money: AdditiveArithmetic {
     /// - Precondition: The result must fit in `Int64`.
     @inlinable
     public static func + (lhs: Self, rhs: Self) -> Self {
-        #warning("Add tests for overflow using #expect(processExitsWith: .failure) {}")
-        
         precondition(!lhs.isNaN && !rhs.isNaN, "NaN in Money addition")
         let (result, overflow) = lhs._storage.addingReportingOverflow(rhs._storage)
         precondition(!overflow, "Money addition overflow")
@@ -100,11 +98,37 @@ extension Money: AdditiveArithmetic {
 }
 
 public extension Money {
+    /// Returns the result of multiplying a `Money` value by an `Int64` scalar.
+    ///
+    /// Traps if `lhs` is NaN or if the result overflows `Int64`.
+    ///
+    /// - Precondition: `lhs` must not be NaN.
+    /// - Precondition: The result must fit in `Int64`.
+    @inlinable
     static func * (lhs: Money, rhs: Int64) -> Money {
-        Money(minorUnits: lhs._storage * rhs)
+        precondition(!lhs.isNaN, "NaN in Money multiplication")
+        let (result, overflow) = lhs._storage.multipliedReportingOverflow(by: rhs)
+        precondition(!overflow, "Money multiplication overflow")
+        precondition(result != .min, "Money multiplication produced NaN sentinel")
+        return Money(_unchecked: result)
     }
 
+    /// Returns the result of multiplying an `Int64` scalar by a `Money` value.
+    ///
+    /// Traps if `rhs` is NaN or if the result overflows `Int64`.
+    ///
+    /// - Precondition: `rhs` must not be NaN.
+    /// - Precondition: The result must fit in `Int64`.
+    @inlinable
     static func * (lhs: Int64, rhs: Money) -> Money {
-        Money(minorUnits: lhs * rhs._storage)
+        rhs * lhs
+    }
+
+    /// Multiplies a `Money` value by an `Int64` scalar in place.
+    ///
+    /// Traps on NaN or overflow.
+    @inlinable
+    static func *= (lhs: inout Money, rhs: Int64) {
+        lhs = lhs * rhs
     }
 }

@@ -103,4 +103,61 @@ struct Money_IntegralMultiplicationTests {
 
         #expect(actual == zeroMoney)
     }
+
+    // MARK: - NaN traps
+
+    @Test("Multiplication traps on NaN lhs")
+    func multiplyNaNLhsTraps() async {
+        await #expect(processExitsWith: .failure) {
+            _ = Money<TST_100>.nan * Int64(1)
+        }
+    }
+
+    @Test("Multiplication traps on NaN rhs")
+    func multiplyNaNRhsTraps() async {
+        await #expect(processExitsWith: .failure) {
+            _ = Int64(1) * Money<TST_100>.nan
+        }
+    }
+
+    // MARK: - Overflow traps
+
+    @Test("Multiplication traps on overflow")
+    func multiplyOverflowTraps() async {
+        await #expect(processExitsWith: .failure) {
+            _ = Money<TST_100>.max * Int64(2)
+        }
+    }
+
+    @Test("Multiplication traps on underflow")
+    func multiplyUnderflowTraps() async {
+        await #expect(processExitsWith: .failure) {
+            _ = Money<TST_100>.min * Int64(2)
+        }
+    }
+
+    // MARK: - *= operator
+
+    @Test("*= multiplies in place")
+    func multiplyAssign() {
+        var value = Money<TST_100>(minorUnits: 5)
+        value *= 3
+        #expect(value == Money<TST_100>(minorUnits: 15))
+    }
+
+    @Test("*= traps on NaN")
+    func multiplyAssignNaNTraps() async {
+        await #expect(processExitsWith: .failure) {
+            var nan = Money<TST_100>.nan
+            nan *= 1
+        }
+    }
+
+    @Test("*= traps on overflow")
+    func multiplyAssignOverflowTraps() async {
+        await #expect(processExitsWith: .failure) {
+            var value = Money<TST_100>.max
+            value *= 2
+        }
+    }
 }

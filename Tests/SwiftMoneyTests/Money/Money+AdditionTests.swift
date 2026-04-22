@@ -89,4 +89,36 @@ struct Money_AdditionTests {
         a += -5
         #expect(a == -55)
     }
+
+    // MARK: - NaN traps
+
+    @Test("Addition traps on NaN lhs")
+    func addNaNLhsTraps() async {
+        await #expect(processExitsWith: .failure) {
+            _ = Money<TST_100>.nan + Money<TST_100>(minorUnits: 1)
+        }
+    }
+
+    @Test("Addition traps on NaN rhs")
+    func addNaNRhsTraps() async {
+        await #expect(processExitsWith: .failure) {
+            _ = Money<TST_100>(minorUnits: 1) + Money<TST_100>.nan
+        }
+    }
+
+    // MARK: - Overflow traps
+
+    @Test("Addition traps on overflow")
+    func addOverflowTraps() async {
+        await #expect(processExitsWith: .failure) {
+            _ = Money<TST_100>.max + Money<TST_100>(minorUnits: 1)
+        }
+    }
+
+    @Test("Addition traps on underflow")
+    func addUnderflowTraps() async {
+        await #expect(processExitsWith: .failure) {
+            _ = Money<TST_100>.min + Money<TST_100>(minorUnits: -1)
+        }
+    }
 }
