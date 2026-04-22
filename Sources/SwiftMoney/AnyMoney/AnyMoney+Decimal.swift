@@ -1,3 +1,4 @@
+#if canImport(Foundation)
 import Foundation
 
 extension AnyMoney {
@@ -16,3 +17,4 @@ extension AnyMoney {
         return Decimal(minorUnits) / Decimal(minimalQuantisation.int64Value)
     }
 }
+#endif

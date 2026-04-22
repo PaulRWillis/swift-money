@@ -1,3 +1,4 @@
+#if canImport(Foundation)
 import Foundation
 
 extension MoneyBag: Codable {
@@ -199,3 +200,4 @@ private struct _StringCodingKey: CodingKey {
     init(stringValue: String) { self.stringValue = stringValue }
     init?(intValue: Int) { nil }
 }
+#endif

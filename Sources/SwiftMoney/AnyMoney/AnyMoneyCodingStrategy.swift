@@ -1,3 +1,4 @@
+#if canImport(Foundation)
 import Foundation
 
 // MARK: - AnyMoneyEncodingStrategy
@@ -212,3 +213,4 @@ extension JSONDecoder {
         set { userInfo[.anyMoneyDecodingStrategy] = newValue }
     }
 }
+#endif

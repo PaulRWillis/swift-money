@@ -1,3 +1,4 @@
+#if canImport(Foundation)
 import Foundation
 
 // MARK: - Codable
@@ -225,3 +226,4 @@ extension Money: Codable {
         return Money(_unchecked: int64)
     }
 }
+#endif

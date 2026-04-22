@@ -1,3 +1,4 @@
+#if canImport(Foundation)
 import Foundation
 
 // MARK: - Decimal initialiser
@@ -82,3 +83,4 @@ internal let _pow10Table: [Int64] = [
     100_000_000_000_000_000,    // 10^17
     1_000_000_000_000_000_000,  // 10^18
 ]
+#endif

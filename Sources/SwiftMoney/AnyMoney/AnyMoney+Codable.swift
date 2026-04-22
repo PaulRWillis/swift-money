@@ -1,3 +1,4 @@
+#if canImport(Foundation)
 import Foundation
 
 // MARK: - Codable
@@ -236,3 +237,4 @@ extension AnyMoney {
         }
     }
 }
+#endif

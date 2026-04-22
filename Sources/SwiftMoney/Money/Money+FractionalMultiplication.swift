@@ -1,3 +1,4 @@
+#if canImport(Foundation)
 import Foundation
 
 extension Money {
@@ -203,3 +204,4 @@ internal func _roundInt128(
         return remainder > 0 ? truncated + 1 : truncated - 1
     }
 }
+#endif

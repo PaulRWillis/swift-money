@@ -1,3 +1,4 @@
+#if canImport(Foundation)
 import Foundation
 
 // MARK: - Decimal initialiser
@@ -26,3 +27,4 @@ extension ExchangeRate {
         self.init(majorUnitRate: rate)
     }
 }
+#endif

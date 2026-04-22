@@ -1,3 +1,4 @@
+#if canImport(Foundation)
 import Foundation
 
 extension AnyMoney {
@@ -123,5 +124,4 @@ extension AnyMoney {
         format.format(self)
     }
 }
-
-
+#endif

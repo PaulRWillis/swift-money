@@ -1,3 +1,4 @@
+#if canImport(Foundation)
 import Foundation
 
 // MARK: - ParseStrategy
@@ -108,3 +109,4 @@ extension Money {
         self = try format.parseStrategy.parse(string)
     }
 }
+#endif

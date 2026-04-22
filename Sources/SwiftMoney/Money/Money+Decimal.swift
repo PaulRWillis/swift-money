@@ -1,3 +1,4 @@
+#if canImport(Foundation)
 import Foundation
 
 extension Money {
@@ -132,3 +133,4 @@ extension Decimal {
         self = value.decimalValue
     }
 }
+#endif

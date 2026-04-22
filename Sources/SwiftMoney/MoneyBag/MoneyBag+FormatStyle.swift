@@ -1,3 +1,4 @@
+#if canImport(Foundation)
 import Foundation
 
 extension MoneyBag {
@@ -25,5 +26,4 @@ extension MoneyBag {
         return breakdown.map { $0.formatted(style) }.joined(separator: ", ")
     }
 }
-
-
+#endif
