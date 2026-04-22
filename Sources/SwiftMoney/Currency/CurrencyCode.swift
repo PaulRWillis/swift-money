@@ -109,13 +109,6 @@ extension CurrencyCode: Codable {
     }
 }
 
-// MARK: - CustomStringConvertible
-
-extension CurrencyCode: CustomStringConvertible {
-    /// The currency code string, e.g. `"GBP"`.
-    public var description: String { _value }
-}
-
 // MARK: - ExpressibleByStringLiteral
 
 extension CurrencyCode: ExpressibleByStringLiteral {
