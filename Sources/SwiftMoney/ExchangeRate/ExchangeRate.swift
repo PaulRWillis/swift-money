@@ -126,13 +126,56 @@ public struct ExchangeRate<From: Currency, To: Currency>: Sendable {
 
     // MARK: - Conversion
 
-    /// Converts a `Money<From>` amount to `Money<To>` using this exchange rate.
+    /// Converts a `Money<From>` amount to `Money<To>`, returning both the
+    /// converted amount and the actual rate that was applied after rounding.
     ///
-    /// Delegates to ``Money/multiplied(by:rounding:)``, applying
-    /// ``FractionalRate`` arithmetic on the minor-unit representation.
+    /// Because money is stored as a discrete integer number of minor units,
+    /// fractional multiplication may require rounding. The returned
+    /// ``ExchangeRateConversionResult`` carries the rounded `converted` amount
+    /// and the `actualRate` implied by that rounding, so callers can reconcile
+    /// or audit the difference between the nominal and applied rate.
     ///
     /// ```swift
-    /// let rate = ExchangeRate<EUR, GBP>(from: 100, to: 85)
+    /// let rate = ExchangeRate<EUR, GBP>(from: 100, to: 85)!
+    /// let r = rate.conversionResult(of: Money<EUR>(minorUnits: 101))
+    /// r.converted    // Money<GBP>(minorUnits: 86)
+    /// r.actualRate   // ExchangeRate<EUR, GBP>(from: 101, to: 86)
+    /// ```
+    ///
+    /// ``ExchangeRateConversionResult/actualRate`` is `nil` only when a
+    /// non-zero input rounds down to zero (the amount is smaller than half a
+    /// minor unit of `To` at this rate).
+    ///
+    /// - Parameters:
+    ///   - money: The amount to convert. Must not be NaN.
+    ///   - rounding: The rounding rule for fractional minor units.
+    ///     Defaults to `.toNearestOrAwayFromZero`.
+    /// - Returns: An ``ExchangeRateConversionResult`` with the converted amount
+    ///   and actual rate.
+    /// - Precondition: `money` must not be NaN.
+    public func conversionResult(
+        of money: Money<From>,
+        rounding: FloatingPointRoundingRule = .toNearestOrAwayFromZero
+    ) -> ExchangeRateConversionResult<From, To> {
+        let r = money.multiplied(by: rate, rounding: rounding)
+        let converted = Money<To>(_unchecked: r.result.minorUnits)
+        // Wrap the FractionalRate actualRate as a typed ExchangeRate.
+        // actualRate.numeratorValue == 0 only when a non-zero input rounds to zero;
+        // in that case there is no meaningful typed rate to return.
+        let actualRate: ExchangeRate<From, To>? = r.actualRate.numeratorValue > 0
+            ? ExchangeRate(_uncheckedRate: r.actualRate)
+            : nil
+        return ExchangeRateConversionResult(converted: converted, actualRate: actualRate)
+    }
+
+    /// Converts a `Money<From>` amount to `Money<To>` using this exchange rate.
+    ///
+    /// Delegates to ``conversionResult(of:rounding:)`` and returns only the
+    /// converted amount. Use ``conversionResult(of:rounding:)`` directly when
+    /// you also need the actual post-rounding rate.
+    ///
+    /// ```swift
+    /// let rate = ExchangeRate<EUR, GBP>(from: 100, to: 85)!
     /// rate.convert(Money<EUR>(minorUnits: 1000))  // Money<GBP>(minorUnits: 850)
     /// ```
     ///
@@ -146,10 +189,7 @@ public struct ExchangeRate<From: Currency, To: Currency>: Sendable {
         _ money: Money<From>,
         rounding: FloatingPointRoundingRule = .toNearestOrAwayFromZero
     ) -> Money<To> {
-        // `multiplied` returns Money<From>; the minor-unit value is already
-        // expressed in the target scale. Reinterpret the storage as Money<To>.
-        let resultMinorUnits = money.multiplied(by: rate, rounding: rounding).result.minorUnits
-        return Money<To>(_unchecked: resultMinorUnits)
+        conversionResult(of: money, rounding: rounding).converted
     }
 }
 
