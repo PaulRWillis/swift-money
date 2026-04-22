@@ -1,5 +1,3 @@
-import Foundation
-
 extension AnyMoney: Codable {
     private enum CodingKeys: String, CodingKey {
         case minorUnits

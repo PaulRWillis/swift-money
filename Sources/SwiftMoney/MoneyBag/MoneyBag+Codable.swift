@@ -1,5 +1,3 @@
-import Foundation
-
 extension MoneyBag: Codable {
     private enum CodingKeys: String, CodingKey {
         case entries

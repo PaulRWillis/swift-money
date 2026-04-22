@@ -1,5 +1,3 @@
-import Foundation
-
 public struct Money<Currency: SwiftMoney.Currency> {
     /// The storage type for money's minor-unit count.
     ///
