@@ -19,7 +19,7 @@ jobs:
     steps:
     - uses: actions/checkout@v6
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.BENCHMARK_PAT }}
 
     - name: Install jemalloc
       run: sudo apt-get install -y libjemalloc-dev
