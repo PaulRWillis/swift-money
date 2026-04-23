@@ -328,9 +328,18 @@ public func fuzzTest(_ start: UnsafeRawPointer, _ count: Int) -> CInt {
             return 0
         }
 
-        // Create a money value safe for conversion (avoid overflow in multiply)
-        let moneyRaw = (rawA % 1_000_000) + 1  // small positive value
-        let moneyValue = Money<GBP>(minorUnits: moneyRaw > 0 ? moneyRaw : 1)
+        // Allow the full range of money values (excluding NaN sentinel).
+        guard let rawC = reader.readInt64() else { return 0 }
+        let moneyValue = money(rawC)
+
+        // The library intentionally traps when the conversion result
+        // overflows Int64 — that's expected, not a bug. Pre-check with
+        // Int128 arithmetic and skip inputs that would hit the trap.
+        // result ≈ money * to / from; rounding adjusts by at most ±1.
+        let approx = Int128(moneyValue.minorUnits) * Int128(to) / Int128(from)
+        let margin: Int128 = 2  // covers rounding adjustment + integer truncation
+        guard approx > Int128(Int64.min) + margin,
+              approx < Int128(Int64.max) - margin else { return 0 }
 
         // INVARIANT: Conversion doesn't crash and result is not NaN
         let converted = rate.convert(moneyValue)
