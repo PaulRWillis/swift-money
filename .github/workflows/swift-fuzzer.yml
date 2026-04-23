@@ -1,0 +1,19 @@
+name: Fuzz testing
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * 0'  # Every Sunday at 03:00 UTC
+
+jobs:
+  fuzz:
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    container:
+      image: swift:latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Run fuzz tests
+      run: bash Fuzz/run.sh run -max_total_time=30
