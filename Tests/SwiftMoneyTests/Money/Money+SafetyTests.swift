@@ -36,9 +36,9 @@ struct Money_SafetyTests {
     @Test("Money<GBP>.nan encodes and decodes as NaN using .minorUnits strategy")
     func codableNaN() throws {
         let original = Money<GBP>.nan
-        var encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.moneyEncodingStrategy = .minorUnits
-        var decoder = JSONDecoder()
+        let decoder = JSONDecoder()
         decoder.moneyDecodingStrategy = .minorUnits
         let data    = try encoder.encode(original)
         let decoded = try decoder.decode(Money<GBP>.self, from: data)

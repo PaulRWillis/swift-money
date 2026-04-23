@@ -68,7 +68,7 @@ struct Money_Codable_ObjectStrategyTests {
 
     @Test("object(majorUnits): GBP encodes to expected JSON")
     func objectMajorUnitsGBPEncoding() throws {
-        var encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.moneyEncodingStrategy = .object(amount: .majorUnits)
         let output = try jsonSorted(encoder, Money<GBP>(minorUnits: 125))
         #expect(output == #"{"amount":1.25,"currencyCode":"GBP"}"#)
@@ -76,7 +76,7 @@ struct Money_Codable_ObjectStrategyTests {
 
     @Test("object(majorUnits): JPY encodes to expected JSON (minQ = 1)")
     func objectMajorUnitsJPYEncoding() throws {
-        var encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.moneyEncodingStrategy = .object(amount: .majorUnits)
         let output = try jsonSorted(encoder, Money<JPY>(minorUnits: 1000))
         #expect(output == #"{"amount":1000,"currencyCode":"JPY"}"#)
@@ -84,7 +84,7 @@ struct Money_Codable_ObjectStrategyTests {
 
     @Test("object(majorUnits): KWD encodes 3-decimal-place amount")
     func objectMajorUnitsKWDEncoding() throws {
-        var encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.moneyEncodingStrategy = .object(amount: .majorUnits)
         let output = try jsonSorted(encoder, Money<TestKWD>(minorUnits: 1055))
         #expect(output == #"{"amount":1.055,"currencyCode":"KWD"}"#)
@@ -92,9 +92,9 @@ struct Money_Codable_ObjectStrategyTests {
 
     @Test("object(majorUnits): GBP round-trips correctly")
     func objectMajorUnitsGBPRoundTrip() throws {
-        var encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.moneyEncodingStrategy = .object(amount: .majorUnits)
-        var decoder = JSONDecoder()
+        let decoder = JSONDecoder()
         decoder.moneyDecodingStrategy = .object(amount: .majorUnits)
         let original = Money<GBP>(minorUnits: 12_345)
         let decoded = try decoder.decode(Money<GBP>.self, from: encoder.encode(original))
@@ -103,9 +103,9 @@ struct Money_Codable_ObjectStrategyTests {
 
     @Test("object(majorUnits): negative value round-trips correctly")
     func objectMajorUnitsNegativeRoundTrip() throws {
-        var encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.moneyEncodingStrategy = .object(amount: .majorUnits)
-        var decoder = JSONDecoder()
+        let decoder = JSONDecoder()
         decoder.moneyDecodingStrategy = .object(amount: .majorUnits)
         let original = Money<GBP>(minorUnits: -9_876)
         let decoded = try decoder.decode(Money<GBP>.self, from: encoder.encode(original))
@@ -114,9 +114,9 @@ struct Money_Codable_ObjectStrategyTests {
 
     @Test("object(majorUnits): zero round-trips correctly")
     func objectMajorUnitsZeroRoundTrip() throws {
-        var encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.moneyEncodingStrategy = .object(amount: .majorUnits)
-        var decoder = JSONDecoder()
+        let decoder = JSONDecoder()
         decoder.moneyDecodingStrategy = .object(amount: .majorUnits)
         let original = Money<GBP>.zero
         let decoded = try decoder.decode(Money<GBP>.self, from: encoder.encode(original))
@@ -125,9 +125,9 @@ struct Money_Codable_ObjectStrategyTests {
 
     @Test("object(majorUnits): KWD round-trips correctly (minQ = 1000)")
     func objectMajorUnitsKWDRoundTrip() throws {
-        var encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.moneyEncodingStrategy = .object(amount: .majorUnits)
-        var decoder = JSONDecoder()
+        let decoder = JSONDecoder()
         decoder.moneyDecodingStrategy = .object(amount: .majorUnits)
         let original = Money<TestKWD>(minorUnits: 1055)
         let decoded = try decoder.decode(Money<TestKWD>.self, from: encoder.encode(original))
@@ -138,7 +138,7 @@ struct Money_Codable_ObjectStrategyTests {
 
     @Test("object(minorUnits): GBP encodes to expected JSON")
     func objectMinorUnitsGBPEncoding() throws {
-        var encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.moneyEncodingStrategy = .object(amount: .minorUnits)
         let output = try jsonSorted(encoder, Money<GBP>(minorUnits: 125))
         #expect(output == #"{"amount":125,"currencyCode":"GBP"}"#)
@@ -146,9 +146,9 @@ struct Money_Codable_ObjectStrategyTests {
 
     @Test("object(minorUnits): GBP round-trips correctly")
     func objectMinorUnitsGBPRoundTrip() throws {
-        var encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.moneyEncodingStrategy = .object(amount: .minorUnits)
-        var decoder = JSONDecoder()
+        let decoder = JSONDecoder()
         decoder.moneyDecodingStrategy = .object(amount: .minorUnits)
         let original = Money<GBP>(minorUnits: 12_345)
         let decoded = try decoder.decode(Money<GBP>.self, from: encoder.encode(original))
@@ -159,7 +159,7 @@ struct Money_Codable_ObjectStrategyTests {
 
     @Test("object(string): GBP encodes amount as formatted string")
     func objectStringGBPEncoding() throws {
-        var encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.moneyEncodingStrategy = .object(amount: .string(locale: Locale(identifier: "en_GB")))
         let output = try json(encoder, Money<GBP>(minorUnits: 150))
         #expect(output.contains("\"currencyCode\""))
@@ -170,9 +170,9 @@ struct Money_Codable_ObjectStrategyTests {
     @Test("object(string): GBP round-trips correctly")
     func objectStringGBPRoundTrip() throws {
         let locale = Locale(identifier: "en_GB")
-        var encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.moneyEncodingStrategy = .object(amount: .string(locale: locale))
-        var decoder = JSONDecoder()
+        let decoder = JSONDecoder()
         decoder.moneyDecodingStrategy = .object(amount: .string(locale: locale))
         let original = Money<GBP>(minorUnits: 12_345)
         let decoded = try decoder.decode(Money<GBP>.self, from: encoder.encode(original))
@@ -184,7 +184,7 @@ struct Money_Codable_ObjectStrategyTests {
     @Test("object: currency mismatch throws DecodingError")
     func objectCurrencyMismatch() throws {
         let json = #"{"currencyCode":"USD","amount":1.25}"#.data(using: .utf8)!
-        var decoder = JSONDecoder()
+        let decoder = JSONDecoder()
         decoder.moneyDecodingStrategy = .object(amount: .majorUnits)
         #expect(throws: DecodingError.self) {
             try decoder.decode(Money<GBP>.self, from: json)
@@ -193,7 +193,7 @@ struct Money_Codable_ObjectStrategyTests {
 
     @Test("object: NaN encoding throws EncodingError")
     func objectNaNThrows() {
-        var encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.moneyEncodingStrategy = .object(amount: .majorUnits)
         #expect(throws: EncodingError.self) {
             try encoder.encode(Money<GBP>.nan)
@@ -203,7 +203,7 @@ struct Money_Codable_ObjectStrategyTests {
     @Test("object: decoding from JSON with known values is correct")
     func objectDecoding() throws {
         let json = #"{"currencyCode":"GBP","amount":1.25}"#.data(using: .utf8)!
-        var decoder = JSONDecoder()
+        let decoder = JSONDecoder()
         decoder.moneyDecodingStrategy = .object(amount: .majorUnits)
         let decoded = try decoder.decode(Money<GBP>.self, from: json)
         #expect(decoded.minorUnits == 125)
@@ -217,7 +217,7 @@ struct Money_Codable_MinorUnitsStrategyTests {
 
     @Test("minorUnits: GBP encodes to bare integer")
     func minorUnitsEncoding() throws {
-        var encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.moneyEncodingStrategy = .minorUnits
         let output = try json(encoder, Money<GBP>(minorUnits: 125))
         #expect(output == "125")
@@ -225,7 +225,7 @@ struct Money_Codable_MinorUnitsStrategyTests {
 
     @Test("minorUnits: negative value encodes correctly")
     func minorUnitsNegativeEncoding() throws {
-        var encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.moneyEncodingStrategy = .minorUnits
         let output = try json(encoder, Money<GBP>(minorUnits: -9_876))
         #expect(output == "-9876")
@@ -233,7 +233,7 @@ struct Money_Codable_MinorUnitsStrategyTests {
 
     @Test("minorUnits: zero encodes as 0")
     func minorUnitsZeroEncoding() throws {
-        var encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.moneyEncodingStrategy = .minorUnits
         let output = try json(encoder, Money<GBP>.zero)
         #expect(output == "0")
@@ -241,9 +241,9 @@ struct Money_Codable_MinorUnitsStrategyTests {
 
     @Test("minorUnits: GBP round-trips correctly")
     func minorUnitsRoundTrip() throws {
-        var encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.moneyEncodingStrategy = .minorUnits
-        var decoder = JSONDecoder()
+        let decoder = JSONDecoder()
         decoder.moneyDecodingStrategy = .minorUnits
         let original = Money<GBP>(minorUnits: 12_345)
         let decoded = try decoder.decode(Money<GBP>.self, from: encoder.encode(original))
@@ -252,9 +252,9 @@ struct Money_Codable_MinorUnitsStrategyTests {
 
     @Test("minorUnits: JPY round-trips correctly (minQ = 1)")
     func minorUnitsJPYRoundTrip() throws {
-        var encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.moneyEncodingStrategy = .minorUnits
-        var decoder = JSONDecoder()
+        let decoder = JSONDecoder()
         decoder.moneyDecodingStrategy = .minorUnits
         let original = Money<JPY>(minorUnits: 99_999)
         let decoded = try decoder.decode(Money<JPY>.self, from: encoder.encode(original))
@@ -263,9 +263,9 @@ struct Money_Codable_MinorUnitsStrategyTests {
 
     @Test("minorUnits: NaN encodes and decodes correctly (sentinel preserved)")
     func minorUnitsNaNRoundTrip() throws {
-        var encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.moneyEncodingStrategy = .minorUnits
-        var decoder = JSONDecoder()
+        let decoder = JSONDecoder()
         decoder.moneyDecodingStrategy = .minorUnits
         let nan = Money<GBP>.nan
         let decoded = try decoder.decode(Money<GBP>.self, from: encoder.encode(nan))
@@ -275,7 +275,7 @@ struct Money_Codable_MinorUnitsStrategyTests {
     @Test("minorUnits: decoding known JSON value")
     func minorUnitsDecoding() throws {
         let json = "125".data(using: .utf8)!
-        var decoder = JSONDecoder()
+        let decoder = JSONDecoder()
         decoder.moneyDecodingStrategy = .minorUnits
         let decoded = try decoder.decode(Money<GBP>.self, from: json)
         #expect(decoded.minorUnits == 125)
@@ -289,7 +289,7 @@ struct Money_Codable_MajorUnitsStrategyTests {
 
     @Test("majorUnits: GBP encodes to decimal JSON number")
     func majorUnitsEncoding() throws {
-        var encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.moneyEncodingStrategy = .majorUnits
         let output = try json(encoder, Money<GBP>(minorUnits: 125))
         #expect(output == "1.25")
@@ -297,7 +297,7 @@ struct Money_Codable_MajorUnitsStrategyTests {
 
     @Test("majorUnits: JPY encodes to integer JSON number (minQ = 1)")
     func majorUnitsJPYEncoding() throws {
-        var encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.moneyEncodingStrategy = .majorUnits
         let output = try json(encoder, Money<JPY>(minorUnits: 1000))
         #expect(output == "1000")
@@ -305,7 +305,7 @@ struct Money_Codable_MajorUnitsStrategyTests {
 
     @Test("majorUnits: KWD encodes to 3-decimal JSON number")
     func majorUnitsKWDEncoding() throws {
-        var encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.moneyEncodingStrategy = .majorUnits
         let output = try json(encoder, Money<TestKWD>(minorUnits: 1055))
         #expect(output == "1.055")
@@ -313,7 +313,7 @@ struct Money_Codable_MajorUnitsStrategyTests {
 
     @Test("majorUnits: smallest GBP value (1p) encodes correctly")
     func majorUnitsOnePenny() throws {
-        var encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.moneyEncodingStrategy = .majorUnits
         let output = try json(encoder, Money<GBP>(minorUnits: 1))
         #expect(output == "0.01")
@@ -321,7 +321,7 @@ struct Money_Codable_MajorUnitsStrategyTests {
 
     @Test("majorUnits: negative GBP value encodes correctly")
     func majorUnitsNegativeEncoding() throws {
-        var encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.moneyEncodingStrategy = .majorUnits
         let output = try json(encoder, Money<GBP>(minorUnits: -125))
         #expect(output == "-1.25")
@@ -329,9 +329,9 @@ struct Money_Codable_MajorUnitsStrategyTests {
 
     @Test("majorUnits: GBP round-trips correctly")
     func majorUnitsRoundTrip() throws {
-        var encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.moneyEncodingStrategy = .majorUnits
-        var decoder = JSONDecoder()
+        let decoder = JSONDecoder()
         decoder.moneyDecodingStrategy = .majorUnits
         let original = Money<GBP>(minorUnits: 12_345)
         let decoded = try decoder.decode(Money<GBP>.self, from: encoder.encode(original))
@@ -340,9 +340,9 @@ struct Money_Codable_MajorUnitsStrategyTests {
 
     @Test("majorUnits: JPY round-trips correctly (minQ = 1)")
     func majorUnitsJPYRoundTrip() throws {
-        var encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.moneyEncodingStrategy = .majorUnits
-        var decoder = JSONDecoder()
+        let decoder = JSONDecoder()
         decoder.moneyDecodingStrategy = .majorUnits
         let original = Money<JPY>(minorUnits: 99_999)
         let decoded = try decoder.decode(Money<JPY>.self, from: encoder.encode(original))
@@ -351,9 +351,9 @@ struct Money_Codable_MajorUnitsStrategyTests {
 
     @Test("majorUnits: KWD round-trips correctly (minQ = 1000)")
     func majorUnitsKWDRoundTrip() throws {
-        var encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.moneyEncodingStrategy = .majorUnits
-        var decoder = JSONDecoder()
+        let decoder = JSONDecoder()
         decoder.moneyDecodingStrategy = .majorUnits
         let original = Money<TestKWD>(minorUnits: 1055)
         let decoded = try decoder.decode(Money<TestKWD>.self, from: encoder.encode(original))
@@ -362,9 +362,9 @@ struct Money_Codable_MajorUnitsStrategyTests {
 
     @Test("majorUnits: zero round-trips correctly")
     func majorUnitsZeroRoundTrip() throws {
-        var encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.moneyEncodingStrategy = .majorUnits
-        var decoder = JSONDecoder()
+        let decoder = JSONDecoder()
         decoder.moneyDecodingStrategy = .majorUnits
         let original = Money<GBP>.zero
         let decoded = try decoder.decode(Money<GBP>.self, from: encoder.encode(original))
@@ -373,7 +373,7 @@ struct Money_Codable_MajorUnitsStrategyTests {
 
     @Test("majorUnits: NaN encoding throws EncodingError")
     func majorUnitsNaNThrows() {
-        var encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.moneyEncodingStrategy = .majorUnits
         #expect(throws: EncodingError.self) {
             try encoder.encode(Money<GBP>.nan)
@@ -383,7 +383,7 @@ struct Money_Codable_MajorUnitsStrategyTests {
     @Test("majorUnits: decoding known JSON value")
     func majorUnitsDecoding() throws {
         let json = "1.25".data(using: .utf8)!
-        var decoder = JSONDecoder()
+        let decoder = JSONDecoder()
         decoder.moneyDecodingStrategy = .majorUnits
         let decoded = try decoder.decode(Money<GBP>.self, from: json)
         #expect(decoded.minorUnits == 125)
@@ -418,7 +418,7 @@ struct Money_Codable_StringStrategyTests {
 
     @Test("string: GBP encodes to formatted string")
     func stringEncoding() throws {
-        var encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.moneyEncodingStrategy = .string(locale: enGB)
         let output = try json(encoder, Money<GBP>(minorUnits: 150))
         #expect(output == "\"£1.50\"")
@@ -426,9 +426,9 @@ struct Money_Codable_StringStrategyTests {
 
     @Test("string: GBP round-trips correctly")
     func stringRoundTrip() throws {
-        var encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.moneyEncodingStrategy = .string(locale: enGB)
-        var decoder = JSONDecoder()
+        let decoder = JSONDecoder()
         decoder.moneyDecodingStrategy = .string(locale: enGB)
         let original = Money<GBP>(minorUnits: 12_345)
         let decoded = try decoder.decode(Money<GBP>.self, from: encoder.encode(original))
@@ -438,9 +438,9 @@ struct Money_Codable_StringStrategyTests {
     @Test("string: JPY round-trips correctly (minQ = 1)")
     func stringJPYRoundTrip() throws {
         let locale = Locale(identifier: "ja_JP")
-        var encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.moneyEncodingStrategy = .string(locale: locale)
-        var decoder = JSONDecoder()
+        let decoder = JSONDecoder()
         decoder.moneyDecodingStrategy = .string(locale: locale)
         let original = Money<JPY>(minorUnits: 1000)
         let decoded = try decoder.decode(Money<JPY>.self, from: encoder.encode(original))
@@ -449,7 +449,7 @@ struct Money_Codable_StringStrategyTests {
 
     @Test("string: NaN encoding throws EncodingError")
     func stringNaNThrows() {
-        var encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.moneyEncodingStrategy = .string(locale: enGB)
         #expect(throws: EncodingError.self) {
             try encoder.encode(Money<GBP>.nan)
@@ -459,7 +459,7 @@ struct Money_Codable_StringStrategyTests {
     @Test("string: decoding invalid string throws DecodingError")
     func stringInvalidThrows() {
         let json = "\"not-a-currency\"".data(using: .utf8)!
-        var decoder = JSONDecoder()
+        let decoder = JSONDecoder()
         decoder.moneyDecodingStrategy = .string(locale: enGB)
         #expect(throws: DecodingError.self) {
             try decoder.decode(Money<GBP>.self, from: json)
@@ -474,7 +474,7 @@ struct Money_Codable_PropertyAPITests {
 
     @Test("moneyEncodingStrategy setter is respected")
     func encoderPropertyRespected() throws {
-        var encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.moneyEncodingStrategy = .minorUnits
         let output = try json(encoder, Money<GBP>(minorUnits: 42))
         #expect(output == "42")
@@ -482,7 +482,7 @@ struct Money_Codable_PropertyAPITests {
 
     @Test("moneyDecodingStrategy setter is respected")
     func decoderPropertyRespected() throws {
-        var decoder = JSONDecoder()
+        let decoder = JSONDecoder()
         decoder.moneyDecodingStrategy = .minorUnits
         let decoded = try decoder.decode(Money<GBP>.self, from: "42".data(using: .utf8)!)
         #expect(decoded.minorUnits == 42)
@@ -490,7 +490,7 @@ struct Money_Codable_PropertyAPITests {
 
     @Test("userInfo key can be set directly (CodingUserInfoKey API)")
     func userInfoKeyDirect() throws {
-        var encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.userInfo[.moneyEncodingStrategy] = MoneyEncodingStrategy.minorUnits
         let output = try json(encoder, Money<GBP>(minorUnits: 99))
         #expect(output == "99")

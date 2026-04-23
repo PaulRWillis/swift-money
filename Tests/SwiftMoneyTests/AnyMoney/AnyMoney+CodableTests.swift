@@ -175,10 +175,10 @@ struct AnyMoney_CodableTests_ObjectStrategy {
     }
 
     private func makeSortedEncoder(strategy: AnyMoneyEncodingStrategy) -> JSONEncoder {
-        var enc = JSONEncoder()
-        enc.outputFormatting = [.sortedKeys]
-        enc.anyMoneyEncodingStrategy = strategy
-        return enc
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        encoder.anyMoneyEncodingStrategy = strategy
+        return encoder
     }
 
     private func roundTrip(
@@ -186,11 +186,11 @@ struct AnyMoney_CodableTests_ObjectStrategy {
         encoding: AnyMoneyEncodingStrategy,
         decoding: AnyMoneyDecodingStrategy
     ) throws -> AnyMoney {
-        var enc = JSONEncoder()
-        enc.anyMoneyEncodingStrategy = encoding
-        var dec = JSONDecoder()
-        dec.anyMoneyDecodingStrategy = decoding
-        return try dec.decode(AnyMoney.self, from: enc.encode(value))
+        let encoder = JSONEncoder()
+        encoder.anyMoneyEncodingStrategy = encoding
+        let decoder = JSONDecoder()
+        decoder.anyMoneyDecodingStrategy = decoding
+        return try decoder.decode(AnyMoney.self, from: encoder.encode(value))
     }
 
     // MARK: Encoding shape
@@ -305,7 +305,7 @@ struct AnyMoney_CodableTests_ObjectStrategy {
     func objectResolverNilThrows() throws {
         let json = #"{"currencyCode":"UNKNOWN","amount":5.0}"#
         let data = try #require(json.data(using: .utf8))
-        var decoder = JSONDecoder()
+        let decoder = JSONDecoder()
         decoder.anyMoneyDecodingStrategy = .object(amount: .majorUnits, resolver: { _ in nil })
         #expect(throws: DecodingError.self) {
             try decoder.decode(AnyMoney.self, from: data)
@@ -329,7 +329,7 @@ struct AnyMoney_CodableTests_StrategyAPI {
 
     @Test("JSONEncoder.anyMoneyEncodingStrategy setter is respected")
     func encoderStrategySetterRespected() throws {
-        var encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.anyMoneyEncodingStrategy = .object(amount: .minorUnits)
         let data = try encoder.encode(Money<TST_100>(minorUnits: 500).erased)
         let json = try #require(String(data: data, encoding: .utf8))
@@ -350,7 +350,7 @@ struct AnyMoney_CodableTests_StrategyAPI {
     func decoderStrategySetterRespected() throws {
         let objectJSON = #"{"currencyCode":"TST_100","amount":500}"#
         let data = try #require(objectJSON.data(using: .utf8))
-        var decoder = JSONDecoder()
+        let decoder = JSONDecoder()
         decoder.anyMoneyDecodingStrategy = .object(amount: .minorUnits, resolver: { _ in MinimalQuantisation(100) })
         let any = try decoder.decode(AnyMoney.self, from: data)
         #expect(any.minorUnits == 500)

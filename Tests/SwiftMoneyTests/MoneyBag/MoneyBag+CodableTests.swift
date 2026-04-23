@@ -163,30 +163,30 @@ struct MoneyBag_CodableTests_ArrayStrategy {
 
     @Test(".array: empty bag encodes to []")
     func emptyBagEncodesToArray() throws {
-        var enc = JSONEncoder()
-        enc.moneyBagEncodingStrategy = .array(entry: .full)
-        let json = try #require(String(data: enc.encode(MoneyBag()), encoding: .utf8))
+        let encoder = JSONEncoder()
+        encoder.moneyBagEncodingStrategy = .array(entry: .full)
+        let json = try #require(String(data: encoder.encode(MoneyBag()), encoding: .utf8))
         #expect(json == "[]")
     }
 
     @Test(".array(entry: .full): single entry JSON shape")
     func arrayFullSingleEntryShape() throws {
-        var enc = JSONEncoder()
-        enc.outputFormatting = [.sortedKeys]
-        enc.moneyBagEncodingStrategy = .array(entry: .full)
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        encoder.moneyBagEncodingStrategy = .array(entry: .full)
         let bag = MoneyBag().adding(Money<TST_100>(minorUnits: 500))
-        let json = try #require(String(data: enc.encode(bag), encoding: .utf8))
+        let json = try #require(String(data: encoder.encode(bag), encoding: .utf8))
         // sortedKeys: currencyCode < minimalQuantisation < minorUnits
         #expect(json == #"[{"currencyCode":"TST_100","minimalQuantisation":100,"minorUnits":500}]"#)
     }
 
     @Test(".array(entry: .object(minorUnits)): single entry JSON shape")
     func arrayObjectMinorUnitsSingleEntryShape() throws {
-        var enc = JSONEncoder()
-        enc.outputFormatting = [.sortedKeys]
-        enc.moneyBagEncodingStrategy = .array(entry: .object(amount: .minorUnits))
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        encoder.moneyBagEncodingStrategy = .array(entry: .object(amount: .minorUnits))
         let bag = MoneyBag().adding(Money<TST_100>(minorUnits: 500))
-        let json = try #require(String(data: enc.encode(bag), encoding: .utf8))
+        let json = try #require(String(data: encoder.encode(bag), encoding: .utf8))
         // sortedKeys: amount < currencyCode
         #expect(json == #"[{"amount":500,"currencyCode":"TST_100"}]"#)
     }
@@ -195,58 +195,58 @@ struct MoneyBag_CodableTests_ArrayStrategy {
 
     @Test(".array(entry: .full): single entry round-trips")
     func arrayFullSingleEntryRoundTrip() throws {
-        var enc = JSONEncoder()
-        enc.moneyBagEncodingStrategy = .array(entry: .full)
-        var dec = JSONDecoder()
-        dec.moneyBagDecodingStrategy = .array(entry: .full)
+        let encoder = JSONEncoder()
+        encoder.moneyBagEncodingStrategy = .array(entry: .full)
+        let decoder = JSONDecoder()
+        decoder.moneyBagDecodingStrategy = .array(entry: .full)
         let original = MoneyBag().adding(Money<TST_100>(minorUnits: 500))
-        let decoded = try dec.decode(MoneyBag.self, from: enc.encode(original))
+        let decoded = try decoder.decode(MoneyBag.self, from: encoder.encode(original))
         #expect(decoded == original)
     }
 
     @Test(".array(entry: .full): multi-currency round-trips")
     func arrayFullMultiCurrencyRoundTrip() throws {
-        var enc = JSONEncoder()
-        enc.moneyBagEncodingStrategy = .array(entry: .full)
-        var dec = JSONDecoder()
-        dec.moneyBagDecodingStrategy = .array(entry: .full)
+        let encoder = JSONEncoder()
+        encoder.moneyBagEncodingStrategy = .array(entry: .full)
+        let decoder = JSONDecoder()
+        decoder.moneyBagDecodingStrategy = .array(entry: .full)
         let original = MoneyBag()
             .adding(Money<TST_100>(minorUnits: 500))
             .adding(Money<TST_1>(minorUnits: 900))
-        let decoded = try dec.decode(MoneyBag.self, from: enc.encode(original))
+        let decoded = try decoder.decode(MoneyBag.self, from: encoder.encode(original))
         #expect(decoded == original)
     }
 
     @Test(".array(entry: .object(majorUnits)): round-trips with resolver")
     func arrayObjectMajorUnitsRoundTrip() throws {
-        var enc = JSONEncoder()
-        enc.moneyBagEncodingStrategy = .array(entry: .object(amount: .majorUnits))
-        var dec = JSONDecoder()
-        dec.moneyBagDecodingStrategy = .array(entry: .object(amount: .majorUnits, resolver: resolver))
+        let encoder = JSONEncoder()
+        encoder.moneyBagEncodingStrategy = .array(entry: .object(amount: .majorUnits))
+        let decoder = JSONDecoder()
+        decoder.moneyBagDecodingStrategy = .array(entry: .object(amount: .majorUnits, resolver: resolver))
         let original = MoneyBag()
             .adding(Money<TST_100>(minorUnits: 500))
             .adding(Money<TST_1>(minorUnits: 900))
-        let decoded = try dec.decode(MoneyBag.self, from: enc.encode(original))
+        let decoded = try decoder.decode(MoneyBag.self, from: encoder.encode(original))
         #expect(decoded == original)
     }
 
     @Test(".array static shorthand (.full entries) round-trips")
     func arrayStaticShorthandRoundTrip() throws {
-        var enc = JSONEncoder()
-        enc.moneyBagEncodingStrategy = .array
-        var dec = JSONDecoder()
-        dec.moneyBagDecodingStrategy = .array
+        let encoder = JSONEncoder()
+        encoder.moneyBagEncodingStrategy = .array
+        let decoder = JSONDecoder()
+        decoder.moneyBagDecodingStrategy = .array
         let original = MoneyBag().adding(Money<TST_100>(minorUnits: 500))
-        let decoded = try dec.decode(MoneyBag.self, from: enc.encode(original))
+        let decoded = try decoder.decode(MoneyBag.self, from: encoder.encode(original))
         #expect(decoded == original)
     }
 
     @Test(".array: empty bag decodes from []")
     func emptyArrayDecodes() throws {
         let data = try #require("[]".data(using: .utf8))
-        var dec = JSONDecoder()
-        dec.moneyBagDecodingStrategy = .array(entry: .full)
-        #expect(try dec.decode(MoneyBag.self, from: data).isEmpty)
+        let decoder = JSONDecoder()
+        decoder.moneyBagDecodingStrategy = .array(entry: .full)
+        #expect(try decoder.decode(MoneyBag.self, from: data).isEmpty)
     }
 
     @Test(".array: duplicate currency codes in array throw")
@@ -258,10 +258,10 @@ struct MoneyBag_CodableTests_ArrayStrategy {
         ]
         """
         let data = try #require(json.data(using: .utf8))
-        var dec = JSONDecoder()
-        dec.moneyBagDecodingStrategy = .array(entry: .full)
+        let decoder = JSONDecoder()
+        decoder.moneyBagDecodingStrategy = .array(entry: .full)
         #expect(throws: (any Error).self) {
-            try dec.decode(MoneyBag.self, from: data)
+            try decoder.decode(MoneyBag.self, from: data)
         }
     }
 }
@@ -283,30 +283,30 @@ struct MoneyBag_CodableTests_DictionaryStrategy {
 
     @Test(".dictionary: empty bag encodes to {}")
     func emptyBagEncodesToEmptyObject() throws {
-        var enc = JSONEncoder()
-        enc.moneyBagEncodingStrategy = .dictionary(amount: .minorUnits)
-        let json = try #require(String(data: enc.encode(MoneyBag()), encoding: .utf8))
+        let encoder = JSONEncoder()
+        encoder.moneyBagEncodingStrategy = .dictionary(amount: .minorUnits)
+        let json = try #require(String(data: encoder.encode(MoneyBag()), encoding: .utf8))
         #expect(json == "{}")
     }
 
     @Test(".dictionary(minorUnits): single entry JSON shape")
     func dictionaryMinorUnitsSingleEntryShape() throws {
-        var enc = JSONEncoder()
-        enc.moneyBagEncodingStrategy = .dictionary(amount: .minorUnits)
+        let encoder = JSONEncoder()
+        encoder.moneyBagEncodingStrategy = .dictionary(amount: .minorUnits)
         let bag = MoneyBag().adding(Money<TST_100>(minorUnits: 500))
-        let json = try #require(String(data: enc.encode(bag), encoding: .utf8))
+        let json = try #require(String(data: encoder.encode(bag), encoding: .utf8))
         #expect(json == #"{"TST_100":500}"#)
     }
 
     @Test(".dictionary(minorUnits): multi-currency JSON keys are sorted")
     func dictionaryMinorUnitsMultiCurrencyShape() throws {
-        var enc = JSONEncoder()
-        enc.outputFormatting = [.sortedKeys]
-        enc.moneyBagEncodingStrategy = .dictionary(amount: .minorUnits)
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        encoder.moneyBagEncodingStrategy = .dictionary(amount: .minorUnits)
         let bag = MoneyBag()
             .adding(Money<TST_100>(minorUnits: 500))
             .adding(Money<TST_1>(minorUnits: 900))
-        let json = try #require(String(data: enc.encode(bag), encoding: .utf8))
+        let json = try #require(String(data: encoder.encode(bag), encoding: .utf8))
         // sortedKeys: "TST_1" < "TST_100"
         #expect(json == #"{"TST_1":900,"TST_100":500}"#)
     }
@@ -315,38 +315,38 @@ struct MoneyBag_CodableTests_DictionaryStrategy {
 
     @Test(".dictionary(minorUnits): round-trips with resolver")
     func dictionaryMinorUnitsRoundTrip() throws {
-        var enc = JSONEncoder()
-        enc.moneyBagEncodingStrategy = .dictionary(amount: .minorUnits)
-        var dec = JSONDecoder()
-        dec.moneyBagDecodingStrategy = .dictionary(amount: .minorUnits, resolver: resolver)
+        let encoder = JSONEncoder()
+        encoder.moneyBagEncodingStrategy = .dictionary(amount: .minorUnits)
+        let decoder = JSONDecoder()
+        decoder.moneyBagDecodingStrategy = .dictionary(amount: .minorUnits, resolver: resolver)
         let original = MoneyBag()
             .adding(Money<TST_100>(minorUnits: 500))
             .adding(Money<TST_1>(minorUnits: 900))
-        let decoded = try dec.decode(MoneyBag.self, from: enc.encode(original))
+        let decoded = try decoder.decode(MoneyBag.self, from: encoder.encode(original))
         #expect(decoded == original)
     }
 
     @Test(".dictionary(majorUnits): round-trips with resolver")
     func dictionaryMajorUnitsRoundTrip() throws {
-        var enc = JSONEncoder()
-        enc.moneyBagEncodingStrategy = .dictionary(amount: .majorUnits)
-        var dec = JSONDecoder()
-        dec.moneyBagDecodingStrategy = .dictionary(amount: .majorUnits, resolver: resolver)
+        let encoder = JSONEncoder()
+        encoder.moneyBagEncodingStrategy = .dictionary(amount: .majorUnits)
+        let decoder = JSONDecoder()
+        decoder.moneyBagDecodingStrategy = .dictionary(amount: .majorUnits, resolver: resolver)
         let original = MoneyBag()
             .adding(Money<TST_100>(minorUnits: 500))
             .adding(Money<TST_1>(minorUnits: 900))
-        let decoded = try dec.decode(MoneyBag.self, from: enc.encode(original))
+        let decoded = try decoder.decode(MoneyBag.self, from: encoder.encode(original))
         #expect(decoded == original)
     }
 
     @Test(".dictionary(majorUnits): negative amount round-trips")
     func dictionaryMajorUnitsNegativeRoundTrip() throws {
-        var enc = JSONEncoder()
-        enc.moneyBagEncodingStrategy = .dictionary(amount: .majorUnits)
-        var dec = JSONDecoder()
-        dec.moneyBagDecodingStrategy = .dictionary(amount: .majorUnits, resolver: resolver)
+        let encoder = JSONEncoder()
+        encoder.moneyBagEncodingStrategy = .dictionary(amount: .majorUnits)
+        let decoder = JSONDecoder()
+        decoder.moneyBagDecodingStrategy = .dictionary(amount: .majorUnits, resolver: resolver)
         let original = MoneyBag().subtracting(Money<TST_100>(minorUnits: 250))
-        let decoded = try dec.decode(MoneyBag.self, from: enc.encode(original))
+        let decoded = try decoder.decode(MoneyBag.self, from: encoder.encode(original))
         #expect(decoded == original)
     }
 
@@ -354,19 +354,19 @@ struct MoneyBag_CodableTests_DictionaryStrategy {
     func dictionaryResolverNilThrows() throws {
         let json = #"{"UNKNOWN":5}"#
         let data = try #require(json.data(using: .utf8))
-        var dec = JSONDecoder()
-        dec.moneyBagDecodingStrategy = .dictionary(amount: .minorUnits, resolver: { _ in nil })
+        let decoder = JSONDecoder()
+        decoder.moneyBagDecodingStrategy = .dictionary(amount: .minorUnits, resolver: { _ in nil })
         #expect(throws: DecodingError.self) {
-            try dec.decode(MoneyBag.self, from: data)
+            try decoder.decode(MoneyBag.self, from: data)
         }
     }
 
     @Test(".dictionary: empty bag decodes from {}")
     func emptyObjectDecodes() throws {
         let data = try #require("{}".data(using: .utf8))
-        var dec = JSONDecoder()
-        dec.moneyBagDecodingStrategy = .dictionary(amount: .minorUnits, resolver: resolver)
-        #expect(try dec.decode(MoneyBag.self, from: data).isEmpty)
+        let decoder = JSONDecoder()
+        decoder.moneyBagDecodingStrategy = .dictionary(amount: .minorUnits, resolver: resolver)
+        #expect(try decoder.decode(MoneyBag.self, from: data).isEmpty)
     }
 }
 
@@ -386,7 +386,7 @@ struct MoneyBag_CodableTests_StrategyAPI {
 
     @Test("JSONEncoder.moneyBagEncodingStrategy setter is respected")
     func encoderStrategySetterRespected() throws {
-        var encoder = JSONEncoder()
+        let encoder = JSONEncoder()
         encoder.moneyBagEncodingStrategy = .array(entry: .full)
         let bag = MoneyBag().adding(Money<TST_100>(minorUnits: 500))
         let json = try #require(String(data: encoder.encode(bag), encoding: .utf8))
@@ -407,7 +407,7 @@ struct MoneyBag_CodableTests_StrategyAPI {
     func decoderStrategySetterRespected() throws {
         let arrayJSON = #"[{"minorUnits":500,"currencyCode":"TST_100","minimalQuantisation":100}]"#
         let data = try #require(arrayJSON.data(using: .utf8))
-        var decoder = JSONDecoder()
+        let decoder = JSONDecoder()
         decoder.moneyBagDecodingStrategy = .array(entry: .full)
         let bag = try decoder.decode(MoneyBag.self, from: data)
         let amount = try #require(bag.amount(in: TST_100.self))

@@ -123,8 +123,5 @@ struct MoneyBag_FormatStyleTests {
         let bag = MoneyBag().subtracting(money)
         let negated = (-money).erased.formatted()
         #expect(bag.formatted() == negated)
-        
-        
-        let x = 3.formatted(.currency(code: "GBP"))
     }
 }
