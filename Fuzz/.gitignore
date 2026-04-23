@@ -1,0 +1,6 @@
+fuzz-swiftmoney
+corpus/
+crash-*
+leak-*
+timeout-*
+oom-*
