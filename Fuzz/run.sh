@@ -12,6 +12,12 @@
 #   bash Fuzz/run.sh debug run    # build debug + run
 #
 # Requirements: Swift 6.2+ open-source toolchain on Linux.
+#
+# Build strategy: The library is compiled WITHOUT sanitizers into a
+# .swiftmodule + .o, then the fuzz target is compiled WITH -sanitize=fuzzer
+# and linked against the library object. This isolates UBSan instrumentation
+# to the fuzz harness, avoiding false positives from well-defined Swift
+# integer operations (Int128 decomposition, negation) in the library code.
 
 set -euo pipefail
 
@@ -21,6 +27,7 @@ SRC_DIR="$REPO_DIR/Sources/SwiftMoney"
 FUZZ_SRC="$SCRIPT_DIR/SwiftMoneyFuzz.swift"
 OUTPUT="$SCRIPT_DIR/fuzz-swiftmoney"
 CORPUS_DIR="$SCRIPT_DIR/corpus"
+BUILD_DIR="$SCRIPT_DIR/.build"
 
 if [[ "$(uname)" != "Linux" ]]; then
     echo "Error: libFuzzer (-sanitize=fuzzer) requires the open-source Swift toolchain on Linux."
@@ -40,33 +47,35 @@ if [[ "${1:-}" == "debug" ]]; then
     shift
 fi
 
-echo "Building fuzz target (${#LIB_SOURCES[@]} library sources)..."
+OPT_FLAGS="-O"
 if $DEBUG; then
+    OPT_FLAGS="-Onone -g"
     echo "  (debug build with -g -Onone)"
-    swiftc \
-        -sanitize=fuzzer \
-        -parse-as-library \
-        -module-name SwiftMoney \
-        -Onone \
-        -g \
-        -o "$OUTPUT" \
-        "$FUZZ_SRC" \
-        "${LIB_SOURCES[@]}"
-else
-    # Note: -whole-module-optimization is intentionally omitted. WMO inlines
-    # library functions into the fuzz target, causing UBSan (bundled with
-    # -sanitize=fuzzer) to instrument Swift's well-defined integer operations
-    # with C-semantics overflow traps. Without WMO, library functions keep
-    # their own boundaries and UBSan only instruments the fuzz harness.
-    swiftc \
-        -sanitize=fuzzer \
-        -parse-as-library \
-        -module-name SwiftMoney \
-        -O \
-        -o "$OUTPUT" \
-        "$FUZZ_SRC" \
-        "${LIB_SOURCES[@]}"
 fi
+
+mkdir -p "$BUILD_DIR"
+
+echo "Building library (${#LIB_SOURCES[@]} sources, no sanitizer)..."
+# shellcheck disable=SC2086
+swiftc \
+    -parse-as-library \
+    -module-name SwiftMoney \
+    -emit-module -emit-module-path "$BUILD_DIR/SwiftMoney.swiftmodule" \
+    -emit-object \
+    $OPT_FLAGS \
+    "${LIB_SOURCES[@]}" \
+    -o "$BUILD_DIR/SwiftMoney.o"
+
+echo "Building fuzz target (with -sanitize=fuzzer)..."
+# shellcheck disable=SC2086
+swiftc \
+    -sanitize=fuzzer \
+    -parse-as-library \
+    -I "$BUILD_DIR" \
+    $OPT_FLAGS \
+    "$FUZZ_SRC" \
+    "$BUILD_DIR/SwiftMoney.o" \
+    -o "$OUTPUT"
 
 echo "Built: $OUTPUT"
 

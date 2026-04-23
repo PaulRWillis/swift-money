@@ -10,17 +10,16 @@
 // Platform: Linux only — Swift's -sanitize=fuzzer requires the open-source
 //           Swift toolchain, not available in Xcode on macOS.
 //
-// UBSan note: -sanitize=fuzzer implicitly enables UBSan, which instruments
-// signed integer operations (negation, division, modulo) with C-semantics
-// overflow checks. Swift defines these operations as well-defined (trapping
-// or wrapping), but UBSan emits ud2 traps for values near Int64 boundaries.
-// This file uses wrapping arithmetic (0 &- x) where needed to avoid these
-// false positives.
+// Build strategy: The library is compiled WITHOUT sanitizers; only this
+// fuzz harness is compiled WITH -sanitize=fuzzer. This isolates UBSan
+// instrumentation to the harness, avoiding false positives from
+// well-defined Swift integer operations (Int128, negation) in the library.
+// As a consequence, this file uses only public SwiftMoney API.
 
-// No `import SwiftMoney` — compiled as a single module with the library sources.
+import SwiftMoney
 import Foundation
 
-// MARK: - Test currencies (inline — compiled in same module)
+// MARK: - Test currencies
 
 enum FuzzGBP: Currency {
     static let code: CurrencyCode = "GBP"
@@ -97,12 +96,13 @@ private func safeMoney(_ raw: Int64) -> Money<FuzzGBP> {
     // Clamp to safe range
     if v > safeRange { v = safeRange }
     if v < -safeRange { v = -safeRange }
-    return Money<FuzzGBP>(_unchecked: v)
+    return Money<FuzzGBP>(minorUnits: v)
 }
 
 /// Creates a Money value from raw Int64, excluding only the NaN sentinel.
 private func money(_ raw: Int64) -> Money<FuzzGBP> {
-    Money<FuzzGBP>(_unchecked: raw == .min ? raw + 1 : raw)
+    let v = raw == .min ? raw + 1 : raw
+    return Money<FuzzGBP>(minorUnits: v)
 }
 
 // MARK: - Fuzz entry point
@@ -151,8 +151,10 @@ public func fuzzTest(_ start: UnsafeRawPointer, _ count: Int) -> CInt {
 
         // INVARIANT: a - b == -(b - a) (anti-commutativity)
         let reverseDiff = b - a
-        // Use wrapping negate to avoid UBSan false positive
-        let negReverse = Money<FuzzGBP>(_unchecked: 0 &- reverseDiff._storage)
+        // Use wrapping negate to avoid UBSan false positive on the harness side
+        let negStorage = 0 &- reverseDiff.minorUnits
+        guard negStorage != Int64.min else { return 0 }
+        let negReverse = Money<FuzzGBP>(minorUnits: negStorage)
         precondition(diff == negReverse,
                      "Subtraction anti-commutativity failed: \(a) - \(b) != -(\(b) - \(a))")
 
@@ -174,7 +176,7 @@ public func fuzzTest(_ start: UnsafeRawPointer, _ count: Int) -> CInt {
         let multiplier = (rawB % 201) - 100  // range: -100...100
 
         // Check for overflow before calling trapping operator
-        let (result, overflow) = a._storage.multipliedReportingOverflow(by: multiplier)
+        let (result, overflow) = a.minorUnits.multipliedReportingOverflow(by: multiplier)
         guard !overflow, result != .min else { return 0 }
 
         let product = a * multiplier
@@ -202,11 +204,14 @@ public func fuzzTest(_ start: UnsafeRawPointer, _ count: Int) -> CInt {
     case .negate:
         let a = safeMoney(rawA)
 
-        // Use wrapping negate to avoid UBSan false positive
-        let neg = Money<FuzzGBP>(_unchecked: 0 &- a._storage)
-        guard !neg.isNaN else { return 0 }  // skip if negation hits NaN sentinel
+        // Use wrapping negate to avoid UBSan false positive on the harness side
+        let negStorage = 0 &- a.minorUnits
+        guard negStorage != Int64.min else { return 0 }  // skip if negation hits NaN sentinel
+        let neg = Money<FuzzGBP>(minorUnits: negStorage)
 
-        let doubleNeg = Money<FuzzGBP>(_unchecked: 0 &- neg._storage)
+        let doubleNegStorage = 0 &- neg.minorUnits
+        guard doubleNegStorage != Int64.min else { return 0 }
+        let doubleNeg = Money<FuzzGBP>(minorUnits: doubleNegStorage)
 
         // INVARIANT: Double negation is identity
         precondition(doubleNeg == a,
@@ -233,9 +238,9 @@ public func fuzzTest(_ start: UnsafeRawPointer, _ count: Int) -> CInt {
                      "Strict total order violated: a=\(a) b=\(b) a<b=\(aLTb) b<a=\(bLTa) a==b=\(aEQb)")
 
         // INVARIANT: Consistent with raw storage ordering
-        if a._storage < b._storage {
+        if a.minorUnits < b.minorUnits {
             precondition(aLTb, "Storage ordering inconsistent with Comparable")
-        } else if a._storage > b._storage {
+        } else if a.minorUnits > b.minorUnits {
             precondition(bLTa, "Storage ordering inconsistent with Comparable")
         } else {
             precondition(aEQb, "Storage equality inconsistent with Equatable")
@@ -267,7 +272,7 @@ public func fuzzTest(_ start: UnsafeRawPointer, _ count: Int) -> CInt {
         let parts = DistributionParts(n)
 
         // Skip if division would overflow (near Int64.min / 1)
-        guard a._storage != (.min + 1) || n != 1 else { return 0 }
+        guard a.minorUnits != (.min + 1) || n != 1 else { return 0 }
 
         let dist = a.distributed(into: parts)
 
@@ -336,7 +341,7 @@ public func fuzzTest(_ start: UnsafeRawPointer, _ count: Int) -> CInt {
 
         // Create a money value safe for conversion (avoid overflow in multiply)
         let moneyRaw = (rawA % 1_000_000) + 1  // small positive value
-        let moneyValue = Money<FuzzGBP>(_unchecked: moneyRaw > 0 ? moneyRaw : 1)
+        let moneyValue = Money<FuzzGBP>(minorUnits: moneyRaw > 0 ? moneyRaw : 1)
 
         // INVARIANT: Conversion doesn't crash and result is not NaN
         let converted = rate.convert(moneyValue)
@@ -346,7 +351,7 @@ public func fuzzTest(_ start: UnsafeRawPointer, _ count: Int) -> CInt {
     // ── Hash consistency ──────────────────────────────────────────────
     case .hash:
         let a = money(rawA)
-        let b = Money<FuzzGBP>(_unchecked: a._storage)
+        let b = Money<FuzzGBP>(minorUnits: a.minorUnits)
 
         // INVARIANT: Equal values have equal hashes
         precondition(a == b)
