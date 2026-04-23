@@ -293,9 +293,10 @@ public func fuzzTest(_ start: UnsafeRawPointer, _ count: Int) -> CInt {
     case .fractionalRate:
         guard let rawB = reader.readInt64() else { return 0 }
 
-        // FractionalRate requires denominator > 0 and numerator != Int64.min
+        // FractionalRate requires denominator > 0 and numerator != Int64.min.
+        // Use bitwise AND to clear sign bit — avoids abs(Int64.min) UBSan trap.
         let numerator = rawA == .min ? rawA + 1 : rawA
-        let denominator = rawB <= 0 ? abs(rawB) + 1 : rawB
+        let denominator = max(1, rawB & Int64.max)
 
         guard let rate = FractionalRate(numerator: numerator, denominator: denominator) else {
             return 0
@@ -324,9 +325,10 @@ public func fuzzTest(_ start: UnsafeRawPointer, _ count: Int) -> CInt {
     case .exchangeRate:
         guard let rawB = reader.readInt64() else { return 0 }
 
-        // ExchangeRate requires both values > 0
-        let from = rawA <= 0 ? abs(rawA) + 1 : rawA
-        let to = rawB <= 0 ? abs(rawB) + 1 : rawB
+        // ExchangeRate requires both values > 0.
+        // Use bitwise AND to clear sign bit — avoids abs(Int64.min) UBSan trap.
+        let from = max(1, rawA & Int64.max)
+        let to = max(1, rawB & Int64.max)
 
         guard let rate = ExchangeRate<FuzzGBP, FuzzUSD>(from: from, to: to) else {
             return 0
