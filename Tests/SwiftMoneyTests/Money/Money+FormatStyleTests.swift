@@ -217,3 +217,109 @@ struct Money_FormatStyleTests {
         #expect(style.format(Money<EUR>(minorUnits: 105)) == "1,05\u{00A0}€")
     }
 }
+
+// MARK: - Static factory shorthand
+
+@Suite("Money – FormatStyle – Static Factories")
+struct Money_FormatStyle_StaticFactoryTests {
+
+    private let enGB = Locale(identifier: "en_GB")
+    private let fr   = Locale(identifier: "fr")
+
+    // MARK: .locale
+
+    @Test(".locale(_:) produces the same result as the designated initialiser")
+    func localeDotSyntax() {
+        let money = Money<GBP>(minorUnits: 150)
+        let dotSyntax = money.formatted(.locale(enGB))
+        let explicit  = money.formatted(Money<GBP>.FormatStyle(locale: enGB))
+        #expect(dotSyntax == explicit)
+    }
+
+    @Test(".locale(_:) respects the given locale")
+    func localeDotSyntaxFr() {
+        let money = Money<EUR>(minorUnits: 105)
+        #expect(money.formatted(.locale(fr)) == "1,05\u{00A0}€")
+    }
+
+    // MARK: .grouping
+
+    @Test(".grouping(_:) equals FormatStyle().grouping(_:) on the same value")
+    func groupingDotSyntax() {
+        let money = Money<GBP>(minorUnits: 1_234_567)
+        let dotSyntax = money.formatted(.grouping(.never).locale(enGB))
+        let explicit  = money.formatted(Money<GBP>.FormatStyle(locale: enGB).grouping(.never))
+        #expect(dotSyntax == explicit)
+    }
+
+    @Test(".grouping(.never) removes thousands separator")
+    func groupingNeverRemovesSeparator() {
+        let money = Money<GBP>(minorUnits: 1_234_567)
+        let withoutGroup = money.formatted(.grouping(.never).locale(enGB))
+        #expect(!withoutGroup.contains(","))
+    }
+
+    // MARK: .precision
+
+    @Test(".precision(_:) equals FormatStyle().precision(_:) on the same value")
+    func precisionDotSyntax() {
+        let money = Money<GBP>(minorUnits: 150)
+        let dotSyntax = money.formatted(.precision(.fractionLength(0)).locale(enGB))
+        let explicit  = money.formatted(Money<GBP>.FormatStyle(locale: enGB).precision(.fractionLength(0)))
+        #expect(dotSyntax == explicit)
+    }
+
+    @Test(".precision(.fractionLength(0)) drops pence")
+    func precisionFractionLength0() {
+        let money = Money<GBP>(minorUnits: 150)
+        #expect(money.formatted(.precision(.fractionLength(0)).locale(enGB)) == "£2")
+    }
+
+    // MARK: .sign
+
+    @Test(".sign(strategy: .always()) prefixes positive values")
+    func signAlways() {
+        let money = Money<GBP>(minorUnits: 150)
+        #expect(money.formatted(.sign(strategy: .always()).locale(enGB)) == "+£1.50")
+    }
+
+    // MARK: .presentation
+
+    @Test(".presentation(.isoCode) uses the ISO code")
+    func presentationIsoCode() {
+        let money = Money<GBP>(minorUnits: 150)
+        let output = money.formatted(.presentation(.isoCode).locale(enGB))
+        #expect(output.contains("GBP"))
+    }
+
+    // MARK: .decimalSeparator
+
+    @Test(".decimalSeparator(strategy: .always) always shows separator")
+    func decimalSeparatorAlways() {
+        let money = Money<JPY>(minorUnits: 100) // JPY has no fraction digits
+        let output = money.formatted(.decimalSeparator(strategy: .always).locale(enGB))
+        // The separator must appear even for a whole-number amount
+        #expect(output.contains("."))
+    }
+
+    // MARK: .rounded
+
+    @Test(".rounded() equals FormatStyle().rounded() on the same value")
+    func roundedDotSyntax() {
+        let money = Money<GBP>(minorUnits: 150)
+        let dotSyntax = money.formatted(.rounded().locale(enGB))
+        let explicit  = money.formatted(Money<GBP>.FormatStyle(locale: enGB).rounded())
+        #expect(dotSyntax == explicit)
+    }
+
+    // MARK: Chaining from static factory
+
+    @Test("static factory result is chainable with further modifiers")
+    func chainingFromStaticFactory() {
+        let money = Money<GBP>(minorUnits: 1_234_567)
+        // Start from .grouping, then chain .locale
+        let chained = money.formatted(.grouping(.never).locale(enGB))
+        let baseline = money.formatted(Money<GBP>.FormatStyle(locale: enGB).grouping(.never))
+        #expect(chained == baseline)
+    }
+}

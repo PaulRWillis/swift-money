@@ -196,7 +196,5 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     - poison addition, subtraction, and multiplication operators for Double and Float.
     - additionally poison division operators for all number types: Int, Decimal, Double, Float (Int128? UInts? Binary ...?)
 
-    - negating prefix (-)
-
     - String intepolation? (Test separately to `.description`!)
  */

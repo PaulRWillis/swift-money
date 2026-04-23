@@ -183,4 +183,89 @@ extension Money {
         format.format(self)
     }
 }
+
+// MARK: - Static factory shorthand
+//
+// Enables dot-syntax at call sites where the argument type is known:
+//   money.formatted(.grouping(.never))
+//   money.formatted(.precision(.fractionLength(0)).locale(enGB))
+
+extension Money.FormatStyle {
+    /// Returns a style with the given locale.
+    ///
+    /// Equivalent to `Money<C>.FormatStyle(locale: locale)`.
+    ///
+    /// ```swift
+    /// money.formatted(.locale(Locale(identifier: "en_GB")))
+    /// ```
+    public static func locale(_ locale: Locale) -> Self {
+        Self(locale: locale)
+    }
+
+    /// Returns a style with the given sign strategy.
+    ///
+    /// ```swift
+    /// money.formatted(.sign(strategy: .always()))
+    /// ```
+    public static func sign(strategy: Configuration.SignDisplayStrategy) -> Self {
+        Self().sign(strategy: strategy)
+    }
+
+    /// Returns a style with the given presentation.
+    ///
+    /// ```swift
+    /// money.formatted(.presentation(.isoCode))
+    /// ```
+    public static func presentation(_ p: Configuration.Presentation) -> Self {
+        Self().presentation(p)
+    }
+
+    /// Returns a style with the given grouping.
+    ///
+    /// ```swift
+    /// money.formatted(.grouping(.never))
+    /// ```
+    public static func grouping(_ g: Configuration.Grouping) -> Self {
+        Self().grouping(g)
+    }
+
+    /// Returns a style with the given precision.
+    ///
+    /// ```swift
+    /// money.formatted(.precision(.fractionLength(0)))
+    /// ```
+    public static func precision(_ p: Configuration.Precision) -> Self {
+        Self().precision(p)
+    }
+
+    /// Returns a style with the given decimal separator strategy.
+    ///
+    /// ```swift
+    /// money.formatted(.decimalSeparator(strategy: .always))
+    /// ```
+    public static func decimalSeparator(strategy: Configuration.DecimalSeparatorDisplayStrategy) -> Self {
+        Self().decimalSeparator(strategy: strategy)
+    }
+
+    /// Returns a style with the given rounding rule and optional increment.
+    ///
+    /// ```swift
+    /// money.formatted(.rounded(rule: .up))
+    /// ```
+    public static func rounded(
+        rule: Configuration.RoundingRule = .toNearestOrEven,
+        increment: Int? = nil
+    ) -> Self {
+        Self().rounded(rule: rule, increment: increment)
+    }
+
+    /// Returns a style with the given notation.
+    ///
+    /// ```swift
+    /// money.formatted(.notation(.compactName))
+    /// ```
+    public static func notation(_ n: Configuration.Notation) -> Self {
+        Self().notation(n)
+    }
+}
 #endif
