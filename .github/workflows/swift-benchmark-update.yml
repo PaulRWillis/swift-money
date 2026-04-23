@@ -24,6 +24,19 @@ jobs:
     - name: Install jemalloc
       run: sudo apt-get install -y libjemalloc-dev
 
+    - name: Resolve dependencies (with retry)
+      run: |
+        for attempt in 1 2 3; do
+          echo "Resolve attempt $attempt"
+          if swift package --package-path Benchmarks resolve; then
+            echo "Dependencies resolved successfully"
+            break
+          fi
+          echo "Attempt $attempt failed, cleaning and retrying..."
+          rm -rf Benchmarks/.build/repositories
+          sleep $((attempt * 10))
+        done
+
     - name: Run benchmarks
       run: |
         swift package --package-path Benchmarks --disable-sandbox benchmark run --format json > benchmark_results.json 2>/dev/null || true
