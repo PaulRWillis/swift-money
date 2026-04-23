@@ -17,28 +17,3 @@ public protocol Currency: Equatable, Hashable, Sendable {
     /// occur in Decimal conversions.
     static var minimalQuantisation: MinimalQuantisation { get }
 }
-
-public enum EUR: Currency {
-    public static let code: CurrencyCode = "EUR"
-    public static let minimalQuantisation: MinimalQuantisation = 100
-}
-
-public enum GBP: Currency {
-    public static let code: CurrencyCode = "GBP"
-    public static let minimalQuantisation: MinimalQuantisation = 100
-}
-
-public enum USD: Currency {
-    public static let code: CurrencyCode = "USD"
-    public static let minimalQuantisation: MinimalQuantisation = 100
-}
-
-public enum JPY: Currency {
-    public static let code: CurrencyCode = "JPY"
-    public static let minimalQuantisation: MinimalQuantisation = 1
-}
-
-public enum CHF: Currency {
-    public static let code: CurrencyCode = "CHF"
-    public static let minimalQuantisation: MinimalQuantisation = 100
-}

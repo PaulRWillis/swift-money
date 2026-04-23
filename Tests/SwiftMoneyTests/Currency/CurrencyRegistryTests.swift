@@ -1,5 +1,5 @@
 import Foundation
-import SwiftMoney
+@testable import SwiftMoney
 import Testing
 
 // MARK: - Initialisation
@@ -21,7 +21,28 @@ struct CurrencyRegistry_InitialisationTests {
 
     @Test("isoStandard is non-empty")
     func isoStandardNonEmpty() {
-        #expect(CurrencyRegistry.isoStandard.count > 150)
+        #expect(CurrencyRegistry.isoStandard.count > 140)
+    }
+
+    @Test("isoStandard excludes fund codes")
+    func isoStandardExcludesFundCodes() {
+        let registry = CurrencyRegistry.isoStandard
+        for code in ["BOV", "CHE", "CHW", "CLF", "COU", "MXV", "USN", "UYI", "UYW"] {
+            #expect(registry.minimalQuantisation(for: CurrencyCode(code)) == nil)
+        }
+    }
+
+    @Test("isoStandard count matches allISOCurrencies array")
+    func isoStandardCountMatchesArray() {
+        #expect(CurrencyRegistry.isoStandard.count == allISOCurrencies.count)
+    }
+
+    @Test("Every ISO currency enum code matches its type name")
+    func codeMatchesTypeName() {
+        for currency in allISOCurrencies {
+            let typeName = String(describing: currency)
+            #expect(currency.code.stringValue == typeName)
+        }
     }
 
     @Test("isoStandard spot-checks known currencies", arguments: [
@@ -34,8 +55,6 @@ struct CurrencyRegistry_InitialisationTests {
         ("BHD", 1000),
         ("OMR", 1000),
         ("TND", 1000),
-        ("CLF", 10000),
-        ("UYW", 10000),
         ("MGA", 100),
         ("MRU", 100),
         ("AUD", 100),
