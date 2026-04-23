@@ -71,6 +71,7 @@ Then add the dependency to your target:
 | `AnyMoney` | Type-erased money carrying currency info at runtime |
 | `MoneyBag` | Multi-currency accumulator keyed by `CurrencyCode` |
 | `Distribution<C>` | Result of splitting money into equal-or-near-equal parts |
+| `CurrencyRegistry` | Maps currency codes to their minimal quantisation; ships with all ISO 4217 currencies |
 | `FractionalRate` | Exact rational number (GCD-reduced `numerator/denominator`) |
 | `ExchangeRate<From, To>` | Typed conversion rate between two currencies |
 | `ExchangeRateProvider` | Protocol — implement to supply rates from any source |
@@ -264,7 +265,16 @@ encoder.moneyBagEncodingStrategy = .dictionary(amount: .majorUnits)
 ```
 
 `AnyMoney` and `MoneyBag` `.object`/`.dictionary` decoding strategies require a resolver closure
-to map currency codes back to `MinimalQuantisation` values.
+to map currency codes back to `MinimalQuantisation` values. Use
+`CurrencyRegistry.isoStandard.asResolver()` for all standard currencies:
+
+```swift
+let decoder = JSONDecoder()
+decoder.anyMoneyDecodingStrategy = .object(
+    amount: .majorUnits,
+    resolver: CurrencyRegistry.isoStandard.asResolver()
+)
+```
 
 ## Safety
 
