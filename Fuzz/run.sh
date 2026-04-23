@@ -60,6 +60,7 @@ echo "Building library (${#LIB_SOURCES[@]} sources, no sanitizer)..."
 swiftc \
     -parse-as-library \
     -module-name SwiftMoney \
+    -whole-module-optimization \
     -emit-module -emit-module-path "$BUILD_DIR/SwiftMoney.swiftmodule" \
     -emit-object \
     $OPT_FLAGS \
