@@ -1,0 +1,33 @@
+name: Address sanitizer
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  address-sanitizer:
+    runs-on: macos-26
+    timeout-minutes: 60
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Swift version
+      run: swift --version
+
+    - name: Clean before debug build
+      run: swift package clean
+
+    - name: Run address sanitizer
+      run: swift test --sanitize=address
+
+    - name: Clean before release build
+      run: swift package clean
+
+    - name: Run address sanitizer on release build
+      run: swift test --sanitize=address -c release -Xswiftc -enable-testing
