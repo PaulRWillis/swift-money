@@ -292,6 +292,18 @@ swift build
 swift test    # 730+ tests
 ```
 
+## Benchmarks
+
+Run benchmarks locally:
+
+```bash
+swift package --package-path Benchmarks benchmark run
+```
+
+<!-- BENCHMARK-START -->
+_Benchmarks are updated automatically on every merge to `main`. Results pending first run._
+<!-- BENCHMARK-END -->
+
 ## License
 
 Apache License 2.0. See [LICENSE](LICENSE) for details.

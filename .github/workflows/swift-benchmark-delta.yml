@@ -1,0 +1,82 @@
+name: Benchmark PR vs main
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  benchmark-delta:
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+
+    - name: Install jemalloc
+      run: sudo apt-get install -y libjemalloc-dev
+
+    - name: Check for benchmarks
+      run: |
+        [ -f Benchmarks/Package.swift ] && echo "hasBenchmark=1" >> $GITHUB_ENV
+        echo "BENCHMARK_PACKAGE_PATH=--package-path Benchmarks" >> $GITHUB_ENV
+
+    - name: Run benchmarks for PR branch
+      if: ${{ env.hasBenchmark == '1' }}
+      run: |
+        swift package ${BENCHMARK_PACKAGE_PATH} --disable-sandbox benchmark baseline update pull_request --no-progress
+
+    - name: Switch to main
+      if: ${{ env.hasBenchmark == '1' }}
+      run: |
+        git stash
+        git checkout main
+
+    - name: Run benchmarks for main
+      if: ${{ env.hasBenchmark == '1' }}
+      run: |
+        swift package ${BENCHMARK_PACKAGE_PATH} --disable-sandbox benchmark baseline update main --no-progress
+
+    - name: Compare PR and main
+      if: ${{ env.hasBenchmark == '1' }}
+      id: benchmark
+      continue-on-error: true
+      run: |
+        echo "$(date)" >> $GITHUB_STEP_SUMMARY
+        swift package ${BENCHMARK_PACKAGE_PATH} benchmark baseline check main pull_request --format markdown >> $GITHUB_STEP_SUMMARY 2>benchmark_stderr
+        rawExitStatus=$?
+        cat benchmark_stderr >&2
+        if [ "$rawExitStatus" -eq 0 ]; then
+          echo "exitStatus=0" >> $GITHUB_ENV
+        elif grep -q "benchmarkThresholdRegression" benchmark_stderr; then
+          echo "exitStatus=2" >> $GITHUB_ENV
+        elif grep -q "benchmarkThresholdImprovement" benchmark_stderr; then
+          echo "exitStatus=4" >> $GITHUB_ENV
+        else
+          echo "exitStatus=$rawExitStatus" >> $GITHUB_ENV
+        fi
+
+    - name: Build PR comment
+      if: ${{ env.hasBenchmark == '1' }}
+      run: |
+        BENCHMARK_RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        if [ "${{ env.exitStatus }}" = "0" ]; then
+          echo "_No significant benchmark changes._" > benchmark_comment
+        elif [ "${{ env.exitStatus }}" = "2" ]; then
+          echo "_⚠️ Benchmark regression detected._" > benchmark_comment
+        elif [ "${{ env.exitStatus }}" = "4" ]; then
+          echo "_✅ Benchmark improvement detected._" > benchmark_comment
+        else
+          echo "_Benchmark comparison had an unknown result._" > benchmark_comment
+        fi
+        echo "[Benchmark run details](${BENCHMARK_RUN_URL})" >> benchmark_comment
+
+    - name: Comment on PR
+      if: ${{ env.hasBenchmark == '1' }}
+      uses: thollander/actions-comment-pull-request@v3
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        file-path: benchmark_comment
+        comment-tag: benchmark-comparison
