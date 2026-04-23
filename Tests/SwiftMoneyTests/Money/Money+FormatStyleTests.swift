@@ -197,9 +197,14 @@ struct Money_FormatStyleTests {
 
     @Test("notation(.compactName) abbreviates large amounts")
     func notationCompactName() {
-        // en_GB compact-short uses lowercase k (ICU CLDR convention)
         let style = Money<GBP>.FormatStyle(locale: enGB).notation(.compactName)
-        #expect(style.format(Money<GBP>(minorUnits: 1_500_000)) == "£15k")
+        let result = style.format(Money<GBP>(minorUnits: 1_500_000))
+        // ICU compact abbreviation varies by platform ("£15k" vs "£15K"),
+        // so compare against Foundation's own output.
+        let expected = Decimal(15000).formatted(
+            .currency(code: "GBP").locale(enGB).notation(.compactName)
+        )
+        #expect(result == expected)
     }
 
     @Test("formatted(_:) convenience applies the given style")
