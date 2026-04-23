@@ -39,62 +39,15 @@ jobs:
 
     - name: Run benchmarks
       run: |
-        swift package --package-path Benchmarks --disable-sandbox benchmark run --format json > benchmark_results.json 2>/dev/null || true
-
-    - name: Generate markdown table
-      run: |
-        python3 - <<'PYEOF'
-        import json, sys
-
-        try:
-            with open("benchmark_results.json") as f:
-                data = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
-            print("No benchmark results found, skipping update.", file=sys.stderr)
-            sys.exit(0)
-
-        rows = []
-        for result in data:
-            name = result.get("benchmark_name", result.get("name", "unknown"))
-            metrics = {}
-            for metric in result.get("metrics", []):
-                metric_name = metric.get("metric", metric.get("name", ""))
-                # Use median value
-                values = metric.get("percentiles", {})
-                median = values.get("p50", metric.get("value", "—"))
-                metrics[metric_name] = median
-
-            wall = metrics.get("wallClock", "—")
-            mallocs = metrics.get("mallocCountTotal", "—")
-            instructions = metrics.get("instructions", "—")
-
-            if wall != "—":
-                wall = f"{wall} ns"
-            if mallocs != "—":
-                mallocs = str(int(mallocs))
-
-            rows.append(f"| {name} | {wall} | {mallocs} | {instructions} |")
-
-        if not rows:
-            print("No benchmark rows generated, skipping update.", file=sys.stderr)
-            sys.exit(0)
-
-        header = "| Benchmark | Wall Clock (ns) | Allocations | Instructions |\n"
-        header += "|---|---|---|---|"
-        table = header + "\n" + "\n".join(sorted(rows))
-
-        with open("benchmark_table.md", "w") as f:
-            f.write(table)
-        PYEOF
+        swift package --package-path Benchmarks --disable-sandbox benchmark run --format markdown --path stdout --no-progress > benchmark_results.md 2>/dev/null || true
 
     - name: Update README
       run: |
-        if [ ! -f benchmark_table.md ]; then
-          echo "No benchmark table generated, skipping."
+        if [ ! -s benchmark_results.md ]; then
+          echo "No benchmark results generated, skipping."
           exit 0
         fi
 
-        # Replace content between markers
         python3 - <<'PYEOF'
         import sys
 
@@ -111,7 +64,7 @@ jobs:
             print("Benchmark markers not found in README.md, skipping.", file=sys.stderr)
             sys.exit(0)
 
-        with open("benchmark_table.md") as f:
+        with open("benchmark_results.md") as f:
             table = f.read()
 
         new_readme = (
