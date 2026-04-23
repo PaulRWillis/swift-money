@@ -90,6 +90,56 @@ struct Money_AdditionTests {
         #expect(a == -55)
     }
 
+    // MARK: Addition assignment (Money RHS)
+
+    @Test("Addition assignment with Money value")
+    func addAssignMoneyValue() {
+        var price = Money<TST_100>(minorUnits: 100)
+        price += Money<TST_100>(minorUnits: 25)
+        #expect(price == Money<TST_100>(minorUnits: 125))
+    }
+
+    @Test("Addition assignment with negative Money value")
+    func addAssignNegativeMoneyValue() {
+        var price = Money<TST_100>(minorUnits: 200)
+        price += Money<TST_100>(minorUnits: -50)
+        #expect(price == Money<TST_100>(minorUnits: 150))
+    }
+
+    // MARK: - Reduce
+
+    @Test("Reduce empty array to zero")
+    func reduceEmptyArray() {
+        let amounts: [Money<TST_100>] = []
+        #expect(amounts.reduce(.zero, +) == .zero)
+    }
+
+    @Test("Reduce three-element array")
+    func reduceThreeElements() {
+        let amounts: [Money<TST_100>] = [
+            Money(minorUnits: 100),
+            Money(minorUnits: 250),
+            Money(minorUnits: 75)
+        ]
+        #expect(amounts.reduce(.zero, +) == Money<TST_100>(minorUnits: 425))
+    }
+
+    @Test("Reduce single-element array")
+    func reduceSingleElement() {
+        let amounts: [Money<TST_100>] = [Money(minorUnits: 42)]
+        #expect(amounts.reduce(.zero, +) == Money<TST_100>(minorUnits: 42))
+    }
+
+    @Test("Reduce array with negatives")
+    func reduceWithNegatives() {
+        let amounts: [Money<TST_100>] = [
+            Money(minorUnits: 100),
+            Money(minorUnits: -30),
+            Money(minorUnits: 50)
+        ]
+        #expect(amounts.reduce(.zero, +) == Money<TST_100>(minorUnits: 120))
+    }
+
     // MARK: - NaN traps
 
     @Test("Addition traps on NaN lhs")
@@ -119,6 +169,36 @@ struct Money_AdditionTests {
     func addUnderflowTraps() async {
         await #expect(processExitsWith: .failure) {
             _ = Money<TST_100>.min + Money<TST_100>(minorUnits: -1)
+        }
+    }
+
+    @Test("Addition assignment traps on NaN rhs")
+    func addAssignNaNRhsTraps() async {
+        await #expect(processExitsWith: .failure) {
+            var a = Money<TST_100>(minorUnits: 100)
+            a += .nan
+            _ = a
+        }
+    }
+
+    @Test("Addition assignment traps on NaN lhs")
+    func addAssignNaNLhsTraps() async {
+        await #expect(processExitsWith: .failure) {
+            var a = Money<TST_100>.nan
+            a += Money<TST_100>(minorUnits: 1)
+            _ = a
+        }
+    }
+
+    @Test("Reduce traps when array contains NaN")
+    func reduceTrapsOnNaN() async {
+        await #expect(processExitsWith: .failure) {
+            let amounts: [Money<TST_100>] = [
+                Money(minorUnits: 100),
+                .nan,
+                Money(minorUnits: 200)
+            ]
+            _ = amounts.reduce(.zero, +)
         }
     }
 }
