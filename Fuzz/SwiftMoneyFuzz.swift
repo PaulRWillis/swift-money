@@ -15,26 +15,15 @@
 // instrumentation to the harness, avoiding false positives from
 // well-defined Swift integer operations (Int128, negation) in the library.
 // As a consequence, this file uses only public SwiftMoney API.
+//
+// IMPORTANT: Currency types used here (GBP, USD, JPY) are defined in the
+// library module, NOT in this file. This ensures generic specializations
+// (e.g. Money<GBP>.multiplied(by:)) happen in the library's compilation
+// unit — without UBSan. Defining custom currency types here would cause
+// specializations in the harness module, re-introducing UBSan false positives.
 
 import SwiftMoney
 import Foundation
-
-// MARK: - Test currencies
-
-enum FuzzGBP: Currency {
-    static let code: CurrencyCode = "GBP"
-    static let minimalQuantisation: MinimalQuantisation = 100
-}
-
-enum FuzzUSD: Currency {
-    static let code: CurrencyCode = "USD"
-    static let minimalQuantisation: MinimalQuantisation = 100
-}
-
-enum FuzzJPY: Currency {
-    static let code: CurrencyCode = "JPY"
-    static let minimalQuantisation: MinimalQuantisation = 1
-}
 
 // MARK: - Input parsing
 
@@ -89,20 +78,20 @@ private let safeRange = Int64.max / 2
 
 /// Clamps a raw Int64 to the safe range for addition/subtraction,
 /// while also excluding the NaN sentinel.
-private func safeMoney(_ raw: Int64) -> Money<FuzzGBP> {
+private func safeMoney(_ raw: Int64) -> Money<GBP> {
     var v = raw
     // Exclude NaN sentinel
     if v == .min { v = .min + 1 }
     // Clamp to safe range
     if v > safeRange { v = safeRange }
     if v < -safeRange { v = -safeRange }
-    return Money<FuzzGBP>(minorUnits: v)
+    return Money<GBP>(minorUnits: v)
 }
 
 /// Creates a Money value from raw Int64, excluding only the NaN sentinel.
-private func money(_ raw: Int64) -> Money<FuzzGBP> {
+private func money(_ raw: Int64) -> Money<GBP> {
     let v = raw == .min ? raw + 1 : raw
-    return Money<FuzzGBP>(minorUnits: v)
+    return Money<GBP>(minorUnits: v)
 }
 
 // MARK: - Fuzz entry point
@@ -154,7 +143,7 @@ public func fuzzTest(_ start: UnsafeRawPointer, _ count: Int) -> CInt {
         // Use wrapping negate to avoid UBSan false positive on the harness side
         let negStorage = 0 &- reverseDiff.minorUnits
         guard negStorage != Int64.min else { return 0 }
-        let negReverse = Money<FuzzGBP>(minorUnits: negStorage)
+        let negReverse = Money<GBP>(minorUnits: negStorage)
         precondition(diff == negReverse,
                      "Subtraction anti-commutativity failed: \(a) - \(b) != -(\(b) - \(a))")
 
@@ -207,11 +196,11 @@ public func fuzzTest(_ start: UnsafeRawPointer, _ count: Int) -> CInt {
         // Use wrapping negate to avoid UBSan false positive on the harness side
         let negStorage = 0 &- a.minorUnits
         guard negStorage != Int64.min else { return 0 }  // skip if negation hits NaN sentinel
-        let neg = Money<FuzzGBP>(minorUnits: negStorage)
+        let neg = Money<GBP>(minorUnits: negStorage)
 
         let doubleNegStorage = 0 &- neg.minorUnits
         guard doubleNegStorage != Int64.min else { return 0 }
-        let doubleNeg = Money<FuzzGBP>(minorUnits: doubleNegStorage)
+        let doubleNeg = Money<GBP>(minorUnits: doubleNegStorage)
 
         // INVARIANT: Double negation is identity
         precondition(doubleNeg == a,
@@ -256,7 +245,7 @@ public func fuzzTest(_ start: UnsafeRawPointer, _ count: Int) -> CInt {
         decoder.moneyDecodingStrategy = .minorUnits
 
         guard let data = try? encoder.encode(a) else { return 0 }
-        guard let decoded = try? decoder.decode(Money<FuzzGBP>.self, from: data) else { return 0 }
+        guard let decoded = try? decoder.decode(Money<GBP>.self, from: data) else { return 0 }
 
         // INVARIANT: Codable round-trip preserves value
         precondition(decoded == a,
@@ -335,13 +324,13 @@ public func fuzzTest(_ start: UnsafeRawPointer, _ count: Int) -> CInt {
         let from = max(1, rawA & Int64.max)
         let to = max(1, rawB & Int64.max)
 
-        guard let rate = ExchangeRate<FuzzGBP, FuzzUSD>(from: from, to: to) else {
+        guard let rate = ExchangeRate<GBP, USD>(from: from, to: to) else {
             return 0
         }
 
         // Create a money value safe for conversion (avoid overflow in multiply)
         let moneyRaw = (rawA % 1_000_000) + 1  // small positive value
-        let moneyValue = Money<FuzzGBP>(minorUnits: moneyRaw > 0 ? moneyRaw : 1)
+        let moneyValue = Money<GBP>(minorUnits: moneyRaw > 0 ? moneyRaw : 1)
 
         // INVARIANT: Conversion doesn't crash and result is not NaN
         let converted = rate.convert(moneyValue)
@@ -351,7 +340,7 @@ public func fuzzTest(_ start: UnsafeRawPointer, _ count: Int) -> CInt {
     // ── Hash consistency ──────────────────────────────────────────────
     case .hash:
         let a = money(rawA)
-        let b = Money<FuzzGBP>(minorUnits: a.minorUnits)
+        let b = Money<GBP>(minorUnits: a.minorUnits)
 
         // INVARIANT: Equal values have equal hashes
         precondition(a == b)
