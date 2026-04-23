@@ -1,0 +1,145 @@
+name: Update README benchmarks
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'Sources/**'
+      - 'Benchmarks/**'
+
+permissions:
+  contents: write
+
+jobs:
+  update-benchmarks:
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        token: ${{ secrets.BENCHMARK_PAT }}
+
+    - name: Install jemalloc
+      run: sudo apt-get install -y libjemalloc-dev
+
+    - name: Resolve dependencies (with retry)
+      run: |
+        for attempt in 1 2 3; do
+          echo "Resolve attempt $attempt"
+          if swift package --package-path Benchmarks resolve; then
+            echo "Dependencies resolved successfully"
+            break
+          fi
+          echo "Attempt $attempt failed, cleaning and retrying..."
+          rm -rf Benchmarks/.build/repositories
+          sleep $((attempt * 10))
+        done
+
+    - name: Run benchmarks
+      run: |
+        swift package --package-path Benchmarks --disable-sandbox benchmark run --format json > benchmark_results.json 2>/dev/null || true
+
+    - name: Generate markdown table
+      run: |
+        python3 - <<'PYEOF'
+        import json, sys
+
+        try:
+            with open("benchmark_results.json") as f:
+                data = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            print("No benchmark results found, skipping update.", file=sys.stderr)
+            sys.exit(0)
+
+        rows = []
+        for result in data:
+            name = result.get("benchmark_name", result.get("name", "unknown"))
+            metrics = {}
+            for metric in result.get("metrics", []):
+                metric_name = metric.get("metric", metric.get("name", ""))
+                # Use median value
+                values = metric.get("percentiles", {})
+                median = values.get("p50", metric.get("value", "—"))
+                metrics[metric_name] = median
+
+            wall = metrics.get("wallClock", "—")
+            mallocs = metrics.get("mallocCountTotal", "—")
+            instructions = metrics.get("instructions", "—")
+
+            if wall != "—":
+                wall = f"{wall} ns"
+            if mallocs != "—":
+                mallocs = str(int(mallocs))
+
+            rows.append(f"| {name} | {wall} | {mallocs} | {instructions} |")
+
+        if not rows:
+            print("No benchmark rows generated, skipping update.", file=sys.stderr)
+            sys.exit(0)
+
+        header = "| Benchmark | Wall Clock (ns) | Allocations | Instructions |\n"
+        header += "|---|---|---|---|"
+        table = header + "\n" + "\n".join(sorted(rows))
+
+        with open("benchmark_table.md", "w") as f:
+            f.write(table)
+        PYEOF
+
+    - name: Update README
+      run: |
+        if [ ! -f benchmark_table.md ]; then
+          echo "No benchmark table generated, skipping."
+          exit 0
+        fi
+
+        # Replace content between markers
+        python3 - <<'PYEOF'
+        import sys
+
+        with open("README.md") as f:
+            readme = f.read()
+
+        start_marker = "<!-- BENCHMARK-START -->"
+        end_marker = "<!-- BENCHMARK-END -->"
+
+        start_idx = readme.find(start_marker)
+        end_idx = readme.find(end_marker)
+
+        if start_idx == -1 or end_idx == -1:
+            print("Benchmark markers not found in README.md, skipping.", file=sys.stderr)
+            sys.exit(0)
+
+        with open("benchmark_table.md") as f:
+            table = f.read()
+
+        new_readme = (
+            readme[:start_idx + len(start_marker)]
+            + "\n"
+            + table
+            + "\n"
+            + readme[end_idx:]
+        )
+
+        with open("README.md", "w") as f:
+            f.write(new_readme)
+        PYEOF
+
+    - name: Check for changes
+      id: changes
+      run: |
+        if git diff --quiet README.md; then
+          echo "changed=false" >> $GITHUB_OUTPUT
+        else
+          echo "changed=true" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Commit and push
+      if: steps.changes.outputs.changed == 'true'
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add README.md
+        git commit -m "docs(benchmarks): update benchmark results in README [skip ci]"
+        git push
