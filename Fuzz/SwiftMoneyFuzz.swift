@@ -264,7 +264,7 @@ public func fuzzTest(_ start: UnsafeRawPointer, _ count: Int) -> CInt {
 
         // Constrain parts to 1...255
         let n = Int(partsByte) + 1
-        guard let parts = DistributionParts(exactly: n) else { return 0 }
+        let parts = DistributionParts(n)
 
         // Skip if division would overflow (near Int64.min / 1)
         guard a._storage != (.min + 1) || n != 1 else { return 0 }
