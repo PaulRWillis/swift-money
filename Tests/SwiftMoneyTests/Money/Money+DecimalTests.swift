@@ -22,12 +22,10 @@ struct Money_DecimalTests {
     // MARK: - Money init from Decimal
 
     @Test("Money init from Decimal with exact precision currency allows")
-    func decimalInitWithExactPrecision() async {
-        await #expect(processExitsWith: .success) {
-            let decimal = Decimal(1.23) // valid money represenation in TST_100 currency
-            let value = Money<TST_100>(decimal)
-            #expect(value.minorUnits == 123)
-        }
+    func decimalInitWithExactPrecision() {
+        let decimal = Decimal(1.23) // valid money represenation in TST_100 currency
+        let value = Money<TST_100>(decimal)
+        #expect(value.minorUnits == 123)
     }
 
     @Test("Money init from Decimal traps on greater precision than currency allows")
@@ -39,18 +37,14 @@ struct Money_DecimalTests {
     }
 
     @Test("Money init from Decimal with less precision than currency allows")
-    func decimalInitWithLessPrecision() async {
-        await #expect(processExitsWith: .success) {
-            let decimal = Decimal(1.2)
-            let value = Money<TST_100>(decimal)
-            #expect(value.minorUnits == 120)
-        }
+    func decimalInitWithLessPrecision() {
+        let decimal1 = Decimal(1.2)
+        let value1 = Money<TST_100>(decimal1)
+        #expect(value1.minorUnits == 120)
 
-        await #expect(processExitsWith: .success) {
-            let decimal = Decimal(1)
-            let value = Money<TST_100>(decimal)
-            #expect(value.minorUnits == 100)
-        }
+        let decimal2 = Decimal(1)
+        let value2 = Money<TST_100>(decimal2)
+        #expect(value2.minorUnits == 100)
     }
 
     @Test("Money init from Decimal with NaN")
