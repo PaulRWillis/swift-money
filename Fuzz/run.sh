@@ -46,6 +46,7 @@ if $DEBUG; then
     swiftc \
         -sanitize=fuzzer \
         -parse-as-library \
+        -module-name SwiftMoney \
         -Onone \
         -g \
         -o "$OUTPUT" \
@@ -60,6 +61,7 @@ else
     swiftc \
         -sanitize=fuzzer \
         -parse-as-library \
+        -module-name SwiftMoney \
         -O \
         -o "$OUTPUT" \
         "$FUZZ_SRC" \
