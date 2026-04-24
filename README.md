@@ -199,9 +199,9 @@ bag.add(Money<GBP>(minorUnits: 500))    // £5.00
 bag.add(Money<EUR>(minorUnits: 1000))   // €10.00
 bag += Money<GBP>(minorUnits: 200)      // adds to existing GBP
 
-bag.amount(in: GBP.self)   // Money<GBP>(minorUnits: 700)
+bag.balance(of: GBP.self)   // Money<GBP>(minorUnits: 700)
 bag.currencyCodes           // Set(["EUR", "GBP"])
-bag.breakdown               // [AnyMoney] sorted by code
+bag.balances               // [AnyMoney] sorted by code
 
 // Convert everything to one currency (single rounding step)
 let result = bag.total(in: USD.self, using: MyRates(), rounding: .toNearestOrEven)

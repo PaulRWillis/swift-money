@@ -86,7 +86,7 @@ struct MoneyBag_CodableTests {
 
     // MARK: - Decoded queries
 
-    @Test("amount(in:) works correctly after decoding")
+    @Test("balance(of:) works correctly after decoding")
     func amountWorksAfterDecoding() throws {
         let original = MoneyBag()
             .adding(Money<TST_100>(minorUnits: 300))
@@ -94,8 +94,8 @@ struct MoneyBag_CodableTests {
         let data = try encoder.encode(original)
         let decoded = try decoder.decode(MoneyBag.self, from: data)
 
-        let tst100 = try #require(decoded.amount(in: TST_100.self))
-        let tst1 = try #require(decoded.amount(in: TST_1.self))
+        let tst100 = try #require(decoded.balance(of: TST_100.self))
+        let tst1 = try #require(decoded.balance(of: TST_1.self))
         #expect(tst100 == Money<TST_100>(minorUnits: 300))
         #expect(tst1 == Money<TST_1>(minorUnits: 700))
     }
@@ -115,7 +115,7 @@ struct MoneyBag_CodableTests {
         let data = try encoder.encode(original)
         var decoded = try decoder.decode(MoneyBag.self, from: data)
         decoded.add(Money<TST_100>(minorUnits: 200))
-        let amount = try #require(decoded.amount(in: TST_100.self))
+        let amount = try #require(decoded.balance(of: TST_100.self))
         #expect(amount == Money<TST_100>(minorUnits: 500))
     }
 
@@ -399,7 +399,7 @@ struct MoneyBag_CodableTests_StrategyAPI {
         let fullJSON = #"{"entries":[{"minorUnits":500,"currencyCode":"TST_100","minimalQuantisation":100}]}"#
         let data = try #require(fullJSON.data(using: .utf8))
         let bag = try JSONDecoder().decode(MoneyBag.self, from: data)
-        let amount = try #require(bag.amount(in: TST_100.self))
+        let amount = try #require(bag.balance(of: TST_100.self))
         #expect(amount == Money<TST_100>(minorUnits: 500))
     }
 
@@ -410,7 +410,7 @@ struct MoneyBag_CodableTests_StrategyAPI {
         let decoder = JSONDecoder()
         decoder.moneyBagDecodingStrategy = .array(entry: .full)
         let bag = try decoder.decode(MoneyBag.self, from: data)
-        let amount = try #require(bag.amount(in: TST_100.self))
+        let amount = try #require(bag.balance(of: TST_100.self))
         #expect(amount == Money<TST_100>(minorUnits: 500))
     }
 }
