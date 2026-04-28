@@ -296,15 +296,12 @@ swift test    # 730+ tests
 
 SwiftMoney's `Int64` minor-unit arithmetic is significantly faster than `Foundation.Decimal`:
 
-- **Addition/subtraction**: ~200× faster, zero heap allocations
-- **Multiplication**: ~135× faster, zero heap allocations
-- **Comparison**: >54× faster, zero heap allocations
-- **JSON encoding**: ~1.8× faster with `.minorUnits` strategy
+- **Core arithmetic** (`+`, `-`, `*`, `<`): orders of magnitude faster, zero heap allocations
+- **JSON encoding**: faster with `.minorUnits` strategy (bare integer vs string round-trip)
+- **Formatting**: comparable — both delegate to Foundation's ICU number formatter
 
-Formatting performance is comparable — both delegate to Foundation's ICU number formatter.
-
-See **[BENCHMARKS.md](BENCHMARKS.md)** for the full comparison, analysis, and detailed percentile
-tables.
+See **[BENCHMARKS.md](BENCHMARKS.md)** for the full side-by-side comparison, analysis, and detailed
+percentile tables.
 
 Run benchmarks locally:
 
