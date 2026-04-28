@@ -333,4 +333,47 @@ struct FractionalRateParseStrategyTests {
         let expected = try #require(FractionalRate(numerator: 3, denominator: 4))
         #expect(rate == expected)
     }
+
+    // MARK: - Fraction: non-numeric components
+
+    @Test("Parse 'abc/4' throws invalidInput (non-numeric numerator)")
+    func parseNonNumericNumerator() {
+        #expect(throws: FractionalRate.ParseStrategy.ParseError.invalidInput) {
+            try FractionalRate.ParseStrategy().parse("abc/4")
+        }
+    }
+
+    @Test("Parse '3/xyz' throws invalidInput (non-numeric denominator)")
+    func parseNonNumericDenominator() {
+        #expect(throws: FractionalRate.ParseStrategy.ParseError.invalidInput) {
+            try FractionalRate.ParseStrategy().parse("3/xyz")
+        }
+    }
+
+    // MARK: - Decimal: FractionalRate overflow
+
+    @Test("Parse decimal with significand exceeding Int64 throws invalidInput")
+    func parseDecimalOverflow() {
+        #expect(throws: FractionalRate.ParseStrategy.ParseError.invalidInput) {
+            try FractionalRate.ParseStrategy().parse("99999999999999999999")
+        }
+    }
+
+    // MARK: - Percentage: non-numeric body
+
+    @Test("Parse 'abc%' throws invalidInput (non-numeric percentage)")
+    func parseNonNumericPercentage() {
+        #expect(throws: FractionalRate.ParseStrategy.ParseError.invalidInput) {
+            try FractionalRate.ParseStrategy().parse("abc%")
+        }
+    }
+
+    // MARK: - Percentage: FractionalRate overflow
+
+    @Test("Parse percentage with significand exceeding Int64 throws invalidInput")
+    func parsePercentageOverflow() {
+        #expect(throws: FractionalRate.ParseStrategy.ParseError.invalidInput) {
+            try FractionalRate.ParseStrategy().parse("99999999999999999999%")
+        }
+    }
 }

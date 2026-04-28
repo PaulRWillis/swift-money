@@ -152,4 +152,36 @@ struct FractionalRateFormatStyleTests {
         let rate = try #require(FractionalRate(numerator: 3, denominator: 4))
         #expect(rate.formatted(.percentage(locale: deDE)) == "75\u{00A0}%")
     }
+
+    // MARK: - Static factories without locale
+
+    @Test(".decimal static var uses autoupdatingCurrent locale")
+    func decimalStaticVar() throws {
+        let rate = try #require(FractionalRate(numerator: 3, denominator: 4))
+        let result = rate.formatted(.decimal)
+        #expect(!result.isEmpty)
+    }
+
+    @Test(".percentage static var uses autoupdatingCurrent locale")
+    func percentageStaticVar() throws {
+        let rate = try #require(FractionalRate(numerator: 3, denominator: 4))
+        let result = rate.formatted(.percentage)
+        #expect(!result.isEmpty)
+    }
+
+    // MARK: - Copy-on-modify modifiers
+
+    @Test("mode(_:) modifier switches output representation")
+    func modeModifier() throws {
+        let rate = try #require(FractionalRate(numerator: 3, denominator: 4))
+        let style = FractionalRate.FormatStyle(.fraction, locale: enUS).mode(.decimal)
+        #expect(style.format(rate) == "0.75")
+    }
+
+    @Test("locale(_:) modifier changes locale")
+    func localeModifier() throws {
+        let rate = try #require(FractionalRate(numerator: 3, denominator: 4))
+        let style = FractionalRate.FormatStyle(.decimal).locale(deDE)
+        #expect(style.format(rate) == "0,75")
+    }
 }
