@@ -9,6 +9,7 @@ extension FractionalRate {
     ///
     /// The strategy auto-detects the input format:
     /// - Strings containing `"/"` are parsed as fractions (`"3/4"` → 3/4).
+    /// - Otherwise the string is parsed as a decimal number (`"0.75"` → 3/4).
     ///
     /// ```swift
     /// let style = FractionalRate.FormatStyle(.fraction)
@@ -36,7 +37,7 @@ extension FractionalRate {
                 return try _parseFraction(trimmed)
             }
 
-            throw ParseError.invalidInput
+            return try _parseDecimal(trimmed)
         }
 
         // MARK: - Fraction parsing
@@ -61,6 +62,18 @@ extension FractionalRate {
                 throw ParseError.invalidFraction
             }
 
+            return rate
+        }
+
+        // MARK: - Decimal parsing
+
+        private func _parseDecimal(_ value: String) throws -> FractionalRate {
+            guard let decimal = Decimal(string: value) else {
+                throw ParseError.invalidInput
+            }
+            guard let rate = FractionalRate(decimal) else {
+                throw ParseError.invalidInput
+            }
             return rate
         }
     }

@@ -12,6 +12,7 @@ extension FractionalRate {
     /// ```swift
     /// let rate = FractionalRate(numerator: 3, denominator: 4)!
     /// rate.formatted(.fraction)    // "3/4"
+    /// rate.formatted(.decimal)     // "0.75"
     /// ```
     ///
     /// The default mode is `.fraction`.
@@ -21,19 +22,23 @@ extension FractionalRate {
         public enum Mode: String, Equatable, Hashable, Sendable, Codable {
             /// Displays the rate as an integer fraction, e.g. `"3/4"`.
             case fraction
+            /// Displays the rate as a decimal number, e.g. `"0.75"`.
+            case decimal
         }
 
         // MARK: - Stored state
 
         private var mode: Mode
+        private var locale: Locale
 
         // MARK: - Initialiser
 
         /// Creates a format style with the given mode.
         ///
         /// - Parameter mode: The output representation. Defaults to `.fraction`.
-        public init(_ mode: Mode = .fraction) {
+        public init(_ mode: Mode = .fraction, locale: Locale = .autoupdatingCurrent) {
             self.mode = mode
+            self.locale = locale
         }
 
         // MARK: - Modifiers
@@ -41,6 +46,11 @@ extension FractionalRate {
         /// Returns a style with the given mode.
         public func mode(_ mode: Mode) -> FormatStyle {
             var s = self; s.mode = mode; return s
+        }
+
+        /// Returns a style with the given locale.
+        public func locale(_ locale: Locale) -> FormatStyle {
+            var s = self; s.locale = locale; return s
         }
     }
 }
@@ -57,6 +67,9 @@ extension FractionalRate.FormatStyle: Foundation.FormatStyle {
         switch mode {
         case .fraction:
             return "\(value._numerator)/\(value._denominator)"
+        case .decimal:
+            let decimal = Decimal(value._numerator) / Decimal(value._denominator)
+            return decimal.formatted(.number.locale(locale))
         }
     }
 }
@@ -95,5 +108,19 @@ extension FractionalRate.FormatStyle {
     /// rate.formatted(.fraction)  // "3/4"
     /// ```
     public static var fraction: Self { Self(.fraction) }
+
+    /// A style that formats the rate as a decimal number, e.g. `"0.75"`.
+    ///
+    /// ```swift
+    /// rate.formatted(.decimal)  // "0.75"
+    /// ```
+    public static var decimal: Self { Self(.decimal) }
+
+    /// A decimal style with the given locale.
+    ///
+    /// ```swift
+    /// rate.formatted(.decimal(locale: Locale(identifier: "de_DE")))  // "0,75"
+    /// ```
+    public static func decimal(locale: Locale) -> Self { Self(.decimal, locale: locale) }
 }
 #endif

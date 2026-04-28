@@ -126,4 +126,60 @@ struct FractionalRateParseStrategyTests {
             try FractionalRate.ParseStrategy().parse("\(Int64.min)/1")
         }
     }
+
+    // MARK: - Decimal parse round-trips
+
+    @Test("Round-trip: format as decimal then parse back (0.75)")
+    func decimalRoundTripThreeQuarters() throws {
+        let original = try #require(FractionalRate(numerator: 3, denominator: 4))
+        let formatted = original.formatted(.decimal(locale: Locale(identifier: "en_US")))
+        let parsed = try FractionalRate.ParseStrategy().parse(formatted)
+        #expect(parsed == original)
+    }
+
+    @Test("Round-trip: format as decimal then parse back (0.5)")
+    func decimalRoundTripHalf() throws {
+        let original = try #require(FractionalRate(numerator: 1, denominator: 2))
+        let formatted = original.formatted(.decimal(locale: Locale(identifier: "en_US")))
+        let parsed = try FractionalRate.ParseStrategy().parse(formatted)
+        #expect(parsed == original)
+    }
+
+    @Test("Round-trip: format as decimal then parse back (0.11)")
+    func decimalRoundTripElevenHundredths() throws {
+        let original = try #require(FractionalRate(numerator: 11, denominator: 100))
+        let formatted = original.formatted(.decimal(locale: Locale(identifier: "en_US")))
+        let parsed = try FractionalRate.ParseStrategy().parse(formatted)
+        #expect(parsed == original)
+    }
+
+    // MARK: - Decimal parse success cases
+
+    @Test("Parses '0.75' as decimal")
+    func parseDecimalThreeQuarters() throws {
+        let rate = try FractionalRate.ParseStrategy().parse("0.75")
+        let expected = try #require(FractionalRate(numerator: 3, denominator: 4))
+        #expect(rate == expected)
+    }
+
+    @Test("Parses '0.5' as decimal")
+    func parseDecimalHalf() throws {
+        let rate = try FractionalRate.ParseStrategy().parse("0.5")
+        let expected = try #require(FractionalRate(numerator: 1, denominator: 2))
+        #expect(rate == expected)
+    }
+
+    @Test("Parses '1' as decimal (integer)")
+    func parseDecimalInteger() throws {
+        let rate = try FractionalRate.ParseStrategy().parse("1")
+        let expected = try #require(FractionalRate(numerator: 1, denominator: 1))
+        #expect(rate == expected)
+    }
+
+    @Test("Parses '-0.25' as negative decimal")
+    func parseNegativeDecimal() throws {
+        let rate = try FractionalRate.ParseStrategy().parse("-0.25")
+        let expected = try #require(FractionalRate(numerator: -1, denominator: 4))
+        #expect(rate == expected)
+    }
 }

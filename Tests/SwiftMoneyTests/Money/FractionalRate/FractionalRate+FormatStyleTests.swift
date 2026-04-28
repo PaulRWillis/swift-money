@@ -55,4 +55,57 @@ struct FractionalRateFormatStyleTests {
         let rate = try #require(FractionalRate(numerator: 7, denominator: 8))
         #expect(style.format(rate) == "7/8")
     }
+
+    // MARK: - Decimal formatting
+
+    private let enUS = Locale(identifier: "en_US")
+    private let deDE = Locale(identifier: "de_DE")
+
+    @Test("Formats 1/2 as decimal")
+    func formatHalfAsDecimal() throws {
+        let rate = try #require(FractionalRate(numerator: 1, denominator: 2))
+        #expect(rate.formatted(.decimal(locale: enUS)) == "0.5")
+    }
+
+    @Test("Formats 3/4 as decimal")
+    func formatThreeQuartersDecimal() throws {
+        let rate = try #require(FractionalRate(numerator: 3, denominator: 4))
+        #expect(rate.formatted(.decimal(locale: enUS)) == "0.75")
+    }
+
+    @Test("Formats 1/1 as decimal")
+    func formatUnitDecimal() throws {
+        let rate = try #require(FractionalRate(numerator: 1, denominator: 1))
+        #expect(rate.formatted(.decimal(locale: enUS)) == "1")
+    }
+
+    @Test("Formats 0/1 as decimal")
+    func formatZeroDecimal() throws {
+        let rate = try #require(FractionalRate(numerator: 0, denominator: 1))
+        #expect(rate.formatted(.decimal(locale: enUS)) == "0")
+    }
+
+    @Test("Formats negative rate as decimal")
+    func formatNegativeDecimal() throws {
+        let rate = try #require(FractionalRate(numerator: -1, denominator: 4))
+        #expect(rate.formatted(.decimal(locale: enUS)) == "-0.25")
+    }
+
+    @Test("Formats 11/100 as decimal")
+    func formatElevenHundredthsDecimal() throws {
+        let rate = try #require(FractionalRate(numerator: 11, denominator: 100))
+        #expect(rate.formatted(.decimal(locale: enUS)) == "0.11")
+    }
+
+    @Test("Decimal mode respects locale (de_DE uses comma)")
+    func decimalLocaleDE() throws {
+        let rate = try #require(FractionalRate(numerator: 3, denominator: 4))
+        #expect(rate.formatted(.decimal(locale: deDE)) == "0,75")
+    }
+
+    @Test("Decimal mode with integer rate")
+    func decimalIntegerRate() throws {
+        let rate = try #require(FractionalRate(numerator: 5, denominator: 1))
+        #expect(rate.formatted(.decimal(locale: enUS)) == "5")
+    }
 }
