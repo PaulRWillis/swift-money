@@ -150,3 +150,78 @@ struct ExchangeRateFormatStyleFractionTests {
         #expect(rate.formatted(.fraction) == "2/1")
     }
 }
+
+// MARK: - Pair mode
+
+@Suite("ExchangeRate.FormatStyle – pair mode")
+struct ExchangeRateFormatStylePairTests {
+
+    private let enGB = Locale(identifier: "en_GB")
+    private let deDE = Locale(identifier: "de_DE")
+
+    // MARK: - Default separator (equals)
+
+    @Test("GBP→USD 1.25 as pair with en_GB locale")
+    func gbpToUsd() throws {
+        let rate = try #require(ExchangeRate<GBP, USD>(majorUnitRate: Decimal(string: "1.25")!))
+        #expect(rate.formatted(.pair.locale(enGB)) == "£1.00 = US$1.25")
+    }
+
+    @Test("GBP→JPY 215 as pair with en_GB locale")
+    func gbpToJpy() throws {
+        let rate = try #require(ExchangeRate<GBP, JPY>(majorUnitRate: Decimal(string: "215")!))
+        #expect(rate.formatted(.pair.locale(enGB)) == "£1.00 = JP¥215")
+    }
+
+    @Test("Identity GBP→GBP as pair")
+    func identity() throws {
+        let rate = try #require(ExchangeRate<GBP, GBP>(from: 1, to: 1))
+        #expect(rate.formatted(.pair.locale(enGB)) == "£1.00 = £1.00")
+    }
+
+    @Test("EUR→GBP 0.85 as pair with en_GB locale")
+    func eurToGbp() throws {
+        let rate = try #require(ExchangeRate<EUR, GBP>(majorUnitRate: Decimal(string: "0.85")!))
+        #expect(rate.formatted(.pair.locale(enGB)) == "€1.00 = £0.85")
+    }
+
+    // MARK: - Custom separators
+
+    @Test("Colon separator: GBP→USD")
+    func colonSeparator() throws {
+        let rate = try #require(ExchangeRate<GBP, USD>(majorUnitRate: Decimal(string: "1.25")!))
+        #expect(rate.formatted(.pair(separator: .colon).locale(enGB)) == "£1.00 : US$1.25")
+    }
+
+    @Test("Custom separator: GBP→USD with arrow")
+    func customSeparator() throws {
+        let rate = try #require(ExchangeRate<GBP, USD>(majorUnitRate: Decimal(string: "1.25")!))
+        let style = ExchangeRate<GBP, USD>.FormatStyle(.pair(separator: .custom(" → "))).locale(enGB)
+        #expect(rate.formatted(style) == "£1.00 → US$1.25")
+    }
+
+    // MARK: - Locale
+
+    @Test("German locale formats both sides with German conventions")
+    func germanLocale() throws {
+        let rate = try #require(ExchangeRate<GBP, USD>(majorUnitRate: Decimal(string: "1.25")!))
+        let result = rate.formatted(.pair.locale(deDE))
+        #expect(result == "1,00\u{00A0}£ = 1,25\u{00A0}$")
+    }
+
+    // MARK: - Coverage: static factories
+
+    @Test(".pair static var uses default equals separator")
+    func pairStaticVar() throws {
+        let rate = try #require(ExchangeRate<GBP, USD>(majorUnitRate: Decimal(string: "1.25")!))
+        let result = rate.formatted(.pair.locale(enGB))
+        #expect(result.contains(" = "))
+    }
+
+    @Test(".pair(separator:) static factory")
+    func pairSeparatorFactory() throws {
+        let rate = try #require(ExchangeRate<GBP, USD>(majorUnitRate: Decimal(string: "1.25")!))
+        let result = rate.formatted(.pair(separator: .colon).locale(enGB))
+        #expect(result.contains(" : "))
+    }
+}

@@ -5,20 +5,46 @@ extension ExchangeRate {
     /// A `FormatStyle` that converts an `ExchangeRate` to a human-readable string.
     public struct FormatStyle: Foundation.FormatStyle, Equatable, Hashable, Sendable {
 
+        /// The separator used between the two sides of a `.pair` format.
+        public struct Separator: Codable, Equatable, Hashable, Sendable {
+            /// The raw separator string.
+            internal let rawValue: String
+
+            internal init(_ rawValue: String) { self.rawValue = rawValue }
+
+            /// `" = "` — equals sign surrounded by spaces.
+            public static var equals: Separator { Separator(" = ") }
+
+            /// `" : "` — colon surrounded by spaces.
+            public static var colon: Separator { Separator(" : ") }
+
+            /// A custom separator string.
+            public static func custom(_ separator: String) -> Separator { Separator(separator) }
+        }
+
         /// The aspect of the exchange rate to present.
         public enum Mode: Codable, Equatable, Hashable, Sendable {
             /// The major-unit rate as a decimal, e.g. `"1.25"`.
             case rate
             /// The major-unit rate as a reduced fraction, e.g. `"5/4"`.
             case fraction
+            /// A currency pair showing 1 major unit converted, e.g. `"£1.00 = US$1.25"`.
+            case pair(separator: Separator = .equals)
         }
 
-        public var mode: Mode
-        public var locale: Locale
+        private var mode: Mode
+        private var locale: Locale
 
         public init(_ mode: Mode = .rate, locale: Locale = .autoupdatingCurrent) {
             self.mode = mode
             self.locale = locale
+        }
+
+        // MARK: - Modifiers
+
+        /// Returns a style with the given locale.
+        public func locale(_ locale: Locale) -> FormatStyle {
+            var s = self; s.locale = locale; return s
         }
 
         public func format(_ value: ExchangeRate<From, To>) -> String {
@@ -27,6 +53,8 @@ extension ExchangeRate {
                 return _formatRate(value)
             case .fraction:
                 return _formatFraction(value)
+            case .pair(let separator):
+                return _formatPair(value, separator: separator)
             }
         }
 
@@ -50,6 +78,21 @@ extension ExchangeRate {
                 _unchecked: majorNumerator, denominator: majorDenominator
             )
             return majorRate.formatted(.fraction)
+        }
+
+        private func _formatPair(
+            _ value: ExchangeRate<From, To>,
+            separator: Separator
+        ) -> String {
+            let oneMajorUnit = Money<From>(
+                minorUnits: From.minimalQuantisation.int64Value
+            )
+            let converted = value.convert(oneMajorUnit)
+            let fromStyle = Money<From>.FormatStyle(locale: locale)
+            let toStyle = Money<To>.FormatStyle(locale: locale)
+            return fromStyle.format(oneMajorUnit)
+                + separator.rawValue
+                + toStyle.format(converted)
         }
     }
 
@@ -76,4 +119,10 @@ extension ExchangeRate.FormatStyle {
 
     /// Format the major-unit rate as a reduced fraction, e.g. `"5/4"`.
     public static var fraction: Self { .init(.fraction) }
+
+    /// Format as a currency pair, e.g. `"£1.00 = US$1.25"`.
+    public static var pair: Self { .init(.pair()) }
+
+    /// Format as a currency pair with a custom separator, e.g. `"£1.00 : US$1.25"`.
+    public static func pair(separator: Separator) -> Self { .init(.pair(separator: separator)) }
 }
