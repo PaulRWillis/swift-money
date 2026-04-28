@@ -2,8 +2,10 @@ import Foundation
 import Testing
 import SwiftMoney
 
+// MARK: - Rate mode
+
 @Suite("ExchangeRate.FormatStyle – rate mode")
-struct ExchangeRateFormatStyleTests {
+struct ExchangeRateFormatStyleRateTests {
 
     private let enUS = Locale(identifier: "en_US")
     private let deDE = Locale(identifier: "de_DE")
@@ -66,13 +68,85 @@ struct ExchangeRateFormatStyleTests {
         #expect(rate.formatted(.rate(locale: deDE)) == "1.234,56")
     }
 
-    // MARK: - formatted() convenience
+    // MARK: - Coverage: static factories and conveniences
 
-    @Test("formatted() uses default .rate style")
-    func formattedConvenience() throws {
+    @Test(".rate static var uses autoupdatingCurrent locale")
+    func rateStaticVar() throws {
         let rate = try #require(ExchangeRate<TST_100, TST_100>(from: 4, to: 5))
-        // 5/4 = 1.25
-        let result = rate.formatted(.rate(locale: enUS))
-        #expect(result == "1.25")
+        let result = rate.formatted(.rate)
+        #expect(!result.isEmpty)
+    }
+
+    @Test("formatted() no-arg convenience uses default .rate style")
+    func formattedNoArg() throws {
+        let rate = try #require(ExchangeRate<TST_100, TST_100>(from: 4, to: 5))
+        let result = rate.formatted()
+        #expect(!result.isEmpty)
+    }
+}
+
+// MARK: - Fraction mode
+
+@Suite("ExchangeRate.FormatStyle – fraction mode")
+struct ExchangeRateFormatStyleFractionTests {
+
+    // MARK: - Same minimalQuantisation (100:100)
+
+    @Test("Identity rate 1:1 as fraction")
+    func sameMinQ_identity() throws {
+        let rate = try #require(ExchangeRate<TST_100, TST_100>(from: 1, to: 1))
+        #expect(rate.formatted(.fraction) == "1/1")
+    }
+
+    @Test("1.25 rate as fraction → 5/4")
+    func sameMinQ_1_25() throws {
+        let rate = try #require(ExchangeRate<TST_100, TST_100>(majorUnitRate: Decimal(string: "1.25")!))
+        #expect(rate.formatted(.fraction) == "5/4")
+    }
+
+    @Test("0.5 rate as fraction → 1/2")
+    func sameMinQ_half() throws {
+        let rate = try #require(ExchangeRate<TST_100, TST_100>(majorUnitRate: Decimal(string: "0.5")!))
+        #expect(rate.formatted(.fraction) == "1/2")
+    }
+
+    @Test("GCD reduction: 150/100 minor units → major 3/2")
+    func sameMinQ_gcdReduction() throws {
+        let rate = try #require(ExchangeRate<TST_100, TST_100>(from: 100, to: 150))
+        #expect(rate.formatted(.fraction) == "3/2")
+    }
+
+    // MARK: - Different minimalQuantisation (100:1)
+
+    @Test("215.16 rate from minQ 100 to minQ 1 as fraction")
+    func differentMinQ_100_to_1() throws {
+        let rate = try #require(ExchangeRate<TST_100, TST_1>(majorUnitRate: Decimal(string: "215.16")!))
+        #expect(rate.formatted(.fraction) == "5379/25")
+    }
+
+    // MARK: - Different minimalQuantisation (1:100)
+
+    @Test("Small rate from minQ 1 to minQ 100 as fraction")
+    func differentMinQ_1_to_100() throws {
+        let rate = try #require(ExchangeRate<TST_1, TST_100>(majorUnitRate: Decimal(string: "0.5")!))
+        #expect(rate.formatted(.fraction) == "1/2")
+    }
+
+    // MARK: - High-precision currency (100:100_000_000)
+
+    @Test("Rate involving bitcoin-like currency as fraction")
+    func highPrecision() throws {
+        let rate = try #require(
+            ExchangeRate<TST_100, TST_100_000_000>(majorUnitRate: Decimal(string: "0.000015")!)
+        )
+        #expect(rate.formatted(.fraction) == "3/200000")
+    }
+
+    // MARK: - Integer rate
+
+    @Test("Integer rate 2:1 as fraction")
+    func integerRate() throws {
+        let rate = try #require(ExchangeRate<TST_100, TST_100>(majorUnitRate: Decimal(string: "2")!))
+        #expect(rate.formatted(.fraction) == "2/1")
     }
 }
