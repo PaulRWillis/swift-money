@@ -9,6 +9,7 @@ extension FractionalRate {
     ///
     /// The strategy auto-detects the input format:
     /// - Strings containing `"/"` are parsed as fractions (`"3/4"` → 3/4).
+    /// - Strings containing `"%"` are parsed as percentages (`"75%"` → 3/4).
     /// - Otherwise the string is parsed as a decimal number (`"0.75"` → 3/4).
     ///
     /// ```swift
@@ -21,8 +22,18 @@ extension FractionalRate {
         public typealias ParseInput  = String
         public typealias ParseOutput = FractionalRate
 
-        /// Creates a parse strategy.
-        public init() {}
+        private var locale: Locale
+
+        /// Creates a parse strategy with the given locale.
+        ///
+        /// The locale is used when parsing decimal and percentage strings.
+        /// Fraction strings (`"3/4"`) are always parsed locale-independently.
+        ///
+        /// - Parameter locale: The locale for number parsing. Defaults to
+        ///   `.autoupdatingCurrent`.
+        public init(locale: Locale = .autoupdatingCurrent) {
+            self.locale = locale
+        }
 
         /// Parses `value` and returns the corresponding `FractionalRate`.
         ///
@@ -35,6 +46,10 @@ extension FractionalRate {
 
             if trimmed.contains("/") {
                 return try _parseFraction(trimmed)
+            }
+
+            if trimmed.contains("%") {
+                return try _parsePercentage(trimmed)
             }
 
             return try _parseDecimal(trimmed)
@@ -68,13 +83,30 @@ extension FractionalRate {
         // MARK: - Decimal parsing
 
         private func _parseDecimal(_ value: String) throws -> FractionalRate {
-            guard let decimal = Decimal(string: value) else {
+            guard let decimal = Decimal(string: value, locale: locale) else {
                 throw ParseError.invalidInput
             }
             guard let rate = FractionalRate(decimal) else {
                 throw ParseError.invalidInput
             }
             return rate
+        }
+
+        // MARK: - Percentage parsing
+
+        private func _parsePercentage(_ value: String) throws -> FractionalRate {
+            let stripped = value
+                .replacingOccurrences(of: "%", with: "")
+                .trimmingCharacters(in: .whitespaces)
+            guard !stripped.isEmpty else { throw ParseError.invalidInput }
+            guard let decimal = Decimal(string: stripped, locale: locale) else {
+                throw ParseError.invalidInput
+            }
+            let rate = decimal / Decimal(100)
+            guard let result = FractionalRate(rate) else {
+                throw ParseError.invalidInput
+            }
+            return result
         }
     }
 }

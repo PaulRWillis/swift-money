@@ -13,6 +13,7 @@ extension FractionalRate {
     /// let rate = FractionalRate(numerator: 3, denominator: 4)!
     /// rate.formatted(.fraction)    // "3/4"
     /// rate.formatted(.decimal)     // "0.75"
+    /// rate.formatted(.percentage)  // "75%"
     /// ```
     ///
     /// The default mode is `.fraction`.
@@ -24,6 +25,8 @@ extension FractionalRate {
             case fraction
             /// Displays the rate as a decimal number, e.g. `"0.75"`.
             case decimal
+            /// Displays the rate as a percentage, e.g. `"75%"`.
+            case percentage
         }
 
         // MARK: - Stored state
@@ -70,6 +73,9 @@ extension FractionalRate.FormatStyle: Foundation.FormatStyle {
         case .decimal:
             let decimal = Decimal(value._numerator) / Decimal(value._denominator)
             return decimal.formatted(.number.locale(locale))
+        case .percentage:
+            let decimal = Decimal(value._numerator) / Decimal(value._denominator)
+            return decimal.formatted(.percent.locale(locale))
         }
     }
 }
@@ -78,8 +84,11 @@ extension FractionalRate.FormatStyle: Foundation.FormatStyle {
 
 extension FractionalRate.FormatStyle: ParseableFormatStyle {
     /// The parse strategy derived from this format style.
+    ///
+    /// The returned strategy uses the same locale as this format style,
+    /// guaranteeing a correct format ↔ parse round-trip.
     public var parseStrategy: FractionalRate.ParseStrategy {
-        FractionalRate.ParseStrategy()
+        FractionalRate.ParseStrategy(locale: locale)
     }
 }
 
@@ -122,5 +131,19 @@ extension FractionalRate.FormatStyle {
     /// rate.formatted(.decimal(locale: Locale(identifier: "de_DE")))  // "0,75"
     /// ```
     public static func decimal(locale: Locale) -> Self { Self(.decimal, locale: locale) }
+
+    /// A style that formats the rate as a percentage, e.g. `"75%"`.
+    ///
+    /// ```swift
+    /// rate.formatted(.percentage)  // "75%"
+    /// ```
+    public static var percentage: Self { Self(.percentage) }
+
+    /// A percentage style with the given locale.
+    ///
+    /// ```swift
+    /// rate.formatted(.percentage(locale: Locale(identifier: "de_DE")))  // "75\u{00A0}%"
+    /// ```
+    public static func percentage(locale: Locale) -> Self { Self(.percentage, locale: locale) }
 }
 #endif
