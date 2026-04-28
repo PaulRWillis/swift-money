@@ -376,4 +376,20 @@ struct FractionalRateParseStrategyTests {
             try FractionalRate.ParseStrategy().parse("99999999999999999999%")
         }
     }
+
+    // MARK: - ParseError errorDescription (LocalizedError)
+
+    @Test("invalidInput errorDescription is non-nil and meaningful")
+    func invalidInputErrorDescription() {
+        let error = FractionalRate.ParseStrategy.ParseError.invalidInput
+        #expect(error.errorDescription != nil)
+        #expect(error.errorDescription == "The input string is not a valid FractionalRate representation.")
+    }
+
+    @Test("invalidFraction errorDescription is non-nil and meaningful")
+    func invalidFractionErrorDescription() {
+        let error = FractionalRate.ParseStrategy.ParseError.invalidFraction
+        #expect(error.errorDescription != nil)
+        #expect(error.errorDescription == "The fraction has an invalid denominator (zero or negative) or numerator (Int64.min).")
+    }
 }
