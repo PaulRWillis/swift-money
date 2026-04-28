@@ -95,9 +95,9 @@ struct ReadmeVerificationTests {
         bag.add(Money<GBP>(minorUnits: 500))
         bag.add(Money<EUR>(minorUnits: 1000))
         bag += Money<GBP>(minorUnits: 200)
-        #expect(bag.amount(in: GBP.self) == Money<GBP>(minorUnits: 700))
+        #expect(bag.balance(of: GBP.self) == Money<GBP>(minorUnits: 700))
         _ = bag.currencyCodes
-        _ = bag.breakdown
+        _ = bag.balances
     }
 
     @Test func formatting() {

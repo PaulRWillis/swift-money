@@ -10,7 +10,7 @@ import Testing
 /// joins the results with `", "` in currency-code sort order. These tests
 /// verify that the `locale` parameter is correctly threaded through for each
 /// entry across all locales, by independently reconstructing the expected string
-/// from `MoneyBag.breakdown` and comparing.
+/// from `MoneyBag.balances` and comparing.
 @Suite("MoneyBag – FormatStyle – Localisation")
 struct MoneyBag_FormatStyle_LocalisationTests {
 
@@ -33,7 +33,7 @@ struct MoneyBag_FormatStyle_LocalisationTests {
     func formattedMatchesManualJoin(locale: Locale) {
         let bag = makeTestBag()
         let style = AnyMoney.FormatStyle(locale: locale)
-        let expected = bag.breakdown.map { $0.formatted(style) }.joined(separator: ", ")
+        let expected = bag.balances.map { $0.formatted(style) }.joined(separator: ", ")
         let result = bag.formatted(locale: locale)
         #expect(result == expected, "Locale \(locale.identifier): got \(result.debugDescription), want \(expected.debugDescription)")
     }

@@ -22,7 +22,7 @@ extension MoneyBag: CustomDebugStringConvertible {
     /// // "MoneyBag([GBP: 150]) — \"£1.50\""
     /// ```
     public var debugDescription: String {
-        let entries = breakdown
+        let entries = balances
             .map { "\($0.currencyCode): \($0.minorUnits)" }
             .joined(separator: ", ")
         return "MoneyBag([\(entries)]) — \"\(formatted())\""

@@ -11,8 +11,8 @@
 /// bag.add(Money<EUR>(minorUnits: 1000))  // €10.00
 /// bag.add(Money<GBP>(minorUnits: 200))   // adds to existing GBP
 ///
-/// bag.amount(in: GBP.self)  // Money<GBP>(minorUnits: 700)
-/// bag.breakdown             // [AnyMoney(EUR, 1000), AnyMoney(GBP, 700)]
+/// bag.balance(of: GBP.self)  // Money<GBP>(minorUnits: 700)
+/// bag.balances               // [AnyMoney(EUR, 1000), AnyMoney(GBP, 700)]
 /// ```
 ///
 /// For functional construction, use the non-mutating ``adding(_:)`` and
@@ -89,27 +89,41 @@ public struct MoneyBag: Sendable {
         _storage[C.code] != nil
     }
 
-    /// Returns the accumulated amount for the given currency, or `nil` if
+    /// Returns the accumulated balance for the given currency, or `nil` if
     /// the currency has not been added.
     ///
     /// ```swift
-    /// bag.amount(in: GBP.self)  // Money<GBP>(minorUnits: 700)
-    /// bag.amount(in: USD.self)  // nil
+    /// bag.balance(of: GBP.self)  // Money<GBP>(minorUnits: 700)
+    /// bag.balance(of: USD.self)  // nil
     /// ```
     ///
     /// - Parameter currency: The currency type to query.
     /// - Returns: A typed `Money<C>` if the currency is present, else `nil`.
-    public func amount<C: Currency>(in currency: C.Type) -> Money<C>? {
+    public func balance<C: Currency>(of currency: C.Type) -> Money<C>? {
         _storage[C.code].flatMap { $0.asMoney(C.self) }
     }
 
-    /// A snapshot of all accumulated amounts, sorted by currency code.
+    /// A snapshot of all accumulated balances, sorted by currency code.
     ///
     /// Entries are `AnyMoney` values carrying `minorUnits`, `currencyCode`,
-    /// and `minorUnitRatio`. Zero entries are retained; the bag must be
+    /// and `minimalQuantisation`. Zero entries are retained; the bag must be
     /// explicitly cleared to remove them.
-    public var breakdown: [AnyMoney] {
+    public var balances: [AnyMoney] {
         _storage.values.sorted()
+    }
+
+    /// Returns the accumulated balances matching the given predicate, sorted
+    /// by currency code.
+    ///
+    /// ```swift
+    /// bag.balances(where: { $0.minorUnits > 0 })  // only positive balances
+    /// ```
+    ///
+    /// - Parameter predicate: A closure that takes an `AnyMoney` value and
+    ///   returns `true` if it should be included.
+    /// - Returns: A sorted array of matching `AnyMoney` entries.
+    public func balances(where predicate: (AnyMoney) -> Bool) -> [AnyMoney] {
+        balances.filter(predicate)
     }
 
     // MARK: - Mutating arithmetic
@@ -123,7 +137,7 @@ public struct MoneyBag: Sendable {
     /// var bag = MoneyBag()
     /// bag.add(Money<GBP>(minorUnits: 500))
     /// bag.add(Money<GBP>(minorUnits: 200))
-    /// bag.amount(in: GBP.self)  // Money<GBP>(minorUnits: 700)
+    /// bag.balance(of: GBP.self)  // Money<GBP>(minorUnits: 700)
     /// ```
     ///
     /// - Parameter money: The value to add.
@@ -151,7 +165,7 @@ public struct MoneyBag: Sendable {
     /// ```swift
     /// var bag = MoneyBag()
     /// bag.subtract(Money<GBP>(minorUnits: 100))
-    /// bag.amount(in: GBP.self)  // Money<GBP>(minorUnits: -100)
+    /// bag.balance(of: GBP.self)  // Money<GBP>(minorUnits: -100)
     /// ```
     ///
     /// - Parameter money: The value to subtract.
@@ -168,6 +182,48 @@ public struct MoneyBag: Sendable {
             minimalQuantisation: C.minimalQuantisation,
             currency: C.self
         )
+    }
+
+    /// Adds all entries from another bag.
+    ///
+    /// For each currency in `other`, the amount is accumulated into the
+    /// corresponding entry in this bag (or a new entry is created).
+    ///
+    /// - Parameter other: The bag whose entries to add.
+    /// - Precondition: No accumulated result may overflow `Int64`.
+    public mutating func add(_ other: MoneyBag) {
+        for entry in other._storage.values {
+            let existing = _storage[entry.currencyCode]?.minorUnits ?? 0
+            let (result, overflow) = existing.addingReportingOverflow(entry.minorUnits)
+            precondition(!overflow, "MoneyBag.add overflow")
+            _storage[entry.currencyCode] = AnyMoney(
+                minorUnits: result,
+                currencyCode: entry.currencyCode,
+                minimalQuantisation: entry.minimalQuantisation,
+                currency: entry.currency
+            )
+        }
+    }
+
+    /// Subtracts all entries of another bag.
+    ///
+    /// For each currency in `other`, the amount is subtracted from the
+    /// corresponding entry in this bag (or a new negative entry is created).
+    ///
+    /// - Parameter other: The bag whose entries to subtract.
+    /// - Precondition: No accumulated result may overflow `Int64`.
+    public mutating func subtract(_ other: MoneyBag) {
+        for entry in other._storage.values {
+            let existing = _storage[entry.currencyCode]?.minorUnits ?? 0
+            let (result, overflow) = existing.subtractingReportingOverflow(entry.minorUnits)
+            precondition(!overflow, "MoneyBag.subtract overflow")
+            _storage[entry.currencyCode] = AnyMoney(
+                minorUnits: result,
+                currencyCode: entry.currencyCode,
+                minimalQuantisation: entry.minimalQuantisation,
+                currency: entry.currency
+            )
+        }
     }
 
     // MARK: - Non-mutating arithmetic
@@ -195,7 +251,7 @@ public struct MoneyBag: Sendable {
     /// let bag = MoneyBag()
     ///     .adding(Money<GBP>(minorUnits: 500))
     ///     .subtracting(Money<GBP>(minorUnits: 200))
-    /// // bag.amount(in: GBP.self) == Money<GBP>(minorUnits: 300)
+    /// // bag.balance(of: GBP.self) == Money<GBP>(minorUnits: 300)
     /// ```
     ///
     /// - Parameter money: The value to subtract.
@@ -204,6 +260,34 @@ public struct MoneyBag: Sendable {
     public func subtracting<C: Currency>(_ money: Money<C>) -> MoneyBag {
         var copy = self
         copy.subtract(money)
+        return copy
+    }
+
+    /// Returns a new `MoneyBag` with all entries from another bag added.
+    ///
+    /// ```swift
+    /// let combined = revenue.adding(otherRevenue)
+    /// ```
+    ///
+    /// - Parameter other: The bag whose entries to add.
+    /// - Returns: A new `MoneyBag` with all entries from `other` accumulated.
+    public func adding(_ other: MoneyBag) -> MoneyBag {
+        var copy = self
+        copy.add(other)
+        return copy
+    }
+
+    /// Returns a new `MoneyBag` with all entries of another bag subtracted.
+    ///
+    /// ```swift
+    /// let net = revenue.subtracting(expenses)
+    /// ```
+    ///
+    /// - Parameter other: The bag whose entries to subtract.
+    /// - Returns: A new `MoneyBag` with all entries from `other` subtracted.
+    public func subtracting(_ other: MoneyBag) -> MoneyBag {
+        var copy = self
+        copy.subtract(other)
         return copy
     }
 }
@@ -227,5 +311,25 @@ public func += <C: Currency>(lhs: inout MoneyBag, rhs: Money<C>) {
 /// bag -= Money<GBP>(minorUnits: 200)
 /// ```
 public func -= <C: Currency>(lhs: inout MoneyBag, rhs: Money<C>) {
+    lhs.subtract(rhs)
+}
+
+/// Adds all entries from another bag in place.
+///
+/// ```swift
+/// var revenue = MoneyBag()
+/// revenue += expenses  // add all expense entries to revenue
+/// ```
+public func += (lhs: inout MoneyBag, rhs: MoneyBag) {
+    lhs.add(rhs)
+}
+
+/// Subtracts all entries of another bag in place.
+///
+/// ```swift
+/// var revenue = MoneyBag()
+/// revenue -= expenses  // subtract all expense entries from revenue
+/// ```
+public func -= (lhs: inout MoneyBag, rhs: MoneyBag) {
     lhs.subtract(rhs)
 }

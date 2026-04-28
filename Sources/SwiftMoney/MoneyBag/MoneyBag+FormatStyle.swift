@@ -4,7 +4,7 @@ import Foundation
 extension MoneyBag {
     /// Formats all accumulated amounts as a single localised string.
     ///
-    /// Each entry in `breakdown` (sorted by currency code) is formatted
+    /// Each entry in `balances` (sorted by currency code) is formatted
     /// using its currency's symbol and minor-unit scale, then the results
     /// are joined with `", "`.
     ///
@@ -23,7 +23,7 @@ extension MoneyBag {
     ///   Defaults to `.autoupdatingCurrent`.
     public func formatted(locale: Locale = .autoupdatingCurrent) -> String {
         let style = AnyMoney.FormatStyle(locale: locale)
-        return breakdown.map { $0.formatted(style) }.joined(separator: ", ")
+        return balances.map { $0.formatted(style) }.joined(separator: ", ")
     }
 }
 #endif

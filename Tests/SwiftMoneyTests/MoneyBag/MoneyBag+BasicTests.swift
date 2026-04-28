@@ -18,16 +18,16 @@ struct MoneyBag_BasicTests {
         #expect(bag.currencyCodes.isEmpty)
     }
 
-    @Test("breakdown is empty on a new bag")
+    @Test("balances is empty on a new bag")
     func breakdownEmptyOnNew() {
         let bag = MoneyBag()
-        #expect(bag.breakdown.isEmpty)
+        #expect(bag.balances.isEmpty)
     }
 
-    @Test("amount(in:) returns nil for absent currency on empty bag")
+    @Test("balance(of:) returns nil for absent currency on empty bag")
     func amountNilOnEmpty() {
         let bag = MoneyBag()
-        #expect(bag.amount(in: TST_100.self) == nil)
+        #expect(bag.balance(of: TST_100.self) == nil)
     }
 
     @Test("contains returns false for absent currency on empty bag")
@@ -62,17 +62,17 @@ struct MoneyBag_BasicTests {
         #expect(!bag.contains(TST_1.self))
     }
 
-    @Test("amount(in:) returns correct value after single add")
+    @Test("balance(of:) returns correct value after single add")
     func amountCorrectAfterSingleAdd() throws {
         let bag = MoneyBag().adding(Money<TST_100>(minorUnits: 500))
-        let amount = try #require(bag.amount(in: TST_100.self))
+        let amount = try #require(bag.balance(of: TST_100.self))
         #expect(amount == Money<TST_100>(minorUnits: 500))
     }
 
-    @Test("amount(in:) returns nil for absent currency after add")
+    @Test("balance(of:) returns nil for absent currency after add")
     func amountNilForAbsentAfterAdd() {
         let bag = MoneyBag().adding(Money<TST_100>(minorUnits: 500))
-        #expect(bag.amount(in: TST_1.self) == nil)
+        #expect(bag.balance(of: TST_1.self) == nil)
     }
 
     // MARK: - Multi-currency
@@ -85,25 +85,64 @@ struct MoneyBag_BasicTests {
         #expect(bag.currencyCodes == [TST_100.code, TST_1.code])
     }
 
-    @Test("breakdown is sorted by currencyCode")
+    @Test("balances is sorted by currencyCode")
     func breakdownSorted() {
         // Adding TST_1 first, then TST_100 — breakdown must sort by code regardless
         // "TST_1" < "TST_100" lexicographically
         let bag = MoneyBag()
             .adding(Money<TST_1>(minorUnits: 200))
             .adding(Money<TST_100>(minorUnits: 100))
-        let codes = bag.breakdown.map { String($0.currencyCode) }
+        let codes = bag.balances.map { String($0.currencyCode) }
         #expect(codes == ["TST_1", "TST_100"])
     }
 
-    @Test("breakdown contains correct minorUnits for each currency")
+    @Test("balances contains correct minorUnits for each currency")
     func breakdownMinorUnits() throws {
         let bag = MoneyBag()
             .adding(Money<TST_100>(minorUnits: 500))
             .adding(Money<TST_1>(minorUnits: 999))
-        let tst1Entry = try #require(bag.breakdown.first { $0.currencyCode == TST_1.code })
-        let tst100Entry = try #require(bag.breakdown.first { $0.currencyCode == TST_100.code })
+        let tst1Entry = try #require(bag.balances.first { $0.currencyCode == TST_1.code })
+        let tst100Entry = try #require(bag.balances.first { $0.currencyCode == TST_100.code })
         #expect(tst1Entry.minorUnits == 999)
         #expect(tst100Entry.minorUnits == 500)
+    }
+
+    // MARK: - balances(where:)
+
+    @Test("balances(where:) filters positive balances")
+    func balancesWherePositive() {
+        let bag = MoneyBag()
+            .adding(Money<TST_100>(minorUnits: 500))
+            .adding(Money<TST_1>(minorUnits: -100))
+        let positive = bag.balances(where: { $0.minorUnits > 0 })
+        #expect(positive.count == 1)
+        #expect(positive.first?.currencyCode == TST_100.code)
+    }
+
+    @Test("balances(where:) filters by currency code")
+    func balancesWhereCurrencyCode() {
+        let bag = MoneyBag()
+            .adding(Money<TST_100>(minorUnits: 500))
+            .adding(Money<TST_1>(minorUnits: 200))
+        let filtered = bag.balances(where: { $0.currencyCode == TST_1.code })
+        #expect(filtered.count == 1)
+        #expect(filtered.first?.minorUnits == 200)
+    }
+
+    @Test("balances(where:) returns empty when no matches")
+    func balancesWhereNoMatches() {
+        let bag = MoneyBag()
+            .adding(Money<TST_100>(minorUnits: 500))
+        let filtered = bag.balances(where: { $0.minorUnits > 1000 })
+        #expect(filtered.isEmpty)
+    }
+
+    @Test("balances(where:) with all-matching predicate equals balances")
+    func balancesWhereAllMatch() {
+        let bag = MoneyBag()
+            .adding(Money<TST_100>(minorUnits: 500))
+            .adding(Money<TST_1>(minorUnits: 200))
+        let all = bag.balances(where: { _ in true })
+        #expect(all == bag.balances)
     }
 }
