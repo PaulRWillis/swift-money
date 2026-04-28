@@ -45,14 +45,15 @@ generation), so the difference is negligible in practice.
 
 ### SwiftMoney-only operations
 
-These operations have no `Decimal` equivalent — they are unique to SwiftMoney's domain model:
+These operations have no `Decimal` equivalent — they are unique to SwiftMoney's domain model.
+Exact timings are in the summary table above.
 
 - **Distribution** (`distributed(into:)`) — splits a monetary amount into N shares with a
-  remainder guarantee. Zero allocations, ~2 ns.
+  remainder guarantee. Zero allocations.
 - **Exchange rate conversion** (`ExchangeRate.convert(_:)`) — converts between currency types
-  using exact rational arithmetic. Zero allocations, ~29 ns.
+  using exact rational arithmetic. Zero allocations.
 - **MoneyBag accumulation** — inserts multiple currency entries into a multi-currency bag.
-  1 allocation for dictionary growth, ~923 ns for 10 entries.
+  Single allocation for dictionary growth.
 - **NaN check** (`isNaN`) — single `Int64` comparison. Sub-nanosecond, zero allocations.
 
 ## Detailed results
