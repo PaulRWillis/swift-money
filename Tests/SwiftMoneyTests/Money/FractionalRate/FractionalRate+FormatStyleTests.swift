@@ -64,49 +64,49 @@ struct FractionalRateFormatStyleTests {
     @Test("Formats 1/2 as decimal")
     func formatHalfAsDecimal() throws {
         let rate = try #require(FractionalRate(numerator: 1, denominator: 2))
-        #expect(rate.formatted(.decimal(locale: enUS)) == "0.5")
+        #expect(rate.formatted(.decimal.locale(enUS)) == "0.5")
     }
 
     @Test("Formats 3/4 as decimal")
     func formatThreeQuartersDecimal() throws {
         let rate = try #require(FractionalRate(numerator: 3, denominator: 4))
-        #expect(rate.formatted(.decimal(locale: enUS)) == "0.75")
+        #expect(rate.formatted(.decimal.locale(enUS)) == "0.75")
     }
 
     @Test("Formats 1/1 as decimal")
     func formatUnitDecimal() throws {
         let rate = try #require(FractionalRate(numerator: 1, denominator: 1))
-        #expect(rate.formatted(.decimal(locale: enUS)) == "1")
+        #expect(rate.formatted(.decimal.locale(enUS)) == "1")
     }
 
     @Test("Formats 0/1 as decimal")
     func formatZeroDecimal() throws {
         let rate = try #require(FractionalRate(numerator: 0, denominator: 1))
-        #expect(rate.formatted(.decimal(locale: enUS)) == "0")
+        #expect(rate.formatted(.decimal.locale(enUS)) == "0")
     }
 
     @Test("Formats negative rate as decimal")
     func formatNegativeDecimal() throws {
         let rate = try #require(FractionalRate(numerator: -1, denominator: 4))
-        #expect(rate.formatted(.decimal(locale: enUS)) == "-0.25")
+        #expect(rate.formatted(.decimal.locale(enUS)) == "-0.25")
     }
 
     @Test("Formats 11/100 as decimal")
     func formatElevenHundredthsDecimal() throws {
         let rate = try #require(FractionalRate(numerator: 11, denominator: 100))
-        #expect(rate.formatted(.decimal(locale: enUS)) == "0.11")
+        #expect(rate.formatted(.decimal.locale(enUS)) == "0.11")
     }
 
     @Test("Decimal mode respects locale (de_DE uses comma)")
     func decimalLocaleDE() throws {
         let rate = try #require(FractionalRate(numerator: 3, denominator: 4))
-        #expect(rate.formatted(.decimal(locale: deDE)) == "0,75")
+        #expect(rate.formatted(.decimal.locale(deDE)) == "0,75")
     }
 
     @Test("Decimal mode with integer rate")
     func decimalIntegerRate() throws {
         let rate = try #require(FractionalRate(numerator: 5, denominator: 1))
-        #expect(rate.formatted(.decimal(locale: enUS)) == "5")
+        #expect(rate.formatted(.decimal.locale(enUS)) == "5")
     }
 
     // MARK: - Percentage formatting
@@ -114,43 +114,43 @@ struct FractionalRateFormatStyleTests {
     @Test("Formats 3/4 as percentage")
     func formatThreeQuartersPercentage() throws {
         let rate = try #require(FractionalRate(numerator: 3, denominator: 4))
-        #expect(rate.formatted(.percentage(locale: enUS)) == "75%")
+        #expect(rate.formatted(.percentage.locale(enUS)) == "75%")
     }
 
     @Test("Formats 1/100 as percentage")
     func formatOnePercent() throws {
         let rate = try #require(FractionalRate(numerator: 1, denominator: 100))
-        #expect(rate.formatted(.percentage(locale: enUS)) == "1%")
+        #expect(rate.formatted(.percentage.locale(enUS)) == "1%")
     }
 
     @Test("Formats 1/2 as percentage")
     func formatHalfPercentage() throws {
         let rate = try #require(FractionalRate(numerator: 1, denominator: 2))
-        #expect(rate.formatted(.percentage(locale: enUS)) == "50%")
+        #expect(rate.formatted(.percentage.locale(enUS)) == "50%")
     }
 
     @Test("Formats 0/1 as percentage")
     func formatZeroPercentage() throws {
         let rate = try #require(FractionalRate(numerator: 0, denominator: 1))
-        #expect(rate.formatted(.percentage(locale: enUS)) == "0%")
+        #expect(rate.formatted(.percentage.locale(enUS)) == "0%")
     }
 
     @Test("Formats negative rate as percentage")
     func formatNegativePercentage() throws {
         let rate = try #require(FractionalRate(numerator: -1, denominator: 4))
-        #expect(rate.formatted(.percentage(locale: enUS)) == "-25%")
+        #expect(rate.formatted(.percentage.locale(enUS)) == "-25%")
     }
 
     @Test("Formats 1/1 as percentage")
     func formatUnitPercentage() throws {
         let rate = try #require(FractionalRate(numerator: 1, denominator: 1))
-        #expect(rate.formatted(.percentage(locale: enUS)) == "100%")
+        #expect(rate.formatted(.percentage.locale(enUS)) == "100%")
     }
 
     @Test("Percentage mode respects locale (de_DE)")
     func percentageLocaleDE() throws {
         let rate = try #require(FractionalRate(numerator: 3, denominator: 4))
-        #expect(rate.formatted(.percentage(locale: deDE)) == "75\u{00A0}%")
+        #expect(rate.formatted(.percentage.locale(deDE)) == "75\u{00A0}%")
     }
 
     // MARK: - Static factories without locale

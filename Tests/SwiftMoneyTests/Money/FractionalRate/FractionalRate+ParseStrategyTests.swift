@@ -132,7 +132,7 @@ struct FractionalRateParseStrategyTests {
     @Test("Round-trip: format as decimal then parse back (0.75)")
     func decimalRoundTripThreeQuarters() throws {
         let original = try #require(FractionalRate(numerator: 3, denominator: 4))
-        let formatted = original.formatted(.decimal(locale: Locale(identifier: "en_US")))
+        let formatted = original.formatted(.decimal.locale(Locale(identifier: "en_US")))
         let parsed = try FractionalRate.ParseStrategy().parse(formatted)
         #expect(parsed == original)
     }
@@ -140,7 +140,7 @@ struct FractionalRateParseStrategyTests {
     @Test("Round-trip: format as decimal then parse back (0.5)")
     func decimalRoundTripHalf() throws {
         let original = try #require(FractionalRate(numerator: 1, denominator: 2))
-        let formatted = original.formatted(.decimal(locale: Locale(identifier: "en_US")))
+        let formatted = original.formatted(.decimal.locale(Locale(identifier: "en_US")))
         let parsed = try FractionalRate.ParseStrategy().parse(formatted)
         #expect(parsed == original)
     }
@@ -148,7 +148,7 @@ struct FractionalRateParseStrategyTests {
     @Test("Round-trip: format as decimal then parse back (0.11)")
     func decimalRoundTripElevenHundredths() throws {
         let original = try #require(FractionalRate(numerator: 11, denominator: 100))
-        let formatted = original.formatted(.decimal(locale: Locale(identifier: "en_US")))
+        let formatted = original.formatted(.decimal.locale(Locale(identifier: "en_US")))
         let parsed = try FractionalRate.ParseStrategy().parse(formatted)
         #expect(parsed == original)
     }
@@ -188,7 +188,7 @@ struct FractionalRateParseStrategyTests {
     @Test("Round-trip: format as percentage then parse back (75%)")
     func percentageRoundTripThreeQuarters() throws {
         let original = try #require(FractionalRate(numerator: 3, denominator: 4))
-        let formatted = original.formatted(.percentage(locale: Locale(identifier: "en_US")))
+        let formatted = original.formatted(.percentage.locale(Locale(identifier: "en_US")))
         let parsed = try FractionalRate.ParseStrategy().parse(formatted)
         #expect(parsed == original)
     }
@@ -196,7 +196,7 @@ struct FractionalRateParseStrategyTests {
     @Test("Round-trip: format as percentage then parse back (50%)")
     func percentageRoundTripHalf() throws {
         let original = try #require(FractionalRate(numerator: 1, denominator: 2))
-        let formatted = original.formatted(.percentage(locale: Locale(identifier: "en_US")))
+        let formatted = original.formatted(.percentage.locale(Locale(identifier: "en_US")))
         let parsed = try FractionalRate.ParseStrategy().parse(formatted)
         #expect(parsed == original)
     }
@@ -204,7 +204,7 @@ struct FractionalRateParseStrategyTests {
     @Test("Round-trip: format as percentage then parse back (1%)")
     func percentageRoundTripOnePercent() throws {
         let original = try #require(FractionalRate(numerator: 1, denominator: 100))
-        let formatted = original.formatted(.percentage(locale: Locale(identifier: "en_US")))
+        let formatted = original.formatted(.percentage.locale(Locale(identifier: "en_US")))
         let parsed = try FractionalRate.ParseStrategy().parse(formatted)
         #expect(parsed == original)
     }

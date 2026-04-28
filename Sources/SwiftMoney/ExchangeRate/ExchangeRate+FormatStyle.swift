@@ -114,9 +114,6 @@ extension ExchangeRate.FormatStyle {
     /// Format the major-unit rate as a decimal using the current locale.
     public static var rate: Self { .init(.rate) }
 
-    /// Format the major-unit rate as a decimal using the given locale.
-    public static func rate(locale: Locale) -> Self { .init(.rate, locale: locale) }
-
     /// Format the major-unit rate as a reduced fraction, e.g. `"5/4"`.
     public static var fraction: Self { .init(.fraction) }
 

@@ -125,25 +125,11 @@ extension FractionalRate.FormatStyle {
     /// ```
     public static var decimal: Self { Self(.decimal) }
 
-    /// A decimal style with the given locale.
-    ///
-    /// ```swift
-    /// rate.formatted(.decimal(locale: Locale(identifier: "de_DE")))  // "0,75"
-    /// ```
-    public static func decimal(locale: Locale) -> Self { Self(.decimal, locale: locale) }
-
     /// A style that formats the rate as a percentage, e.g. `"75%"`.
     ///
     /// ```swift
     /// rate.formatted(.percentage)  // "75%"
     /// ```
     public static var percentage: Self { Self(.percentage) }
-
-    /// A percentage style with the given locale.
-    ///
-    /// ```swift
-    /// rate.formatted(.percentage(locale: Locale(identifier: "de_DE")))  // "75\u{00A0}%"
-    /// ```
-    public static func percentage(locale: Locale) -> Self { Self(.percentage, locale: locale) }
 }
 #endif
