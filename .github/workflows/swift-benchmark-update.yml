@@ -1,4 +1,4 @@
-name: Update README benchmarks
+name: Update benchmark results
 
 on:
   workflow_dispatch:
@@ -41,7 +41,7 @@ jobs:
       run: |
         swift package --package-path Benchmarks --disable-sandbox benchmark run --format markdown --path stdout --no-progress > benchmark_results.md 2>/dev/null || true
 
-    - name: Update README
+    - name: Update BENCHMARKS.md
       run: |
         if [ ! -s benchmark_results.md ]; then
           echo "No benchmark results generated, skipping."
@@ -49,40 +49,141 @@ jobs:
         fi
 
         python3 - <<'PYEOF'
-        import sys
+        import re, sys
 
-        with open("README.md") as f:
-            readme = f.read()
+        # --- Inject raw detailed results into BENCHMARKS.md ---
+
+        with open("BENCHMARKS.md") as f:
+            doc = f.read()
 
         start_marker = "<!-- BENCHMARK-START -->"
         end_marker = "<!-- BENCHMARK-END -->"
 
-        start_idx = readme.find(start_marker)
-        end_idx = readme.find(end_marker)
+        start_idx = doc.find(start_marker)
+        end_idx = doc.find(end_marker)
 
         if start_idx == -1 or end_idx == -1:
-            print("Benchmark markers not found in README.md, skipping.", file=sys.stderr)
+            print("Benchmark markers not found in BENCHMARKS.md, skipping.", file=sys.stderr)
             sys.exit(0)
 
         with open("benchmark_results.md") as f:
-            table = f.read()
+            raw_tables = f.read()
 
-        new_readme = (
-            readme[:start_idx + len(start_marker)]
+        doc = (
+            doc[:start_idx + len(start_marker)]
             + "\n"
-            + table
+            + raw_tables
             + "\n"
-            + readme[end_idx:]
+            + doc[end_idx:]
         )
 
-        with open("README.md", "w") as f:
-            f.write(new_readme)
+        # --- Parse raw tables and generate summary comparison ---
+
+        # Extract benchmark sections: ### Name\n| table |
+        pattern = r"### (.+?)\n\n(\|.+?\|)\n(\|.+?\|)\n(\|.+?\|)\n(\|.+?\|)"
+        benchmarks = {}
+        for m in re.finditer(pattern, raw_tables, re.DOTALL):
+            name = m.group(1).strip()
+            rows = [m.group(i) for i in range(2, 6)]
+            # Find p50 (column index 3, 0-based from split)
+            time_ns = None
+            mallocs = None
+            for row in rows:
+                cols = [c.strip() for c in row.split("|") if c.strip()]
+                if not cols:
+                    continue
+                metric = cols[0].replace(" *", "").strip()
+                if len(cols) >= 4:
+                    try:
+                        p50 = int(cols[3].replace(",", "").strip())
+                    except ValueError:
+                        continue
+                    if "Time" in metric or "wall clock" in metric:
+                        time_ns = p50
+                    elif "Malloc" in metric or "malloc" in metric:
+                        mallocs = p50
+            if time_ns is not None:
+                benchmarks[name] = {"time_ns": time_ns, "mallocs": mallocs or 0}
+
+        # Pair SwiftMoney vs Decimal benchmarks
+        pairs = {
+            "Addition":       ("Money addition",            "Foundation Decimal addition"),
+            "Subtraction":    ("Money subtraction",         "Foundation Decimal subtraction"),
+            "Multiplication": ("Money multiplication (Int64)", "Foundation Decimal multiplication"),
+            "Comparison":     ("Money comparison",          "Foundation Decimal comparison"),
+            "JSON encode":    ("Money JSON encode (.minorUnits)", "Foundation Decimal JSON encode"),
+            "JSON decode":    ("Money JSON decode (.minorUnits)", "Foundation Decimal JSON decode"),
+            "Formatting":     ("Money formatted()",         "Foundation Decimal formatted(.currency)"),
+        }
+
+        standalone = {
+            "Distribution":        "Money distributed(into: 3)",
+            "Exchange rate":       "ExchangeRate convert",
+            "MoneyBag (10 adds)":  "MoneyBag add 10 entries",
+            "NaN check":           "Money isNaN check",
+        }
+
+        lines = []
+        lines.append("### SwiftMoney vs Foundation.Decimal")
+        lines.append("")
+        lines.append("| Operation | SwiftMoney | Decimal | Speedup | SwiftMoney allocs | Decimal allocs |")
+        lines.append("|:----------|----------:|--------:|--------:|------------------:|---------------:|")
+
+        for label, (sm_key, dec_key) in pairs.items():
+            sm = benchmarks.get(sm_key)
+            dec = benchmarks.get(dec_key)
+            if sm and dec:
+                sm_t = f"{sm['time_ns']} ns" if sm['time_ns'] > 0 else "<1 ns"
+                dec_t = f"{dec['time_ns']} ns" if dec['time_ns'] > 0 else "<1 ns"
+                if sm['time_ns'] > 0 and dec['time_ns'] > 0:
+                    ratio = dec['time_ns'] / sm['time_ns']
+                    if ratio >= 1:
+                        speedup = f"**{ratio:.0f}×**"
+                    else:
+                        speedup = f"{ratio:.1f}×"
+                elif sm['time_ns'] == 0 and dec['time_ns'] > 0:
+                    speedup = "**∞**"
+                else:
+                    speedup = "—"
+                lines.append(f"| {label} | {sm_t} | {dec_t} | {speedup} | {sm['mallocs']} | {dec['mallocs']} |")
+
+        lines.append("")
+        lines.append("### SwiftMoney-only operations")
+        lines.append("")
+        lines.append("| Operation | Time (p50) | Allocations |")
+        lines.append("|:----------|----------:|-----------:|")
+
+        for label, key in standalone.items():
+            b = benchmarks.get(key)
+            if b:
+                t = f"{b['time_ns']} ns" if b['time_ns'] > 0 else "<1 ns"
+                lines.append(f"| {label} | {t} | {b['mallocs']} |")
+
+        summary = "\n".join(lines)
+
+        # Inject summary
+        sum_start = "<!-- BENCHMARK-SUMMARY-START -->"
+        sum_end = "<!-- BENCHMARK-SUMMARY-END -->"
+        s_idx = doc.find(sum_start)
+        e_idx = doc.find(sum_end)
+
+        if s_idx != -1 and e_idx != -1:
+            doc = (
+                doc[:s_idx + len(sum_start)]
+                + "\n"
+                + summary
+                + "\n"
+                + doc[e_idx:]
+            )
+
+        with open("BENCHMARKS.md", "w") as f:
+            f.write(doc)
         PYEOF
 
     - name: Check for changes
       id: changes
       run: |
-        if git diff --quiet README.md; then
+        if git diff --quiet BENCHMARKS.md; then
           echo "changed=false" >> $GITHUB_OUTPUT
         else
           echo "changed=true" >> $GITHUB_OUTPUT
@@ -93,6 +194,6 @@ jobs:
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-        git add README.md
-        git commit -m "docs(benchmarks): update benchmark results in README [skip ci]"
+        git add BENCHMARKS.md
+        git commit -m "docs(benchmarks): update benchmark results [skip ci]"
         git push
