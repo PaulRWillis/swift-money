@@ -1,7 +1,7 @@
 /// The result of converting a `Money<From>` amount to `Money<To>` via an
 /// ``ExchangeRate``.
 ///
-/// `ExchangeRateConversionResult` bundles the converted amount with the
+/// `Conversion` bundles the converted amount with the
 /// **actual rate that was applied** after rounding. Because money is stored as
 /// a discrete integer number of minor units, fractional multiplication almost
 /// always requires rounding, so the rate actually implied by the result
@@ -33,7 +33,7 @@
 /// r.converted    // Money<GBP>(minorUnits: 86)         — €1.01 → £0.86
 /// r.actualRate   // ExchangeRate<EUR, GBP>(from: 101, to: 86)
 /// ```
-public struct ExchangeRateConversionResult<From: Currency, To: Currency>: Sendable {
+public struct Conversion<From: Currency, To: Currency>: Sendable {
 
     // MARK: - Stored properties
 
@@ -57,10 +57,10 @@ public struct ExchangeRateConversionResult<From: Currency, To: Currency>: Sendab
 
 // MARK: - Equatable
 
-extension ExchangeRateConversionResult: Equatable {
+extension Conversion: Equatable {
     public static func == (
-        lhs: ExchangeRateConversionResult,
-        rhs: ExchangeRateConversionResult
+        lhs: Conversion,
+        rhs: Conversion
     ) -> Bool {
         lhs.converted == rhs.converted && lhs.actualRate == rhs.actualRate
     }
@@ -68,7 +68,7 @@ extension ExchangeRateConversionResult: Equatable {
 
 // MARK: - Hashable
 
-extension ExchangeRateConversionResult: Hashable {
+extension Conversion: Hashable {
     public func hash(into hasher: inout Hasher) {
         hasher.combine(converted)
         hasher.combine(actualRate)

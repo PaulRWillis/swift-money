@@ -2,7 +2,7 @@ import Testing
 import SwiftMoney
 
 @Suite("ExchangeRate - conversionResult(of:)")
-struct ExchangeRateConversionResultTests {
+struct ConversionTests {
 
     // EUR→GBP: 100 EUR cents = 85 GBP pence (GCD-reduces to 20:17)
     private let eurGbp = ExchangeRate<EUR, GBP>(from: 100, to: 85)!
@@ -125,7 +125,7 @@ struct ExchangeRateConversionResultTests {
 
     // MARK: - Equatable / Hashable
 
-    @Test("ExchangeRateConversionResult equality")
+    @Test("Conversion equality")
     func equality() {
         let r1 = eurGbp.conversionResult(of: Money<EUR>(minorUnits: 101))
         let r2 = eurGbp.conversionResult(of: Money<EUR>(minorUnits: 101))

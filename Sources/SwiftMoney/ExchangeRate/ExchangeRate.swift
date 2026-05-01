@@ -131,7 +131,7 @@ public struct ExchangeRate<From: Currency, To: Currency>: Sendable {
     ///
     /// Because money is stored as a discrete integer number of minor units,
     /// fractional multiplication may require rounding. The returned
-    /// ``ExchangeRateConversionResult`` carries the rounded `converted` amount
+    /// ``Conversion`` carries the rounded `converted` amount
     /// and the `actualRate` implied by that rounding, so callers can reconcile
     /// or audit the difference between the nominal and applied rate.
     ///
@@ -142,7 +142,7 @@ public struct ExchangeRate<From: Currency, To: Currency>: Sendable {
     /// r.actualRate   // ExchangeRate<EUR, GBP>(from: 101, to: 86)
     /// ```
     ///
-    /// ``ExchangeRateConversionResult/actualRate`` is `nil` only when a
+    /// ``Conversion/actualRate`` is `nil` only when a
     /// non-zero input rounds down to zero (the amount is smaller than half a
     /// minor unit of `To` at this rate).
     ///
@@ -150,13 +150,13 @@ public struct ExchangeRate<From: Currency, To: Currency>: Sendable {
     ///   - money: The amount to convert. Must not be NaN.
     ///   - rounding: The rounding rule for fractional minor units.
     ///     Defaults to `.toNearestOrAwayFromZero`.
-    /// - Returns: An ``ExchangeRateConversionResult`` with the converted amount
+    /// - Returns: An ``Conversion`` with the converted amount
     ///   and actual rate.
     /// - Precondition: `money` must not be NaN.
     public func conversionResult(
         of money: Money<From>,
         rounding: FloatingPointRoundingRule = .toNearestOrAwayFromZero
-    ) -> ExchangeRateConversionResult<From, To> {
+    ) -> Conversion<From, To> {
         let r = money.multiplied(by: rate, rounding: rounding)
         let converted = Money<To>(_unchecked: r.result.minorUnits)
         // Wrap the Rate actualRate as a typed ExchangeRate.
@@ -165,7 +165,7 @@ public struct ExchangeRate<From: Currency, To: Currency>: Sendable {
         let actualRate: ExchangeRate<From, To>? = r.actualRate.numeratorValue > 0
             ? ExchangeRate(_uncheckedRate: r.actualRate)
             : nil
-        return ExchangeRateConversionResult(converted: converted, actualRate: actualRate)
+        return Conversion(converted: converted, actualRate: actualRate)
     }
 
     /// Converts a `Money<From>` amount to `Money<To>` using this exchange rate.
