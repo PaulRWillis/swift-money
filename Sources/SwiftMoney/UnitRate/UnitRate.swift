@@ -1,7 +1,7 @@
 /// A rate expressing the price of a `Currency` per unit of `U`.
 ///
 /// `UnitRate` pairs a ``Rate`` (an exact GCD-reduced rational number) with
-/// a unit identifier, representing a price such as "£0.000023 per kWh".
+/// a unit identifier, representing a price such as "$72.50 per barrel".
 ///
 /// The generic parameter `U` is not constrained to Foundation's `Dimension` —
 /// any `Hashable & Sendable` type may be used as the unit. Foundation
@@ -11,8 +11,7 @@
 /// ### Example
 ///
 /// ```swift
-/// let rate = Rate(numerator: 23, denominator: 1_000_000)!
-/// let energyRate = UnitRate<GBP, UnitEnergy>(rate, per: .kilowattHours)
+/// let oilPrice = UnitRate<USD, String>(Rate("14500/200")!, per: "barrel")
 /// ```
 ///
 /// - Note: Negative rates are permitted (e.g. feed-in tariff credits).
@@ -23,8 +22,7 @@ public struct UnitRate<C: Currency, U: Hashable & Sendable>: Sendable {
 
     /// The rate expressed as a major-unit price per unit of `U`.
     ///
-    /// For example, `Rate(numerator: 23, denominator: 1_000_000)` represents
-    /// £0.000023 per unit.
+    /// For example, `Rate("14500/200")` represents $72.50 per unit.
     public let rate: Rate
 
     /// The unit this rate is expressed per.
