@@ -323,4 +323,32 @@ struct RateTests {
             try JSONDecoder().decode(Rate.self, from: data)
         }
     }
+
+    @Test("Decoding numerator == Int64.min throws DecodingError")
+    func decodingMinNumeratorThrows() throws {
+        let json = #"{"numerator":-9223372036854775808,"denominator":1}"#
+        let data = try #require(json.data(using: .utf8))
+        #expect(throws: (any Error).self) {
+            try JSONDecoder().decode(Rate.self, from: data)
+        }
+    }
+
+    @Test("Decoding non-reduced fraction GCD-reduces on decode")
+    func decodingNonReducedFraction() throws {
+        let json = #"{"numerator":22,"denominator":200}"#
+        let data = try #require(json.data(using: .utf8))
+        let r = try JSONDecoder().decode(Rate.self, from: data)
+        #expect(r == Rate(numerator: 11, denominator: 100)!)
+        #expect(r.numeratorValue == 11)
+        #expect(r.denominatorValue == 100)
+    }
+
+    @Test("Negative rate round-trips through JSON")
+    func negativeRateRoundTrips() throws {
+        let original = try #require(Rate(numerator: -1, denominator: 10))
+        let data = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(Rate.self, from: data)
+        #expect(decoded == original)
+        #expect(decoded.numeratorValue == -1)
+    }
 }

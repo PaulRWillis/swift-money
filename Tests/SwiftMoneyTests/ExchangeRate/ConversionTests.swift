@@ -133,4 +133,20 @@ struct ConversionTests {
         #expect(r1 == r2)
         #expect(r1 != r3)
     }
+
+    @Test("Equal Conversions deduplicate in a Set")
+    func hashableDeduplication() {
+        let r1 = eurGbp.conversionResult(of: Money<EUR>(minorUnits: 101))
+        let r2 = eurGbp.conversionResult(of: Money<EUR>(minorUnits: 101))
+        let set: Set<Conversion<EUR, GBP>> = [r1, r2]
+        #expect(set.count == 1)
+    }
+
+    @Test("Distinct Conversions coexist in a Set")
+    func hashableDistinct() {
+        let r1 = eurGbp.conversionResult(of: Money<EUR>(minorUnits: 101))
+        let r2 = eurGbp.conversionResult(of: Money<EUR>(minorUnits: 100))
+        let set: Set<Conversion<EUR, GBP>> = [r1, r2]
+        #expect(set.count == 2)
+    }
 }
