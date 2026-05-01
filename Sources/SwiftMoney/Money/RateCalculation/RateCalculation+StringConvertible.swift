@@ -7,6 +7,6 @@ extension RateCalculation: CustomStringConvertible {
     /// // "1 (at rate: 1/101)"
     /// ```
     public var description: String {
-        "\(result) (at rate: \(actualRate))"
+        "\(result) (at rate: \(effectiveRate))"
     }
 }

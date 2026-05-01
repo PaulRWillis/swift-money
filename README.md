@@ -20,7 +20,7 @@ let vatRate = Rate(numerator: 1, denominator: 5)!  // 20%
 let vat = price.multiplied(by: vatRate, rounding: .toNearestOrAwayFromZero)
 
 vat.result      // Money<GBP>(minorUnits: 250) — £2.50
-vat.actualRate  // Rate(1/5) — exact, no precision lost
+vat.effectiveRate  // Rate(1/5) — exact, no precision lost
 ```
 
 ## Features
@@ -146,7 +146,7 @@ case let .uneven(larger, largerCount, smaller, smallerCount):
 ### Rate Multiplication
 
 Use `Rate` for exact rational multiplication. The round-trip invariant holds:
-`input × actualRate == result`.
+`input × effectiveRate == result`.
 
 ```swift
 let price = Money<GBP>(minorUnits: 1000)   // £10.00
@@ -154,7 +154,7 @@ let vatRate = Rate(numerator: 1, denominator: 5)!  // 20%
 
 let vat = price.multiplied(by: vatRate, rounding: .toNearestOrAwayFromZero)
 vat.result      // Money<GBP>(minorUnits: 200) — £2.00
-vat.actualRate  // Rate(1/5) — exact rate applied
+vat.effectiveRate  // Rate(1/5) — exact rate applied
 ```
 
 `Money * Decimal` returns an optional `RateCalculation?` (fails if the `Decimal`

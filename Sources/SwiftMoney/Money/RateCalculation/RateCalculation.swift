@@ -9,10 +9,10 @@
 /// The actual rate is defined as:
 ///
 /// ```
-/// actualRate = result / input
+/// effectiveRate = result / input
 /// ```
 ///
-/// This means `input × actualRate` reproduces `result` exactly — the
+/// This means `input × effectiveRate` reproduces `result` exactly — the
 /// round-trip invariant holds with no residual error.
 ///
 /// ### Example
@@ -21,20 +21,20 @@
 /// // 101 minor units × 1/100 = 1.01, rounded down to 1
 /// let r = Money<GBP>(minorUnits: 101).multiplied(by: Rate(numerator: 1, denominator: 100))
 /// r.result      // Money<GBP>(minorUnits: 1)
-/// r.actualRate  // Rate(numerator: 1, denominator: 101)
+/// r.effectiveRate  // Rate(numerator: 1, denominator: 101)
 /// // 101 × (1/101) == 1 ✓
 /// ```
 ///
 /// ### Zero input
 ///
 /// When the input amount is zero, `0 × rate == 0` regardless of the rate,
-/// so the actual rate is undefined. In this case `actualRate` equals the
+/// so the actual rate is undefined. In this case `effectiveRate` equals the
 /// **input rate** unchanged.
 ///
 /// ```swift
 /// let r = Money<GBP>.zero.multiplied(by: Rate(numerator: 11, denominator: 100))
 /// r.result      // Money<GBP>.zero
-/// r.actualRate  // Rate(numerator: 11, denominator: 100)  ← input rate returned
+/// r.effectiveRate  // Rate(numerator: 11, denominator: 100)  ← input rate returned
 /// ```
 public struct RateCalculation<C: Currency>: Sendable {
 
@@ -50,14 +50,14 @@ public struct RateCalculation<C: Currency>: Sendable {
     /// occurred.
     ///
     /// For zero input, this equals the requested rate.
-    public let actualRate: Rate
+    public let effectiveRate: Rate
 
     // MARK: - Initialiser
 
     /// Creates a `RateCalculation` with the given result and actual rate.
-    public init(result: Money<C>, actualRate: Rate) {
+    public init(result: Money<C>, effectiveRate: Rate) {
         self.result = result
-        self.actualRate = actualRate
+        self.effectiveRate = effectiveRate
     }
 }
 
@@ -68,7 +68,7 @@ extension RateCalculation: Equatable {
         lhs: RateCalculation<C>,
         rhs: RateCalculation<C>
     ) -> Bool {
-        lhs.result == rhs.result && lhs.actualRate == rhs.actualRate
+        lhs.result == rhs.result && lhs.effectiveRate == rhs.effectiveRate
     }
 }
 

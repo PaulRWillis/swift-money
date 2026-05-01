@@ -9,20 +9,20 @@
 ///
 /// ## Actual rate
 ///
-/// ``actualRate`` is `nil` only when a non-zero input rounds to zero — i.e.
+/// ``effectiveRate`` is `nil` only when a non-zero input rounds to zero — i.e.
 /// the input is so small that the converted amount is less than half a minor
 /// unit of the target currency. In all other cases it is non-nil.
 ///
-/// For zero input, ``actualRate`` equals the nominal exchange rate (the rate
+/// For zero input, ``effectiveRate`` equals the nominal exchange rate (the rate
 /// is undefined for a zero amount, so the nominal rate is returned unchanged).
 ///
 /// ## Round-trip invariant
 ///
-/// When ``actualRate`` is non-nil and ``converted`` is non-zero, the following
+/// When ``effectiveRate`` is non-nil and ``converted`` is non-zero, the following
 /// holds exactly:
 ///
 /// ```swift
-/// inputAmount.multiplied(by: result.actualRate!.rate).result == result.converted
+/// inputAmount.multiplied(by: result.effectiveRate!.rate).result == result.converted
 /// ```
 ///
 /// ## Example
@@ -31,7 +31,7 @@
 /// let rate = ExchangeRate<EUR, GBP>(from: 100, to: 85)!
 /// let r = rate.conversionResult(of: Money<EUR>(minorUnits: 101))
 /// r.converted    // Money<GBP>(minorUnits: 86)         — €1.01 → £0.86
-/// r.actualRate   // ExchangeRate<EUR, GBP>(from: 101, to: 86)
+/// r.effectiveRate   // ExchangeRate<EUR, GBP>(from: 101, to: 86)
 /// ```
 public struct Conversion<From: Currency, To: Currency>: Sendable {
 
@@ -45,13 +45,13 @@ public struct Conversion<From: Currency, To: Currency>: Sendable {
     /// `nil` only when a non-zero input rounds to zero (the input amount is
     /// smaller than half a minor unit of `To` at the given rate). Non-nil for
     /// zero input and all non-zero results.
-    public let actualRate: ExchangeRate<From, To>?
+    public let effectiveRate: ExchangeRate<From, To>?
 
     // MARK: - Internal designated initialiser
 
-    internal init(converted: Money<To>, actualRate: ExchangeRate<From, To>?) {
+    internal init(converted: Money<To>, effectiveRate: ExchangeRate<From, To>?) {
         self.converted = converted
-        self.actualRate = actualRate
+        self.effectiveRate = effectiveRate
     }
 }
 
@@ -62,7 +62,7 @@ extension Conversion: Equatable {
         lhs: Conversion,
         rhs: Conversion
     ) -> Bool {
-        lhs.converted == rhs.converted && lhs.actualRate == rhs.actualRate
+        lhs.converted == rhs.converted && lhs.effectiveRate == rhs.effectiveRate
     }
 }
 
@@ -71,6 +71,6 @@ extension Conversion: Equatable {
 extension Conversion: Hashable {
     public func hash(into hasher: inout Hasher) {
         hasher.combine(converted)
-        hasher.combine(actualRate)
+        hasher.combine(effectiveRate)
     }
 }

@@ -10,18 +10,18 @@ struct RateCalculationTests {
     func resultIsStored() {
         let r = RateCalculation(
             result: Money<TST_100>(minorUnits: 1),
-            actualRate: Rate(numerator: 1, denominator: 101)!
+            effectiveRate: Rate(numerator: 1, denominator: 101)!
         )
         #expect(r.result == Money<TST_100>(minorUnits: 1))
     }
 
-    @Test("actualRate is stored correctly")
-    func actualRateIsStored() {
+    @Test("effectiveRate is stored correctly")
+    func effectiveRateIsStored() {
         let r = RateCalculation(
             result: Money<TST_100>(minorUnits: 1),
-            actualRate: Rate(numerator: 1, denominator: 101)!
+            effectiveRate: Rate(numerator: 1, denominator: 101)!
         )
-        #expect(r.actualRate == Rate(numerator: 1, denominator: 101)!)
+        #expect(r.effectiveRate == Rate(numerator: 1, denominator: 101)!)
     }
 
     // MARK: - Equatable
@@ -30,11 +30,11 @@ struct RateCalculationTests {
     func identicalResultsAreEqual() {
         let a = RateCalculation(
             result: Money<TST_100>(minorUnits: 1),
-            actualRate: Rate(numerator: 1, denominator: 101)!
+            effectiveRate: Rate(numerator: 1, denominator: 101)!
         )
         let b = RateCalculation(
             result: Money<TST_100>(minorUnits: 1),
-            actualRate: Rate(numerator: 1, denominator: 101)!
+            effectiveRate: Rate(numerator: 1, denominator: 101)!
         )
         #expect(a == b)
     }
@@ -43,35 +43,35 @@ struct RateCalculationTests {
     func differentResultsNotEqual() {
         let a = RateCalculation(
             result: Money<TST_100>(minorUnits: 1),
-            actualRate: Rate(numerator: 1, denominator: 100)!
+            effectiveRate: Rate(numerator: 1, denominator: 100)!
         )
         let b = RateCalculation(
             result: Money<TST_100>(minorUnits: 2),
-            actualRate: Rate(numerator: 1, denominator: 100)!
+            effectiveRate: Rate(numerator: 1, denominator: 100)!
         )
         #expect(a != b)
     }
 
-    @Test("results with different actualRate are not equal")
+    @Test("results with different effectiveRate are not equal")
     func differentActualRateNotEqual() {
         let a = RateCalculation(
             result: Money<TST_100>(minorUnits: 1),
-            actualRate: Rate(numerator: 1, denominator: 100)!
+            effectiveRate: Rate(numerator: 1, denominator: 100)!
         )
         let b = RateCalculation(
             result: Money<TST_100>(minorUnits: 1),
-            actualRate: Rate(numerator: 1, denominator: 101)!
+            effectiveRate: Rate(numerator: 1, denominator: 101)!
         )
         #expect(a != b)
     }
 
     // MARK: - CustomStringConvertible
 
-    @Test("description includes result and actualRate")
+    @Test("description includes result and effectiveRate")
     func descriptionIncludesResultAndRate() {
         let r = RateCalculation(
             result: Money<TST_100>(minorUnits: 1),
-            actualRate: Rate(numerator: 1, denominator: 101)!
+            effectiveRate: Rate(numerator: 1, denominator: 101)!
         )
         let desc = r.description
         #expect(desc.contains("1/101"))

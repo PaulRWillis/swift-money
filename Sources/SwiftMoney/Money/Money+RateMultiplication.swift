@@ -14,7 +14,7 @@ extension Money {
     /// and the **actual rate that was applied**, so callers can account for
     /// the rounding in downstream calculations.
     ///
-    /// The round-trip invariant holds: `input × actualRate == result`.
+    /// The round-trip invariant holds: `input × effectiveRate == result`.
     ///
     /// ```swift
     /// // £1.01 × 1% — rounds down to £0.01; actual rate is 1/101 not 1/100
@@ -22,7 +22,7 @@ extension Money {
     ///     by: Rate(numerator: 1, denominator: 100)
     /// )
     /// r.result      // Money<GBP>(minorUnits: 1)
-    /// r.actualRate  // Rate(numerator: 1, denominator: 101)
+    /// r.effectiveRate  // Rate(numerator: 1, denominator: 101)
     /// ```
     ///
     /// - Parameters:
@@ -40,7 +40,7 @@ extension Money {
 
         // Zero input: 0 × anything == 0; rate is undefined so return input rate.
         if _storage == 0 {
-            return RateCalculation(result: .zero, actualRate: rate)
+            return RateCalculation(result: .zero, effectiveRate: rate)
         }
 
         // Multiply in Int128 to avoid Int64 overflow (max product ≈ 8.5×10³⁷ < Int128.max).
@@ -72,15 +72,15 @@ extension Money {
         // Build the actual rate = result / input (in lowest terms).
         // Normalise so that the denominator is positive (Rate contract).
         // Inputs are validated above: minorUnits != .min, _storage != 0 and != .min.
-        let actualRate: Rate
+        let effectiveRate: Rate
         if _storage > 0 {
-            actualRate = Rate(_unchecked: minorUnits, denominator: _storage)
+            effectiveRate = Rate(_unchecked: minorUnits, denominator: _storage)
         } else {
             // _storage < 0 (non-zero, non-NaN): flip both signs so denominator > 0.
-            actualRate = Rate(_unchecked: -minorUnits, denominator: -_storage)
+            effectiveRate = Rate(_unchecked: -minorUnits, denominator: -_storage)
         }
 
-        return RateCalculation(result: resultMoney, actualRate: actualRate)
+        return RateCalculation(result: resultMoney, effectiveRate: effectiveRate)
     }
 }
 
@@ -96,7 +96,7 @@ extension Money {
     /// ```swift
     /// let r = Money<GBP>(minorUnits: 101) * Rate(numerator: 1, denominator: 100)
     /// r.result      // Money<GBP>(minorUnits: 1)
-    /// r.actualRate  // Rate(numerator: 1, denominator: 101)
+    /// r.effectiveRate  // Rate(numerator: 1, denominator: 101)
     /// ```
     ///
     /// - Precondition: `lhs` must not be NaN.
