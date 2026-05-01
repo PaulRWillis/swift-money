@@ -1,6 +1,6 @@
 // MARK: - Codable
 
-extension FractionalRate: Codable {
+extension Rate: Codable {
     private enum CodingKeys: String, CodingKey {
         case numerator
         case denominator
@@ -14,14 +14,14 @@ extension FractionalRate: Codable {
             throw DecodingError.dataCorruptedError(
                 forKey: .denominator,
                 in: container,
-                debugDescription: "FractionalRate denominator must be > 0 (decoded \(denominator))"
+                debugDescription: "Rate denominator must be > 0 (decoded \(denominator))"
             )
         }
         guard numerator != .min else {
             throw DecodingError.dataCorruptedError(
                 forKey: .numerator,
                 in: container,
-                debugDescription: "FractionalRate numerator must not be Int64.min"
+                debugDescription: "Rate numerator must not be Int64.min"
             )
         }
         self.init(_unchecked: numerator, denominator: denominator)

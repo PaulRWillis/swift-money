@@ -3,9 +3,9 @@ import Foundation
 
 // MARK: - ParseStrategy
 
-extension FractionalRate {
+extension Rate {
 
-    /// A parse strategy that reconstructs a `FractionalRate` from a formatted string.
+    /// A parse strategy that reconstructs a `Rate` from a formatted string.
     ///
     /// The strategy auto-detects the input format:
     /// - Strings containing `"/"` are parsed as fractions (`"3/4"` → 3/4).
@@ -13,14 +13,14 @@ extension FractionalRate {
     /// - Otherwise the string is parsed as a decimal number (`"0.75"` → 3/4).
     ///
     /// ```swift
-    /// let style = FractionalRate.FormatStyle(.fraction)
+    /// let style = Rate.FormatStyle(.fraction)
     /// let rate  = try style.parseStrategy.parse("3/4")
-    /// // rate == FractionalRate(numerator: 3, denominator: 4)!
+    /// // rate == Rate(numerator: 3, denominator: 4)!
     /// ```
     public struct ParseStrategy: Foundation.ParseStrategy, Codable, Hashable, Sendable {
 
         public typealias ParseInput  = String
-        public typealias ParseOutput = FractionalRate
+        public typealias ParseOutput = Rate
 
         private var locale: Locale
 
@@ -35,12 +35,12 @@ extension FractionalRate {
             self.locale = locale
         }
 
-        /// Parses `value` and returns the corresponding `FractionalRate`.
+        /// Parses `value` and returns the corresponding `Rate`.
         ///
         /// - Parameter value: A string in one of the supported formats.
-        /// - Returns: The parsed `FractionalRate`.
+        /// - Returns: The parsed `Rate`.
         /// - Throws: ``ParseError`` if the string cannot be parsed.
-        public func parse(_ value: String) throws -> FractionalRate {
+        public func parse(_ value: String) throws -> Rate {
             let trimmed = value.trimmingCharacters(in: .whitespaces)
             guard !trimmed.isEmpty else { throw ParseError.invalidInput }
 
@@ -57,7 +57,7 @@ extension FractionalRate {
 
         // MARK: - Fraction parsing
 
-        private func _parseFraction(_ value: String) throws -> FractionalRate {
+        private func _parseFraction(_ value: String) throws -> Rate {
             let parts = value.split(separator: "/", maxSplits: 1, omittingEmptySubsequences: false)
             guard parts.count == 2 else { throw ParseError.invalidInput }
 
@@ -73,7 +73,7 @@ extension FractionalRate {
                 throw ParseError.invalidInput
             }
 
-            guard let rate = FractionalRate(numerator: numerator, denominator: denominator) else {
+            guard let rate = Rate(numerator: numerator, denominator: denominator) else {
                 throw ParseError.invalidFraction
             }
 
@@ -82,11 +82,11 @@ extension FractionalRate {
 
         // MARK: - Decimal parsing
 
-        private func _parseDecimal(_ value: String) throws -> FractionalRate {
+        private func _parseDecimal(_ value: String) throws -> Rate {
             guard let decimal = Decimal(string: value, locale: locale) else {
                 throw ParseError.invalidInput
             }
-            guard let rate = FractionalRate(decimal) else {
+            guard let rate = Rate(decimal) else {
                 throw ParseError.invalidInput
             }
             return rate
@@ -94,7 +94,7 @@ extension FractionalRate {
 
         // MARK: - Percentage parsing
 
-        private func _parsePercentage(_ value: String) throws -> FractionalRate {
+        private func _parsePercentage(_ value: String) throws -> Rate {
             let stripped = value
                 .replacingOccurrences(of: "%", with: "")
                 .trimmingCharacters(in: .whitespaces)
@@ -103,7 +103,7 @@ extension FractionalRate {
                 throw ParseError.invalidInput
             }
             let rate = decimal / Decimal(100)
-            guard let result = FractionalRate(rate) else {
+            guard let result = Rate(rate) else {
                 throw ParseError.invalidInput
             }
             return result
@@ -113,9 +113,9 @@ extension FractionalRate {
 
 // MARK: - ParseError
 
-extension FractionalRate.ParseStrategy {
+extension Rate.ParseStrategy {
 
-    /// Errors thrown when a `FractionalRate.ParseStrategy` cannot parse an input string.
+    /// Errors thrown when a `Rate.ParseStrategy` cannot parse an input string.
     public enum ParseError: Error, LocalizedError, Sendable {
 
         /// The input string is empty or does not match any recognised format.
@@ -128,7 +128,7 @@ extension FractionalRate.ParseStrategy {
         public var errorDescription: String? {
             switch self {
             case .invalidInput:
-                return "The input string is not a valid FractionalRate representation."
+                return "The input string is not a valid Rate representation."
             case .invalidFraction:
                 return "The fraction has an invalid denominator (zero or negative) or numerator (Int64.min)."
             }
@@ -138,20 +138,20 @@ extension FractionalRate.ParseStrategy {
 
 // MARK: - Convenience initialiser
 
-extension FractionalRate {
+extension Rate {
 
-    /// Creates a `FractionalRate` by parsing a formatted string.
+    /// Creates a `Rate` by parsing a formatted string.
     ///
     /// ```swift
-    /// let rate = try FractionalRate("3/4", format: .fraction)
-    /// // rate == FractionalRate(numerator: 3, denominator: 4)!
+    /// let rate = try Rate("3/4", format: .fraction)
+    /// // rate == Rate(numerator: 3, denominator: 4)!
     /// ```
     ///
     /// - Parameters:
     ///   - string: A string in the format produced by `format`.
-    ///   - format: The `FractionalRate.FormatStyle` used to interpret the string.
+    ///   - format: The `Rate.FormatStyle` used to interpret the string.
     /// - Throws: A parse error if `string` does not match `format`.
-    public init(_ string: String, format: FractionalRate.FormatStyle) throws {
+    public init(_ string: String, format: Rate.FormatStyle) throws {
         self = try format.parseStrategy.parse(string)
     }
 }

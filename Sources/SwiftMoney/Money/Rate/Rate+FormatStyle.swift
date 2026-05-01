@@ -1,16 +1,16 @@
 #if canImport(Foundation)
 import Foundation
 
-extension FractionalRate {
+extension Rate {
 
     // MARK: - FormatStyle
 
-    /// A format style that produces a string representation of a `FractionalRate`.
+    /// A format style that produces a string representation of a `Rate`.
     ///
     /// Supports multiple output modes:
     ///
     /// ```swift
-    /// let rate = FractionalRate(numerator: 3, denominator: 4)!
+    /// let rate = Rate(numerator: 3, denominator: 4)!
     /// rate.formatted(.fraction)    // "3/4"
     /// rate.formatted(.decimal)     // "0.75"
     /// rate.formatted(.percentage)  // "75%"
@@ -19,7 +19,7 @@ extension FractionalRate {
     /// The default mode is `.fraction`.
     public struct FormatStyle: Equatable, Hashable, Sendable, Codable {
 
-        /// The output representation for a formatted `FractionalRate`.
+        /// The output representation for a formatted `Rate`.
         public enum Mode: String, Equatable, Hashable, Sendable, Codable {
             /// Displays the rate as an integer fraction, e.g. `"3/4"`.
             case fraction
@@ -60,13 +60,13 @@ extension FractionalRate {
 
 // MARK: - Foundation.FormatStyle conformance
 
-extension FractionalRate.FormatStyle: Foundation.FormatStyle {
+extension Rate.FormatStyle: Foundation.FormatStyle {
 
-    /// Formats the given `FractionalRate` as a string.
+    /// Formats the given `Rate` as a string.
     ///
     /// - Parameter value: The rate to format.
     /// - Returns: A string representation according to the current ``Mode``.
-    public func format(_ value: FractionalRate) -> String {
+    public func format(_ value: Rate) -> String {
         switch mode {
         case .fraction:
             return "\(value._numerator)/\(value._denominator)"
@@ -82,21 +82,21 @@ extension FractionalRate.FormatStyle: Foundation.FormatStyle {
 
 // MARK: - ParseableFormatStyle conformance
 
-extension FractionalRate.FormatStyle: ParseableFormatStyle {
+extension Rate.FormatStyle: ParseableFormatStyle {
     /// The parse strategy derived from this format style.
     ///
     /// The returned strategy uses the same locale as this format style,
     /// guaranteeing a correct format ↔ parse round-trip.
-    public var parseStrategy: FractionalRate.ParseStrategy {
-        FractionalRate.ParseStrategy(locale: locale)
+    public var parseStrategy: Rate.ParseStrategy {
+        Rate.ParseStrategy(locale: locale)
     }
 }
 
 // MARK: - Convenience
 
-extension FractionalRate {
+extension Rate {
 
-    /// Formats `self` using the default `FractionalRate.FormatStyle()`.
+    /// Formats `self` using the default `Rate.FormatStyle()`.
     public func formatted() -> String {
         FormatStyle().format(self)
     }
@@ -109,7 +109,7 @@ extension FractionalRate {
 
 // MARK: - Static factory shorthand
 
-extension FractionalRate.FormatStyle {
+extension Rate.FormatStyle {
 
     /// A style that formats the rate as an integer fraction, e.g. `"3/4"`.
     ///

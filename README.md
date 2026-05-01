@@ -16,11 +16,11 @@ many currencies are in the bag.
 import SwiftMoney
 
 let price = Money<GBP>(minorUnits: 1250)    // £12.50
-let vatRate = FractionalRate(numerator: 1, denominator: 5)!  // 20%
+let vatRate = Rate(numerator: 1, denominator: 5)!  // 20%
 let vat = price.multiplied(by: vatRate, rounding: .toNearestOrAwayFromZero)
 
-vat.result      // Money<GBP>(minorUnits: 250) — £2.50
-vat.actualRate  // FractionalRate(1/5) — exact, no precision lost
+vat.amount      // Money<GBP>(minorUnits: 250) — £2.50
+vat.effectiveRate  // Rate(1/5) — exact, no precision lost
 ```
 
 ## Features
@@ -28,7 +28,7 @@ vat.actualRate  // FractionalRate(1/5) — exact, no precision lost
 - **Integer minor-unit storage** — `Int64` backing; no `Decimal` overhead on the hot path
 - **Compile-time currency safety** — `Money<GBP> + Money<USD>` is a compile error
 - **NaN sentinel** — `Money<C>.nan` propagates through arithmetic; `isNaN` to check
-- **Exact fractional multiplication** — `FractionalRate` (GCD-reduced rational) with round-trip invariant
+- **Exact fractional multiplication** — `Rate` (GCD-reduced rational) with round-trip invariant
 - **Single-rounding exchange** — `MoneyBag.total(in:using:rounding:)` accumulates exact fractions, then rounds once
 - **No `Numeric` conformance** — `Money * Money` is intentionally impossible
 - **Floating-point blocked** — `Money * Double` and `Money * Float` are `@available(*, unavailable)` compile errors
@@ -72,7 +72,7 @@ Then add the dependency to your target:
 | `MoneyBag` | Multi-currency accumulator keyed by `CurrencyCode` |
 | `Distribution<C>` | Result of splitting money into equal-or-near-equal parts |
 | `CurrencyRegistry` | Maps currency codes to their minimal quantisation; ships with all ISO 4217 currencies |
-| `FractionalRate` | Exact rational number (GCD-reduced `numerator/denominator`) |
+| `Rate` | Exact rational number (GCD-reduced `numerator/denominator`) |
 | `ExchangeRate<From, To>` | Typed conversion rate between two currencies |
 | `ExchangeRateProvider` | Protocol — implement to supply rates from any source |
 
@@ -120,7 +120,7 @@ total -= tax             // £10.00
 -price                   // -£10.00
 ```
 
-`Money * Double` and `Money * Float` are compile errors — use `FractionalRate` for
+`Money * Double` and `Money * Float` are compile errors — use `Rate` for
 fractional operations.
 
 ### Distribution
@@ -143,22 +143,22 @@ case let .uneven(larger, largerCount, smaller, smallerCount):
 }
 ```
 
-### Fractional Multiplication
+### Rate Multiplication
 
-Use `FractionalRate` for exact rational multiplication. The round-trip invariant holds:
-`input × actualRate == result`.
+Use `Rate` for exact rational multiplication. The round-trip invariant holds:
+`input × effectiveRate == result`.
 
 ```swift
 let price = Money<GBP>(minorUnits: 1000)   // £10.00
-let vatRate = FractionalRate(numerator: 1, denominator: 5)!  // 20%
+let vatRate = Rate(numerator: 1, denominator: 5)!  // 20%
 
 let vat = price.multiplied(by: vatRate, rounding: .toNearestOrAwayFromZero)
-vat.result      // Money<GBP>(minorUnits: 200) — £2.00
-vat.actualRate  // FractionalRate(1/5) — exact rate applied
+vat.amount      // Money<GBP>(minorUnits: 200) — £2.00
+vat.effectiveRate  // Rate(1/5) — exact rate applied
 ```
 
-`Money * Decimal` returns an optional `FractionalMultiplicationResult?` (fails if the `Decimal`
-cannot be represented as a `FractionalRate`).
+`Money * Decimal` returns an optional `RateCalculation?` (fails if the `Decimal`
+cannot be represented as a `Rate`).
 
 ### Exchange Rates
 

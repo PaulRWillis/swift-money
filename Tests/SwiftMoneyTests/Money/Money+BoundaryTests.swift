@@ -53,22 +53,22 @@ struct Money_BoundaryTests {
     }
 }
 
-@Suite("FractionalRate — Int64 boundary values")
-struct FractionalRate_BoundaryTests {
+@Suite("Rate — Int64 boundary values")
+struct Rate_BoundaryTests {
 
     @Test("init returns nil for Int64.min numerator")
     func int64MinNumeratorIsNil() {
-        #expect(FractionalRate(numerator: .min, denominator: 1) == nil)
+        #expect(Rate(numerator: .min, denominator: 1) == nil)
     }
 
     @Test("init returns nil for Int64.min denominator")
     func int64MinDenominatorIsNil() {
-        #expect(FractionalRate(numerator: 1, denominator: .min) == nil)
+        #expect(Rate(numerator: 1, denominator: .min) == nil)
     }
 
     @Test("init succeeds with Int64.min + 1 numerator")
     func int64MinPlusOneNumerator() {
-        let r = FractionalRate(numerator: Int64.min + 1, denominator: 1)
+        let r = Rate(numerator: Int64.min + 1, denominator: 1)
         #expect(r != nil)
         #expect(r?.numeratorValue == Int64.min + 1)
         #expect(r?.denominatorValue == 1)
@@ -76,7 +76,7 @@ struct FractionalRate_BoundaryTests {
 
     @Test("init succeeds with Int64.max numerator and denominator")
     func int64MaxBoth() {
-        let r = FractionalRate(numerator: .max, denominator: .max)
+        let r = Rate(numerator: .max, denominator: .max)
         #expect(r != nil)
         #expect(r?.numeratorValue == 1)
         #expect(r?.denominatorValue == 1)
@@ -84,13 +84,13 @@ struct FractionalRate_BoundaryTests {
 
     @Test("init returns nil for zero denominator at Int64.min numerator")
     func int64MinNumeratorZeroDenominator() {
-        #expect(FractionalRate(numerator: .min, denominator: 0) == nil)
+        #expect(Rate(numerator: .min, denominator: 0) == nil)
     }
 
     @Test("GCD reduction works at large values near Int64.max")
     func gcdReductionNearMax() {
         // Int64.max = 9223372036854775807 = 7 × 1317624576693539401
-        let r = FractionalRate(numerator: 7, denominator: Int64.max)
+        let r = Rate(numerator: 7, denominator: Int64.max)
         #expect(r != nil)
         #expect(r?.numeratorValue == 1)
         #expect(r?.denominatorValue == 1317624576693539401)

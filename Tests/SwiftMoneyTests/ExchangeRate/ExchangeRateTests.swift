@@ -7,11 +7,11 @@ struct ExchangeRateTests {
 
     // MARK: - Initialisation
 
-    @Test("init stores rate as FractionalRate(numerator: to, denominator: from)")
+    @Test("init stores rate as Rate(numerator: to, denominator: from)")
     func initStoresRate() {
         let r = ExchangeRate<EUR, GBP>(from: 100, to: 85)!
         // 85/100 GCD-reduces to 17/20
-        #expect(r.rate == FractionalRate(numerator: 17, denominator: 20)!)
+        #expect(r.rate == Rate(numerator: 17, denominator: 20)!)
     }
 
     @Test("fromMinorUnits and toMinorUnits reflect GCD-reduced values")
@@ -195,16 +195,16 @@ struct ExchangeRateTests {
 @Suite("ExchangeRate - majorUnitRate initialisers")
 struct ExchangeRate_MajorUnitRateTests {
 
-    // MARK: - init?(majorUnitRate: FractionalRate)
+    // MARK: - init?(majorUnitRate: Rate)
 
     @Test("GBP/JPY 21516/100 (215.16) scales to 5379/2500 minor-unit rate")
-    func gbpJpyFractionalRate() throws {
+    func gbpJpyRate() throws {
         // majorUnitRate = 21516/100 (= 5379/25 after GCD)
         // toMinQ (JPY) = 1, fromMinQ (GBP) = 100
         // scaledNumerator = 5379 × 1 = 5379
         // scaledDenominator = 25 × 100 = 2500
         let rate = try #require(ExchangeRate<GBP, JPY>(
-            majorUnitRate: FractionalRate(numerator: 21516, denominator: 100)!
+            majorUnitRate: Rate(numerator: 21516, denominator: 100)!
         ))
         #expect(rate.toMinorUnits == 5379)
         #expect(rate.fromMinorUnits == 2500)
@@ -214,7 +214,7 @@ struct ExchangeRate_MajorUnitRateTests {
     func gbpJpyConversionRoundsDown() throws {
         // 100p × 5379/2500 = 537900/2500 = 215.16 → rounds to 215
         let rate = try #require(ExchangeRate<GBP, JPY>(
-            majorUnitRate: FractionalRate(numerator: 21516, denominator: 100)!
+            majorUnitRate: Rate(numerator: 21516, denominator: 100)!
         ))
         #expect(rate.convert(Money<GBP>(minorUnits: 100)) == Money<JPY>(minorUnits: 215))
     }
@@ -222,7 +222,7 @@ struct ExchangeRate_MajorUnitRateTests {
     @Test("GBP/JPY 215.16: convert £100.00 (10000p) gives 21516 JPY (exact)")
     func gbpJpyConversionExact() throws {
         let rate = try #require(ExchangeRate<GBP, JPY>(
-            majorUnitRate: FractionalRate(numerator: 21516, denominator: 100)!
+            majorUnitRate: Rate(numerator: 21516, denominator: 100)!
         ))
         #expect(rate.convert(Money<GBP>(minorUnits: 10000)) == Money<JPY>(minorUnits: 21516))
     }
@@ -233,7 +233,7 @@ struct ExchangeRate_MajorUnitRateTests {
         // toMinQ (USD) = 100, fromMinQ (GBP) = 100
         // scaledNumerator = 27 × 100 = 2700, scaledDenominator = 20 × 100 = 2000 → 27/20
         let rate = try #require(ExchangeRate<GBP, USD>(
-            majorUnitRate: FractionalRate(numerator: 27, denominator: 20)!
+            majorUnitRate: Rate(numerator: 27, denominator: 20)!
         ))
         // convert £1.00 (100p) → 100 × 27/20 = 135 cents = $1.35
         #expect(rate.convert(Money<GBP>(minorUnits: 100)) == Money<USD>(minorUnits: 135))
@@ -242,7 +242,7 @@ struct ExchangeRate_MajorUnitRateTests {
     @Test("majorUnitRate returns nil for non-positive numerator")
     func negativeNumeratorIsNil() {
         #expect(ExchangeRate<EUR, GBP>(
-            majorUnitRate: FractionalRate(numerator: -1, denominator: 10)!
+            majorUnitRate: Rate(numerator: -1, denominator: 10)!
         ) == nil)
     }
 
@@ -250,19 +250,19 @@ struct ExchangeRate_MajorUnitRateTests {
     func integerLiteralOne() throws {
         // majorUnitRate = 1/1; GBP/GBP (minQ 100/100 = 1 scale)
         // 1 × 100 / 1 × 100 = 100/100 = 1/1
-        let rate = try #require(ExchangeRate<GBP, GBP>(majorUnitRate: FractionalRate(numerator: 1, denominator: 1)!))
+        let rate = try #require(ExchangeRate<GBP, GBP>(majorUnitRate: Rate(numerator: 1, denominator: 1)!))
         #expect(rate.convert(Money<GBP>(minorUnits: 100)) == Money<GBP>(minorUnits: 100))
     }
 
     // MARK: - init?(majorUnitRate: Decimal)
 
-    @Test("GBP/JPY Decimal(string:\"215.16\") produces same rate as FractionalRate overload")
-    func decimalMatchesFractionalRate() throws {
+    @Test("GBP/JPY Decimal(string:\"215.16\") produces same rate as Rate overload")
+    func decimalMatchesRate() throws {
         let viaDecimal = try #require(
             ExchangeRate<GBP, JPY>(majorUnitRate: Decimal(string: "215.16")!)
         )
         let viaFractional = try #require(
-            ExchangeRate<GBP, JPY>(majorUnitRate: FractionalRate(numerator: 21516, denominator: 100)!)
+            ExchangeRate<GBP, JPY>(majorUnitRate: Rate(numerator: 21516, denominator: 100)!)
         )
         #expect(viaDecimal == viaFractional)
     }

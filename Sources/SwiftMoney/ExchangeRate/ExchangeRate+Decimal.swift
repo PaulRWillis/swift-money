@@ -21,9 +21,9 @@ extension ExchangeRate {
     /// > initialised through `Double`. Always pass `Decimal(string: "1.35")!`.
     ///
     /// - Returns: `nil` if `majorUnitRate` is NaN, ≤ 0, or if converting it to a
-    ///   `FractionalRate` or scaling it would overflow `Int64`.
+    ///   `Rate` or scaling it would overflow `Int64`.
     public init?(majorUnitRate: Decimal) {
-        guard let rate = FractionalRate(majorUnitRate) else { return nil }
+        guard let rate = Rate(majorUnitRate) else { return nil }
         self.init(majorUnitRate: rate)
     }
 }
