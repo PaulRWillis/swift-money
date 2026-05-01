@@ -11,7 +11,7 @@ struct Money_RateMultiplicationTests {
     func canonicalExactCase() {
         let r = Money<TST_100>(minorUnits: 100)
             .multiplied(by: Rate(numerator: 1, denominator: 100)!)
-        #expect(r.result == Money<TST_100>(minorUnits: 1))
+        #expect(r.amount == Money<TST_100>(minorUnits: 1))
         #expect(r.effectiveRate == Rate(numerator: 1, denominator: 100)!)
     }
 
@@ -19,7 +19,7 @@ struct Money_RateMultiplicationTests {
     func canonicalRoundedCase() {
         let r = Money<TST_100>(minorUnits: 101)
             .multiplied(by: Rate(numerator: 1, denominator: 100)!)
-        #expect(r.result == Money<TST_100>(minorUnits: 1))
+        #expect(r.amount == Money<TST_100>(minorUnits: 1))
         #expect(r.effectiveRate == Rate(numerator: 1, denominator: 101)!)
     }
 
@@ -27,7 +27,7 @@ struct Money_RateMultiplicationTests {
     func zeroInput() {
         let r = Money<TST_100>(minorUnits: 0)
             .multiplied(by: Rate(numerator: 11, denominator: 100)!)
-        #expect(r.result == Money<TST_100>.zero)
+        #expect(r.amount == Money<TST_100>.zero)
         #expect(r.effectiveRate == Rate(numerator: 11, denominator: 100)!)
     }
 
@@ -49,7 +49,7 @@ struct Money_RateMultiplicationTests {
             .multiplied(by: Rate(numerator: numerator, denominator: denominator)!)
         // input × (actualNumerator / actualDenominator) == result
         let reconstructed = minorUnits * r.effectiveRate.numeratorValue / r.effectiveRate.denominatorValue
-        #expect(reconstructed == r.result.minorUnits)
+        #expect(reconstructed == r.amount.minorUnits)
     }
 
     // MARK: - Rounding rules
@@ -59,7 +59,7 @@ struct Money_RateMultiplicationTests {
         let r = Money<TST_100>(minorUnits: 150)
             .multiplied(by: Rate(numerator: 1, denominator: 100)!,
                         rounding: .toNearestOrAwayFromZero)
-        #expect(r.result == Money<TST_100>(minorUnits: 2))
+        #expect(r.amount == Money<TST_100>(minorUnits: 2))
     }
 
     @Test("toNearestOrEven (bankers): 250 × 1/100 = 2 (2.5 rounds to even)")
@@ -67,7 +67,7 @@ struct Money_RateMultiplicationTests {
         let r = Money<TST_100>(minorUnits: 250)
             .multiplied(by: Rate(numerator: 1, denominator: 100)!,
                         rounding: .toNearestOrEven)
-        #expect(r.result == Money<TST_100>(minorUnits: 2))
+        #expect(r.amount == Money<TST_100>(minorUnits: 2))
     }
 
     @Test("toNearestOrEven (bankers): 350 × 1/100 = 4 (3.5 rounds to even)")
@@ -75,7 +75,7 @@ struct Money_RateMultiplicationTests {
         let r = Money<TST_100>(minorUnits: 350)
             .multiplied(by: Rate(numerator: 1, denominator: 100)!,
                         rounding: .toNearestOrEven)
-        #expect(r.result == Money<TST_100>(minorUnits: 4))
+        #expect(r.amount == Money<TST_100>(minorUnits: 4))
     }
 
     @Test("up (ceiling): 101 × 1/100 = 2")
@@ -83,7 +83,7 @@ struct Money_RateMultiplicationTests {
         let r = Money<TST_100>(minorUnits: 101)
             .multiplied(by: Rate(numerator: 1, denominator: 100)!,
                         rounding: .up)
-        #expect(r.result == Money<TST_100>(minorUnits: 2))
+        #expect(r.amount == Money<TST_100>(minorUnits: 2))
     }
 
     @Test("down (floor): 101 × 1/100 = 1")
@@ -91,7 +91,7 @@ struct Money_RateMultiplicationTests {
         let r = Money<TST_100>(minorUnits: 101)
             .multiplied(by: Rate(numerator: 1, denominator: 100)!,
                         rounding: .down)
-        #expect(r.result == Money<TST_100>(minorUnits: 1))
+        #expect(r.amount == Money<TST_100>(minorUnits: 1))
     }
 
     @Test("towardZero: 101 × 1/100 = 1 (truncation, positive)")
@@ -99,7 +99,7 @@ struct Money_RateMultiplicationTests {
         let r = Money<TST_100>(minorUnits: 101)
             .multiplied(by: Rate(numerator: 1, denominator: 100)!,
                         rounding: .towardZero)
-        #expect(r.result == Money<TST_100>(minorUnits: 1))
+        #expect(r.amount == Money<TST_100>(minorUnits: 1))
     }
 
     @Test("towardZero: -101 × 1/100 = -1 (truncation, negative)")
@@ -107,7 +107,7 @@ struct Money_RateMultiplicationTests {
         let r = Money<TST_100>(minorUnits: -101)
             .multiplied(by: Rate(numerator: 1, denominator: 100)!,
                         rounding: .towardZero)
-        #expect(r.result == Money<TST_100>(minorUnits: -1))
+        #expect(r.amount == Money<TST_100>(minorUnits: -1))
     }
 
     @Test("awayFromZero: 101 × 1/100 = 2 (positive)")
@@ -115,7 +115,7 @@ struct Money_RateMultiplicationTests {
         let r = Money<TST_100>(minorUnits: 101)
             .multiplied(by: Rate(numerator: 1, denominator: 100)!,
                         rounding: .awayFromZero)
-        #expect(r.result == Money<TST_100>(minorUnits: 2))
+        #expect(r.amount == Money<TST_100>(minorUnits: 2))
     }
 
     @Test("awayFromZero: -101 × 1/100 = -2 (negative)")
@@ -123,7 +123,7 @@ struct Money_RateMultiplicationTests {
         let r = Money<TST_100>(minorUnits: -101)
             .multiplied(by: Rate(numerator: 1, denominator: 100)!,
                         rounding: .awayFromZero)
-        #expect(r.result == Money<TST_100>(minorUnits: -2))
+        #expect(r.amount == Money<TST_100>(minorUnits: -2))
     }
 
     // MARK: - Negative input
@@ -132,7 +132,7 @@ struct Money_RateMultiplicationTests {
     func negativeInput() {
         let r = Money<TST_100>(minorUnits: -101)
             .multiplied(by: Rate(numerator: 1, denominator: 100)!)
-        #expect(r.result == Money<TST_100>(minorUnits: -1))
+        #expect(r.amount == Money<TST_100>(minorUnits: -1))
         // effectiveRate denominator is positive: (-(-1)) / (-(-101)) = 1/101
         #expect(r.effectiveRate == Rate(numerator: 1, denominator: 101)!)
     }
@@ -143,7 +143,7 @@ struct Money_RateMultiplicationTests {
     func negativeRate() {
         let r = Money<TST_100>(minorUnits: 100)
             .multiplied(by: Rate(numerator: -1, denominator: 100)!)
-        #expect(r.result == Money<TST_100>(minorUnits: -1))
+        #expect(r.amount == Money<TST_100>(minorUnits: -1))
         #expect(r.effectiveRate == Rate(numerator: -1, denominator: 100)!)
     }
 
@@ -152,7 +152,7 @@ struct Money_RateMultiplicationTests {
     @Test("100 × 2/1 = 200")
     func integerRate() {
         let r = Money<TST_100>(minorUnits: 100).multiplied(by: 2)
-        #expect(r.result == Money<TST_100>(minorUnits: 200))
+        #expect(r.amount == Money<TST_100>(minorUnits: 200))
         #expect(r.effectiveRate == Rate(numerator: 2, denominator: 1)!)
     }
 
@@ -170,7 +170,7 @@ struct Money_RateMultiplicationTests {
     @Test("* Rate operator: 101 × 1/100 = 1")
     func fractionalRateOperatorValue() {
         let r = Money<TST_100>(minorUnits: 101) * Rate(numerator: 1, denominator: 100)!
-        #expect(r.result == Money<TST_100>(minorUnits: 1))
+        #expect(r.amount == Money<TST_100>(minorUnits: 1))
         #expect(r.effectiveRate == Rate(numerator: 1, denominator: 101)!)
     }
 
@@ -179,7 +179,7 @@ struct Money_RateMultiplicationTests {
     @Test("* Decimal operator: 101 × Decimal(string:\"0.01\") = 1")
     func decimalOperatorFromString() {
         let r = (Money<TST_100>(minorUnits: 101) * Decimal(string: "0.01")!)!
-        #expect(r.result == Money<TST_100>(minorUnits: 1))
+        #expect(r.amount == Money<TST_100>(minorUnits: 1))
         #expect(r.effectiveRate == Rate(numerator: 1, denominator: 101)!)
     }
 

@@ -19,7 +19,7 @@ let price = Money<GBP>(minorUnits: 1250)    // £12.50
 let vatRate = Rate(numerator: 1, denominator: 5)!  // 20%
 let vat = price.multiplied(by: vatRate, rounding: .toNearestOrAwayFromZero)
 
-vat.result      // Money<GBP>(minorUnits: 250) — £2.50
+vat.amount      // Money<GBP>(minorUnits: 250) — £2.50
 vat.effectiveRate  // Rate(1/5) — exact, no precision lost
 ```
 
@@ -153,7 +153,7 @@ let price = Money<GBP>(minorUnits: 1000)   // £10.00
 let vatRate = Rate(numerator: 1, denominator: 5)!  // 20%
 
 let vat = price.multiplied(by: vatRate, rounding: .toNearestOrAwayFromZero)
-vat.result      // Money<GBP>(minorUnits: 200) — £2.00
+vat.amount      // Money<GBP>(minorUnits: 200) — £2.00
 vat.effectiveRate  // Rate(1/5) — exact rate applied
 ```
 

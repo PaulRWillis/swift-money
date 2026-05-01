@@ -105,7 +105,7 @@ struct ConversionTests {
             let money = Money<EUR>(minorUnits: minorUnits)
             let r = eurGbp.conversionResult(of: money)
             guard let actual = r.effectiveRate else { continue }
-            let roundTrip = money.multiplied(by: actual.rate).result
+            let roundTrip = money.multiplied(by: actual.rate).amount
             // Reinterpret as GBP to compare (result is a valid minor-unit count)
             let roundTripGBP = Money<GBP>(minorUnits: roundTrip.minorUnits)
             #expect(roundTripGBP == r.converted,

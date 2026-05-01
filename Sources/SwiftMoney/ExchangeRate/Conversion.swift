@@ -22,7 +22,7 @@
 /// holds exactly:
 ///
 /// ```swift
-/// inputAmount.multiplied(by: result.effectiveRate!.rate).result == result.converted
+/// inputAmount.multiplied(by: amount.effectiveRate!.rate).result == amount.converted
 /// ```
 ///
 /// ## Example

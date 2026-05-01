@@ -21,7 +21,7 @@ extension Money {
     /// let r = Money<GBP>(minorUnits: 101).multiplied(
     ///     by: Rate(numerator: 1, denominator: 100)
     /// )
-    /// r.result      // Money<GBP>(minorUnits: 1)
+    /// r.amount      // Money<GBP>(minorUnits: 1)
     /// r.effectiveRate  // Rate(numerator: 1, denominator: 101)
     /// ```
     ///
@@ -40,7 +40,7 @@ extension Money {
 
         // Zero input: 0 × anything == 0; rate is undefined so return input rate.
         if _storage == 0 {
-            return RateCalculation(result: .zero, effectiveRate: rate)
+            return RateCalculation(amount: .zero, effectiveRate: rate)
         }
 
         // Multiply in Int128 to avoid Int64 overflow (max product ≈ 8.5×10³⁷ < Int128.max).
@@ -80,7 +80,7 @@ extension Money {
             effectiveRate = Rate(_unchecked: -minorUnits, denominator: -_storage)
         }
 
-        return RateCalculation(result: resultMoney, effectiveRate: effectiveRate)
+        return RateCalculation(amount: resultMoney, effectiveRate: effectiveRate)
     }
 }
 
@@ -95,7 +95,7 @@ extension Money {
     ///
     /// ```swift
     /// let r = Money<GBP>(minorUnits: 101) * Rate(numerator: 1, denominator: 100)
-    /// r.result      // Money<GBP>(minorUnits: 1)
+    /// r.amount      // Money<GBP>(minorUnits: 1)
     /// r.effectiveRate  // Rate(numerator: 1, denominator: 101)
     /// ```
     ///

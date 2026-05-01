@@ -27,7 +27,7 @@ struct ReadmeVerificationTests {
         let price = Money<GBP>(minorUnits: 1250)
         let vatRate = Rate(numerator: 1, denominator: 5)!
         let vat = price.multiplied(by: vatRate, rounding: .toNearestOrAwayFromZero)
-        #expect(vat.result == Money<GBP>(minorUnits: 250))
+        #expect(vat.amount == Money<GBP>(minorUnits: 250))
     }
 
     @Test func creatingValues() {
@@ -73,7 +73,7 @@ struct ReadmeVerificationTests {
         let price = Money<GBP>(minorUnits: 1000)
         let vatRate = Rate(numerator: 1, denominator: 5)!
         let vat = price.multiplied(by: vatRate, rounding: .toNearestOrAwayFromZero)
-        #expect(vat.result == Money<GBP>(minorUnits: 200))
+        #expect(vat.amount == Money<GBP>(minorUnits: 200))
     }
 
     @Test func exchangeRates() {

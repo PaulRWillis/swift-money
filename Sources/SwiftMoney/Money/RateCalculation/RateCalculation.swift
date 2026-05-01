@@ -20,7 +20,7 @@
 /// ```swift
 /// // 101 minor units × 1/100 = 1.01, rounded down to 1
 /// let r = Money<GBP>(minorUnits: 101).multiplied(by: Rate(numerator: 1, denominator: 100))
-/// r.result      // Money<GBP>(minorUnits: 1)
+/// r.amount      // Money<GBP>(minorUnits: 1)
 /// r.effectiveRate  // Rate(numerator: 1, denominator: 101)
 /// // 101 × (1/101) == 1 ✓
 /// ```
@@ -33,7 +33,7 @@
 ///
 /// ```swift
 /// let r = Money<GBP>.zero.multiplied(by: Rate(numerator: 11, denominator: 100))
-/// r.result      // Money<GBP>.zero
+/// r.amount      // Money<GBP>.zero
 /// r.effectiveRate  // Rate(numerator: 11, denominator: 100)  ← input rate returned
 /// ```
 public struct RateCalculation<C: Currency>: Sendable {
@@ -41,7 +41,7 @@ public struct RateCalculation<C: Currency>: Sendable {
     // MARK: - Stored properties
 
     /// The rounded result of the multiplication.
-    public let result: Money<C>
+    public let amount: Money<C>
 
     /// The rate that was actually applied to produce ``result``.
     ///
@@ -55,8 +55,8 @@ public struct RateCalculation<C: Currency>: Sendable {
     // MARK: - Initialiser
 
     /// Creates a `RateCalculation` with the given result and actual rate.
-    public init(result: Money<C>, effectiveRate: Rate) {
-        self.result = result
+    public init(amount: Money<C>, effectiveRate: Rate) {
+        self.amount = amount
         self.effectiveRate = effectiveRate
     }
 }
@@ -68,7 +68,7 @@ extension RateCalculation: Equatable {
         lhs: RateCalculation<C>,
         rhs: RateCalculation<C>
     ) -> Bool {
-        lhs.result == rhs.result && lhs.effectiveRate == rhs.effectiveRate
+        lhs.amount == rhs.amount && lhs.effectiveRate == rhs.effectiveRate
     }
 }
 
