@@ -1,20 +1,20 @@
 /// A rational fraction used as a multiplication rate for monetary amounts.
 ///
-/// `FractionalRate` represents a rate as an irreducible integer fraction
+/// `Rate` represents a rate as an irreducible integer fraction
 /// `numeratorValue / denominatorValue`. The denominator is always strictly
 /// positive; negative rates are expressed through a negative numerator.
 ///
 /// ```swift
-/// let tax      = FractionalRate(numerator: 11, denominator: 100)   // 11%
-/// let discount = FractionalRate(numerator: -1, denominator: 10)    // -10%
-/// let quarter  = FractionalRate(Decimal(string: "0.25")!)          // 1/4
-/// let doubling: FractionalRate = 2                                 // 2/1
+/// let tax      = Rate(numerator: 11, denominator: 100)   // 11%
+/// let discount = Rate(numerator: -1, denominator: 10)    // -10%
+/// let quarter  = Rate(Decimal(string: "0.25")!)          // 1/4
+/// let doubling: Rate = 2                                 // 2/1
 /// ```
 ///
 /// Fractions are automatically reduced at initialisation time using the
-/// Euclidean GCD, so `FractionalRate(numerator: 22, denominator: 200)` stores
-/// as `11/100` and compares equal to `FractionalRate(numerator: 11, denominator: 100)`.
-public struct FractionalRate: Sendable {
+/// Euclidean GCD, so `Rate(numerator: 22, denominator: 200)` stores
+/// as `11/100` and compares equal to `Rate(numerator: 11, denominator: 100)`.
+public struct Rate: Sendable {
 
     // MARK: - Storage (internal — not part of the public API)
 
@@ -26,7 +26,7 @@ public struct FractionalRate: Sendable {
 
     // MARK: - Designated initialiser (internal)
 
-    /// Creates a `FractionalRate` from a pre-validated numerator/denominator pair.
+    /// Creates a `Rate` from a pre-validated numerator/denominator pair.
     ///
     /// Callers **must** guarantee:
     /// - `denominator > 0`
@@ -42,10 +42,10 @@ public struct FractionalRate: Sendable {
 
     // MARK: - Integer pair initialiser
 
-    /// Creates a `FractionalRate` from an explicit integer numerator and denominator.
+    /// Creates a `Rate` from an explicit integer numerator and denominator.
     ///
     /// The fraction is stored in reduced (lowest-terms) form. For example,
-    /// `FractionalRate(numerator: 22, denominator: 200)` stores as `11/100`.
+    /// `Rate(numerator: 22, denominator: 200)` stores as `11/100`.
     ///
     /// Returns `nil` if `denominator <= 0` or `numerator == Int64.min` (whose
     /// absolute value overflows `Int64` and cannot be GCD-reduced).

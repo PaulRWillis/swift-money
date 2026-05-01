@@ -1,4 +1,4 @@
-/// The result of multiplying a `Money` value by a ``FractionalRate``.
+/// The result of multiplying a `Money` value by a ``Rate``.
 ///
 /// Because money is stored as a discrete integer number of minor units,
 /// multiplying by a non-integer rate almost always produces a theoretically
@@ -19,9 +19,9 @@
 ///
 /// ```swift
 /// // 101 minor units × 1/100 = 1.01, rounded down to 1
-/// let r = Money<GBP>(minorUnits: 101).multiplied(by: FractionalRate(numerator: 1, denominator: 100))
+/// let r = Money<GBP>(minorUnits: 101).multiplied(by: Rate(numerator: 1, denominator: 100))
 /// r.result      // Money<GBP>(minorUnits: 1)
-/// r.actualRate  // FractionalRate(numerator: 1, denominator: 101)
+/// r.actualRate  // Rate(numerator: 1, denominator: 101)
 /// // 101 × (1/101) == 1 ✓
 /// ```
 ///
@@ -32,9 +32,9 @@
 /// **input rate** unchanged.
 ///
 /// ```swift
-/// let r = Money<GBP>.zero.multiplied(by: FractionalRate(numerator: 11, denominator: 100))
+/// let r = Money<GBP>.zero.multiplied(by: Rate(numerator: 11, denominator: 100))
 /// r.result      // Money<GBP>.zero
-/// r.actualRate  // FractionalRate(numerator: 11, denominator: 100)  ← input rate returned
+/// r.actualRate  // Rate(numerator: 11, denominator: 100)  ← input rate returned
 /// ```
 public struct FractionalMultiplicationResult<C: Currency>: Sendable {
 
@@ -50,12 +50,12 @@ public struct FractionalMultiplicationResult<C: Currency>: Sendable {
     /// occurred.
     ///
     /// For zero input, this equals the requested rate.
-    public let actualRate: FractionalRate
+    public let actualRate: Rate
 
     // MARK: - Initialiser
 
     /// Creates a `FractionalMultiplicationResult` with the given result and actual rate.
-    public init(result: Money<C>, actualRate: FractionalRate) {
+    public init(result: Money<C>, actualRate: Rate) {
         self.result = result
         self.actualRate = actualRate
     }

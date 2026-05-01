@@ -74,7 +74,7 @@ extension ExchangeRate {
                 * From.minimalQuantisation.int64Value
             let majorDenominator = value.rate.denominatorValue
                 * To.minimalQuantisation.int64Value
-            let majorRate = FractionalRate(
+            let majorRate = Rate(
                 _unchecked: majorNumerator, denominator: majorDenominator
             )
             return majorRate.formatted(.fraction)

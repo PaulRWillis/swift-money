@@ -63,7 +63,7 @@ private enum Operation: UInt8 {
     case compare = 4
     case codable = 5
     case distribution = 6
-    case fractionalRate = 7
+    case rate = 7
     case exchangeRate = 8
     case hash = 9
 }
@@ -283,16 +283,16 @@ public func fuzzTest(_ start: UnsafeRawPointer, _ count: Int) -> CInt {
                          "Uneven distribution has zero count")
         }
 
-    // ── FractionalRate GCD reduction ──────────────────────────────────
-    case .fractionalRate:
+    // ── Rate GCD reduction ──────────────────────────────────
+    case .rate:
         guard let rawB = reader.readInt64() else { return 0 }
 
-        // FractionalRate requires denominator > 0 and numerator != Int64.min.
+        // Rate requires denominator > 0 and numerator != Int64.min.
         // Use bitwise AND to clear sign bit — avoids abs(Int64.min) UBSan trap.
         let numerator = rawA == .min ? rawA + 1 : rawA
         let denominator = max(1, rawB & Int64.max)
 
-        guard let rate = FractionalRate(numerator: numerator, denominator: denominator) else {
+        guard let rate = Rate(numerator: numerator, denominator: denominator) else {
             return 0
         }
 
@@ -308,12 +308,12 @@ public func fuzzTest(_ start: UnsafeRawPointer, _ count: Int) -> CInt {
             // gcd(|numerator|, denominator) must be 1
             let g = gcdForFuzz(absNum, den)
             precondition(g == 1,
-                         "FractionalRate not fully reduced: \(rate.numeratorValue)/\(den), gcd=\(g)")
+                         "Rate not fully reduced: \(rate.numeratorValue)/\(den), gcd=\(g)")
         }
 
         // INVARIANT: Denominator is always positive
         precondition(rate.denominatorValue > 0,
-                     "FractionalRate denominator is not positive: \(rate.denominatorValue)")
+                     "Rate denominator is not positive: \(rate.denominatorValue)")
 
     // ── ExchangeRate ──────────────────────────────────────────────────
     case .exchangeRate:

@@ -10,7 +10,7 @@ struct FractionalMultiplicationResultTests {
     func resultIsStored() {
         let r = FractionalMultiplicationResult(
             result: Money<TST_100>(minorUnits: 1),
-            actualRate: FractionalRate(numerator: 1, denominator: 101)!
+            actualRate: Rate(numerator: 1, denominator: 101)!
         )
         #expect(r.result == Money<TST_100>(minorUnits: 1))
     }
@@ -19,9 +19,9 @@ struct FractionalMultiplicationResultTests {
     func actualRateIsStored() {
         let r = FractionalMultiplicationResult(
             result: Money<TST_100>(minorUnits: 1),
-            actualRate: FractionalRate(numerator: 1, denominator: 101)!
+            actualRate: Rate(numerator: 1, denominator: 101)!
         )
-        #expect(r.actualRate == FractionalRate(numerator: 1, denominator: 101)!)
+        #expect(r.actualRate == Rate(numerator: 1, denominator: 101)!)
     }
 
     // MARK: - Equatable
@@ -30,11 +30,11 @@ struct FractionalMultiplicationResultTests {
     func identicalResultsAreEqual() {
         let a = FractionalMultiplicationResult(
             result: Money<TST_100>(minorUnits: 1),
-            actualRate: FractionalRate(numerator: 1, denominator: 101)!
+            actualRate: Rate(numerator: 1, denominator: 101)!
         )
         let b = FractionalMultiplicationResult(
             result: Money<TST_100>(minorUnits: 1),
-            actualRate: FractionalRate(numerator: 1, denominator: 101)!
+            actualRate: Rate(numerator: 1, denominator: 101)!
         )
         #expect(a == b)
     }
@@ -43,11 +43,11 @@ struct FractionalMultiplicationResultTests {
     func differentResultsNotEqual() {
         let a = FractionalMultiplicationResult(
             result: Money<TST_100>(minorUnits: 1),
-            actualRate: FractionalRate(numerator: 1, denominator: 100)!
+            actualRate: Rate(numerator: 1, denominator: 100)!
         )
         let b = FractionalMultiplicationResult(
             result: Money<TST_100>(minorUnits: 2),
-            actualRate: FractionalRate(numerator: 1, denominator: 100)!
+            actualRate: Rate(numerator: 1, denominator: 100)!
         )
         #expect(a != b)
     }
@@ -56,11 +56,11 @@ struct FractionalMultiplicationResultTests {
     func differentActualRateNotEqual() {
         let a = FractionalMultiplicationResult(
             result: Money<TST_100>(minorUnits: 1),
-            actualRate: FractionalRate(numerator: 1, denominator: 100)!
+            actualRate: Rate(numerator: 1, denominator: 100)!
         )
         let b = FractionalMultiplicationResult(
             result: Money<TST_100>(minorUnits: 1),
-            actualRate: FractionalRate(numerator: 1, denominator: 101)!
+            actualRate: Rate(numerator: 1, denominator: 101)!
         )
         #expect(a != b)
     }
@@ -71,7 +71,7 @@ struct FractionalMultiplicationResultTests {
     func descriptionIncludesResultAndRate() {
         let r = FractionalMultiplicationResult(
             result: Money<TST_100>(minorUnits: 1),
-            actualRate: FractionalRate(numerator: 1, denominator: 101)!
+            actualRate: Rate(numerator: 1, denominator: 101)!
         )
         let desc = r.description
         #expect(desc.contains("1/101"))

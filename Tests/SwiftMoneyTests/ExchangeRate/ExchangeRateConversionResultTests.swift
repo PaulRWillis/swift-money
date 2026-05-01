@@ -91,7 +91,7 @@ struct ExchangeRateConversionResultTests {
     func negativeInputRounding() {
         let r = eurGbp.conversionResult(of: Money<EUR>(minorUnits: -101))
         #expect(r.converted == Money<GBP>(minorUnits: -86))
-        // actualRate = FractionalRate(_unchecked: -(-86), denominator: -(-101)) = 86/101
+        // actualRate = Rate(_unchecked: -(-86), denominator: -(-101)) = 86/101
         #expect(r.actualRate == ExchangeRate<EUR, GBP>(from: 101, to: 86))
     }
 

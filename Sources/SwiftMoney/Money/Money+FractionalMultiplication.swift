@@ -19,10 +19,10 @@ extension Money {
     /// ```swift
     /// // £1.01 × 1% — rounds down to £0.01; actual rate is 1/101 not 1/100
     /// let r = Money<GBP>(minorUnits: 101).multiplied(
-    ///     by: FractionalRate(numerator: 1, denominator: 100)
+    ///     by: Rate(numerator: 1, denominator: 100)
     /// )
     /// r.result      // Money<GBP>(minorUnits: 1)
-    /// r.actualRate  // FractionalRate(numerator: 1, denominator: 101)
+    /// r.actualRate  // Rate(numerator: 1, denominator: 101)
     /// ```
     ///
     /// - Parameters:
@@ -33,7 +33,7 @@ extension Money {
     ///   result and the actual rate applied.
     /// - Precondition: `self` must not be NaN.
     public func multiplied(
-        by rate: FractionalRate,
+        by rate: Rate,
         rounding: FloatingPointRoundingRule = .toNearestOrAwayFromZero
     ) -> FractionalMultiplicationResult<Currency> {
         precondition(!isNaN, "Cannot multiply NaN")
@@ -70,14 +70,14 @@ extension Money {
         let resultMoney = Money(_unchecked: minorUnits)
 
         // Build the actual rate = result / input (in lowest terms).
-        // Normalise so that the denominator is positive (FractionalRate contract).
+        // Normalise so that the denominator is positive (Rate contract).
         // Inputs are validated above: minorUnits != .min, _storage != 0 and != .min.
-        let actualRate: FractionalRate
+        let actualRate: Rate
         if _storage > 0 {
-            actualRate = FractionalRate(_unchecked: minorUnits, denominator: _storage)
+            actualRate = Rate(_unchecked: minorUnits, denominator: _storage)
         } else {
             // _storage < 0 (non-zero, non-NaN): flip both signs so denominator > 0.
-            actualRate = FractionalRate(_unchecked: -minorUnits, denominator: -_storage)
+            actualRate = Rate(_unchecked: -minorUnits, denominator: -_storage)
         }
 
         return FractionalMultiplicationResult(result: resultMoney, actualRate: actualRate)
@@ -88,35 +88,35 @@ extension Money {
 
 extension Money {
 
-    /// Returns the result of multiplying this `Money` value by a `FractionalRate`.
+    /// Returns the result of multiplying this `Money` value by a `Rate`.
     ///
     /// Uses `.toNearestOrAwayFromZero` rounding. To specify a different rounding
     /// rule, call ``multiplied(by:rounding:)`` directly.
     ///
     /// ```swift
-    /// let r = Money<GBP>(minorUnits: 101) * FractionalRate(numerator: 1, denominator: 100)
+    /// let r = Money<GBP>(minorUnits: 101) * Rate(numerator: 1, denominator: 100)
     /// r.result      // Money<GBP>(minorUnits: 1)
-    /// r.actualRate  // FractionalRate(numerator: 1, denominator: 101)
+    /// r.actualRate  // Rate(numerator: 1, denominator: 101)
     /// ```
     ///
     /// - Precondition: `lhs` must not be NaN.
     public static func * (
         lhs: Money,
-        rhs: FractionalRate
+        rhs: Rate
     ) -> FractionalMultiplicationResult<Currency> {
         lhs.multiplied(by: rhs)
     }
 
     /// Returns the result of multiplying this `Money` value by a `Decimal` rate.
     ///
-    /// Converts `rhs` to a ``FractionalRate`` via ``FractionalRate/init(_:)``
+    /// Converts `rhs` to a ``Rate`` via ``Rate/init(_:)``
     /// and then calls ``multiplied(by:rounding:)`` with
     /// `.toNearestOrAwayFromZero` rounding.
     ///
     /// > Warning: `Decimal` floating-point literals (e.g. `* 0.01`) are
     /// > initialised via `Double` and lose precision. Always prefer
     /// > `Decimal(string: "0.01")!` or an explicit
-    /// > `FractionalRate(numerator: 1, denominator: 100)`.
+    /// > `Rate(numerator: 1, denominator: 100)`.
     ///
     /// ```swift
     /// // Precise:
@@ -126,14 +126,14 @@ extension Money {
     /// // let r = Money<GBP>(minorUnits: 101) * 0.01  ← avoid
     /// ```
     ///
-    /// - Returns: `nil` if `rhs` cannot be converted to a `FractionalRate`
+    /// - Returns: `nil` if `rhs` cannot be converted to a `Rate`
     ///   (e.g. it is NaN, has an exponent ≥ 19, or its significand overflows `Int64`).
     /// - Precondition: `lhs` must not be NaN.
     public static func * (
         lhs: Money,
         rhs: Decimal
     ) -> FractionalMultiplicationResult<Currency>? {
-        guard let rate = FractionalRate(rhs) else { return nil }
+        guard let rate = Rate(rhs) else { return nil }
         return lhs.multiplied(by: rate)
     }
 }
@@ -145,7 +145,7 @@ extension Money {
 ///
 /// `truncated` is the result of truncating division (toward zero). `remainder`
 /// carries the same sign as the dividend (Swift's `%` contract). `denominator`
-/// is always positive (enforced by `FractionalRate`).
+/// is always positive (enforced by `Rate`).
 ///
 /// Proof that the tie comparison `abs(r)*2` never overflows `Int128`:
 /// - `abs(remainder) < denominator ≤ Int64.max`

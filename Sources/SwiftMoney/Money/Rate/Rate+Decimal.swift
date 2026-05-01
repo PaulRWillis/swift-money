@@ -3,9 +3,9 @@ import Foundation
 
 // MARK: - Decimal initialiser
 
-extension FractionalRate {
+extension Rate {
 
-    /// Creates a `FractionalRate` from a `Foundation.Decimal` value.
+    /// Creates a `Rate` from a `Foundation.Decimal` value.
     ///
     /// Extracts the exact integer significand and decimal exponent from the
     /// `Decimal`'s internal representation and constructs the fraction without
@@ -14,9 +14,9 @@ extension FractionalRate {
     /// significant decimal digits).
     ///
     /// ```swift
-    /// FractionalRate(Decimal(string: "0.11")!)            // 11/100
-    /// FractionalRate(Decimal(string: "1.5")!)             // 3/2
-    /// FractionalRate(Decimal(string: "0.12345678901234")!) // 6172839450617/50000000000000
+    /// Rate(Decimal(string: "0.11")!)            // 11/100
+    /// Rate(Decimal(string: "1.5")!)             // 3/2
+    /// Rate(Decimal(string: "0.12345678901234")!) // 6172839450617/50000000000000
     /// ```
     ///
     /// - Parameter decimal: The rate as a `Decimal`.
@@ -59,7 +59,7 @@ extension FractionalRate {
 
 /// Precomputed powers of 10 for exponents 0...18.
 ///
-/// Used by `FractionalRate.init?(_ decimal:)` to reconstruct a fraction from
+/// Used by `Rate.init?(_ decimal:)` to reconstruct a fraction from
 /// Foundation's `Decimal` representation. `Int64.max ≈ 9.22 × 10¹⁸`, so
 /// `10¹⁹` does not fit; the table stops at index 18.
 internal let _pow10Table: [Int64] = [

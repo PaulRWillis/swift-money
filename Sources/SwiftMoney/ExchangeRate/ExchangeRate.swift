@@ -1,6 +1,6 @@
 /// A typed exchange rate that converts between two currencies.
 ///
-/// `ExchangeRate<From, To>` stores the rate as a `FractionalRate` —
+/// `ExchangeRate<From, To>` stores the rate as a `Rate` —
 /// the ratio of target-currency minor units to source-currency minor units —
 /// reduced to lowest terms using GCD.
 ///
@@ -44,13 +44,13 @@ public struct ExchangeRate<From: Currency, To: Currency>: Sendable {
     /// The fractional multiplier applied to `From` minor units to produce `To` minor units.
     ///
     /// Numerator = `toMinorUnits`, denominator = `fromMinorUnits`, both GCD-reduced.
-    public let rate: FractionalRate
+    public let rate: Rate
 
     // MARK: - Private designated initialiser
 
-    /// Creates an `ExchangeRate` directly from a pre-validated `FractionalRate`.
+    /// Creates an `ExchangeRate` directly from a pre-validated `Rate`.
     /// The caller must have already checked that the rate's numerator is positive.
-    private init(_uncheckedRate rate: FractionalRate) {
+    private init(_uncheckedRate rate: Rate) {
         self.rate = rate
     }
 
@@ -69,17 +69,17 @@ public struct ExchangeRate<From: Currency, To: Currency>: Sendable {
     ///   - toMinorUnits: The corresponding positive count of minor units of the target currency.
     public init?(from fromMinorUnits: Int64, to toMinorUnits: Int64) {
         guard fromMinorUnits > 0, toMinorUnits > 0 else { return nil }
-        self.init(_uncheckedRate: FractionalRate(_unchecked: toMinorUnits, denominator: fromMinorUnits))
+        self.init(_uncheckedRate: Rate(_unchecked: toMinorUnits, denominator: fromMinorUnits))
     }
 
     // MARK: - Major-unit rate initialisers
 
-    /// Creates an exchange rate from a major-unit rate expressed as a `FractionalRate`.
+    /// Creates an exchange rate from a major-unit rate expressed as a `Rate`.
     ///
     /// `majorUnitRate` expresses how many major units of `To` one major unit of `From`
     /// is worth — the standard presentation used by market data feeds (e.g. x-rates.com).
     /// For example, a GBP/JPY rate of 215.16 means £1 converts to 215.16 JPY, which
-    /// expressed as a `FractionalRate` is `21516/100` (or `5379/25` after reduction).
+    /// expressed as a `Rate` is `21516/100` (or `5379/25` after reduction).
     ///
     /// Internally the rate is scaled by the `minimalQuantisation` of each currency to
     /// produce a minor-unit rate:
@@ -91,14 +91,14 @@ public struct ExchangeRate<From: Currency, To: Currency>: Sendable {
     /// ```swift
     /// // 1 GBP = 215.16 JPY  (GBP minQ: 100, JPY minQ: 1)
     /// let rate = ExchangeRate<GBP, JPY>(
-    ///     majorUnitRate: FractionalRate(numerator: 21516, denominator: 100)!
+    ///     majorUnitRate: Rate(numerator: 21516, denominator: 100)!
     /// )
     /// rate?.convert(Money<GBP>(minorUnits: 100))  // 215 JPY (exact 215.16 rounds to 215)
     /// ```
     ///
     /// - Returns: `nil` if `majorUnitRate.numeratorValue ≤ 0`, or if scaling the rate by
     ///   the currency quantisations would overflow `Int64`.
-    public init?(majorUnitRate: FractionalRate) {
+    public init?(majorUnitRate: Rate) {
         guard majorUnitRate.numeratorValue > 0 else { return nil }
         let toMinQ   = To.minimalQuantisation.int64Value
         let fromMinQ = From.minimalQuantisation.int64Value
@@ -107,7 +107,7 @@ public struct ExchangeRate<From: Currency, To: Currency>: Sendable {
         guard !overflowN, scaledNumerator != .min else { return nil }
         let (scaledDenominator, overflowD) = majorUnitRate.denominatorValue.multipliedReportingOverflow(by: fromMinQ)
         guard !overflowD, scaledDenominator > 0 else { return nil }
-        self.init(_uncheckedRate: FractionalRate(_unchecked: scaledNumerator, denominator: scaledDenominator))
+        self.init(_uncheckedRate: Rate(_unchecked: scaledNumerator, denominator: scaledDenominator))
     }
 
     // MARK: - Derived values
@@ -159,7 +159,7 @@ public struct ExchangeRate<From: Currency, To: Currency>: Sendable {
     ) -> ExchangeRateConversionResult<From, To> {
         let r = money.multiplied(by: rate, rounding: rounding)
         let converted = Money<To>(_unchecked: r.result.minorUnits)
-        // Wrap the FractionalRate actualRate as a typed ExchangeRate.
+        // Wrap the Rate actualRate as a typed ExchangeRate.
         // actualRate.numeratorValue == 0 only when a non-zero input rounds to zero;
         // in that case there is no meaningful typed rate to return.
         let actualRate: ExchangeRate<From, To>? = r.actualRate.numeratorValue > 0
@@ -234,7 +234,7 @@ extension ExchangeRate: Codable {
                 debugDescription: "ExchangeRate toMinorUnits must be positive"
             )
         }
-        self.init(_uncheckedRate: FractionalRate(_unchecked: to, denominator: from))
+        self.init(_uncheckedRate: Rate(_unchecked: to, denominator: from))
     }
 
     public func encode(to encoder: any Encoder) throws {
