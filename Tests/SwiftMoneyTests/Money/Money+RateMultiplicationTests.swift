@@ -2,8 +2,8 @@ import Foundation
 import Testing
 import SwiftMoney
 
-@Suite("Money - Fractional Multiplication")
-struct Money_FractionalMultiplicationTests {
+@Suite("Money - Rate Multiplication")
+struct Money_RateMultiplicationTests {
 
     // MARK: - Canonical blog post examples
 

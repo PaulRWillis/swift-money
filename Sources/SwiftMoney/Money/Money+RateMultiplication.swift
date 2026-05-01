@@ -3,14 +3,14 @@ import Foundation
 
 extension Money {
 
-    // MARK: - Fractional Multiplication
+    // MARK: - Rate Multiplication
 
     /// Returns the result of multiplying this value by the given fractional rate.
     ///
     /// Because money is stored as a discrete integer number of minor units,
     /// fractional multiplication almost always produces a theoretically
     /// fractional intermediate result that must be rounded. The returned
-    /// ``FractionalMultiplicationResult`` carries both the rounded amount
+    /// ``RateCalculation`` carries both the rounded amount
     /// and the **actual rate that was applied**, so callers can account for
     /// the rounding in downstream calculations.
     ///
@@ -29,18 +29,18 @@ extension Money {
     ///   - rate: The fractional rate to multiply by.
     ///   - rounding: The rounding rule to apply when the result is not a whole
     ///     number of minor units. Defaults to `.toNearestOrAwayFromZero`.
-    /// - Returns: A `FractionalMultiplicationResult` containing the rounded
+    /// - Returns: A `RateCalculation` containing the rounded
     ///   result and the actual rate applied.
     /// - Precondition: `self` must not be NaN.
     public func multiplied(
         by rate: Rate,
         rounding: FloatingPointRoundingRule = .toNearestOrAwayFromZero
-    ) -> FractionalMultiplicationResult<Currency> {
+    ) -> RateCalculation<Currency> {
         precondition(!isNaN, "Cannot multiply NaN")
 
         // Zero input: 0 × anything == 0; rate is undefined so return input rate.
         if _storage == 0 {
-            return FractionalMultiplicationResult(result: .zero, actualRate: rate)
+            return RateCalculation(result: .zero, actualRate: rate)
         }
 
         // Multiply in Int128 to avoid Int64 overflow (max product ≈ 8.5×10³⁷ < Int128.max).
@@ -80,7 +80,7 @@ extension Money {
             actualRate = Rate(_unchecked: -minorUnits, denominator: -_storage)
         }
 
-        return FractionalMultiplicationResult(result: resultMoney, actualRate: actualRate)
+        return RateCalculation(result: resultMoney, actualRate: actualRate)
     }
 }
 
@@ -103,7 +103,7 @@ extension Money {
     public static func * (
         lhs: Money,
         rhs: Rate
-    ) -> FractionalMultiplicationResult<Currency> {
+    ) -> RateCalculation<Currency> {
         lhs.multiplied(by: rhs)
     }
 
@@ -132,7 +132,7 @@ extension Money {
     public static func * (
         lhs: Money,
         rhs: Decimal
-    ) -> FractionalMultiplicationResult<Currency>? {
+    ) -> RateCalculation<Currency>? {
         guard let rate = Rate(rhs) else { return nil }
         return lhs.multiplied(by: rate)
     }

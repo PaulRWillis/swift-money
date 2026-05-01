@@ -143,7 +143,7 @@ case let .uneven(larger, largerCount, smaller, smallerCount):
 }
 ```
 
-### Fractional Multiplication
+### Rate Multiplication
 
 Use `Rate` for exact rational multiplication. The round-trip invariant holds:
 `input × actualRate == result`.
@@ -157,7 +157,7 @@ vat.result      // Money<GBP>(minorUnits: 200) — £2.00
 vat.actualRate  // Rate(1/5) — exact rate applied
 ```
 
-`Money * Decimal` returns an optional `FractionalMultiplicationResult?` (fails if the `Decimal`
+`Money * Decimal` returns an optional `RateCalculation?` (fails if the `Decimal`
 cannot be represented as a `Rate`).
 
 ### Exchange Rates

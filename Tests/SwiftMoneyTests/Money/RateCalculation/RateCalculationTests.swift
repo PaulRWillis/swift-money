@@ -1,14 +1,14 @@
 import Testing
 import SwiftMoney
 
-@Suite("FractionalMultiplicationResult")
-struct FractionalMultiplicationResultTests {
+@Suite("RateCalculation")
+struct RateCalculationTests {
 
     // MARK: - Stored properties
 
     @Test("result is stored correctly")
     func resultIsStored() {
-        let r = FractionalMultiplicationResult(
+        let r = RateCalculation(
             result: Money<TST_100>(minorUnits: 1),
             actualRate: Rate(numerator: 1, denominator: 101)!
         )
@@ -17,7 +17,7 @@ struct FractionalMultiplicationResultTests {
 
     @Test("actualRate is stored correctly")
     func actualRateIsStored() {
-        let r = FractionalMultiplicationResult(
+        let r = RateCalculation(
             result: Money<TST_100>(minorUnits: 1),
             actualRate: Rate(numerator: 1, denominator: 101)!
         )
@@ -28,11 +28,11 @@ struct FractionalMultiplicationResultTests {
 
     @Test("identical results are equal")
     func identicalResultsAreEqual() {
-        let a = FractionalMultiplicationResult(
+        let a = RateCalculation(
             result: Money<TST_100>(minorUnits: 1),
             actualRate: Rate(numerator: 1, denominator: 101)!
         )
-        let b = FractionalMultiplicationResult(
+        let b = RateCalculation(
             result: Money<TST_100>(minorUnits: 1),
             actualRate: Rate(numerator: 1, denominator: 101)!
         )
@@ -41,11 +41,11 @@ struct FractionalMultiplicationResultTests {
 
     @Test("results with different result Money are not equal")
     func differentResultsNotEqual() {
-        let a = FractionalMultiplicationResult(
+        let a = RateCalculation(
             result: Money<TST_100>(minorUnits: 1),
             actualRate: Rate(numerator: 1, denominator: 100)!
         )
-        let b = FractionalMultiplicationResult(
+        let b = RateCalculation(
             result: Money<TST_100>(minorUnits: 2),
             actualRate: Rate(numerator: 1, denominator: 100)!
         )
@@ -54,11 +54,11 @@ struct FractionalMultiplicationResultTests {
 
     @Test("results with different actualRate are not equal")
     func differentActualRateNotEqual() {
-        let a = FractionalMultiplicationResult(
+        let a = RateCalculation(
             result: Money<TST_100>(minorUnits: 1),
             actualRate: Rate(numerator: 1, denominator: 100)!
         )
-        let b = FractionalMultiplicationResult(
+        let b = RateCalculation(
             result: Money<TST_100>(minorUnits: 1),
             actualRate: Rate(numerator: 1, denominator: 101)!
         )
@@ -69,7 +69,7 @@ struct FractionalMultiplicationResultTests {
 
     @Test("description includes result and actualRate")
     func descriptionIncludesResultAndRate() {
-        let r = FractionalMultiplicationResult(
+        let r = RateCalculation(
             result: Money<TST_100>(minorUnits: 1),
             actualRate: Rate(numerator: 1, denominator: 101)!
         )

@@ -2,7 +2,7 @@
 ///
 /// Because money is stored as a discrete integer number of minor units,
 /// multiplying by a non-integer rate almost always produces a theoretically
-/// fractional result that must be rounded. `FractionalMultiplicationResult`
+/// fractional result that must be rounded. `RateCalculation`
 /// carries both the rounded amount **and the rate that was actually applied**,
 /// so callers can account for the rounding in downstream calculations.
 ///
@@ -36,7 +36,7 @@
 /// r.result      // Money<GBP>.zero
 /// r.actualRate  // Rate(numerator: 11, denominator: 100)  ← input rate returned
 /// ```
-public struct FractionalMultiplicationResult<C: Currency>: Sendable {
+public struct RateCalculation<C: Currency>: Sendable {
 
     // MARK: - Stored properties
 
@@ -54,7 +54,7 @@ public struct FractionalMultiplicationResult<C: Currency>: Sendable {
 
     // MARK: - Initialiser
 
-    /// Creates a `FractionalMultiplicationResult` with the given result and actual rate.
+    /// Creates a `RateCalculation` with the given result and actual rate.
     public init(result: Money<C>, actualRate: Rate) {
         self.result = result
         self.actualRate = actualRate
@@ -63,10 +63,10 @@ public struct FractionalMultiplicationResult<C: Currency>: Sendable {
 
 // MARK: - Equatable
 
-extension FractionalMultiplicationResult: Equatable {
+extension RateCalculation: Equatable {
     public static func == (
-        lhs: FractionalMultiplicationResult<C>,
-        rhs: FractionalMultiplicationResult<C>
+        lhs: RateCalculation<C>,
+        rhs: RateCalculation<C>
     ) -> Bool {
         lhs.result == rhs.result && lhs.actualRate == rhs.actualRate
     }

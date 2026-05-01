@@ -1,6 +1,6 @@
 // MARK: - CustomStringConvertible
 
-extension FractionalMultiplicationResult: CustomStringConvertible {
+extension RateCalculation: CustomStringConvertible {
     /// A human-readable description showing the result and the rate applied.
     ///
     /// ```swift

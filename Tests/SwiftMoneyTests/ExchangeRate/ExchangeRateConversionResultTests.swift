@@ -54,7 +54,7 @@ struct ExchangeRateConversionResultTests {
     func zeroInput() {
         let r = eurGbp.conversionResult(of: Money<EUR>(minorUnits: 0))
         #expect(r.converted == Money<GBP>(minorUnits: 0))
-        // actualRate undefined for zero input; nominal rate returned per FractionalMultiplicationResult contract
+        // actualRate undefined for zero input; nominal rate returned per RateCalculation contract
         #expect(r.actualRate == eurGbp)
     }
 
