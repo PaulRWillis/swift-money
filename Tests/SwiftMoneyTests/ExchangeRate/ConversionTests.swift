@@ -12,7 +12,7 @@ struct ConversionTests {
     @Test("Exact conversion: 100 EUR cents → 85p, effectiveRate equals nominal rate")
     func exactConversion() {
         let r = eurGbp.conversionResult(of: Money<EUR>(minorUnits: 100))
-        #expect(r.converted == Money<GBP>(minorUnits: 85))
+        #expect(r.amount == Money<GBP>(minorUnits: 85))
         // input × nominal rate = exact integer → effectiveRate == nominal rate
         #expect(r.effectiveRate == eurGbp)
     }
@@ -20,7 +20,7 @@ struct ConversionTests {
     @Test("Exact conversion: 1000 EUR cents → 850p")
     func exactConversionLarger() {
         let r = eurGbp.conversionResult(of: Money<EUR>(minorUnits: 1000))
-        #expect(r.converted == Money<GBP>(minorUnits: 850))
+        #expect(r.amount == Money<GBP>(minorUnits: 850))
         #expect(r.effectiveRate != nil)
     }
 
@@ -29,7 +29,7 @@ struct ConversionTests {
     @Test("Rounding: 101 EUR cents × 17/20 = 85.85 → 86p (HALF_UP)")
     func roundingHalfUp() {
         let r = eurGbp.conversionResult(of: Money<EUR>(minorUnits: 101))
-        #expect(r.converted == Money<GBP>(minorUnits: 86))
+        #expect(r.amount == Money<GBP>(minorUnits: 86))
         // effectiveRate = 86/101 (in lowest terms)
         #expect(r.effectiveRate == ExchangeRate<EUR, GBP>(from: 101, to: 86))
     }
@@ -37,14 +37,14 @@ struct ConversionTests {
     @Test("Rounding .down: 101 EUR cents × 17/20 = 85.85 → 85p with .down")
     func roundingDown() {
         let r = eurGbp.conversionResult(of: Money<EUR>(minorUnits: 101), rounding: .down)
-        #expect(r.converted == Money<GBP>(minorUnits: 85))
+        #expect(r.amount == Money<GBP>(minorUnits: 85))
         #expect(r.effectiveRate == ExchangeRate<EUR, GBP>(from: 101, to: 85))
     }
 
     @Test("Rounding .up: 101 EUR cents × 17/20 = 85.85 → 86p with .up")
     func roundingUp() {
         let r = eurGbp.conversionResult(of: Money<EUR>(minorUnits: 101), rounding: .up)
-        #expect(r.converted == Money<GBP>(minorUnits: 86))
+        #expect(r.amount == Money<GBP>(minorUnits: 86))
         #expect(r.effectiveRate == ExchangeRate<EUR, GBP>(from: 101, to: 86))
     }
 
@@ -53,7 +53,7 @@ struct ConversionTests {
     @Test("Zero input: converted is zero, effectiveRate equals nominal rate")
     func zeroInput() {
         let r = eurGbp.conversionResult(of: Money<EUR>(minorUnits: 0))
-        #expect(r.converted == Money<GBP>(minorUnits: 0))
+        #expect(r.amount == Money<GBP>(minorUnits: 0))
         // effectiveRate undefined for zero input; nominal rate returned per RateCalculation contract
         #expect(r.effectiveRate == eurGbp)
     }
@@ -65,7 +65,7 @@ struct ConversionTests {
         // 1 EUR cent at rate 1/100 (ExchangeRate(from:100, to:1)) → 0.01p → rounds to 0
         let tinyRate = ExchangeRate<EUR, GBP>(from: 100, to: 1)!
         let r = tinyRate.conversionResult(of: Money<EUR>(minorUnits: 1))
-        #expect(r.converted == Money<GBP>(minorUnits: 0))
+        #expect(r.amount == Money<GBP>(minorUnits: 0))
         #expect(r.effectiveRate == nil)
     }
 
@@ -74,7 +74,7 @@ struct ConversionTests {
         // Same scenario but .up rounds 0.01 → 1, so effectiveRate is non-nil
         let tinyRate = ExchangeRate<EUR, GBP>(from: 100, to: 1)!
         let r = tinyRate.conversionResult(of: Money<EUR>(minorUnits: 1), rounding: .up)
-        #expect(r.converted == Money<GBP>(minorUnits: 1))
+        #expect(r.amount == Money<GBP>(minorUnits: 1))
         #expect(r.effectiveRate != nil)
     }
 
@@ -83,14 +83,14 @@ struct ConversionTests {
     @Test("Negative input: converted is negative, effectiveRate is non-nil")
     func negativeInput() {
         let r = eurGbp.conversionResult(of: Money<EUR>(minorUnits: -1000))
-        #expect(r.converted == Money<GBP>(minorUnits: -850))
+        #expect(r.amount == Money<GBP>(minorUnits: -850))
         #expect(r.effectiveRate != nil)
     }
 
     @Test("Negative input rounding: -101 EUR cents × 17/20 = -85.85 → -86p (HALF_UP)")
     func negativeInputRounding() {
         let r = eurGbp.conversionResult(of: Money<EUR>(minorUnits: -101))
-        #expect(r.converted == Money<GBP>(minorUnits: -86))
+        #expect(r.amount == Money<GBP>(minorUnits: -86))
         // effectiveRate = Rate(_unchecked: -(-86), denominator: -(-101)) = 86/101
         #expect(r.effectiveRate == ExchangeRate<EUR, GBP>(from: 101, to: 86))
     }
@@ -108,19 +108,19 @@ struct ConversionTests {
             let roundTrip = money.multiplied(by: actual.rate).amount
             // Reinterpret as GBP to compare (result is a valid minor-unit count)
             let roundTripGBP = Money<GBP>(minorUnits: roundTrip.minorUnits)
-            #expect(roundTripGBP == r.converted,
+            #expect(roundTripGBP == r.amount,
                     "Round-trip failed for \(minorUnits) EUR cents")
         }
     }
 
     // MARK: - convert delegates to conversionResult
 
-    @Test("convert(_:rounding:) returns same value as conversionResult(of:rounding:).converted")
+    @Test("convert(_:rounding:) returns same value as conversionResult(of:rounding:).amount")
     func convertDelegatesToConversionResult() {
         let money = Money<EUR>(minorUnits: 101)
-        #expect(eurGbp.convert(money) == eurGbp.conversionResult(of: money).converted)
+        #expect(eurGbp.convert(money) == eurGbp.conversionResult(of: money).amount)
         #expect(eurGbp.convert(money, rounding: .down)
-            == eurGbp.conversionResult(of: money, rounding: .down).converted)
+            == eurGbp.conversionResult(of: money, rounding: .down).amount)
     }
 
     // MARK: - Equatable / Hashable

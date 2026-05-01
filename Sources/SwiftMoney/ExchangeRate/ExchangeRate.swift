@@ -138,7 +138,7 @@ public struct ExchangeRate<From: Currency, To: Currency>: Sendable {
     /// ```swift
     /// let rate = ExchangeRate<EUR, GBP>(from: 100, to: 85)!
     /// let r = rate.conversionResult(of: Money<EUR>(minorUnits: 101))
-    /// r.converted    // Money<GBP>(minorUnits: 86)
+    /// r.amount       // Money<GBP>(minorUnits: 86)
     /// r.effectiveRate   // ExchangeRate<EUR, GBP>(from: 101, to: 86)
     /// ```
     ///
@@ -158,14 +158,14 @@ public struct ExchangeRate<From: Currency, To: Currency>: Sendable {
         rounding: FloatingPointRoundingRule = .toNearestOrAwayFromZero
     ) -> Conversion<From, To> {
         let r = money.multiplied(by: rate, rounding: rounding)
-        let converted = Money<To>(_unchecked: r.amount.minorUnits)
+        let amount = Money<To>(_unchecked: r.amount.minorUnits)
         // Wrap the Rate effectiveRate as a typed ExchangeRate.
         // effectiveRate.numeratorValue == 0 only when a non-zero input rounds to zero;
         // in that case there is no meaningful typed rate to return.
         let effectiveRate: ExchangeRate<From, To>? = r.effectiveRate.numeratorValue > 0
             ? ExchangeRate(_uncheckedRate: r.effectiveRate)
             : nil
-        return Conversion(converted: converted, effectiveRate: effectiveRate)
+        return Conversion(amount: amount, effectiveRate: effectiveRate)
     }
 
     /// Converts a `Money<From>` amount to `Money<To>` using this exchange rate.
@@ -189,7 +189,7 @@ public struct ExchangeRate<From: Currency, To: Currency>: Sendable {
         _ money: Money<From>,
         rounding: FloatingPointRoundingRule = .toNearestOrAwayFromZero
     ) -> Money<To> {
-        conversionResult(of: money, rounding: rounding).converted
+        conversionResult(of: money, rounding: rounding).amount
     }
 }
 

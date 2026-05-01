@@ -18,11 +18,11 @@
 ///
 /// ## Round-trip invariant
 ///
-/// When ``effectiveRate`` is non-nil and ``converted`` is non-zero, the following
+/// When ``effectiveRate`` is non-nil and ``amount`` is non-zero, the following
 /// holds exactly:
 ///
 /// ```swift
-/// inputAmount.multiplied(by: amount.effectiveRate!.rate).result == amount.converted
+/// inputAmount.multiplied(by: amount.effectiveRate!.rate).result == amount.amount
 /// ```
 ///
 /// ## Example
@@ -30,7 +30,7 @@
 /// ```swift
 /// let rate = ExchangeRate<EUR, GBP>(from: 100, to: 85)!
 /// let r = rate.conversionResult(of: Money<EUR>(minorUnits: 101))
-/// r.converted    // Money<GBP>(minorUnits: 86)         — €1.01 → £0.86
+/// r.amount    // Money<GBP>(minorUnits: 86)         — €1.01 → £0.86
 /// r.effectiveRate   // ExchangeRate<EUR, GBP>(from: 101, to: 86)
 /// ```
 public struct Conversion<From: Currency, To: Currency>: Sendable {
@@ -38,7 +38,7 @@ public struct Conversion<From: Currency, To: Currency>: Sendable {
     // MARK: - Stored properties
 
     /// The converted amount expressed in `To`.
-    public let converted: Money<To>
+    public let amount: Money<To>
 
     /// The actual exchange rate implied by the rounded conversion.
     ///
@@ -49,8 +49,8 @@ public struct Conversion<From: Currency, To: Currency>: Sendable {
 
     // MARK: - Internal designated initialiser
 
-    internal init(converted: Money<To>, effectiveRate: ExchangeRate<From, To>?) {
-        self.converted = converted
+    internal init(amount: Money<To>, effectiveRate: ExchangeRate<From, To>?) {
+        self.amount = amount
         self.effectiveRate = effectiveRate
     }
 }
@@ -62,7 +62,7 @@ extension Conversion: Equatable {
         lhs: Conversion,
         rhs: Conversion
     ) -> Bool {
-        lhs.converted == rhs.converted && lhs.effectiveRate == rhs.effectiveRate
+        lhs.amount == rhs.amount && lhs.effectiveRate == rhs.effectiveRate
     }
 }
 
@@ -70,7 +70,7 @@ extension Conversion: Equatable {
 
 extension Conversion: Hashable {
     public func hash(into hasher: inout Hasher) {
-        hasher.combine(converted)
+        hasher.combine(amount)
         hasher.combine(effectiveRate)
     }
 }
