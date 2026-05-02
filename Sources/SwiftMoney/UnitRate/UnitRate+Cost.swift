@@ -45,7 +45,8 @@ extension UnitRate {
 
         // GCD pre-reduction to maximise range before Int128 multiplication.
         // Reduce quantity against denominator, and minQ against the remaining denominator.
-        let g1 = _gcd(Int64(bitPattern: UInt64(bitPattern: quantity).magnitude), denominator)
+        let absQuantity = quantity < 0 ? -quantity : quantity
+        let g1 = _gcd(absQuantity, denominator)
         let reducedQty = quantity / g1
         let remainingDen = denominator / g1
 
