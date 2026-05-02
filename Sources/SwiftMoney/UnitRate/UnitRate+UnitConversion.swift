@@ -29,11 +29,10 @@ extension UnitRate where U: Dimension {
 
         // rate per newUnit = rate.numerator / (rate.denominator × factor)
         // We construct via Rate(numerator:denominator:) which GCD-reduces.
-        let newDenominator = rate.denominatorValue &* factor
-        precondition(
-            newDenominator > 0 && (rate.denominatorValue == 0 || newDenominator / rate.denominatorValue == factor),
-            "Conversion factor causes denominator overflow"
-        )
+        let (newDenominator, isOverflow) = rate.denominatorValue.multipliedReportingOverflow(by: factor)
+        let isWithinInt64Range = !isOverflow
+        let isPositive = newDenominator > 0
+        precondition(isWithinInt64Range && isPositive, "Conversion factor causes denominator overflow")
 
         if rate.numeratorValue == 0 {
             return UnitRate(.zero, per: newUnit)

@@ -69,11 +69,9 @@ extension UnitRate {
         )
 
         // Bounds check.
-        precondition(
-            minorUnits128 >= Int128(Int64.min) && minorUnits128 <= Int128(Int64.max),
-            "UnitRate price calculation overflows Int64"
-        )
-        let minorUnits = Int64(minorUnits128)
+        guard let minorUnits = Int64(exactly: minorUnits128) else {
+            preconditionFailure("UnitRate price calculation overflows Int64")
+        }
         precondition(
             minorUnits != .min,
             "UnitRate price calculation produced NaN sentinel"
