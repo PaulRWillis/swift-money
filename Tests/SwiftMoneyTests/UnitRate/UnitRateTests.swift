@@ -31,7 +31,8 @@ struct UnitRateTests {
     @Test("init?(numerator:denominator:per:) succeeds for valid inputs")
     func failableInitSucceeds() throws {
         let unitRate = try #require(UnitRate<GBP, String>(numerator: 23, denominator: 1_000_000, per: "kWh"))
-        #expect(unitRate.rate == Rate(numerator: 23, denominator: 1_000_000)!)
+        let expectedRate = try #require(Rate(numerator: 23, denominator: 1_000_000))
+        #expect(unitRate.rate == expectedRate)
         #expect(unitRate.unit == "kWh")
     }
 
