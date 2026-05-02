@@ -29,7 +29,7 @@ extension UnitRate {
         forQuantity quantity: Int64,
         rounding: FloatingPointRoundingRule = .toNearestOrAwayFromZero
     ) -> RateCalculation<C> {
-        let minQ = C.minimalQuantisation.int64Value
+        let minimalQuantisation = C.minimalQuantisation.int64Value
 
         // Zero quantity: 0 × anything == 0; effective rate is undefined, use zero.
         if quantity == 0 {
@@ -45,26 +45,26 @@ extension UnitRate {
 
         // GCD pre-reduction to maximise range before Int128 multiplication.
         // Reduce quantity against denominator, and minQ against the remaining denominator.
-        let absQuantity = quantity < 0 ? -quantity : quantity
-        let g1 = _gcd(absQuantity, denominator)
-        let reducedQty = quantity / g1
-        let remainingDen = denominator / g1
+        let absoluteQuantity = quantity < 0 ? -quantity : quantity
+        let quantityDenominatorGCD = _gcd(absoluteQuantity, denominator)
+        let reducedQuantity = quantity / quantityDenominatorGCD
+        let remainingDenominator = denominator / quantityDenominatorGCD
 
-        let g2 = _gcd(minQ, remainingDen)
-        let reducedMinQ = minQ / g2
-        let reducedDen = remainingDen / g2
+        let quantisationDenominatorGCD = _gcd(minimalQuantisation, remainingDenominator)
+        let reducedMinimalQuantisation = minimalQuantisation / quantisationDenominatorGCD
+        let reducedDenominator = remainingDenominator / quantisationDenominatorGCD
 
         // Multiply in Int128. After reduction the product is much smaller.
-        let product = Int128(reducedQty) * Int128(rate.numeratorValue) * Int128(reducedMinQ)
-        let den128 = Int128(reducedDen)
+        let product = Int128(reducedQuantity) * Int128(rate.numeratorValue) * Int128(reducedMinimalQuantisation)
+        let denominator128 = Int128(reducedDenominator)
 
-        let (truncated, remainder) = product.quotientAndRemainder(dividingBy: den128)
+        let (truncated, remainder) = product.quotientAndRemainder(dividingBy: denominator128)
 
         // Apply rounding.
         let minorUnits128 = _roundInt128(
             truncated: truncated,
             remainder: remainder,
-            denominator: den128,
+            denominator: denominator128,
             rule: rounding
         )
 
