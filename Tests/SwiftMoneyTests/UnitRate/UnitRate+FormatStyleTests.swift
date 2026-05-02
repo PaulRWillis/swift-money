@@ -45,7 +45,7 @@ struct UnitRateFormatStyleTests {
     func rateModeCustomSeparator() throws {
         let rate = try #require(Rate(numerator: 23, denominator: 1_000_000))
         let unitRate = UnitRate<GBP, String>(rate, per: "kWh")
-        #expect(unitRate.formatted(.rate.separator(" / ")) == "23/1000000 / kWh")
+        #expect(unitRate.formatted(.rate.separator(.spacedSlash)) == "23/1000000 / kWh")
     }
 
     @Test("rate mode: multi-word unit")
@@ -108,7 +108,7 @@ struct UnitRateFormatStyleTests {
     func numberModeCustomSeparator() throws {
         let rate = try #require(Rate(numerator: 23, denominator: 1_000_000))
         let unitRate = UnitRate<GBP, String>(rate, per: "kWh")
-        let result = unitRate.formatted(.number.locale(enUS).separator(" per "))
+        let result = unitRate.formatted(.number.locale(enUS).separator(.custom(" per ")))
         #expect(result == "0.000023 per kWh")
     }
 
@@ -166,7 +166,7 @@ struct UnitRateFormatStyleTests {
     func priceModeCustomSeparator() throws {
         let rate = try #require(Rate(numerator: 14500, denominator: 200))
         let unitRate = UnitRate<USD, String>(rate, per: "barrel")
-        let result = unitRate.formatted(.price.locale(enUS).separator(" per "))
+        let result = unitRate.formatted(.price.locale(enUS).separator(.custom(" per ")))
         #expect(result == "$72.50 per barrel")
     }
 
@@ -186,7 +186,7 @@ struct UnitRateFormatStyleTests {
     func separatorModifier() throws {
         let rate = try #require(Rate(numerator: 1, denominator: 1))
         let unitRate = UnitRate<GBP, String>(rate, per: "hr")
-        #expect(unitRate.formatted(.rate.separator(" per ")) == "1/1 per hr")
+        #expect(unitRate.formatted(.rate.separator(.custom(" per "))) == "1/1 per hr")
     }
 
     // MARK: - Static factories
@@ -338,7 +338,7 @@ struct UnitRateFormatStyleDimensionTests {
     func customSeparatorDimension() throws {
         let rate = try #require(Rate(numerator: 5, denominator: 1))
         let unitRate = UnitRate<GBP, UnitEnergy>(rate, per: .kilowattHours)
-        let result = unitRate.formatted(.number.locale(enGB).separator(" per "))
+        let result = unitRate.formatted(.number.locale(enGB).separator(.custom(" per ")))
         #expect(result == "5 per kWh")
     }
 
@@ -386,7 +386,7 @@ struct UnitRateFormatStyleDimensionTests {
     func chainedModifiers() throws {
         let rate = try #require(Rate(numerator: 5, denominator: 1))
         let unitRate = UnitRate<EUR, UnitEnergy>(rate, per: .kilowattHours)
-        let result = unitRate.formatted(.number.locale(deDE).separator(" pro ").unitWidth(.abbreviated))
+        let result = unitRate.formatted(.number.locale(deDE).separator(.custom(" pro ")).unitWidth(.abbreviated))
         #expect(result == "5 pro kWh")
     }
 

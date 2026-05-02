@@ -42,26 +42,43 @@ extension UnitRate where U: CustomStringConvertible {
             case narrow
         }
 
+        /// The separator placed between the formatted value and unit label.
+        public struct Separator: Codable, Equatable, Hashable, Sendable {
+            /// The raw separator string.
+            internal let rawValue: String
+
+            internal init(_ rawValue: String) { self.rawValue = rawValue }
+
+            /// `"/"` — a forward slash with no spaces (default).
+            public static var slash: Separator { Separator("/") }
+
+            /// `" / "` — a forward slash surrounded by spaces.
+            public static var spacedSlash: Separator { Separator(" / ") }
+
+            /// A custom separator string.
+            public static func custom(_ separator: String) -> Separator { Separator(separator) }
+        }
+
         // MARK: - Stored state
 
         private var mode: Mode
         private var locale: Locale
-        private var separator: String
+        private var separator: Separator
         private var unitWidth: UnitWidth
 
         // MARK: - Initialiser
 
-        /// Creates a format style with the given mode, locale, and separator.
+        /// Creates a format style with the given mode, locale, separator, and unit width.
         ///
         /// - Parameters:
         ///   - mode: The output mode. Defaults to `.rate`.
         ///   - locale: The locale for number/currency formatting. Defaults to `.autoupdatingCurrent`.
-        ///   - separator: The string placed between the value and unit. Defaults to `"/"`.
+        ///   - separator: The separator between value and unit. Defaults to `.slash`.
         ///   - unitWidth: The width of the unit label for `Dimension` units. Defaults to `.abbreviated`.
         public init(
             _ mode: Mode = .rate,
             locale: Locale = .autoupdatingCurrent,
-            separator: String = "/",
+            separator: Separator = .slash,
             unitWidth: UnitWidth = .abbreviated
         ) {
             self.mode = mode
@@ -78,7 +95,7 @@ extension UnitRate where U: CustomStringConvertible {
         }
 
         /// Returns a copy with the given separator between value and unit.
-        public func separator(_ separator: String) -> FormatStyle {
+        public func separator(_ separator: Separator) -> FormatStyle {
             var s = self; s.separator = separator; return s
         }
 
@@ -114,7 +131,7 @@ extension UnitRate where U: CustomStringConvertible {
                 valueString = _formatPrice(value.rate)
             }
 
-            return "\(valueString)\(separator)\(unitLabel)"
+            return "\(valueString)\(separator.rawValue)\(unitLabel)"
         }
 
         // MARK: - Private helpers
