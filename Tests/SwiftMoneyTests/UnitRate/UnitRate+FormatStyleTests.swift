@@ -341,6 +341,85 @@ struct UnitRateFormatStyleDimensionTests {
         let result = unitRate.formatted(.number.locale(enGB).separator(" per "))
         #expect(result == "5 per kWh")
     }
+
+    // MARK: - Narrow unit width
+
+    @Test("Dimension unit with narrow width")
+    func dimensionNarrowWidth() throws {
+        let rate = try #require(Rate(numerator: 1, denominator: 1))
+        let unitRate = UnitRate<EUR, UnitLength>(rate, per: .kilometers)
+        let result = unitRate.formatted(.number.locale(enUS).unitWidth(.narrow))
+        #expect(result.contains("km"))
+    }
+
+    // MARK: - Additional Dimension units
+
+    @Test("UnitMass abbreviation (en_US)")
+    func dimensionMassAbbreviated() throws {
+        let rate = try #require(Rate(numerator: 3, denominator: 1))
+        let unitRate = UnitRate<USD, UnitMass>(rate, per: .kilograms)
+        let result = unitRate.formatted(.number.locale(enUS).unitWidth(.abbreviated))
+        #expect(result == "3/kg")
+    }
+
+    @Test("UnitMass wide (en_US)")
+    func dimensionMassWide() throws {
+        let rate = try #require(Rate(numerator: 3, denominator: 1))
+        let unitRate = UnitRate<USD, UnitMass>(rate, per: .kilograms)
+        let result = unitRate.formatted(.number.locale(enUS).unitWidth(.wide))
+        #expect(result.contains("kilogram"))
+    }
+
+    // MARK: - French locale
+
+    @Test("number mode with French locale uses comma")
+    func dimensionFrenchNumber() throws {
+        let rate = try #require(Rate(numerator: 1, denominator: 2))
+        let unitRate = UnitRate<EUR, UnitEnergy>(rate, per: .kilowattHours)
+        let result = unitRate.formatted(.number.locale(frFR))
+        #expect(result.contains("0,5"))
+    }
+
+    // MARK: - Chained modifiers
+
+    @Test("chained modifiers: locale + separator + unitWidth")
+    func chainedModifiers() throws {
+        let rate = try #require(Rate(numerator: 5, denominator: 1))
+        let unitRate = UnitRate<EUR, UnitEnergy>(rate, per: .kilowattHours)
+        let result = unitRate.formatted(.number.locale(deDE).separator(" pro ").unitWidth(.abbreviated))
+        #expect(result == "5 pro kWh")
+    }
+
+    // MARK: - Price mode with Dimension
+
+    @Test("price mode with UnitMass (USD)")
+    func priceModeMass() throws {
+        let rate = try #require(Rate(numerator: 5, denominator: 1))
+        let unitRate = UnitRate<USD, UnitMass>(rate, per: .kilograms)
+        let result = unitRate.formatted(.price.locale(enUS))
+        #expect(result == "$5.00/kg")
+    }
+
+    // MARK: - formatted(_:) with explicit init
+
+    @Test("formatted(_:) with explicit FormatStyle init for Dimension")
+    func formattedExplicitInit() throws {
+        let rate = try #require(Rate(numerator: 10, denominator: 1))
+        let unitRate = UnitRate<GBP, UnitEnergy>(rate, per: .kilowattHours)
+        let style = UnitRate<GBP, UnitEnergy>.FormatStyle(.number, locale: enGB)
+        let result = unitRate.formatted(style)
+        #expect(result == "10/kWh")
+    }
+
+    // MARK: - Very small rates
+
+    @Test("price mode very small rate shows sufficient decimals")
+    func priceVerySmallRate() throws {
+        let rate = try #require(Rate(numerator: 1, denominator: 10_000_000))
+        let unitRate = UnitRate<GBP, UnitEnergy>(rate, per: .kilowattHours)
+        let result = unitRate.formatted(.price.locale(enGB))
+        #expect(result == "£0.0000001/kWh")
+    }
 }
 
 #endif
