@@ -29,66 +29,72 @@ extension UnitRate {
         forQuantity quantity: Int64,
         rounding: FloatingPointRoundingRule = .toNearestOrAwayFromZero
     ) -> RateCalculation<C> {
-        let minQ = C.minimalQuantisation.int64Value
-
-        // Zero quantity: 0 × anything == 0; effective rate is undefined, use zero.
         if quantity == 0 {
             return RateCalculation(amount: .zero, effectiveRate: .zero)
         }
 
-        // Zero numerator: any quantity × 0 == 0.
         if rate.numeratorValue == 0 {
             return RateCalculation(amount: .zero, effectiveRate: rate)
         }
 
-        let denominator = rate.denominatorValue
-
-        // GCD pre-reduction to maximise range before Int128 multiplication.
-        // Reduce quantity against denominator, and minQ against the remaining denominator.
-        let absQuantity = quantity < 0 ? -quantity : quantity
-        let g1 = _gcd(absQuantity, denominator)
-        let reducedQty = quantity / g1
-        let remainingDen = denominator / g1
-
-        let g2 = _gcd(minQ, remainingDen)
-        let reducedMinQ = minQ / g2
-        let reducedDen = remainingDen / g2
-
-        // Multiply in Int128. After reduction the product is much smaller.
-        let product = Int128(reducedQty) * Int128(rate.numeratorValue) * Int128(reducedMinQ)
-        let den128 = Int128(reducedDen)
-
-        let (truncated, remainder) = product.quotientAndRemainder(dividingBy: den128)
-
-        // Apply rounding.
-        let minorUnits128 = _roundInt128(
-            truncated: truncated,
-            remainder: remainder,
-            denominator: den128,
-            rule: rounding
-        )
-
-        // Bounds check.
-        precondition(
-            minorUnits128 >= Int128(Int64.min) && minorUnits128 <= Int128(Int64.max),
-            "UnitRate price calculation overflows Int64"
-        )
-        let minorUnits = Int64(minorUnits128)
-        precondition(
-            minorUnits != .min,
-            "UnitRate price calculation produced NaN sentinel"
+        let minorUnits = computeMinorUnits(
+            quantity: quantity,
+            rounding: rounding
         )
 
         let resultMoney = Money<C>(_unchecked: minorUnits)
-
-        // Build effective rate = result / quantity (normalised so denominator > 0).
-        let effectiveRate: Rate
-        if quantity > 0 {
-            effectiveRate = Rate(_unchecked: minorUnits, denominator: quantity)
-        } else {
-            effectiveRate = Rate(_unchecked: -minorUnits, denominator: -quantity)
-        }
-
+        let effectiveRate = effectiveRate(minorUnits: minorUnits, quantity: quantity)
         return RateCalculation(amount: resultMoney, effectiveRate: effectiveRate)
+    }
+
+    // MARK: - Private helpers
+
+    /// GCD-reduces and multiplies `quantity × rate × minimalQuantisation`,
+    /// rounds, and returns the result as a validated `Int64`.
+    private func computeMinorUnits(
+        quantity: Int64,
+        rounding: FloatingPointRoundingRule
+    ) -> Int64 {
+        let minimalQuantisation = C.minimalQuantisation.int64Value
+        let denominator = rate.denominatorValue
+        let absoluteQuantity = quantity < 0 ? -quantity : quantity
+
+        // GCD pass 1: reduce quantity against denominator.
+        let quantityDenominatorGCD = _gcd(absoluteQuantity, denominator)
+        let reducedQuantity = quantity / quantityDenominatorGCD
+        let remainingDenominator = denominator / quantityDenominatorGCD
+
+        // GCD pass 2: reduce minimal quantisation against remaining denominator.
+        let quantisationDenominatorGCD = _gcd(minimalQuantisation, remainingDenominator)
+        let reducedMinimalQuantisation = minimalQuantisation / quantisationDenominatorGCD
+        let reducedDenominator = Int128(remainingDenominator / quantisationDenominatorGCD)
+
+        let product = Int128(reducedQuantity)
+            * Int128(rate.numeratorValue)
+            * Int128(reducedMinimalQuantisation)
+
+        let (truncated, remainder) = product.quotientAndRemainder(dividingBy: reducedDenominator)
+
+        let minorUnits128 = _roundInt128(
+            truncated: truncated,
+            remainder: remainder,
+            denominator: reducedDenominator,
+            rule: rounding
+        )
+
+        guard let minorUnits = Int64(exactly: minorUnits128) else {
+            preconditionFailure("UnitRate price calculation overflows Int64")
+        }
+        precondition(minorUnits != .min, "UnitRate price calculation produced NaN sentinel")
+        return minorUnits
+    }
+
+    /// Builds the effective rate as `minorUnits / quantity`, normalised
+    /// so the denominator is positive.
+    private func effectiveRate(minorUnits: Int64, quantity: Int64) -> Rate {
+        if quantity > 0 {
+            return Rate(_unchecked: minorUnits, denominator: quantity)
+        }
+        return Rate(_unchecked: -minorUnits, denominator: -quantity)
     }
 }

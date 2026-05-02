@@ -8,14 +8,16 @@ struct UnitRate_DecimalTests {
 
     @Test("init from Decimal 0.000023 per kWh")
     func decimalEnergyRate() throws {
-        let unitRate = UnitRate<GBP, String>(Decimal(string: "0.000023")!, per: "kWh")
+        let decimal = try #require(Decimal(string: "0.000023"))
+        let unitRate = UnitRate<GBP, String>(decimal, per: "kWh")
         let expected = try #require(UnitRate<GBP, String>(numerator: 23, denominator: 1_000_000, per: "kWh"))
         #expect(unitRate == expected)
     }
 
     @Test("init from Decimal 72.50 per barrel")
     func decimalOilPrice() throws {
-        let unitRate = UnitRate<USD, String>(Decimal(string: "72.50")!, per: "barrel")
+        let decimal = try #require(Decimal(string: "72.50"))
+        let unitRate = UnitRate<USD, String>(decimal, per: "barrel")
         let expected = try #require(UnitRate<USD, String>(numerator: 145, denominator: 2, per: "barrel"))
         #expect(unitRate == expected)
     }
@@ -33,7 +35,8 @@ struct UnitRate_DecimalTests {
 
     @Test("init from negative Decimal -0.05 (feed-in credit)")
     func negativeDecimal() throws {
-        let unitRate = UnitRate<GBP, String>(Decimal(string: "-0.05")!, per: "kWh")
+        let decimal = try #require(Decimal(string: "-0.05"))
+        let unitRate = UnitRate<GBP, String>(decimal, per: "kWh")
         let expected = try #require(UnitRate<GBP, String>(numerator: -1, denominator: 20, per: "kWh"))
         #expect(unitRate == expected)
     }
