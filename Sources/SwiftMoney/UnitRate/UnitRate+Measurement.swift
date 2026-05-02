@@ -95,80 +95,74 @@ extension UnitRate where U: Dimension {
         return quantityRate
     }
 
-    /// Computes the minor units for a fractional quantity × rate calculation.
+    /// Cross-reduces a signed numerator against a positive denominator
+    /// by their GCD, preserving the numerator's sign.
+    private func crossReduce(
+        numerator: Int64,
+        denominator: Int64
+    ) -> (numerator: Int64, denominator: Int64) {
+        let absoluteNumerator = numerator < 0 ? -numerator : numerator
+        let gcd = _gcd(absoluteNumerator, denominator)
+        return (numerator / gcd, denominator / gcd)
+    }
+
+    /// Three-pass GCD cross-reduction of `quantity × rate × minimalQuantisation`.
     ///
-    /// Performs three passes of GCD pre-reduction across all factors to maximise
-    /// the range of inputs computable without overflow, then multiplies in
-    /// `Int128` and applies rounding.
+    /// Returns the fully reduced (numerator, denominator) pair ready for
+    /// division and rounding.
+    private func reducedProduct(
+        quantity: Rate
+    ) -> (numerator: Int128, denominator: Int128) {
+        // Pass 1: cross-reduce quantity numerator against rate denominator.
+        let (reducedQuantityNumerator, reducedRateDenominator) = crossReduce(
+            numerator: quantity.numeratorValue, denominator: rate.denominatorValue)
+        // Pass 2: cross-reduce rate numerator against quantity denominator.
+        let (reducedRateNumerator, reducedQuantityDenominator) = crossReduce(
+            numerator: rate.numeratorValue, denominator: quantity.denominatorValue)
+
+        let remainingDenominator = Int128(reducedQuantityDenominator)
+            * Int128(reducedRateDenominator)
+
+        // Pass 3: reduce minimal quantisation against combined denominator.
+        let minimalQuantisation = Int128(C.minimalQuantisation.int64Value)
+        let quantisationGCD = _gcd(minimalQuantisation, remainingDenominator)
+
+        let numerator = Int128(reducedQuantityNumerator)
+            * Int128(reducedRateNumerator)
+            * (minimalQuantisation / quantisationGCD)
+        let denominator = remainingDenominator / quantisationGCD
+        return (numerator, denominator)
+    }
+
+    /// Computes the minor units for a fractional quantity × rate calculation.
     ///
     /// Returns `nil` if the result overflows `Int64` or equals the NaN sentinel.
     private func computeMinorUnits(
         quantity: Rate,
         rounding: FloatingPointRoundingRule
     ) -> Int64? {
-        let quantityNumerator = quantity.numeratorValue
-        let quantityDenominator = quantity.denominatorValue
-        let rateNumerator = rate.numeratorValue
-        let rateDenominator = rate.denominatorValue
-        let minimalQuantisation = C.minimalQuantisation.int64Value
+        let (numerator, denominator) = reducedProduct(quantity: quantity)
+        guard denominator != 0 else { return nil }
 
-        let absoluteQuantityNumerator = quantityNumerator < 0
-            ? -quantityNumerator : quantityNumerator
-        let absoluteRateNumerator = rateNumerator < 0
-            ? -rateNumerator : rateNumerator
-
-        // GCD pass 1: reduce quantity numerator against rate denominator.
-        let quantityRateGCD = _gcd(absoluteQuantityNumerator, rateDenominator)
-        let reducedQuantityNumerator = quantityNumerator / quantityRateGCD
-        let reducedRateDenominator = rateDenominator / quantityRateGCD
-
-        // GCD pass 2: reduce rate numerator against quantity denominator.
-        let rateQuantityGCD = _gcd(absoluteRateNumerator, quantityDenominator)
-        let reducedRateNumerator = rateNumerator / rateQuantityGCD
-        let reducedQuantityDenominator = quantityDenominator / rateQuantityGCD
-
-        let remainingDenominator = Int128(reducedQuantityDenominator)
-            * Int128(reducedRateDenominator)
-
-        // GCD pass 3: reduce minimal quantisation against remaining denominator.
-        let canReduceWithRemainingDenominator =
-            remainingDenominator <= Int128(Int64.max) && remainingDenominator > 0
-        let denominatorForQuantisationGCD = canReduceWithRemainingDenominator
-            ? Int64(remainingDenominator) : 1
-        let quantisationGCD = _gcd(minimalQuantisation, denominatorForQuantisationGCD)
-        let reducedMinimalQuantisation = minimalQuantisation / quantisationGCD
-        let finalDenominator = remainingDenominator / Int128(quantisationGCD)
-
-        let product = Int128(reducedQuantityNumerator)
-            * Int128(reducedRateNumerator)
-            * Int128(reducedMinimalQuantisation)
-
-        guard finalDenominator != 0 else { return nil }
-        let (truncated, remainder) = product.quotientAndRemainder(
-            dividingBy: finalDenominator
-        )
-
+        let (truncated, remainder) = numerator.quotientAndRemainder(
+            dividingBy: denominator)
         let minorUnits128 = _roundInt128(
             truncated: truncated,
             remainder: remainder,
-            denominator: finalDenominator,
+            denominator: denominator,
             rule: rounding
         )
 
-        // Int64.min is reserved as the NaN sentinel for Money,
-        // so the valid range is (Int64.min, Int64.max].
         guard let minorUnits = Int64(exactly: minorUnits128),
               minorUnits != .min else {
             return nil
         }
-
         return minorUnits
     }
 
     /// Computes the effective rate as minor units per original quantity.
     ///
-    /// `effectiveRate = minorUnits / (quantityNumerator / quantityDenominator)`
-    /// `= minorUnits × quantityDenominator / quantityNumerator`
+    /// `effectiveRate = minorUnits × quantityDenominator / quantityNumerator`
     ///
     /// Pre-reduces by GCD to minimise overflow risk. Returns `nil` if the
     /// result cannot be expressed in `Int64` without precision loss.
@@ -176,38 +170,26 @@ extension UnitRate where U: Dimension {
         minorUnits: Int64,
         quantity: Rate
     ) -> Rate? {
-        let quantityNumerator = quantity.numeratorValue
-        let quantityDenominator = quantity.denominatorValue
+        let isNegative = (minorUnits < 0) != (quantity.numeratorValue < 0)
 
         let absoluteMinorUnits = minorUnits < 0 ? -minorUnits : minorUnits
-        let absoluteQuantityNumerator = quantityNumerator < 0
-            ? -quantityNumerator : quantityNumerator
+        let absoluteQuantityNumerator = quantity.numeratorValue < 0
+            ? -quantity.numeratorValue : quantity.numeratorValue
 
-        let minorUnitsQuantityGCD = _gcd(absoluteMinorUnits,
-                                         absoluteQuantityNumerator)
-        let reducedMinorUnits = minorUnits / minorUnitsQuantityGCD
-        let reducedQuantityNumerator = quantityNumerator / minorUnitsQuantityGCD
+        let gcd = _gcd(absoluteMinorUnits, absoluteQuantityNumerator)
+        let reducedMinorUnits = absoluteMinorUnits / gcd
+        let reducedQuantityNumerator = absoluteQuantityNumerator / gcd
 
-        // Normalise so denominator is positive: if quantity is negative,
-        // negate both numerator and denominator.
-        let isQuantityNegative = quantityNumerator < 0
-        let signedMinorUnits = isQuantityNegative
-            ? -reducedMinorUnits : reducedMinorUnits
-        let signedQuantityNumerator = isQuantityNegative
-            ? -reducedQuantityNumerator : reducedQuantityNumerator
+        let scaledNumerator = Int128(reducedMinorUnits)
+            * Int128(quantity.denominatorValue)
 
-        let scaledNumerator = Int128(signedMinorUnits)
-            * Int128(quantityDenominator)
-        let scaledDenominator = Int128(signedQuantityNumerator)
-
-        guard let effectiveNumerator = Int64(exactly: scaledNumerator),
-              let effectiveDenominator = Int64(exactly: scaledDenominator),
-              effectiveDenominator >= 1 else {
+        guard let numerator = Int64(exactly: scaledNumerator),
+              reducedQuantityNumerator >= 1 else {
             return nil
         }
 
-        return Rate(_unchecked: effectiveNumerator,
-                     denominator: effectiveDenominator)
+        return Rate(_unchecked: isNegative ? -numerator : numerator,
+                     denominator: reducedQuantityNumerator)
     }
 }
 #endif
