@@ -69,6 +69,11 @@ public struct Rate: Sendable {
 
     /// The denominator of the reduced fraction. Always greater than zero.
     public var denominatorValue: Int64 { _denominator }
+
+    // MARK: - Constants
+
+    /// The zero rate (`0/1`).
+    public static let zero = Rate(_unchecked: 0, denominator: 1)
 }
 
 // MARK: - Private helpers

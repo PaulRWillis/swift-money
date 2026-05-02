@@ -12,3 +12,28 @@ extension Rate: CustomStringConvertible {
         "\(_numerator)/\(_denominator)"
     }
 }
+
+// MARK: - LosslessStringConvertible
+
+extension Rate: LosslessStringConvertible {
+    /// Creates a `Rate` from its string representation.
+    ///
+    /// The string must be in the form `"numerator/denominator"` where both
+    /// components are valid `Int64` values and the denominator is positive.
+    ///
+    /// ```swift
+    /// let rate = Rate("23/1000000")   // 23/1000000
+    /// let bad  = Rate("3/0")          // nil
+    /// ```
+    ///
+    /// - Parameter description: A string in `"n/d"` format.
+    public init?(_ description: String) {
+        let parts = description.split(separator: "/", maxSplits: 1)
+        guard parts.count == 2,
+              !parts[1].contains("/"),
+              let n = Int64(parts[0]),
+              let d = Int64(parts[1])
+        else { return nil }
+        self.init(numerator: n, denominator: d)
+    }
+}
