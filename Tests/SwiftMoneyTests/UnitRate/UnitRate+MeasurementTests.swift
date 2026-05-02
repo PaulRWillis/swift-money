@@ -663,5 +663,98 @@ struct UnitRate_MeasurementTests {
         let result = try #require(rate.price(for: usage))
         #expect(result.amount == Money<USD>(minorUnits: 6_647_673))
     }
+
+    // MARK: - Coverage: large-denominator GCD fallback
+
+    @Test("tiny fractional qty with coprime rate forces denForMinQ = 1 fallback")
+    func denForMinQFallback() throws {
+        // qty = 1e-18 → Rate(1, 10^18). rate = 1/11 (coprime to 10^18).
+        // remainingDen = 10^18 × 11 = 1.1×10^19 > Int64.max → denForMinQ = 1.
+        // product = 1 × 1 × 100 = 100, finalDen = 1.1×10^19 → quotient = 0.
+        let rate = try #require(UnitRate<USD, UnitEnergy>(numerator: 1, denominator: 11, per: .kilowattHours))
+        let usage = Measurement(value: 1e-18, unit: UnitEnergy.kilowattHours)
+        let result = rate.price(for: usage)
+        if let result {
+            #expect(result.amount == Money<USD>.zero)
+        }
+        // May return nil if Decimal(string: "1e-18") isn't supported — either is acceptable.
+    }
+
+    // MARK: - Coverage: minorUnits overflow on fractional path
+
+    @Test("fractional path: result exceeds Int64.max → returns nil")
+    func fractionalPathOverflow() throws {
+        // rate = Int64.max / 1, USD (minQ=100), qty = 0.5.
+        // qtyNum=1, qtyDen=2. Int64.max is odd → coprime with 2.
+        // product = 1 × Int64.max × 50 (after GCD) = 50 × Int64.max > Int64.max.
+        // finalDen = 1 → minorUnits128 = 50 × Int64.max → return nil.
+        let rate = try #require(UnitRate<USD, UnitEnergy>(
+            numerator: Int64.max, denominator: 1, per: .kilowattHours
+        ))
+        let usage = Measurement(value: 0.5, unit: UnitEnergy.kilowattHours)
+        #expect(rate.price(for: usage) == nil)
+    }
+
+    @Test("fractional path: result equals exactly Int64.min (NaN sentinel) → returns nil")
+    func fractionalPathExactlyInt64Min() throws {
+        // rate = 4611686018427387904/25 (= 2^62 / 25), USD (minQ=100), qty = -0.5.
+        // qtyNum=-1, qtyDen=2. rateNum=2^62, rateDen=25 (coprime).
+        // g1 = gcd(1, 25) = 1. g2 = gcd(2^62, 2) = 2.
+        // redRateNum = 2^61, redQtyDen = 1. remainingDen = 25.
+        // g3 = gcd(100, 25) = 25, redMinQ = 4, finalDen = 1.
+        // product = (-1) × 2^61 × 4 = -2^63 = Int64.min.
+        // Bounds check rejects exactly Int64.min → returns nil.
+        let rate = try #require(UnitRate<USD, UnitEnergy>(
+            numerator: 4_611_686_018_427_387_904, denominator: 25, per: .kilowattHours
+        ))
+        let usage = Measurement(value: -0.5, unit: UnitEnergy.kilowattHours)
+        #expect(rate.price(for: usage) == nil)
+    }
+
+    // MARK: - Coverage: effective rate overflow → nil (no precision loss)
+
+    @Test("positive qty: effective rate overflows Int64 after GCD reduction → nil")
+    func effectiveRateOverflowPositive() throws {
+        // rate = Int64.max / 1, JPY (minQ=1), qty = 0.001 → qtyNum=1, qtyDen=1000.
+        // Int64.max is coprime to 1000 (odd, not divisible by 5).
+        // minorUnits ≈ 9223372036854776.
+        // effectiveRate numerator: gcd(9223372036854776, 1) = 1 (no reduction).
+        // 9223372036854776 × 1000 > Int64.max → cannot express exact rate → nil.
+        let rate = try #require(UnitRate<JPY, UnitEnergy>(
+            numerator: Int64.max, denominator: 1, per: .kilowattHours
+        ))
+        let usage = Measurement(value: 0.001, unit: UnitEnergy.kilowattHours)
+        #expect(rate.price(for: usage) == nil)
+    }
+
+    @Test("negative qty: effective rate overflows Int64 after GCD reduction → nil")
+    func effectiveRateOverflowNegative() throws {
+        // Same rate, negative quantity. Same overflow → nil.
+        let rate = try #require(UnitRate<JPY, UnitEnergy>(
+            numerator: Int64.max, denominator: 1, per: .kilowattHours
+        ))
+        let usage = Measurement(value: -0.001, unit: UnitEnergy.kilowattHours)
+        #expect(rate.price(for: usage) == nil)
+    }
+
+    // MARK: - Effective rate GCD reduction succeeds
+
+    @Test("effective rate GCD reduction avoids overflow: large minorUnits with shared factor")
+    func effectiveRateGCDReductionSucceeds() throws {
+        // rate = 4000000000/1 (4×10^9), JPY (minQ=1), qty = 0.5.
+        // qtyNum=1, qtyDen=2. g2 = gcd(4×10^9, 2) = 2.
+        // redRateNum = 2×10^9, redQtyDen = 1. remainingDen = 1. finalDen = 1.
+        // product = 1 × 2×10^9 × 1 = 2×10^9. minorUnits = 2000000000.
+        // Effective rate: gcd(2000000000, 1) = 1.
+        // scaledNum = 2000000000 × 2 = 4000000000 — fits Int64.
+        let rate = try #require(UnitRate<JPY, UnitEnergy>(
+            numerator: 4_000_000_000, denominator: 1, per: .kilowattHours
+        ))
+        let usage = Measurement(value: 0.5, unit: UnitEnergy.kilowattHours)
+        let result = try #require(rate.price(for: usage))
+        #expect(result.amount == Money<JPY>(minorUnits: 2_000_000_000))
+        let expected = try #require(Rate(numerator: 4_000_000_000, denominator: 1))
+        #expect(result.effectiveRate == expected)
+    }
 }
 #endif

@@ -60,10 +60,9 @@ extension UnitRate where U: Dimension {
         let rateDen = rate.denominatorValue
         let minQ = C.minimalQuantisation.int64Value
 
-        // Zero quantity.
-        if qtyNum == 0 {
-            return RateCalculation(amount: .zero, effectiveRate: .zero)
-        }
+        // Zero values (0.0, -0.0) always take the integer fast path above.
+        // No non-integer Double can produce a Decimal with numerator 0.
+        precondition(qtyNum != 0, "Zero quantity must take the integer fast path")
 
         // Zero rate.
         if rateNum == 0 {
@@ -87,7 +86,6 @@ extension UnitRate where U: Dimension {
         let remainingDen = Int128(redQtyDen) * Int128(redRateDen)
 
         // Try to reduce minQ against remaining denominator.
-        let minQ128 = Int128(minQ)
         let denForMinQ: Int64
         if remainingDen <= Int128(Int64.max) && remainingDen > 0 {
             denForMinQ = Int64(remainingDen)
@@ -110,41 +108,49 @@ extension UnitRate where U: Dimension {
             rule: rounding
         )
 
-        // Bounds check.
-        guard minorUnits128 >= Int128(Int64.min),
+        // Bounds check. Int64.min is reserved as the NaN sentinel for Money,
+        // so the valid range is (Int64.min, Int64.max] — strictly greater than min.
+        guard minorUnits128 > Int128(Int64.min),
               minorUnits128 <= Int128(Int64.max) else {
             return nil
         }
         let minorUnits = Int64(minorUnits128)
-        guard minorUnits != .min else { return nil }
 
         let resultMoney = Money<C>(_unchecked: minorUnits)
 
         // Effective rate: minorUnits per original quantity (as fraction).
-        // effectiveRate = minorUnits × qtyDen / (qtyNum × minQ_original)
-        // But for simplicity, use the combined denominator approach:
-        // The "quantity" in major-unit terms for effective rate is qtyNum/qtyDen.
         // effectiveRate = minorUnits / (qtyNum/qtyDen) = minorUnits × qtyDen / qtyNum
+        //
+        // Pre-reduce minorUnits and qtyNum by their GCD to minimise the
+        // intermediate product and keep values within Int64 range. If the
+        // result still overflows, the calculation cannot be expressed without
+        // precision loss — return nil.
         let effNum: Int64
         let effDen: Int64
         if qtyNum > 0 {
-            // Normalise so denominator is positive.
-            let scaledNum = Int128(minorUnits) * Int128(qtyDen)
-            let scaledDen = Int128(qtyNum)
-            // Reduce to Int64.
+            let absMinorUnits = minorUnits < 0 ? -minorUnits : minorUnits
+            let g = _gcd(absMinorUnits, qtyNum)
+            let reducedMU = minorUnits / g
+            let reducedQN = qtyNum / g
+            let scaledNum = Int128(reducedMU) * Int128(qtyDen)
+            let scaledDen = Int128(reducedQN)
             guard scaledNum >= Int128(Int64.min), scaledNum <= Int128(Int64.max),
                   scaledDen >= 1, scaledDen <= Int128(Int64.max) else {
-                // Fallback: report zero effective rate if it can't be expressed.
-                return RateCalculation(amount: resultMoney, effectiveRate: .zero)
+                return nil
             }
             effNum = Int64(scaledNum)
             effDen = Int64(scaledDen)
         } else {
-            let scaledNum = Int128(-minorUnits) * Int128(qtyDen)
-            let scaledDen = Int128(-qtyNum)
+            let absMU = minorUnits < 0 ? -minorUnits : minorUnits
+            let absQN = -qtyNum  // qtyNum < 0 here
+            let g = _gcd(absMU, absQN)
+            let reducedMU = -minorUnits / g  // negate for positive numerator
+            let reducedQN = absQN / g
+            let scaledNum = Int128(reducedMU) * Int128(qtyDen)
+            let scaledDen = Int128(reducedQN)
             guard scaledNum >= Int128(Int64.min), scaledNum <= Int128(Int64.max),
                   scaledDen >= 1, scaledDen <= Int128(Int64.max) else {
-                return RateCalculation(amount: resultMoney, effectiveRate: .zero)
+                return nil
             }
             effNum = Int64(scaledNum)
             effDen = Int64(scaledDen)
