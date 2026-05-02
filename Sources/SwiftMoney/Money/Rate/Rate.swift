@@ -80,20 +80,7 @@ public struct Rate: Sendable {
 
 /// Euclidean GCD. `a` must be ≥ 0; `b` must be > 0.
 /// Returns 1 when `a` is 0 so callers can always divide safely.
-internal func _gcd(_ a: Int64, _ b: Int64) -> Int64 {
-    var a = a
-    var b = b
-    while b != 0 {
-        let t = b
-        b = a % b
-        a = t
-    }
-    return a == 0 ? 1 : a
-}
-
-/// Euclidean GCD for `Int128`. `a` must be ≥ 0; `b` must be > 0.
-/// Returns 1 when `a` is 0 so callers can always divide safely.
-internal func _gcd(_ a: Int128, _ b: Int128) -> Int128 {
+internal func _gcd<T: BinaryInteger>(_ a: T, _ b: T) -> T {
     var a = a
     var b = b
     while b != 0 {
