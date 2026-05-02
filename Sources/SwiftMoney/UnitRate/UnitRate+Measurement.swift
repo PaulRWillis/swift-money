@@ -54,11 +54,7 @@ extension UnitRate where U: Dimension {
 
         // Compute minor units via GCD-reduced rational arithmetic.
         guard let minorUnits = computeMinorUnits(
-            quantityNumerator: quantityRate.numeratorValue,
-            quantityDenominator: quantityRate.denominatorValue,
-            rateNumerator: rate.numeratorValue,
-            rateDenominator: rate.denominatorValue,
-            minimalQuantisation: C.minimalQuantisation.int64Value,
+            quantity: quantityRate,
             rounding: rounding
         ) else {
             return nil
@@ -67,8 +63,7 @@ extension UnitRate where U: Dimension {
         // Compute effective rate: minorUnits per original quantity.
         guard let effectiveRate = effectiveRate(
             minorUnits: minorUnits,
-            quantityNumerator: quantityRate.numeratorValue,
-            quantityDenominator: quantityRate.denominatorValue
+            quantity: quantityRate
         ) else {
             return nil
         }
@@ -108,13 +103,15 @@ extension UnitRate where U: Dimension {
     ///
     /// Returns `nil` if the result overflows `Int64` or equals the NaN sentinel.
     private func computeMinorUnits(
-        quantityNumerator: Int64,
-        quantityDenominator: Int64,
-        rateNumerator: Int64,
-        rateDenominator: Int64,
-        minimalQuantisation: Int64,
+        quantity: Rate,
         rounding: FloatingPointRoundingRule
     ) -> Int64? {
+        let quantityNumerator = quantity.numeratorValue
+        let quantityDenominator = quantity.denominatorValue
+        let rateNumerator = rate.numeratorValue
+        let rateDenominator = rate.denominatorValue
+        let minimalQuantisation = C.minimalQuantisation.int64Value
+
         let absoluteQuantityNumerator = quantityNumerator < 0
             ? -quantityNumerator : quantityNumerator
         let absoluteRateNumerator = rateNumerator < 0
@@ -177,9 +174,11 @@ extension UnitRate where U: Dimension {
     /// result cannot be expressed in `Int64` without precision loss.
     private func effectiveRate(
         minorUnits: Int64,
-        quantityNumerator: Int64,
-        quantityDenominator: Int64
+        quantity: Rate
     ) -> Rate? {
+        let quantityNumerator = quantity.numeratorValue
+        let quantityDenominator = quantity.denominatorValue
+
         let absoluteMinorUnits = minorUnits < 0 ? -minorUnits : minorUnits
         let absoluteQuantityNumerator = quantityNumerator < 0
             ? -quantityNumerator : quantityNumerator
