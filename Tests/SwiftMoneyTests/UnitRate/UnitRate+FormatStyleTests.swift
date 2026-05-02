@@ -252,4 +252,95 @@ struct UnitRateFormatStyleTests {
     }
 }
 
+// MARK: - Dimension-specific formatting
+
+@Suite("UnitRate - FormatStyle (Dimension)")
+struct UnitRateFormatStyleDimensionTests {
+
+    private let enUS = Locale(identifier: "en_US")
+    private let deDE = Locale(identifier: "de_DE")
+    private let frFR = Locale(identifier: "fr_FR")
+    private let enGB = Locale(identifier: "en_GB")
+
+    // MARK: - Basic Dimension formatting
+
+    @Test("number mode with UnitEnergy abbreviated (en_US)")
+    func numberModeEnergyAbbreviated() throws {
+        let rate = try #require(Rate(numerator: 23, denominator: 1_000_000))
+        let unitRate = UnitRate<GBP, UnitEnergy>(rate, per: .kilowattHours)
+        let result = unitRate.formatted(.number.locale(enUS).unitWidth(.abbreviated))
+        #expect(result == "0.000023/kWh")
+    }
+
+    @Test("number mode with UnitEnergy wide (en_US)")
+    func numberModeEnergyWide() throws {
+        let rate = try #require(Rate(numerator: 23, denominator: 1_000_000))
+        let unitRate = UnitRate<GBP, UnitEnergy>(rate, per: .kilowattHours)
+        let result = unitRate.formatted(.number.locale(enUS).unitWidth(.wide))
+        #expect(result.contains("kilowatt"))
+    }
+
+    @Test("price mode with UnitEnergy (en_GB)")
+    func priceModeEnergy() throws {
+        let rate = try #require(Rate(numerator: 23, denominator: 1_000_000))
+        let unitRate = UnitRate<GBP, UnitEnergy>(rate, per: .kilowattHours)
+        let result = unitRate.formatted(.price.locale(enGB))
+        #expect(result == "£0.000023/kWh")
+    }
+
+    @Test("rate mode with Dimension uses localised label")
+    func rateModeEnergy() throws {
+        let rate = try #require(Rate(numerator: 5, denominator: 1))
+        let unitRate = UnitRate<USD, UnitEnergy>(rate, per: .kilowattHours)
+        let result = unitRate.formatted(.rate.locale(enUS))
+        #expect(result == "5/1/kWh")
+    }
+
+    // MARK: - Localisation
+
+    @Test("Dimension unit localised to German (abbreviated)")
+    func dimensionGermanAbbreviated() throws {
+        let rate = try #require(Rate(numerator: 1, denominator: 1))
+        let unitRate = UnitRate<EUR, UnitLength>(rate, per: .kilometers)
+        let result = unitRate.formatted(.number.locale(deDE).unitWidth(.abbreviated))
+        #expect(result == "1/km")
+    }
+
+    @Test("Dimension unit localised to German (wide)")
+    func dimensionGermanWide() throws {
+        let rate = try #require(Rate(numerator: 1, denominator: 1))
+        let unitRate = UnitRate<EUR, UnitLength>(rate, per: .kilometers)
+        let result = unitRate.formatted(.number.locale(deDE).unitWidth(.wide))
+        #expect(result.contains("Kilometer"))
+    }
+
+    @Test("Dimension unit localised to French (wide)")
+    func dimensionFrenchWide() throws {
+        let rate = try #require(Rate(numerator: 1, denominator: 1))
+        let unitRate = UnitRate<EUR, UnitLength>(rate, per: .kilometers)
+        let result = unitRate.formatted(.number.locale(frFR).unitWidth(.wide))
+        #expect(result.contains("kilomètre"))
+    }
+
+    // MARK: - formatted() default
+
+    @Test("Dimension formatted() uses abbreviated by default")
+    func dimensionFormattedDefault() throws {
+        let rate = try #require(Rate(numerator: 5, denominator: 1))
+        let unitRate = UnitRate<GBP, UnitEnergy>(rate, per: .kilowattHours)
+        let result = unitRate.formatted()
+        #expect(result.contains("kWh"))
+    }
+
+    // MARK: - Custom separator with Dimension
+
+    @Test("custom separator with Dimension unit")
+    func customSeparatorDimension() throws {
+        let rate = try #require(Rate(numerator: 5, denominator: 1))
+        let unitRate = UnitRate<GBP, UnitEnergy>(rate, per: .kilowattHours)
+        let result = unitRate.formatted(.number.locale(enGB).separator(" per "))
+        #expect(result == "5 per kWh")
+    }
+}
+
 #endif

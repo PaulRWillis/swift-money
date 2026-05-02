@@ -32,11 +32,22 @@ extension UnitRate where U: CustomStringConvertible {
             case price
         }
 
+        /// The width of the unit label (applies to `Dimension` units only).
+        public enum UnitWidth: String, Equatable, Hashable, Sendable, Codable {
+            /// Abbreviated symbol (e.g. `"kWh"`).
+            case abbreviated
+            /// Full name (e.g. `"kilowatt-hours"`).
+            case wide
+            /// Shortest form (e.g. `"kWh"`).
+            case narrow
+        }
+
         // MARK: - Stored state
 
         private var mode: Mode
         private var locale: Locale
         private var separator: String
+        private var unitWidth: UnitWidth
 
         // MARK: - Initialiser
 
@@ -46,14 +57,17 @@ extension UnitRate where U: CustomStringConvertible {
         ///   - mode: The output mode. Defaults to `.rate`.
         ///   - locale: The locale for number/currency formatting. Defaults to `.autoupdatingCurrent`.
         ///   - separator: The string placed between the value and unit. Defaults to `"/"`.
+        ///   - unitWidth: The width of the unit label for `Dimension` units. Defaults to `.abbreviated`.
         public init(
             _ mode: Mode = .rate,
             locale: Locale = .autoupdatingCurrent,
-            separator: String = "/"
+            separator: String = "/",
+            unitWidth: UnitWidth = .abbreviated
         ) {
             self.mode = mode
             self.locale = locale
             self.separator = separator
+            self.unitWidth = unitWidth
         }
 
         // MARK: - Modifiers
@@ -68,11 +82,24 @@ extension UnitRate where U: CustomStringConvertible {
             var s = self; s.separator = separator; return s
         }
 
+        /// Returns a copy with the given unit label width.
+        ///
+        /// Only affects `Dimension` units; `String` units always use their
+        /// literal value regardless of this setting.
+        public func unitWidth(_ width: UnitWidth) -> FormatStyle {
+            var s = self; s.unitWidth = width; return s
+        }
+
         // MARK: - Formatting
 
-        /// Formats the unit rate value.
+        /// Formats the unit rate value using `String(describing:)` for the unit label.
         internal func _format(_ value: UnitRate<C, U>) -> String {
             let unitLabel = String(describing: value.unit)
+            return _formatWithLabel(value, unitLabel: unitLabel)
+        }
+
+        /// Formats the unit rate value using a pre-resolved unit label.
+        internal func _formatWithLabel(_ value: UnitRate<C, U>, unitLabel: String) -> String {
             let valueString: String
 
             switch mode {
@@ -177,6 +204,51 @@ extension UnitRate.FormatStyle where U: CustomStringConvertible {
     /// unitRate.formatted(.price)  // "£0.000023/kWh"
     /// ```
     public static var price: Self { .init(.price) }
+}
+
+// MARK: - Dimension-specific formatting
+
+extension UnitRate.FormatStyle where U: Dimension {
+    /// Formats a `UnitRate` whose unit is a `Dimension`, using a localised
+    /// unit label from Foundation's `MeasurementFormatter`.
+    ///
+    /// This overload is preferred over the generic `CustomStringConvertible`
+    /// version when `U` conforms to `Dimension`, providing proper
+    /// internationalisation of unit symbols and names.
+    internal func _formatDimension(_ value: UnitRate<C, U>) -> String {
+        let unitLabel = _localisedUnitLabel(value.unit)
+        return _formatWithLabel(value, unitLabel: unitLabel)
+    }
+
+    /// Returns a localised unit label for the given `Dimension` unit.
+    private func _localisedUnitLabel(_ unit: U) -> String {
+        let formatter = MeasurementFormatter()
+        formatter.locale = locale
+        formatter.unitOptions = .providedUnit
+        switch unitWidth {
+        case .abbreviated:
+            formatter.unitStyle = .short
+        case .wide:
+            formatter.unitStyle = .long
+        case .narrow:
+            formatter.unitStyle = .short
+        }
+        return formatter.string(from: unit)
+    }
+}
+
+// MARK: - Dimension convenience methods
+
+extension UnitRate where U: Dimension {
+    /// Formats `self` using the default `FormatStyle` with a localised unit label.
+    public func formatted() -> String {
+        FormatStyle()._formatDimension(self)
+    }
+
+    /// Formats `self` using the given format style with a localised unit label.
+    public func formatted(_ format: FormatStyle) -> String {
+        format._formatDimension(self)
+    }
 }
 
 #endif
