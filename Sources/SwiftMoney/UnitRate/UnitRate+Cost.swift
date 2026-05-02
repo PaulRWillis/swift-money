@@ -29,64 +29,72 @@ extension UnitRate {
         forQuantity quantity: Int64,
         rounding: FloatingPointRoundingRule = .toNearestOrAwayFromZero
     ) -> RateCalculation<C> {
-        let minimalQuantisation = C.minimalQuantisation.int64Value
-
-        // Zero quantity: 0 × anything == 0; effective rate is undefined, use zero.
         if quantity == 0 {
             return RateCalculation(amount: .zero, effectiveRate: .zero)
         }
 
-        // Zero numerator: any quantity × 0 == 0.
         if rate.numeratorValue == 0 {
             return RateCalculation(amount: .zero, effectiveRate: rate)
         }
 
-        let denominator = rate.denominatorValue
+        let minorUnits = computeMinorUnits(
+            quantity: quantity,
+            rounding: rounding
+        )
 
-        // GCD pre-reduction to maximise range before Int128 multiplication.
-        // Reduce quantity against denominator, and minQ against the remaining denominator.
+        let resultMoney = Money<C>(_unchecked: minorUnits)
+        let effectiveRate = effectiveRate(minorUnits: minorUnits, quantity: quantity)
+        return RateCalculation(amount: resultMoney, effectiveRate: effectiveRate)
+    }
+
+    // MARK: - Private helpers
+
+    /// GCD-reduces and multiplies `quantity × rate × minimalQuantisation`,
+    /// rounds, and returns the result as a validated `Int64`.
+    private func computeMinorUnits(
+        quantity: Int64,
+        rounding: FloatingPointRoundingRule
+    ) -> Int64 {
+        let minimalQuantisation = C.minimalQuantisation.int64Value
+        let denominator = rate.denominatorValue
         let absoluteQuantity = quantity < 0 ? -quantity : quantity
+
+        // GCD pass 1: reduce quantity against denominator.
         let quantityDenominatorGCD = _gcd(absoluteQuantity, denominator)
         let reducedQuantity = quantity / quantityDenominatorGCD
         let remainingDenominator = denominator / quantityDenominatorGCD
 
+        // GCD pass 2: reduce minimal quantisation against remaining denominator.
         let quantisationDenominatorGCD = _gcd(minimalQuantisation, remainingDenominator)
         let reducedMinimalQuantisation = minimalQuantisation / quantisationDenominatorGCD
-        let reducedDenominator = remainingDenominator / quantisationDenominatorGCD
+        let reducedDenominator = Int128(remainingDenominator / quantisationDenominatorGCD)
 
-        // Multiply in Int128. After reduction the product is much smaller.
-        let product = Int128(reducedQuantity) * Int128(rate.numeratorValue) * Int128(reducedMinimalQuantisation)
-        let denominator128 = Int128(reducedDenominator)
+        let product = Int128(reducedQuantity)
+            * Int128(rate.numeratorValue)
+            * Int128(reducedMinimalQuantisation)
 
-        let (truncated, remainder) = product.quotientAndRemainder(dividingBy: denominator128)
+        let (truncated, remainder) = product.quotientAndRemainder(dividingBy: reducedDenominator)
 
-        // Apply rounding.
         let minorUnits128 = _roundInt128(
             truncated: truncated,
             remainder: remainder,
-            denominator: denominator128,
+            denominator: reducedDenominator,
             rule: rounding
         )
 
-        // Bounds check.
         guard let minorUnits = Int64(exactly: minorUnits128) else {
             preconditionFailure("UnitRate price calculation overflows Int64")
         }
-        precondition(
-            minorUnits != .min,
-            "UnitRate price calculation produced NaN sentinel"
-        )
+        precondition(minorUnits != .min, "UnitRate price calculation produced NaN sentinel")
+        return minorUnits
+    }
 
-        let resultMoney = Money<C>(_unchecked: minorUnits)
-
-        // Build effective rate = result / quantity (normalised so denominator > 0).
-        let effectiveRate: Rate
+    /// Builds the effective rate as `minorUnits / quantity`, normalised
+    /// so the denominator is positive.
+    private func effectiveRate(minorUnits: Int64, quantity: Int64) -> Rate {
         if quantity > 0 {
-            effectiveRate = Rate(_unchecked: minorUnits, denominator: quantity)
-        } else {
-            effectiveRate = Rate(_unchecked: -minorUnits, denominator: -quantity)
+            return Rate(_unchecked: minorUnits, denominator: quantity)
         }
-
-        return RateCalculation(amount: resultMoney, effectiveRate: effectiveRate)
+        return Rate(_unchecked: -minorUnits, denominator: -quantity)
     }
 }
