@@ -82,13 +82,14 @@ public struct Rate: Sendable {
 
 /// Euclidean GCD. `a` must be ≥ 0; `b` must be > 0.
 /// Returns 1 when `a` is 0 so callers can always divide safely.
-internal func _gcd<T: BinaryInteger>(_ a: T, _ b: T) -> T {
-    var a = a
-    var b = b
-    while b != 0 {
-        let t = b
-        b = a % b
-        a = t
+@inlinable
+internal func _gcd<T: BinaryInteger>(_ dividend: T, _ divisor: T) -> T {
+    var dividend = dividend
+    var divisor = divisor
+    while divisor != 0 {
+        let previousDivisor = divisor
+        divisor = dividend % divisor
+        dividend = previousDivisor
     }
-    return a == 0 ? 1 : a
+    return dividend == 0 ? 1 : dividend
 }
