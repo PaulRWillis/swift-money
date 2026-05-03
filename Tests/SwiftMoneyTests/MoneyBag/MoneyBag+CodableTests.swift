@@ -6,9 +6,9 @@ import SwiftMoney
 struct MoneyBag_CodableTests {
 
     private let encoder: JSONEncoder = {
-        let e = JSONEncoder()
-        e.outputFormatting = [.sortedKeys]
-        return e
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        return encoder
     }()
     private let decoder = JSONDecoder()
 
