@@ -35,9 +35,9 @@ public struct Rate: Sendable {
     /// No preconditions are checked. Used internally after explicit guard checks.
     internal init(_unchecked numerator: Int64, denominator: Int64) {
         let absNumerator = numerator < 0 ? -numerator : numerator
-        let g = _gcd(absNumerator, denominator)
-        _numerator = numerator / g
-        _denominator = denominator / g
+        let greatestCommonDivisor = _gcd(absNumerator, denominator)
+        _numerator = numerator / greatestCommonDivisor
+        _denominator = denominator / greatestCommonDivisor
     }
 
     // MARK: - Integer pair initialiser
@@ -55,7 +55,9 @@ public struct Rate: Sendable {
     ///     except `Int64.min`.
     ///   - denominator: The denominator of the fraction. Must be greater than zero.
     public init?(numerator: Int64, denominator: Int64) {
-        guard denominator > 0, numerator != .min else { return nil }
+        let isPositiveDenominator = denominator > 0
+        let isValidNumerator = numerator != .min
+        guard isPositiveDenominator, isValidNumerator else { return nil }
         self.init(_unchecked: numerator, denominator: denominator)
     }
 
@@ -80,13 +82,14 @@ public struct Rate: Sendable {
 
 /// Euclidean GCD. `a` must be ≥ 0; `b` must be > 0.
 /// Returns 1 when `a` is 0 so callers can always divide safely.
-internal func _gcd<T: BinaryInteger>(_ a: T, _ b: T) -> T {
-    var a = a
-    var b = b
-    while b != 0 {
-        let t = b
-        b = a % b
-        a = t
+@inlinable
+internal func _gcd<T: BinaryInteger>(_ dividend: T, _ divisor: T) -> T {
+    var dividend = dividend
+    var divisor = divisor
+    while divisor != 0 {
+        let previousDivisor = divisor
+        divisor = dividend % divisor
+        dividend = previousDivisor
     }
-    return a == 0 ? 1 : a
+    return dividend == 0 ? 1 : dividend
 }

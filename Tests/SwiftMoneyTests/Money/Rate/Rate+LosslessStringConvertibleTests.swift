@@ -40,8 +40,8 @@ struct RateLosslessStringConvertibleTests {
     }
 
     @Test("round-trip through description")
-    func roundTrip() {
-        let original = Rate(numerator: 23, denominator: 1_000_000)!
+    func roundTrip() throws {
+        let original = try #require(Rate(numerator: 23, denominator: 1_000_000))
         let parsed = Rate(original.description)
         #expect(parsed == original)
     }
