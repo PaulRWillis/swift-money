@@ -91,7 +91,8 @@ extension MoneyBag {
             // Fold remainder into the running fraction using LCM-based addition:
             //   fractionalNumerator/fractionalDenominator + entryRemainder/entryDenominator
             //   = (fractionalNumerator*(entryDenominator/gcd) + entryRemainder*(fractionalDenominator/gcd)) / lcmDenominator
-            if entryRemainder != 0 {
+            let hasRemainder = entryRemainder != 0
+            if hasRemainder {
                 let commonDivisor = _gcd(
                     fractionalDenominator > 0 ? fractionalDenominator : -fractionalDenominator,
                     entryDenominator > 0 ? entryDenominator : -entryDenominator
@@ -105,7 +106,8 @@ extension MoneyBag {
                 // Keep fractionalNumerator/fractionalDenominator reduced to prevent unbounded growth.
                 let absoluteNumerator = fractionalNumerator < 0 ? -fractionalNumerator : fractionalNumerator
                 let numeratorGcd = _gcd(absoluteNumerator, fractionalDenominator)
-                if numeratorGcd > 1 {
+                let isReducible = numeratorGcd > 1
+                if isReducible {
                     fractionalNumerator /= numeratorGcd
                     fractionalDenominator /= numeratorGcd
                 }
@@ -116,7 +118,8 @@ extension MoneyBag {
         let preRoundIntegerSum = integerSum
 
         // Apply a single rounding event to the accumulated fractional remainder.
-        if fractionalNumerator != 0 {
+        let hasFractionalPart = fractionalNumerator != 0
+        if hasFractionalPart {
             let (truncatedQuotient, roundingRemainder) = fractionalNumerator.quotientAndRemainder(dividingBy: fractionalDenominator)
             let adjustment = _roundInt128(
                 truncated: truncatedQuotient,
