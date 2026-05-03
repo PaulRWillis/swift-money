@@ -100,13 +100,13 @@ public struct ExchangeRate<From: Currency, To: Currency>: Sendable {
     ///   the currency quantisations would overflow `Int64`.
     public init?(majorUnitRate: Rate) {
         guard majorUnitRate.numeratorValue > 0 else { return nil }
-        let toMinQ   = To.minimalQuantisation.int64Value
-        let fromMinQ = From.minimalQuantisation.int64Value
+        let targetQuantisation = To.minimalQuantisation.int64Value
+        let sourceQuantisation = From.minimalQuantisation.int64Value
         // Scale: numerator × To.minQ, denominator × From.minQ
-        let (scaledNumerator,   overflowN) = majorUnitRate.numeratorValue.multipliedReportingOverflow(by: toMinQ)
-        guard !overflowN, scaledNumerator != .min else { return nil }
-        let (scaledDenominator, overflowD) = majorUnitRate.denominatorValue.multipliedReportingOverflow(by: fromMinQ)
-        guard !overflowD, scaledDenominator > 0 else { return nil }
+        let (scaledNumerator,   numeratorOverflowed) = majorUnitRate.numeratorValue.multipliedReportingOverflow(by: targetQuantisation)
+        guard !numeratorOverflowed, scaledNumerator != .min else { return nil }
+        let (scaledDenominator, denominatorOverflowed) = majorUnitRate.denominatorValue.multipliedReportingOverflow(by: sourceQuantisation)
+        guard !denominatorOverflowed, scaledDenominator > 0 else { return nil }
         self.init(_uncheckedRate: Rate(_unchecked: scaledNumerator, denominator: scaledDenominator))
     }
 
