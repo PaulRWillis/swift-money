@@ -25,33 +25,44 @@ extension Rate {
     public init?(_ decimal: Decimal) {
         guard !decimal.isNaN else { return nil }
 
-        let exp = decimal.exponent   // Int; Foundation stores as Int8 internally (-128...127)
+        let decimalExponent = decimal.exponent
 
-        // Extract the exact integer significand by multiplying by 10^(-exp).
-        // NSDecimalMultiplyByPowerOf10 only adjusts the internal exponent field;
-        // it does not perform any lossy arithmetic, so this is zero-precision-loss.
+        let significand = Self._extractSignificand(from: decimal, exponent: decimalExponent)
+        let isExactInt64Significand = significand != nil
+        guard isExactInt64Significand, let significand else { return nil }
+
+        if decimalExponent >= 0 {
+            self.init(_positiveExponent: decimalExponent, significand: significand)
+        } else {
+            self.init(_negativeExponent: -decimalExponent, significand: significand)
+        }
+    }
+
+    // MARK: - Private decomposition helpers
+
+    private static func _extractSignificand(from decimal: Decimal, exponent: Int) -> Int64? {
         var input = decimal
         var significandDecimal = Decimal()
-        NSDecimalMultiplyByPowerOf10(&significandDecimal, &input, Int16(-exp), .plain)
+        NSDecimalMultiplyByPowerOf10(&significandDecimal, &input, Int16(-exponent), .plain)
 
         let significand = NSDecimalNumber(decimal: significandDecimal).int64Value
-        // Round-trip check: the significand as a Decimal must reproduce the
-        // scaled value exactly. Fails if the significand exceeds Int64 range.
-        guard Decimal(significand) == significandDecimal, significand != .min else { return nil }
+        let isRoundTripExact = Decimal(significand) == significandDecimal
+        let isValidNumerator = significand != .min
+        guard isRoundTripExact, isValidNumerator else { return nil }
+        return significand
+    }
 
-        if exp >= 0 {
-            // value = significand × 10^exp  →  fraction = (significand × 10^exp) / 1
-            guard exp < _pow10Table.count else { return nil }
-            let (numerator, overflow) = significand.multipliedReportingOverflow(by: _pow10Table[exp])
-            guard !overflow, numerator != .min else { return nil }
-            self.init(_unchecked: numerator, denominator: 1)
-        } else {
-            // value = significand / 10^(-exp)  →  fraction = significand / 10^(-exp)
-            let negExp = -exp
-            guard negExp < _pow10Table.count else { return nil }
-            let denominator = _pow10Table[negExp]
-            self.init(_unchecked: significand, denominator: denominator)
-        }
+    private init?(_positiveExponent exponent: Int, significand: Int64) {
+        guard exponent < _pow10Table.count else { return nil }
+        let (numerator, didOverflow) = significand.multipliedReportingOverflow(by: _pow10Table[exponent])
+        guard !didOverflow, numerator != .min else { return nil }
+        self.init(_unchecked: numerator, denominator: 1)
+    }
+
+    private init?(_negativeExponent exponent: Int, significand: Int64) {
+        guard exponent < _pow10Table.count else { return nil }
+        let denominator = _pow10Table[exponent]
+        self.init(_unchecked: significand, denominator: denominator)
     }
 }
 
