@@ -35,9 +35,9 @@ public struct Rate: Sendable {
     /// No preconditions are checked. Used internally after explicit guard checks.
     internal init(_unchecked numerator: Int64, denominator: Int64) {
         let absNumerator = numerator < 0 ? -numerator : numerator
-        let g = _gcd(absNumerator, denominator)
-        _numerator = numerator / g
-        _denominator = denominator / g
+        let greatestCommonDivisor = _gcd(absNumerator, denominator)
+        _numerator = numerator / greatestCommonDivisor
+        _denominator = denominator / greatestCommonDivisor
     }
 
     // MARK: - Integer pair initialiser
