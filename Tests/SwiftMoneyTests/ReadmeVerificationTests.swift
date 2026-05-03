@@ -136,4 +136,34 @@ struct ReadmeVerificationTests {
             resolver: CurrencyRegistry.isoStandard.asResolver()
         )
     }
+
+    @Test func unitRateStringUnit() throws {
+        let rate = try #require(Rate(numerator: 23, denominator: 1_000_000))
+        let unitRate = UnitRate<GBP, String>(rate, per: "kWh")
+        let cost = unitRate.price(forQuantity: 2_000_000, rounding: .toNearestOrAwayFromZero)
+        #expect(cost.amount == Money<GBP>(minorUnits: 4600))
+    }
+
+    @Test func unitRateDimension() throws {
+        let rate = try #require(Rate(numerator: 23, denominator: 1_000_000))
+        let energyRate = UnitRate<GBP, UnitEnergy>(rate, per: .kilowattHours)
+        let usage = Measurement(value: 350, unit: UnitEnergy.kilowattHours)
+        let bill = energyRate.price(for: usage, rounding: .toNearestOrAwayFromZero)
+        #expect(bill != nil)
+    }
+
+    @Test func unitRateFormatting() throws {
+        let rate = try #require(Rate(numerator: 23, denominator: 1_000_000))
+        let unitRate = UnitRate<GBP, String>(rate, per: "kWh")
+        let locale = Locale(identifier: "en_GB")
+        let result = unitRate.formatted(.init(locale: locale))
+        #expect(result == "£0.000023/kWh")
+    }
+
+    @Test func unitRateConversion() throws {
+        let rate = try #require(Rate(numerator: 23, denominator: 1_000_000))
+        let energyRate = UnitRate<GBP, UnitEnergy>(rate, per: .kilowattHours)
+        let kjRate = energyRate.converted(to: .kilojoules, factor: 3600)
+        #expect(kjRate.unit == .kilojoules)
+    }
 }
