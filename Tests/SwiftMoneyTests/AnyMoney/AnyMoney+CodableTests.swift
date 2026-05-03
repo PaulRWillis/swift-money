@@ -218,9 +218,9 @@ struct AnyMoney_CodableTests_ObjectStrategy {
     @Test(".object static shorthand is equivalent to .object(amount: .majorUnits)")
     func objectStaticShorthand() throws {
         let any = Money<TST_100>(minorUnits: 500).erased
-        let j1 = try #require(String(data: makeSortedEncoder(strategy: .object).encode(any), encoding: .utf8))
-        let j2 = try #require(String(data: makeSortedEncoder(strategy: .object(amount: .majorUnits)).encode(any), encoding: .utf8))
-        #expect(j1 == j2)
+        let shorthandJSON = try #require(String(data: makeSortedEncoder(strategy: .object).encode(any), encoding: .utf8))
+        let explicitJSON = try #require(String(data: makeSortedEncoder(strategy: .object(amount: .majorUnits)).encode(any), encoding: .utf8))
+        #expect(shorthandJSON == explicitJSON)
     }
 
     // MARK: Round-trips
