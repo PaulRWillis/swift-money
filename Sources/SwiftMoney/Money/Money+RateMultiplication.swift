@@ -66,19 +66,21 @@ extension Money {
         )
 
         let resultMoney = Money(_unchecked: minorUnits)
-
-        // Build the actual rate = result / input (in lowest terms).
-        // Normalise so that the denominator is positive (Rate contract).
-        // Inputs are validated above: minorUnits != .min, _storage != 0 and != .min.
-        let effectiveRate: Rate
-        if _storage > 0 {
-            effectiveRate = Rate(_unchecked: minorUnits, denominator: _storage)
-        } else {
-            // _storage < 0 (non-zero, non-NaN): flip both signs so denominator > 0.
-            effectiveRate = Rate(_unchecked: -minorUnits, denominator: -_storage)
-        }
+        let effectiveRate = _effectiveRate(result: minorUnits, input: _storage)
 
         return RateCalculation(amount: resultMoney, effectiveRate: effectiveRate)
+    }
+
+    /// Builds the effective rate = result / input in lowest terms,
+    /// normalised so the denominator is positive (Rate contract).
+    ///
+    /// - Precondition: `input` must not be 0 or `Int64.min`.
+    private func _effectiveRate(result: Int64, input: Int64) -> Rate {
+        if input > 0 {
+            return Rate(_unchecked: result, denominator: input)
+        } else {
+            return Rate(_unchecked: -result, denominator: -input)
+        }
     }
 }
 
