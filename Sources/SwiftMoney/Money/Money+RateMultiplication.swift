@@ -191,7 +191,8 @@ internal func _roundInt128(
             return remainder > 0 ? truncated + 1 : truncated - 1
         }
         // Exact half: round to even — adjust only if truncated is odd.
-        if truncated % 2 != 0 {
+        let isTruncatedOdd = truncated % 2 != 0
+        if isTruncatedOdd {
             return remainder > 0 ? truncated + 1 : truncated - 1
         }
         return truncated
