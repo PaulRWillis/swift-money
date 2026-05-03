@@ -57,11 +57,9 @@ extension Money {
         )
 
         // Bounds check: result must fit in Int64 and must not equal the NaN sentinel.
-        precondition(
-            minorUnits128 >= Int128(Int64.min) && minorUnits128 <= Int128(Int64.max),
-            "Money fractional multiplication result overflows Int64"
-        )
-        let minorUnits = Int64(minorUnits128)
+        guard let minorUnits = Int64(exactly: minorUnits128) else {
+            preconditionFailure("Money fractional multiplication result overflows Int64")
+        }
         precondition(
             minorUnits != .min,
             "Money fractional multiplication produced NaN sentinel"
