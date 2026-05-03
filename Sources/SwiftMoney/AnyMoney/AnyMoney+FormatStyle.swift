@@ -102,11 +102,11 @@ extension AnyMoney.FormatStyle: Foundation.FormatStyle {
         // Only set sign when non-automatic: explicitly setting sign-auto in the ICU skeleton
         // conflicts with group-off on macOS 15+/26, and auto is ICU's implicit default anyway.
         if signDisplayStrategy != .automatic { style = style.sign(strategy: signDisplayStrategy) }
-        if let g = grouping                  { style = style.grouping(g) }
-        if let p = precision                 { style = style.precision(p) }
-        if let d = decimalSeparatorStrategy  { style = style.decimalSeparator(strategy: d) }
-        if let r = roundedRule               { style = style.rounded(rule: r, increment: roundedIncrement) }
-        if let n = notation                  { style = style.notation(n) }
+        if let grouping                      { style = style.grouping(grouping) }
+        if let precision                     { style = style.precision(precision) }
+        if let decimalSeparatorStrategy      { style = style.decimalSeparator(strategy: decimalSeparatorStrategy) }
+        if let roundedRule                   { style = style.rounded(rule: roundedRule, increment: roundedIncrement) }
+        if let notation                      { style = style.notation(notation) }
         return value.minorUnits.formatted(style)
     }
 }
