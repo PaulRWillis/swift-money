@@ -32,26 +32,26 @@ extension MoneyBag: Codable {
             var outer = encoder.container(keyedBy: EntriesKey.self)
             var array = outer.nestedUnkeyedContainer(forKey: .entries)
             for entry in sorted {
-                let sub = array.superEncoder()
-                try entry._encode(strategy: .full, to: sub)
+                let entryEncoder = array.superEncoder()
+                try entry._encode(strategy: .full, to: entryEncoder)
             }
 
         case .array(let entryStrategy):
             // [...per-entry AnyMoney objects...]
             var array = encoder.unkeyedContainer()
             for entry in sorted {
-                let sub = array.superEncoder()
-                try entry._encode(strategy: entryStrategy, to: sub)
+                let entryEncoder = array.superEncoder()
+                try entry._encode(strategy: entryStrategy, to: entryEncoder)
             }
 
         case .dictionary(let amountStrategy):
             // {"GBP": 1.25, "JPY": 500, ...}
-            var dict = encoder.container(keyedBy: _StringCodingKey.self)
+            var dictionaryContainer = encoder.container(keyedBy: _StringCodingKey.self)
             for entry in sorted {
                 let key = _StringCodingKey(stringValue: entry.currencyCode.stringValue)
                 switch amountStrategy {
                 case .minorUnits:
-                    try dict.encode(entry.minorUnits, forKey: key)
+                    try dictionaryContainer.encode(entry.minorUnits, forKey: key)
                 case .majorUnits:
                     guard !entry.isNaN else {
                         throw EncodingError.invalidValue(
@@ -62,7 +62,7 @@ extension MoneyBag: Codable {
                             )
                         )
                     }
-                    try dict.encode(entry.decimalValue, forKey: key)
+                    try dictionaryContainer.encode(entry.decimalValue, forKey: key)
                 case .string(let locale):
                     guard !entry.isNaN else {
                         throw EncodingError.invalidValue(
@@ -73,7 +73,7 @@ extension MoneyBag: Codable {
                             )
                         )
                     }
-                    try dict.encode(entry.formatted(AnyMoney.FormatStyle(locale: locale)), forKey: key)
+                    try dictionaryContainer.encode(entry.formatted(AnyMoney.FormatStyle(locale: locale)), forKey: key)
                 }
             }
         }
@@ -103,8 +103,8 @@ extension MoneyBag: Codable {
             var array = try outer.nestedUnkeyedContainer(forKey: .entries)
             var entries: [AnyMoney] = []
             while !array.isAtEnd {
-                let sub = try array.superDecoder()
-                entries.append(try AnyMoney._decode(strategy: .full, from: sub))
+                let entryDecoder = try array.superDecoder()
+                entries.append(try AnyMoney._decode(strategy: .full, from: entryDecoder))
             }
             self._storage = try MoneyBag._buildStorage(from: entries, codingPath: decoder.codingPath)
 
@@ -113,21 +113,21 @@ extension MoneyBag: Codable {
             var array = try decoder.unkeyedContainer()
             var entries: [AnyMoney] = []
             while !array.isAtEnd {
-                let sub = try array.superDecoder()
-                entries.append(try AnyMoney._decode(strategy: entryStrategy, from: sub))
+                let entryDecoder = try array.superDecoder()
+                entries.append(try AnyMoney._decode(strategy: entryStrategy, from: entryDecoder))
             }
             self._storage = try MoneyBag._buildStorage(from: entries, codingPath: decoder.codingPath)
 
         case .dictionary(let amountStrategy, let resolver):
             // {"GBP": 1.25, "JPY": 500, ...}
-            let dict = try decoder.container(keyedBy: _StringCodingKey.self)
+            let dictionaryContainer = try decoder.container(keyedBy: _StringCodingKey.self)
             var storage: [CurrencyCode: AnyMoney] = [:]
-            for key in dict.allKeys {
+            for key in dictionaryContainer.allKeys {
                 let code = CurrencyCode(key.stringValue)
-                guard let minQ = resolver(code) else {
+                guard let minimalQuantisation = resolver(code) else {
                     throw DecodingError.dataCorrupted(
                         DecodingError.Context(
-                            codingPath: dict.codingPath,
+                            codingPath: dictionaryContainer.codingPath,
                             debugDescription: "No MinimalQuantisation found for currency '\(code)'. Provide a resolver that covers this currency."
                         )
                     )
@@ -135,7 +135,7 @@ extension MoneyBag: Codable {
                 guard storage[code] == nil else {
                     throw DecodingError.dataCorrupted(
                         DecodingError.Context(
-                            codingPath: dict.codingPath,
+                            codingPath: dictionaryContainer.codingPath,
                             debugDescription: "Duplicate currency code '\(code)' in MoneyBag dictionary."
                         )
                     )
@@ -143,25 +143,25 @@ extension MoneyBag: Codable {
                 let minorUnits: Int64
                 switch amountStrategy {
                 case .minorUnits:
-                    minorUnits = try dict.decode(Int64.self, forKey: key)
+                    minorUnits = try dictionaryContainer.decode(Int64.self, forKey: key)
                 case .majorUnits:
-                    let decimal = try dict.decode(Decimal.self, forKey: key)
+                    let decimal = try dictionaryContainer.decode(Decimal.self, forKey: key)
                     minorUnits = try AnyMoney._decimalToMinorUnits(
-                        decimal, minQ: minQ, codingPath: dict.codingPath
+                        decimal, minQ: minimalQuantisation, codingPath: dictionaryContainer.codingPath
                     )
                 case .string(let locale):
-                    let string = try dict.decode(String.self, forKey: key)
+                    let string = try dictionaryContainer.decode(String.self, forKey: key)
                     let decimal = try AnyMoney._parseFormattedAmount(
-                        string, currencyCode: code, locale: locale, codingPath: dict.codingPath
+                        string, currencyCode: code, locale: locale, codingPath: dictionaryContainer.codingPath
                     )
                     minorUnits = try AnyMoney._decimalToMinorUnits(
-                        decimal, minQ: minQ, codingPath: dict.codingPath
+                        decimal, minQ: minimalQuantisation, codingPath: dictionaryContainer.codingPath
                     )
                 }
                 storage[code] = AnyMoney(
                     minorUnits: minorUnits,
                     currencyCode: code,
-                    minimalQuantisation: minQ
+                    minimalQuantisation: minimalQuantisation
                 )
             }
             self._storage = storage
