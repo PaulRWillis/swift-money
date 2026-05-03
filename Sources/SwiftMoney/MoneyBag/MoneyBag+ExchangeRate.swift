@@ -67,8 +67,8 @@ extension MoneyBag {
         //   Integer part → integerSum
         //   Fractional part (remainder/denominator) → folded into fracNum/fracDen via LCM
         var integerSum: Int128 = 0
-        var fracNum: Int128 = 0     // numerator of accumulated fractional part
-        var fracDen: Int128 = 1     // denominator of accumulated fractional part (LCM of q_i)
+        var fractionalNumerator: Int128 = 0
+        var fractionalDenominator: Int128 = 1
 
         for anyMoney in _storage.values {
             guard let fromType = anyMoney.currency else { return nil }
@@ -79,32 +79,35 @@ extension MoneyBag {
                 guard let rate = provider.rate(from: from, to: target) else { return nil }
                 // product = minorUnits × numerator — fits in Int128 (max ≈ 8.5×10³⁷ < Int128.max)
                 let product = Int128(anyMoney.minorUnits) * Int128(rate.rate.numeratorValue)
-                let q = Int128(rate.rate.denominatorValue)
-                let (quotient, remainder) = product.quotientAndRemainder(dividingBy: q)
-                return (quotient, remainder, q)
+                let denominator = Int128(rate.rate.denominatorValue)
+                let (quotient, remainder) = product.quotientAndRemainder(dividingBy: denominator)
+                return (quotient, remainder, denominator)
             }
 
-            guard let (q0, r, q) = computeExact(fromType) else { return nil }
+            guard let (entryQuotient, entryRemainder, entryDenominator) = computeExact(fromType) else { return nil }
 
-            integerSum += q0
+            integerSum += entryQuotient
 
             // Fold remainder into the running fraction using LCM-based addition:
-            //   fracNum/fracDen + r/q  =  (fracNum*(q/g) + r*(fracDen/g)) / newDen
-            // where g = gcd(fracDen, q), newDen = fracDen/g * q
-            if r != 0 {
-                let g = _gcd(fracDen > 0 ? fracDen : -fracDen, q > 0 ? q : -q)
-                let (newDen, overflowD) = (fracDen / g).multipliedReportingOverflow(by: q)
-                precondition(!overflowD, "MoneyBag.total: LCM denominator overflow — exchange rates have incompatible denominators")
-                let newNum = fracNum * (q / g) + r * (fracDen / g)
-                fracNum = newNum
-                fracDen = newDen
+            //   fractionalNumerator/fractionalDenominator + entryRemainder/entryDenominator
+            //   = (fractionalNumerator*(entryDenominator/gcd) + entryRemainder*(fractionalDenominator/gcd)) / lcmDenominator
+            if entryRemainder != 0 {
+                let commonDivisor = _gcd(
+                    fractionalDenominator > 0 ? fractionalDenominator : -fractionalDenominator,
+                    entryDenominator > 0 ? entryDenominator : -entryDenominator
+                )
+                let (lcmDenominator, denominatorOverflowed) = (fractionalDenominator / commonDivisor).multipliedReportingOverflow(by: entryDenominator)
+                precondition(!denominatorOverflowed, "MoneyBag.total: LCM denominator overflow — exchange rates have incompatible denominators")
+                let combinedNumerator = fractionalNumerator * (entryDenominator / commonDivisor) + entryRemainder * (fractionalDenominator / commonDivisor)
+                fractionalNumerator = combinedNumerator
+                fractionalDenominator = lcmDenominator
 
-                // Keep fracNum/fracDen reduced to prevent unbounded growth.
-                let absNum = fracNum < 0 ? -fracNum : fracNum
-                let numGcd = _gcd(absNum, fracDen)
-                if numGcd > 1 {
-                    fracNum /= numGcd
-                    fracDen /= numGcd
+                // Keep fractionalNumerator/fractionalDenominator reduced to prevent unbounded growth.
+                let absoluteNumerator = fractionalNumerator < 0 ? -fractionalNumerator : fractionalNumerator
+                let numeratorGcd = _gcd(absoluteNumerator, fractionalDenominator)
+                if numeratorGcd > 1 {
+                    fractionalNumerator /= numeratorGcd
+                    fractionalDenominator /= numeratorGcd
                 }
             }
         }
@@ -113,12 +116,12 @@ extension MoneyBag {
         let preRoundIntegerSum = integerSum
 
         // Apply a single rounding event to the accumulated fractional remainder.
-        if fracNum != 0 {
-            let (fracQ, fracR) = fracNum.quotientAndRemainder(dividingBy: fracDen)
+        if fractionalNumerator != 0 {
+            let (truncatedQuotient, roundingRemainder) = fractionalNumerator.quotientAndRemainder(dividingBy: fractionalDenominator)
             let adjustment = _roundInt128(
-                truncated: fracQ,
-                remainder: fracR,
-                denominator: fracDen,
+                truncated: truncatedQuotient,
+                remainder: roundingRemainder,
+                denominator: fractionalDenominator,
                 rule: rounding
             )
             integerSum += adjustment
@@ -132,13 +135,13 @@ extension MoneyBag {
         let finalMinorUnits = Int64(integerSum)
         precondition(finalMinorUnits != .min, "MoneyBag.total: result is NaN sentinel")
 
-        // Build the exact fraction (preRoundIntegerSum + fracNum/fracDen) reduced by GCD.
-        // exactNum = preRoundIntegerSum * fracDen + fracNum
-        let exactNumUnreduced = preRoundIntegerSum * fracDen + fracNum
-        let absExact = exactNumUnreduced < 0 ? -exactNumUnreduced : exactNumUnreduced
-        let exactGcd = _gcd(absExact == 0 ? 1 : absExact, fracDen)
-        let exactNumerator   = exactNumUnreduced / exactGcd
-        let exactDenominator = fracDen / exactGcd
+        // Build the exact fraction (preRoundIntegerSum + fractionalNumerator/fractionalDenominator) reduced by GCD.
+        // exactNumeratorUnreduced = preRoundIntegerSum * fractionalDenominator + fractionalNumerator
+        let exactNumeratorUnreduced = preRoundIntegerSum * fractionalDenominator + fractionalNumerator
+        let absoluteExactNumerator = exactNumeratorUnreduced < 0 ? -exactNumeratorUnreduced : exactNumeratorUnreduced
+        let exactCommonDivisor = _gcd(absoluteExactNumerator == 0 ? 1 : absoluteExactNumerator, fractionalDenominator)
+        let exactNumerator   = exactNumeratorUnreduced / exactCommonDivisor
+        let exactDenominator = fractionalDenominator / exactCommonDivisor
 
         return MoneyConversionResult(
             total: Money<Target>(_unchecked: finalMinorUnits),
