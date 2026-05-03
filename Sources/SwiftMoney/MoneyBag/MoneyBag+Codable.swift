@@ -132,7 +132,8 @@ extension MoneyBag: Codable {
                         )
                     )
                 }
-                guard storage[code] == nil else {
+                let isNewCurrency = storage[code] == nil
+                guard isNewCurrency else {
                     throw DecodingError.dataCorrupted(
                         DecodingError.Context(
                             codingPath: dictionaryContainer.codingPath,
@@ -178,7 +179,8 @@ extension MoneyBag: Codable {
         var storage: [CurrencyCode: AnyMoney] = [:]
         storage.reserveCapacity(entries.count)
         for entry in entries {
-            guard storage[entry.currencyCode] == nil else {
+            let isNewCurrency = storage[entry.currencyCode] == nil
+            guard isNewCurrency else {
                 throw DecodingError.dataCorrupted(
                     DecodingError.Context(
                         codingPath: codingPath,
