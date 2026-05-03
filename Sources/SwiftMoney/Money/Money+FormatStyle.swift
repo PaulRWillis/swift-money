@@ -50,40 +50,57 @@ extension Money {
         // MARK: - Modifiers
 
         public func locale(_ locale: Locale) -> FormatStyle {
-            var s = self; s.locale = locale; return s
+            var copy = self
+            copy.locale = locale
+            return copy
         }
 
         public func sign(strategy: Configuration.SignDisplayStrategy) -> FormatStyle {
-            var s = self; s.signDisplayStrategy = strategy; return s
+            var copy = self
+            copy.signDisplayStrategy = strategy
+            return copy
         }
 
         public func presentation(_ p: Configuration.Presentation) -> FormatStyle {
-            var s = self; s.presentation = p; return s
+            var copy = self
+            copy.presentation = p
+            return copy
         }
 
         public func grouping(_ g: Configuration.Grouping) -> FormatStyle {
-            var s = self; s.grouping = g; return s
+            var copy = self
+            copy.grouping = g
+            return copy
         }
 
         public func precision(_ p: Configuration.Precision) -> FormatStyle {
-            var s = self; s.precision = p; return s
+            var copy = self
+            copy.precision = p
+            return copy
         }
 
         public func decimalSeparator(
             strategy: Configuration.DecimalSeparatorDisplayStrategy
         ) -> FormatStyle {
-            var s = self; s.decimalSeparatorStrategy = strategy; return s
+            var copy = self
+            copy.decimalSeparatorStrategy = strategy
+            return copy
         }
 
         public func rounded(
             rule: Configuration.RoundingRule = .toNearestOrEven,
             increment: Int? = nil
         ) -> FormatStyle {
-            var s = self; s.roundedRule = rule; s.roundedIncrement = increment; return s
+            var copy = self
+            copy.roundedRule = rule
+            copy.roundedIncrement = increment
+            return copy
         }
 
         public func notation(_ n: Configuration.Notation) -> FormatStyle {
-            var s = self; s.notation = n; return s
+            var copy = self
+            copy.notation = n
+            return copy
         }
     }
 }
@@ -104,11 +121,11 @@ extension Money.FormatStyle {
         // Only set sign when non-automatic: explicitly setting sign-auto in the ICU skeleton
         // conflicts with group-off on macOS 15+/26, and auto is ICU's implicit default anyway.
         if signDisplayStrategy != .automatic { style = style.sign(strategy: signDisplayStrategy) }
-        if let g = grouping                  { style = style.grouping(g) }
-        if let p = precision                 { style = style.precision(p) }
-        if let d = decimalSeparatorStrategy  { style = style.decimalSeparator(strategy: d) }
-        if let r = roundedRule               { style = style.rounded(rule: r, increment: roundedIncrement) }
-        if let n = notation                  { style = style.notation(n) }
+        if let grouping                 { style = style.grouping(grouping) }
+        if let precision                { style = style.precision(precision) }
+        if let decimalSeparatorStrategy { style = style.decimalSeparator(strategy: decimalSeparatorStrategy) }
+        if let roundedRule              { style = style.rounded(rule: roundedRule, increment: roundedIncrement) }
+        if let notation                 { style = style.notation(notation) }
         return style
     }
 
@@ -131,11 +148,11 @@ extension Money.FormatStyle {
         style = style.presentation(presentation)
         // Mirror the sign-auto guard from _integerFormatStyle().
         if signDisplayStrategy != .automatic { style = style.sign(strategy: signDisplayStrategy) }
-        if let g = grouping                  { style = style.grouping(g) }
-        if let p = precision                 { style = style.precision(p) }
-        if let d = decimalSeparatorStrategy  { style = style.decimalSeparator(strategy: d) }
-        if let r = roundedRule               { style = style.rounded(rule: r, increment: roundedIncrement) }
-        if let n = notation                  { style = style.notation(n) }
+        if let grouping                 { style = style.grouping(grouping) }
+        if let precision                { style = style.precision(precision) }
+        if let decimalSeparatorStrategy { style = style.decimalSeparator(strategy: decimalSeparatorStrategy) }
+        if let roundedRule              { style = style.rounded(rule: roundedRule, increment: roundedIncrement) }
+        if let notation                 { style = style.notation(notation) }
         // scale is intentionally NOT applied — the caller inverts scale manually.
         return style
     }
@@ -147,18 +164,18 @@ extension Money.FormatStyle {
     /// 2. Convert: `minor_units = displayed × minQ`.
     /// 3. Round half-up and convert to `Int64`.
     internal func _parse(_ value: String) throws -> Money<Currency> {
-        let minQ = Decimal(Money<Currency>.minimalQuantisation.int64Value)
+        let quantisation = Decimal(Money<Currency>.minimalQuantisation.int64Value)
 
         let displayed = try _decimalFormatStyle().parseStrategy.parse(value)
 
-        var product = displayed * minQ
+        var product = displayed * quantisation
         var rounded = Decimal()
         NSDecimalRound(&rounded, &product, 0, .plain)   // round half-up
 
-        let int64 = (rounded as NSDecimalNumber).int64Value
-        guard Decimal(int64) == rounded else { throw Money<Currency>.ParseStrategy.ParseError.overflow }
-        guard int64 != .min             else { throw Money<Currency>.ParseStrategy.ParseError.overflow }
-        return Money<Currency>(_unchecked: int64)
+        let roundedMinorUnits = (rounded as NSDecimalNumber).int64Value
+        guard Decimal(roundedMinorUnits) == rounded else { throw Money<Currency>.ParseStrategy.ParseError.overflow }
+        guard roundedMinorUnits != .min             else { throw Money<Currency>.ParseStrategy.ParseError.overflow }
+        return Money<Currency>(_unchecked: roundedMinorUnits)
     }
 }
 

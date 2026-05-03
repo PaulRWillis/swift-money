@@ -5,18 +5,18 @@ import Testing
 // MARK: - Helper
 
 private func json(_ value: some Encodable) throws -> String {
-    try String(data: JSONEncoder().encode(value), encoding: .utf8)!
+    try #require(String(data: JSONEncoder().encode(value), encoding: .utf8))
 }
 
 private func json(_ encoder: JSONEncoder, _ value: some Encodable) throws -> String {
-    try String(data: encoder.encode(value), encoding: .utf8)!
+    try #require(String(data: encoder.encode(value), encoding: .utf8))
 }
 
 /// Encodes `value` with `.sortedKeys` for deterministic key ordering in exact-match assertions.
 private func jsonSorted(_ encoder: JSONEncoder, _ value: some Encodable) throws -> String {
     let e = encoder
     e.outputFormatting = .sortedKeys
-    return try String(data: e.encode(value), encoding: .utf8)!
+    return try #require(String(data: e.encode(value), encoding: .utf8))
 }
 
 // MARK: - Default strategy
@@ -183,7 +183,7 @@ struct Money_Codable_ObjectStrategyTests {
 
     @Test("object: currency mismatch throws DecodingError")
     func objectCurrencyMismatch() throws {
-        let json = #"{"currencyCode":"USD","amount":1.25}"#.data(using: .utf8)!
+        let json = try #require(#"{"currencyCode":"USD","amount":1.25}"#.data(using: .utf8))
         let decoder = JSONDecoder()
         decoder.moneyDecodingStrategy = .object(amount: .majorUnits)
         #expect(throws: DecodingError.self) {
@@ -202,7 +202,7 @@ struct Money_Codable_ObjectStrategyTests {
 
     @Test("object: decoding from JSON with known values is correct")
     func objectDecoding() throws {
-        let json = #"{"currencyCode":"GBP","amount":1.25}"#.data(using: .utf8)!
+        let json = try #require(#"{"currencyCode":"GBP","amount":1.25}"#.data(using: .utf8))
         let decoder = JSONDecoder()
         decoder.moneyDecodingStrategy = .object(amount: .majorUnits)
         let decoded = try decoder.decode(Money<GBP>.self, from: json)
@@ -274,7 +274,7 @@ struct Money_Codable_MinorUnitsStrategyTests {
 
     @Test("minorUnits: decoding known JSON value")
     func minorUnitsDecoding() throws {
-        let json = "125".data(using: .utf8)!
+        let json = try #require("125".data(using: .utf8))
         let decoder = JSONDecoder()
         decoder.moneyDecodingStrategy = .minorUnits
         let decoded = try decoder.decode(Money<GBP>.self, from: json)
@@ -382,7 +382,7 @@ struct Money_Codable_MajorUnitsStrategyTests {
 
     @Test("majorUnits: decoding known JSON value")
     func majorUnitsDecoding() throws {
-        let json = "1.25".data(using: .utf8)!
+        let json = try #require("1.25".data(using: .utf8))
         let decoder = JSONDecoder()
         decoder.moneyDecodingStrategy = .majorUnits
         let decoded = try decoder.decode(Money<GBP>.self, from: json)
@@ -457,8 +457,8 @@ struct Money_Codable_StringStrategyTests {
     }
 
     @Test("string: decoding invalid string throws DecodingError")
-    func stringInvalidThrows() {
-        let json = "\"not-a-currency\"".data(using: .utf8)!
+    func stringInvalidThrows() throws {
+        let json = try #require("\"not-a-currency\"".data(using: .utf8))
         let decoder = JSONDecoder()
         decoder.moneyDecodingStrategy = .string(locale: enGB)
         #expect(throws: DecodingError.self) {
@@ -484,7 +484,8 @@ struct Money_Codable_PropertyAPITests {
     func decoderPropertyRespected() throws {
         let decoder = JSONDecoder()
         decoder.moneyDecodingStrategy = .minorUnits
-        let decoded = try decoder.decode(Money<GBP>.self, from: "42".data(using: .utf8)!)
+        let json = try #require("42".data(using: .utf8))
+        let decoded = try decoder.decode(Money<GBP>.self, from: json)
         #expect(decoded.minorUnits == 42)
     }
 

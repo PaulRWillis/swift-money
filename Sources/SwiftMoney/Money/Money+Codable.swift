@@ -133,9 +133,9 @@ extension Money: Codable {
 
     private static func _decodeMinorUnits(from decoder: any Decoder) throws -> Money<Currency> {
         let container = try decoder.singleValueContainer()
-        let raw = try container.decode(Int64.self)
+        let minorUnits = try container.decode(Int64.self)
         // Int64.min is the NaN sentinel — preserve it via _unchecked initialiser.
-        return Money(_unchecked: raw)
+        return Money(_unchecked: minorUnits)
     }
 
     private static func _decodeMajorUnits(from decoder: any Decoder) throws -> Money<Currency> {
@@ -146,13 +146,13 @@ extension Money: Codable {
 
     private static func _decodeString(locale: Locale, from decoder: any Decoder) throws -> Money<Currency> {
         let container = try decoder.singleValueContainer()
-        let string = try container.decode(String.self)
+        let formattedAmount = try container.decode(String.self)
         do {
-            return try Money<Currency>(string, format: Money<Currency>.FormatStyle(locale: locale))
+            return try Money<Currency>(formattedAmount, format: Money<Currency>.FormatStyle(locale: locale))
         } catch {
             throw DecodingError.dataCorruptedError(
                 in: container,
-                debugDescription: "Could not parse '\(string)' as \(Currency.code) using the configured locale."
+                debugDescription: "Could not parse '\(formattedAmount)' as \(Currency.code) using the configured locale."
             )
         }
     }
@@ -160,31 +160,31 @@ extension Money: Codable {
     private static func _decodeObject(amountStrategy: MoneyAmountDecodingStrategy, from decoder: any Decoder) throws -> Money<Currency> {
         let container = try decoder.container(keyedBy: CodingKey.self)
 
-        let encoded = try container.decode(String.self, forKey: .currencyCode)
-        guard encoded == Currency.code.stringValue else {
+        let encodedCurrencyCode = try container.decode(String.self, forKey: .currencyCode)
+        guard encodedCurrencyCode == Currency.code.stringValue else {
             let context = DecodingError.Context(
                 codingPath: container.codingPath,
-                debugDescription: "Currency mismatch: expected \(Currency.code), got '\(encoded)'."
+                debugDescription: "Currency mismatch: expected \(Currency.code), got '\(encodedCurrencyCode)'."
             )
             throw DecodingError.typeMismatch(Money<Currency>.self, context)
         }
 
         switch amountStrategy {
         case .minorUnits:
-            let raw = try container.decode(Int64.self, forKey: .amount)
-            return Money(_unchecked: raw)
+            let minorUnits = try container.decode(Int64.self, forKey: .amount)
+            return Money(_unchecked: minorUnits)
         case .majorUnits:
             let decimal = try container.decode(Decimal.self, forKey: .amount)
             return try _decimalToMoney(decimal, codingPath: container.codingPath)
         case .string(let locale):
-            let string = try container.decode(String.self, forKey: .amount)
+            let formattedAmount = try container.decode(String.self, forKey: .amount)
             do {
-                return try Money<Currency>(string, format: Money<Currency>.FormatStyle(locale: locale))
+                return try Money<Currency>(formattedAmount, format: Money<Currency>.FormatStyle(locale: locale))
             } catch {
                 throw DecodingError.dataCorruptedError(
                     forKey: .amount,
                     in: container,
-                    debugDescription: "Could not parse '\(string)' as \(Currency.code) using the configured locale."
+                    debugDescription: "Could not parse '\(formattedAmount)' as \(Currency.code) using the configured locale."
                 )
             }
         }
@@ -194,8 +194,8 @@ extension Money: Codable {
 
     /// Converts `_storage` (minor units) to major-unit `Decimal` for encoding.
     private func _majorUnitsDecimal() -> Decimal {
-        let minQ = Decimal(Currency.minimalQuantisation.int64Value)
-        return Decimal(_storage) / minQ
+        let quantisation = Decimal(Currency.minimalQuantisation.int64Value)
+        return Decimal(_storage) / quantisation
     }
 
     /// Converts a major-unit `Decimal` into a `Money` value by multiplying by
@@ -204,26 +204,26 @@ extension Money: Codable {
     /// - Throws: `DecodingError.dataCorrupted` if the result overflows `Int64`
     ///   or lands on the NaN sentinel (`Int64.min`).
     private static func _decimalToMoney(_ decimal: Decimal, codingPath: [any Swift.CodingKey]) throws -> Money<Currency> {
-        let minQ = Decimal(Currency.minimalQuantisation.int64Value)
-        var product = decimal * minQ
+        let quantisation = Decimal(Currency.minimalQuantisation.int64Value)
+        var product = decimal * quantisation
         var rounded = Decimal()
         NSDecimalRound(&rounded, &product, 0, .plain)
-        let int64 = (rounded as NSDecimalNumber).int64Value
-        guard Decimal(int64) == rounded else {
+        let roundedMinorUnits = (rounded as NSDecimalNumber).int64Value
+        guard Decimal(roundedMinorUnits) == rounded else {
             let context = DecodingError.Context(
                 codingPath: codingPath,
                 debugDescription: "Decoded major-unit value \(decimal) overflows the Int64 minor-unit range."
             )
             throw DecodingError.dataCorrupted(context)
         }
-        guard int64 != .min else {
+        guard roundedMinorUnits != .min else {
             let context = DecodingError.Context(
                 codingPath: codingPath,
-                debugDescription: "Decoded minor-unit value \(int64) collides with the NaN sentinel (Int64.min)."
+                debugDescription: "Decoded minor-unit value \(roundedMinorUnits) collides with the NaN sentinel (Int64.min)."
             )
             throw DecodingError.dataCorrupted(context)
         }
-        return Money(_unchecked: int64)
+        return Money(_unchecked: roundedMinorUnits)
     }
 }
 #endif
