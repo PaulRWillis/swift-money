@@ -139,6 +139,7 @@ extension UnitRate where U: CustomStringConvertible {
     }
 }
 
+#if canImport(Darwin)
 // MARK: - Dimension-specific formatting
 
 extension UnitRate.FormatStyle where U: Dimension {
@@ -217,6 +218,7 @@ extension UnitRate where U: Dimension {
         format.format(self)
     }
 }
+#endif
 
 // MARK: - Attributed string output
 
@@ -285,6 +287,7 @@ extension UnitRate where U: CustomStringConvertible {
             valueAttr[UnitRateFormatAttribute.self] = .value
 
             let unitPart: String
+            #if canImport(Darwin)
             if let dimension = value.unit as? Dimension {
                 unitPart = Self._dimensionUnitPart(
                     dimension: dimension,
@@ -294,6 +297,9 @@ extension UnitRate where U: CustomStringConvertible {
             } else {
                 unitPart = "/\(value.unit)"
             }
+            #else
+            unitPart = "/\(value.unit)"
+            #endif
 
             var unitAttr = AttributedString(unitPart)
             unitAttr[UnitRateFormatAttribute.self] = .unit
@@ -301,6 +307,7 @@ extension UnitRate where U: CustomStringConvertible {
             return valueAttr + unitAttr
         }
 
+        #if canImport(Darwin)
         /// Extracts spacing + unit label from Foundation's attributed output using type-erased Dimension.
         private static func _dimensionUnitPart(
             dimension: Dimension,
@@ -335,6 +342,7 @@ extension UnitRate where U: CustomStringConvertible {
             }
             return "\(spacing)\(unitText)"
         }
+        #endif
     }
 }
 

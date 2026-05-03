@@ -55,6 +55,7 @@ struct UnitRateAttributedFormatStyleTests {
 
     // MARK: - Dimension unit attributed output
 
+    #if canImport(Darwin)
     @Test("attributed Dimension: produces .value and .unit runs")
     func dimensionAttributedRuns() throws {
         let rate = try #require(Rate(numerator: 23, denominator: 1_000_000))
@@ -149,6 +150,7 @@ struct UnitRateAttributedFormatStyleTests {
         }
         #expect(covered == fullText)
     }
+    #endif
 
     // MARK: - Attribute scope
 

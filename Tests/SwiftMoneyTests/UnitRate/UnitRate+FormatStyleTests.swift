@@ -98,6 +98,7 @@ struct UnitRateFormatStyleTests {
         #expect(result.contains("72,50"))
     }
 
+    #if canImport(Darwin)
     @Test("unitWidth modifier via chaining")
     func unitWidthModifierChain() throws {
         let rate = try #require(Rate(numerator: 5, denominator: 1))
@@ -106,6 +107,7 @@ struct UnitRateFormatStyleTests {
         let result = unitRate.formatted(style)
         #expect(result.contains("kilowatt"))
     }
+    #endif
 
     // MARK: - formatted() convenience
 
@@ -147,6 +149,7 @@ struct UnitRateFormatStyleTests {
 
 // MARK: - Dimension-specific formatting
 
+#if canImport(Darwin)
 @Suite("UnitRate - FormatStyle (Dimension)")
 struct UnitRateFormatStyleDimensionTests {
 
@@ -261,5 +264,6 @@ struct UnitRateFormatStyleDimensionTests {
         #expect(abbreviated != wide)
     }
 }
+#endif
 
 #endif
