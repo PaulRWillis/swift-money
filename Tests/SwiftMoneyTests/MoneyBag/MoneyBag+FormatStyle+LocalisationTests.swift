@@ -44,16 +44,16 @@ struct MoneyBag_FormatStyle_LocalisationTests {
         "formatted(locale:) entries appear in currency-code sort order for all locales",
         arguments: localizationTestLocales
     )
-    func formattedEntriesAreSortedForAllLocales(locale: Locale) {
+    func formattedEntriesAreSortedForAllLocales(locale: Locale) throws {
         let bag = makeTestBag()
         let result = bag.formatted(locale: locale)
         // GBP < JPY < KWD lexicographically, so GBP entry must appear before JPY which appears before KWD.
         let gbpFormatted = Money<GBP>(minorUnits: 123_456).erased.formatted(AnyMoney.FormatStyle(locale: locale))
         let jpyFormatted = Money<JPY>(minorUnits: 12_345).erased.formatted(AnyMoney.FormatStyle(locale: locale))
         let kwdFormatted = Money<TestKWD>(minorUnits: 1_234_567).erased.formatted(AnyMoney.FormatStyle(locale: locale))
-        let gbpRange = try! #require(result.range(of: gbpFormatted), "Locale \(locale.identifier): GBP entry not found in \(result.debugDescription)")
-        let jpyRange = try! #require(result.range(of: jpyFormatted), "Locale \(locale.identifier): JPY entry not found in \(result.debugDescription)")
-        let kwdRange = try! #require(result.range(of: kwdFormatted), "Locale \(locale.identifier): KWD entry not found in \(result.debugDescription)")
+        let gbpRange = try #require(result.range(of: gbpFormatted), "Locale \(locale.identifier): GBP entry not found in \(result.debugDescription)")
+        let jpyRange = try #require(result.range(of: jpyFormatted), "Locale \(locale.identifier): JPY entry not found in \(result.debugDescription)")
+        let kwdRange = try #require(result.range(of: kwdFormatted), "Locale \(locale.identifier): KWD entry not found in \(result.debugDescription)")
         #expect(gbpRange.lowerBound < jpyRange.lowerBound, "Locale \(locale.identifier): GBP should appear before JPY")
         #expect(jpyRange.lowerBound < kwdRange.lowerBound, "Locale \(locale.identifier): JPY should appear before KWD")
     }
