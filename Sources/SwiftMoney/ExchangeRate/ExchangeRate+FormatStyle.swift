@@ -44,7 +44,9 @@ extension ExchangeRate {
 
         /// Returns a style with the given locale.
         public func locale(_ locale: Locale) -> FormatStyle {
-            var s = self; s.locale = locale; return s
+            var copy = self
+            copy.locale = locale
+            return copy
         }
 
         public func format(_ value: ExchangeRate<From, To>) -> String {
