@@ -149,6 +149,20 @@ struct UnitRateAttributedFormatStyleTests {
         }
         #expect(covered == fullText)
     }
+
+    // MARK: - Attribute scope
+
+    @Test("runs accessible via unitRateComponent key path")
+    func attributeScopeKeyPath() throws {
+        let rate = try #require(Rate(numerator: 5, denominator: 1))
+        let unitRate = UnitRate<USD, String>(rate, per: "barrel")
+        let style = UnitRate<USD, String>.FormatStyle(locale: enUS)
+        let attributed = unitRate.formatted(style.attributed)
+
+        // Access via key path (exercises AttributeDynamicLookup subscript)
+        let runs = Array(attributed.runs[\.unitRateComponent])
+        #expect(runs.count == 2)
+    }
 }
 
 #endif

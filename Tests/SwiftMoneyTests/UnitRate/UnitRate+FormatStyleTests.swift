@@ -89,6 +89,24 @@ struct UnitRateFormatStyleTests {
         #expect(result == "£0.50/hr")
     }
 
+    @Test("locale modifier via chaining")
+    func localeModifierChain() throws {
+        let rate = try #require(Rate(numerator: 14500, denominator: 200))
+        let unitRate = UnitRate<USD, String>(rate, per: "barrel")
+        let style = UnitRate<USD, String>.FormatStyle().locale(deDE)
+        let result = unitRate.formatted(style)
+        #expect(result.contains("72,50"))
+    }
+
+    @Test("unitWidth modifier via chaining")
+    func unitWidthModifierChain() throws {
+        let rate = try #require(Rate(numerator: 5, denominator: 1))
+        let unitRate = UnitRate<GBP, UnitEnergy>(rate, per: .kilowattHours)
+        let style = UnitRate<GBP, UnitEnergy>.FormatStyle().locale(enGB).unitWidth(.wide)
+        let result = unitRate.formatted(style)
+        #expect(result.contains("kilowatt"))
+    }
+
     // MARK: - formatted() convenience
 
     @Test("formatted() uses default style with autoupdatingCurrent locale")
