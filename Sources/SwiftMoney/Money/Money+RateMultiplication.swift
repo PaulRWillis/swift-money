@@ -57,30 +57,30 @@ extension Money {
         )
 
         // Bounds check: result must fit in Int64 and must not equal the NaN sentinel.
-        precondition(
-            minorUnits128 >= Int128(Int64.min) && minorUnits128 <= Int128(Int64.max),
-            "Money fractional multiplication result overflows Int64"
-        )
-        let minorUnits = Int64(minorUnits128)
+        guard let minorUnits = Int64(exactly: minorUnits128) else {
+            preconditionFailure("Money fractional multiplication result overflows Int64")
+        }
         precondition(
             minorUnits != .min,
             "Money fractional multiplication produced NaN sentinel"
         )
 
         let resultMoney = Money(_unchecked: minorUnits)
-
-        // Build the actual rate = result / input (in lowest terms).
-        // Normalise so that the denominator is positive (Rate contract).
-        // Inputs are validated above: minorUnits != .min, _storage != 0 and != .min.
-        let effectiveRate: Rate
-        if _storage > 0 {
-            effectiveRate = Rate(_unchecked: minorUnits, denominator: _storage)
-        } else {
-            // _storage < 0 (non-zero, non-NaN): flip both signs so denominator > 0.
-            effectiveRate = Rate(_unchecked: -minorUnits, denominator: -_storage)
-        }
+        let effectiveRate = _effectiveRate(result: minorUnits, input: _storage)
 
         return RateCalculation(amount: resultMoney, effectiveRate: effectiveRate)
+    }
+
+    /// Builds the effective rate = result / input in lowest terms,
+    /// normalised so the denominator is positive (Rate contract).
+    ///
+    /// - Precondition: `input` must not be 0 or `Int64.min`.
+    private func _effectiveRate(result: Int64, input: Int64) -> Rate {
+        if input > 0 {
+            return Rate(_unchecked: result, denominator: input)
+        } else {
+            return Rate(_unchecked: -result, denominator: -input)
+        }
     }
 }
 
@@ -150,6 +150,7 @@ extension Money {
 /// Proof that the tie comparison `abs(r)*2` never overflows `Int128`:
 /// - `abs(remainder) < denominator ≤ Int64.max`
 /// - Therefore `abs(remainder)*2 < 2×Int64.max ≪ Int128.max`
+@inlinable
 internal func _roundInt128(
     truncated: Int128,
     remainder: Int128,
@@ -177,29 +178,30 @@ internal func _roundInt128(
 
     case .toNearestOrAwayFromZero:
         // Round half away from zero (HALF_UP / commercial rounding).
-        let absR = remainder < 0 ? -remainder : remainder
-        let halfway = absR * 2 >= denominator
+        let absoluteRemainder = remainder < 0 ? -remainder : remainder
+        let halfway = absoluteRemainder * 2 >= denominator
         if !halfway { return truncated }
         return remainder > 0 ? truncated + 1 : truncated - 1
 
     case .toNearestOrEven:
         // Banker's rounding (IEEE 754 default): round half to even.
-        let absR = remainder < 0 ? -remainder : remainder
-        let doubleR = absR * 2
-        if doubleR < denominator { return truncated }          // below half: truncate
-        if doubleR > denominator {                              // above half: round away
+        let absoluteRemainder = remainder < 0 ? -remainder : remainder
+        let doubledRemainder = absoluteRemainder * 2
+        if doubledRemainder < denominator { return truncated }          // below half: truncate
+        if doubledRemainder > denominator {                              // above half: round away
             return remainder > 0 ? truncated + 1 : truncated - 1
         }
         // Exact half: round to even — adjust only if truncated is odd.
-        if truncated % 2 != 0 {
+        let isTruncatedOdd = truncated % 2 != 0
+        if isTruncatedOdd {
             return remainder > 0 ? truncated + 1 : truncated - 1
         }
         return truncated
 
     @unknown default:
         // Safe fallback: HALF_UP.
-        let absR = remainder < 0 ? -remainder : remainder
-        let halfway = absR * 2 >= denominator
+        let absoluteRemainder = remainder < 0 ? -remainder : remainder
+        let halfway = absoluteRemainder * 2 >= denominator
         if !halfway { return truncated }
         return remainder > 0 ? truncated + 1 : truncated - 1
     }
