@@ -73,8 +73,11 @@ Then add the dependency to your target:
 | `Distribution<C>` | Result of splitting money into equal-or-near-equal parts |
 | `CurrencyRegistry` | Maps currency codes to their minimal quantisation; ships with all ISO 4217 currencies |
 | `Rate` | Exact rational number (GCD-reduced `numerator/denominator`) |
+| `RateCalculation<C>` | Result of fractional multiplication: `amount` + `effectiveRate` |
 | `ExchangeRate<From, To>` | Typed conversion rate between two currencies |
+| `Conversion<From, To>` | Result of exchange-rate conversion: `amount` + `effectiveRate` |
 | `ExchangeRateProvider` | Protocol — implement to supply rates from any source |
+| `UnitRate<C, U>` | Price per unit of measure (e.g. £0.000023/kWh) |
 
 ## Usage
 
@@ -208,6 +211,63 @@ let result = bag.total(in: USD.self, using: MyRates(), rounding: .toNearestOrEve
 result?.total               // Money<USD> — the rounded sum
 ```
 
+### Unit Rates
+
+`UnitRate<C, U>` represents a price per unit of measure — ideal for energy billing,
+commodity pricing, and any scenario where a monetary rate is expressed per physical
+or custom unit.
+
+```swift
+// £0.000023 per kWh (23 / 1,000,000)
+let rate = UnitRate<GBP, String>(
+    Rate(numerator: 23, denominator: 1_000_000)!,
+    per: "kWh"
+)
+
+// Calculate cost for 2,000,000 kWh
+let cost = rate.price(forQuantity: 2_000_000, rounding: .toNearestOrAwayFromZero)
+cost.amount  // Money<GBP>(minorUnits: 4600) — £46.00
+```
+
+#### With Foundation `Dimension` units
+
+When `U` conforms to `Dimension`, `UnitRate` integrates with `Measurement`:
+
+```swift
+let energyRate = UnitRate<GBP, UnitEnergy>(
+    Rate(numerator: 23, denominator: 1_000_000)!,
+    per: .kilowattHours
+)
+
+let usage = Measurement(value: 350, unit: UnitEnergy.kilowattHours)
+let bill = energyRate.price(for: usage, rounding: .toNearestOrAwayFromZero)
+bill?.amount  // cost for 350 kWh
+```
+
+#### Unit conversion
+
+Convert between units using exact integer factors:
+
+```swift
+// Convert from /kWh to /kJ (1 kWh = 3,600 kJ)
+let kjRate = energyRate.converted(to: .kilojoules, factor: 3600)
+```
+
+#### Formatting
+
+```swift
+let locale = Locale(identifier: "en_GB")
+
+rate.formatted(.init(locale: locale))
+// "£0.000023/kWh" (String unit — slash separator)
+
+energyRate.formatted(.init(locale: locale))
+// "£0.000023 kWh" (Dimension unit — Foundation spacing)
+
+energyRate.formatted(.init(locale: locale, unitWidth: .wide))
+// "£0.000023 kilowatt-hours"
+```
+
 ### Formatting
 
 ```swift
@@ -289,7 +349,7 @@ decoder.anyMoneyDecodingStrategy = .object(
 
 ```bash
 swift build
-swift test    # 730+ tests
+swift test    # 1000+ tests
 ```
 
 ## Benchmarks
