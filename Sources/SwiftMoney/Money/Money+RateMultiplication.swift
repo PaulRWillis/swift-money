@@ -177,17 +177,17 @@ internal func _roundInt128(
 
     case .toNearestOrAwayFromZero:
         // Round half away from zero (HALF_UP / commercial rounding).
-        let absR = remainder < 0 ? -remainder : remainder
-        let halfway = absR * 2 >= denominator
+        let absoluteRemainder = remainder < 0 ? -remainder : remainder
+        let halfway = absoluteRemainder * 2 >= denominator
         if !halfway { return truncated }
         return remainder > 0 ? truncated + 1 : truncated - 1
 
     case .toNearestOrEven:
         // Banker's rounding (IEEE 754 default): round half to even.
-        let absR = remainder < 0 ? -remainder : remainder
-        let doubleR = absR * 2
-        if doubleR < denominator { return truncated }          // below half: truncate
-        if doubleR > denominator {                              // above half: round away
+        let absoluteRemainder = remainder < 0 ? -remainder : remainder
+        let doubledRemainder = absoluteRemainder * 2
+        if doubledRemainder < denominator { return truncated }          // below half: truncate
+        if doubledRemainder > denominator {                              // above half: round away
             return remainder > 0 ? truncated + 1 : truncated - 1
         }
         // Exact half: round to even — adjust only if truncated is odd.
@@ -198,8 +198,8 @@ internal func _roundInt128(
 
     @unknown default:
         // Safe fallback: HALF_UP.
-        let absR = remainder < 0 ? -remainder : remainder
-        let halfway = absR * 2 >= denominator
+        let absoluteRemainder = remainder < 0 ? -remainder : remainder
+        let halfway = absoluteRemainder * 2 >= denominator
         if !halfway { return truncated }
         return remainder > 0 ? truncated + 1 : truncated - 1
     }
