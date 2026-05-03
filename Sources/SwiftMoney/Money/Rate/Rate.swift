@@ -55,7 +55,9 @@ public struct Rate: Sendable {
     ///     except `Int64.min`.
     ///   - denominator: The denominator of the fraction. Must be greater than zero.
     public init?(numerator: Int64, denominator: Int64) {
-        guard denominator > 0, numerator != .min else { return nil }
+        let isPositiveDenominator = denominator > 0
+        let isValidNumerator = numerator != .min
+        guard isPositiveDenominator, isValidNumerator else { return nil }
         self.init(_unchecked: numerator, denominator: denominator)
     }
 
