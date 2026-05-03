@@ -88,30 +88,12 @@ extension MoneyBag {
 
             integerSum += entryQuotient
 
-            // Fold remainder into the running fraction using LCM-based addition:
-            //   fractionalNumerator/fractionalDenominator + entryRemainder/entryDenominator
-            //   = (fractionalNumerator*(entryDenominator/gcd) + entryRemainder*(fractionalDenominator/gcd)) / lcmDenominator
-            let hasRemainder = entryRemainder != 0
-            if hasRemainder {
-                let commonDivisor = _gcd(
-                    fractionalDenominator > 0 ? fractionalDenominator : -fractionalDenominator,
-                    entryDenominator > 0 ? entryDenominator : -entryDenominator
-                )
-                let (lcmDenominator, denominatorOverflowed) = (fractionalDenominator / commonDivisor).multipliedReportingOverflow(by: entryDenominator)
-                precondition(!denominatorOverflowed, "MoneyBag.total: LCM denominator overflow — exchange rates have incompatible denominators")
-                let combinedNumerator = fractionalNumerator * (entryDenominator / commonDivisor) + entryRemainder * (fractionalDenominator / commonDivisor)
-                fractionalNumerator = combinedNumerator
-                fractionalDenominator = lcmDenominator
-
-                // Keep fractionalNumerator/fractionalDenominator reduced to prevent unbounded growth.
-                let absoluteNumerator = fractionalNumerator < 0 ? -fractionalNumerator : fractionalNumerator
-                let numeratorGcd = _gcd(absoluteNumerator, fractionalDenominator)
-                let isReducible = numeratorGcd > 1
-                if isReducible {
-                    fractionalNumerator /= numeratorGcd
-                    fractionalDenominator /= numeratorGcd
-                }
-            }
+            _accumulateFraction(
+                numerator: &fractionalNumerator,
+                denominator: &fractionalDenominator,
+                entryRemainder: entryRemainder,
+                entryDenominator: entryDenominator
+            )
         }
 
         // Capture the pre-rounding integer sum for the exact fraction output.
@@ -138,18 +120,58 @@ extension MoneyBag {
         let finalMinorUnits = Int64(integerSum)
         precondition(finalMinorUnits != .min, "MoneyBag.total: result is NaN sentinel")
 
-        // Build the exact fraction (preRoundIntegerSum + fractionalNumerator/fractionalDenominator) reduced by GCD.
-        // exactNumeratorUnreduced = preRoundIntegerSum * fractionalDenominator + fractionalNumerator
-        let exactNumeratorUnreduced = preRoundIntegerSum * fractionalDenominator + fractionalNumerator
-        let absoluteExactNumerator = exactNumeratorUnreduced < 0 ? -exactNumeratorUnreduced : exactNumeratorUnreduced
-        let exactCommonDivisor = _gcd(absoluteExactNumerator == 0 ? 1 : absoluteExactNumerator, fractionalDenominator)
-        let exactNumerator   = exactNumeratorUnreduced / exactCommonDivisor
-        let exactDenominator = fractionalDenominator / exactCommonDivisor
+        let (exactNumerator, exactDenominator) = _reducedExactFraction(
+            integerSum: preRoundIntegerSum,
+            fractionalNumerator: fractionalNumerator,
+            fractionalDenominator: fractionalDenominator
+        )
 
         return MoneyConversionResult(
             total: Money<Target>(_unchecked: finalMinorUnits),
             exactNumerator: exactNumerator,
             exactDenominator: exactDenominator
         )
+    }
+
+    /// Folds `entryRemainder/entryDenominator` into the running fraction via LCM-based addition,
+    /// then GCD-reduces to prevent unbounded growth.
+    private func _accumulateFraction(
+        numerator: inout Int128,
+        denominator: inout Int128,
+        entryRemainder: Int128,
+        entryDenominator: Int128
+    ) {
+        let hasRemainder = entryRemainder != 0
+        guard hasRemainder else { return }
+
+        let commonDivisor = _gcd(
+            denominator > 0 ? denominator : -denominator,
+            entryDenominator > 0 ? entryDenominator : -entryDenominator
+        )
+        let (lcmDenominator, denominatorOverflowed) = (denominator / commonDivisor).multipliedReportingOverflow(by: entryDenominator)
+        precondition(!denominatorOverflowed, "MoneyBag.total: LCM denominator overflow — exchange rates have incompatible denominators")
+
+        numerator = numerator * (entryDenominator / commonDivisor) + entryRemainder * (denominator / commonDivisor)
+        denominator = lcmDenominator
+
+        let absoluteNumerator = numerator < 0 ? -numerator : numerator
+        let numeratorGcd = _gcd(absoluteNumerator, denominator)
+        let isReducible = numeratorGcd > 1
+        if isReducible {
+            numerator /= numeratorGcd
+            denominator /= numeratorGcd
+        }
+    }
+
+    /// Combines integer sum and fractional part into a single reduced fraction for audit output.
+    private func _reducedExactFraction(
+        integerSum: Int128,
+        fractionalNumerator: Int128,
+        fractionalDenominator: Int128
+    ) -> (numerator: Int128, denominator: Int128) {
+        let unreducedNumerator = integerSum * fractionalDenominator + fractionalNumerator
+        let absoluteNumerator = unreducedNumerator < 0 ? -unreducedNumerator : unreducedNumerator
+        let commonDivisor = _gcd(absoluteNumerator == 0 ? 1 : absoluteNumerator, fractionalDenominator)
+        return (unreducedNumerator / commonDivisor, fractionalDenominator / commonDivisor)
     }
 }
