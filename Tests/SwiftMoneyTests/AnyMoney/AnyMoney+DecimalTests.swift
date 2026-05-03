@@ -8,9 +8,10 @@ struct AnyMoney_DecimalTests {
     // MARK: - decimalValue
 
     @Test("decimalValue is correct for a ratio-100 currency")
-    func decimalValueRatio100() {
+    func decimalValueRatio100() throws {
         let any = Money<TST_100>(minorUnits: 150).erased
-        #expect(any.decimalValue == Decimal(string: "1.50")!)
+        let expected = try #require(Decimal(string: "1.50"))
+        #expect(any.decimalValue == expected)
     }
 
     @Test("decimalValue is correct for a ratio-1 currency (no minor units)")
@@ -26,9 +27,10 @@ struct AnyMoney_DecimalTests {
     }
 
     @Test("decimalValue is correct for a negative value")
-    func decimalValueNegative() {
+    func decimalValueNegative() throws {
         let any = Money<TST_100>(minorUnits: -275).erased
-        #expect(any.decimalValue == Decimal(string: "-2.75")!)
+        let expected = try #require(Decimal(string: "-2.75"))
+        #expect(any.decimalValue == expected)
     }
 
     @Test("decimalValue returns Decimal.nan for an erased NaN")
