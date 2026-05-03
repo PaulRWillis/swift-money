@@ -62,7 +62,7 @@ struct MoneyBag_FormatStyleTests {
     }
 
     @Test("formatted() entries appear in currency-code sort order")
-    func formattedEntriesAreSorted() {
+    func formattedEntriesAreSorted() throws {
         // EUR < GBP lexicographically, so EUR entry should come first
         let eurFormatted = Money<EUR>(minorUnits: 1000).erased.formatted()
         let gbpFormatted = Money<GBP>(minorUnits: 500).erased.formatted()
@@ -71,8 +71,8 @@ struct MoneyBag_FormatStyleTests {
             .adding(Money<GBP>(minorUnits: 500))
             .adding(Money<EUR>(minorUnits: 1000))
         let result = bag.formatted()
-        let eurRange = try! #require(result.range(of: eurFormatted))
-        let gbpRange = try! #require(result.range(of: gbpFormatted))
+        let eurRange = try #require(result.range(of: eurFormatted))
+        let gbpRange = try #require(result.range(of: gbpFormatted))
         #expect(eurRange.lowerBound < gbpRange.lowerBound)
     }
 
