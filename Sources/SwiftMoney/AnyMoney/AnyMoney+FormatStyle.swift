@@ -49,40 +49,57 @@ extension AnyMoney {
         // MARK: - Modifiers
 
         public func locale(_ locale: Locale) -> FormatStyle {
-            var s = self; s.locale = locale; return s
+            var copy = self
+            copy.locale = locale
+            return copy
         }
 
         public func sign(strategy: Configuration.SignDisplayStrategy) -> FormatStyle {
-            var s = self; s.signDisplayStrategy = strategy; return s
+            var copy = self
+            copy.signDisplayStrategy = strategy
+            return copy
         }
 
         public func presentation(_ p: Configuration.Presentation) -> FormatStyle {
-            var s = self; s.presentation = p; return s
+            var copy = self
+            copy.presentation = p
+            return copy
         }
 
         public func grouping(_ g: Configuration.Grouping) -> FormatStyle {
-            var s = self; s.grouping = g; return s
+            var copy = self
+            copy.grouping = g
+            return copy
         }
 
         public func precision(_ p: Configuration.Precision) -> FormatStyle {
-            var s = self; s.precision = p; return s
+            var copy = self
+            copy.precision = p
+            return copy
         }
 
         public func decimalSeparator(
             strategy: Configuration.DecimalSeparatorDisplayStrategy
         ) -> FormatStyle {
-            var s = self; s.decimalSeparatorStrategy = strategy; return s
+            var copy = self
+            copy.decimalSeparatorStrategy = strategy
+            return copy
         }
 
         public func rounded(
             rule: Configuration.RoundingRule = .toNearestOrEven,
             increment: Int? = nil
         ) -> FormatStyle {
-            var s = self; s.roundedRule = rule; s.roundedIncrement = increment; return s
+            var copy = self
+            copy.roundedRule = rule
+            copy.roundedIncrement = increment
+            return copy
         }
 
         public func notation(_ n: Configuration.Notation) -> FormatStyle {
-            var s = self; s.notation = n; return s
+            var copy = self
+            copy.notation = n
+            return copy
         }
     }
 }
