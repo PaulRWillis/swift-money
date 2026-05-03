@@ -68,7 +68,9 @@ public struct ExchangeRate<From: Currency, To: Currency>: Sendable {
     ///   - fromMinorUnits: A positive count of minor units of the source currency.
     ///   - toMinorUnits: The corresponding positive count of minor units of the target currency.
     public init?(from fromMinorUnits: Int64, to toMinorUnits: Int64) {
-        guard fromMinorUnits > 0, toMinorUnits > 0 else { return nil }
+        let isPositiveFrom = fromMinorUnits > 0
+        let isPositiveTo = toMinorUnits > 0
+        guard isPositiveFrom, isPositiveTo else { return nil }
         self.init(_uncheckedRate: Rate(_unchecked: toMinorUnits, denominator: fromMinorUnits))
     }
 
@@ -99,14 +101,17 @@ public struct ExchangeRate<From: Currency, To: Currency>: Sendable {
     /// - Returns: `nil` if `majorUnitRate.numeratorValue ≤ 0`, or if scaling the rate by
     ///   the currency quantisations would overflow `Int64`.
     public init?(majorUnitRate: Rate) {
-        guard majorUnitRate.numeratorValue > 0 else { return nil }
-        let toMinQ   = To.minimalQuantisation.int64Value
-        let fromMinQ = From.minimalQuantisation.int64Value
+        let isPositiveRate = majorUnitRate.numeratorValue > 0
+        guard isPositiveRate else { return nil }
+        let targetQuantisation = To.minimalQuantisation.int64Value
+        let sourceQuantisation = From.minimalQuantisation.int64Value
         // Scale: numerator × To.minQ, denominator × From.minQ
-        let (scaledNumerator,   overflowN) = majorUnitRate.numeratorValue.multipliedReportingOverflow(by: toMinQ)
-        guard !overflowN, scaledNumerator != .min else { return nil }
-        let (scaledDenominator, overflowD) = majorUnitRate.denominatorValue.multipliedReportingOverflow(by: fromMinQ)
-        guard !overflowD, scaledDenominator > 0 else { return nil }
+        let (scaledNumerator,   numeratorOverflowed) = majorUnitRate.numeratorValue.multipliedReportingOverflow(by: targetQuantisation)
+        let isValidNumerator = !numeratorOverflowed && scaledNumerator != .min
+        guard isValidNumerator else { return nil }
+        let (scaledDenominator, denominatorOverflowed) = majorUnitRate.denominatorValue.multipliedReportingOverflow(by: sourceQuantisation)
+        let isValidDenominator = !denominatorOverflowed && scaledDenominator > 0
+        guard isValidDenominator else { return nil }
         self.init(_uncheckedRate: Rate(_unchecked: scaledNumerator, denominator: scaledDenominator))
     }
 
@@ -157,13 +162,14 @@ public struct ExchangeRate<From: Currency, To: Currency>: Sendable {
         of money: Money<From>,
         rounding: FloatingPointRoundingRule = .toNearestOrAwayFromZero
     ) -> Conversion<From, To> {
-        let r = money.multiplied(by: rate, rounding: rounding)
-        let amount = Money<To>(_unchecked: r.amount.minorUnits)
+        let multiplication = money.multiplied(by: rate, rounding: rounding)
+        let amount = Money<To>(_unchecked: multiplication.amount.minorUnits)
         // Wrap the Rate effectiveRate as a typed ExchangeRate.
         // effectiveRate.numeratorValue == 0 only when a non-zero input rounds to zero;
         // in that case there is no meaningful typed rate to return.
-        let effectiveRate: ExchangeRate<From, To>? = r.effectiveRate.numeratorValue > 0
-            ? ExchangeRate(_uncheckedRate: r.effectiveRate)
+        let hasNonZeroEffectiveRate = multiplication.effectiveRate.numeratorValue > 0
+        let effectiveRate: ExchangeRate<From, To>? = hasNonZeroEffectiveRate
+            ? ExchangeRate(_uncheckedRate: multiplication.effectiveRate)
             : nil
         return Conversion(amount: amount, effectiveRate: effectiveRate)
     }
@@ -220,21 +226,23 @@ extension ExchangeRate: Codable {
 
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        let from = try container.decode(Int64.self, forKey: .fromMinorUnits)
-        let to   = try container.decode(Int64.self, forKey: .toMinorUnits)
-        guard from > 0 else {
+        let fromMinorUnits = try container.decode(Int64.self, forKey: .fromMinorUnits)
+        let toMinorUnits   = try container.decode(Int64.self, forKey: .toMinorUnits)
+        let isPositiveFrom = fromMinorUnits > 0
+        guard isPositiveFrom else {
             throw DecodingError.dataCorruptedError(
                 forKey: .fromMinorUnits, in: container,
                 debugDescription: "ExchangeRate fromMinorUnits must be positive"
             )
         }
-        guard to > 0 else {
+        let isPositiveTo = toMinorUnits > 0
+        guard isPositiveTo else {
             throw DecodingError.dataCorruptedError(
                 forKey: .toMinorUnits, in: container,
                 debugDescription: "ExchangeRate toMinorUnits must be positive"
             )
         }
-        self.init(_uncheckedRate: Rate(_unchecked: to, denominator: from))
+        self.init(_uncheckedRate: Rate(_unchecked: toMinorUnits, denominator: fromMinorUnits))
     }
 
     public func encode(to encoder: any Encoder) throws {
