@@ -292,17 +292,23 @@ extension CodingUserInfoKey {
     ///
     /// Set this key on `encoder.userInfo` to configure how `Money` values are encoded.
     /// Prefer the ``JSONEncoder/moneyEncodingStrategy`` convenience property.
-    public static let moneyEncodingStrategy = CodingUserInfoKey(
-        rawValue: "io.swiftmoney.encoding-strategy"
-    )!
+    public static let moneyEncodingStrategy: CodingUserInfoKey = {
+        guard let key = CodingUserInfoKey(rawValue: "io.swiftmoney.encoding-strategy") else {
+            preconditionFailure("CodingUserInfoKey initialisation failed for a non-empty raw value.")
+        }
+        return key
+    }()
 
     /// The user-info key for ``MoneyDecodingStrategy``.
     ///
     /// Set this key on `decoder.userInfo` to configure how `Money` values are decoded.
     /// Prefer the ``JSONDecoder/moneyDecodingStrategy`` convenience property.
-    public static let moneyDecodingStrategy = CodingUserInfoKey(
-        rawValue: "io.swiftmoney.decoding-strategy"
-    )!
+    public static let moneyDecodingStrategy: CodingUserInfoKey = {
+        guard let key = CodingUserInfoKey(rawValue: "io.swiftmoney.decoding-strategy") else {
+            preconditionFailure("CodingUserInfoKey initialisation failed for a non-empty raw value.")
+        }
+        return key
+    }()
 }
 
 // MARK: - JSONEncoder / JSONDecoder convenience properties
