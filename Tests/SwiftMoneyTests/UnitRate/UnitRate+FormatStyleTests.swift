@@ -12,219 +12,92 @@ struct UnitRateFormatStyleTests {
     private let deDE = Locale(identifier: "de_DE")
     private let frFR = Locale(identifier: "fr_FR")
 
-    // MARK: - .rate mode
+    // MARK: - Currency formatting (String units)
 
-    @Test("rate mode: positive rate with string unit")
-    func rateModePositive() throws {
+    @Test("GBP small rate")
+    func gbpSmallRate() throws {
         let rate = try #require(Rate(numerator: 23, denominator: 1_000_000))
         let unitRate = UnitRate<GBP, String>(rate, per: "kWh")
-        #expect(unitRate.formatted(.rate) == "23/1000000/kWh")
-    }
-
-    @Test("rate mode: GCD-reduced rate shows reduced form")
-    func rateModeGCDReduced() throws {
-        let rate = try #require(Rate(numerator: 14500, denominator: 200))
-        let unitRate = UnitRate<USD, String>(rate, per: "barrel")
-        #expect(unitRate.formatted(.rate) == "145/2/barrel")
-    }
-
-    @Test("rate mode: negative rate")
-    func rateModeNegative() throws {
-        let rate = try #require(Rate(numerator: -5, denominator: 100))
-        let unitRate = UnitRate<GBP, String>(rate, per: "kWh")
-        #expect(unitRate.formatted(.rate) == "-1/20/kWh")
-    }
-
-    @Test("rate mode: zero rate")
-    func rateModeZero() throws {
-        let unitRate = UnitRate<GBP, String>(.zero, per: "kWh")
-        #expect(unitRate.formatted(.rate) == "0/1/kWh")
-    }
-
-    @Test("rate mode: custom separator")
-    func rateModeCustomSeparator() throws {
-        let rate = try #require(Rate(numerator: 23, denominator: 1_000_000))
-        let unitRate = UnitRate<GBP, String>(rate, per: "kWh")
-        #expect(unitRate.formatted(.rate.separator(.spacedSlash)) == "23/1000000 / kWh")
-    }
-
-    @Test("rate mode: multi-word unit")
-    func rateModeMultiWord() throws {
-        let rate = try #require(Rate(numerator: 50, denominator: 1))
-        let unitRate = UnitRate<USD, String>(rate, per: "barrel of oil")
-        #expect(unitRate.formatted(.rate) == "50/1/barrel of oil")
-    }
-
-    // MARK: - .number mode
-
-    @Test("number mode: small rate en_US")
-    func numberModeSmall() throws {
-        let rate = try #require(Rate(numerator: 23, denominator: 1_000_000))
-        let unitRate = UnitRate<GBP, String>(rate, per: "kWh")
-        let result = unitRate.formatted(.number.locale(enUS))
-        #expect(result == "0.000023/kWh")
-    }
-
-    @Test("number mode: German locale uses comma")
-    func numberModeGerman() throws {
-        let rate = try #require(Rate(numerator: 23, denominator: 1_000_000))
-        let unitRate = UnitRate<GBP, String>(rate, per: "kWh")
-        let result = unitRate.formatted(.number.locale(deDE))
-        #expect(result == "0,000023/kWh")
-    }
-
-    @Test("number mode: integer rate (denominator 1)")
-    func numberModeInteger() throws {
-        let rate = try #require(Rate(numerator: 72, denominator: 1))
-        let unitRate = UnitRate<USD, String>(rate, per: "barrel")
-        let result = unitRate.formatted(.number.locale(enUS))
-        #expect(result == "72/barrel")
-    }
-
-    @Test("number mode: negative rate")
-    func numberModeNegative() throws {
-        let rate = try #require(Rate(numerator: -5, denominator: 100))
-        let unitRate = UnitRate<GBP, String>(rate, per: "kWh")
-        let result = unitRate.formatted(.number.locale(enUS))
-        #expect(result == "-0.05/kWh")
-    }
-
-    @Test("number mode: zero rate")
-    func numberModeZero() throws {
-        let unitRate = UnitRate<GBP, String>(.zero, per: "kWh")
-        let result = unitRate.formatted(.number.locale(enUS))
-        #expect(result == "0/kWh")
-    }
-
-    @Test("number mode: large rate")
-    func numberModeLarge() throws {
-        let rate = try #require(Rate(numerator: 14500, denominator: 200))
-        let unitRate = UnitRate<USD, String>(rate, per: "barrel")
-        let result = unitRate.formatted(.number.locale(enUS))
-        #expect(result == "72.5/barrel")
-    }
-
-    @Test("number mode: custom separator")
-    func numberModeCustomSeparator() throws {
-        let rate = try #require(Rate(numerator: 23, denominator: 1_000_000))
-        let unitRate = UnitRate<GBP, String>(rate, per: "kWh")
-        let result = unitRate.formatted(.number.locale(enUS).separator(.custom(" per ")))
-        #expect(result == "0.000023 per kWh")
-    }
-
-    // MARK: - .price mode
-
-    @Test("price mode: GBP small rate")
-    func priceModeGBP() throws {
-        let rate = try #require(Rate(numerator: 23, denominator: 1_000_000))
-        let unitRate = UnitRate<GBP, String>(rate, per: "kWh")
-        let result = unitRate.formatted(.price.locale(enGB))
+        let result = unitRate.formatted(.init(locale: enGB))
         #expect(result == "£0.000023/kWh")
     }
 
-    @Test("price mode: USD large rate")
-    func priceModeUSD() throws {
+    @Test("USD large rate")
+    func usdLargeRate() throws {
         let rate = try #require(Rate(numerator: 14500, denominator: 200))
         let unitRate = UnitRate<USD, String>(rate, per: "barrel")
-        let result = unitRate.formatted(.price.locale(enUS))
+        let result = unitRate.formatted(.init(locale: enUS))
         #expect(result == "$72.50/barrel")
     }
 
-    @Test("price mode: JPY (no decimal places)")
-    func priceModeJPY() throws {
+    @Test("JPY (no decimal places)")
+    func jpyNoDecimals() throws {
         let rate = try #require(Rate(numerator: 150, denominator: 1))
         let unitRate = UnitRate<JPY, String>(rate, per: "litre")
-        let result = unitRate.formatted(.price.locale(Locale(identifier: "ja_JP")))
+        let result = unitRate.formatted(.init(locale: Locale(identifier: "ja_JP")))
         #expect(result == "¥150/litre")
     }
 
-    @Test("price mode: negative rate")
-    func priceModeNegative() throws {
+    @Test("negative rate")
+    func negativeRate() throws {
         let rate = try #require(Rate(numerator: -5, denominator: 100))
         let unitRate = UnitRate<GBP, String>(rate, per: "kWh")
-        let result = unitRate.formatted(.price.locale(enGB))
+        let result = unitRate.formatted(.init(locale: enGB))
         #expect(result == "-£0.05/kWh")
     }
 
-    @Test("price mode: zero rate")
-    func priceModeZero() throws {
+    @Test("zero rate")
+    func zeroRate() throws {
         let unitRate = UnitRate<GBP, String>(.zero, per: "kWh")
-        let result = unitRate.formatted(.price.locale(enGB))
+        let result = unitRate.formatted(.init(locale: enGB))
         #expect(result == "£0.00/kWh")
     }
 
-    @Test("price mode: German locale")
-    func priceModeGerman() throws {
+    @Test("German locale")
+    func germanLocale() throws {
         let rate = try #require(Rate(numerator: 14500, denominator: 200))
         let unitRate = UnitRate<USD, String>(rate, per: "barrel")
-        let result = unitRate.formatted(.price.locale(deDE))
+        let result = unitRate.formatted(.init(locale: deDE))
         #expect(result.contains("72,50"))
         #expect(result.hasSuffix("/barrel"))
     }
 
-    @Test("price mode: custom separator")
-    func priceModeCustomSeparator() throws {
-        let rate = try #require(Rate(numerator: 14500, denominator: 200))
-        let unitRate = UnitRate<USD, String>(rate, per: "barrel")
-        let result = unitRate.formatted(.price.locale(enUS).separator(.custom(" per ")))
-        #expect(result == "$72.50 per barrel")
+    @Test("whole pounds denominator 1")
+    func wholePounds() throws {
+        let rate = try #require(Rate(numerator: 5, denominator: 1))
+        let unitRate = UnitRate<GBP, String>(rate, per: "hr")
+        let result = unitRate.formatted(.init(locale: enGB))
+        #expect(result == "£5.00/hr")
+    }
+
+    @Test("multi-word unit")
+    func multiWordUnit() throws {
+        let rate = try #require(Rate(numerator: 50, denominator: 1))
+        let unitRate = UnitRate<USD, String>(rate, per: "barrel of oil")
+        let result = unitRate.formatted(.init(locale: enUS))
+        #expect(result == "$50.00/barrel of oil")
     }
 
     // MARK: - Modifiers
 
-    @Test("locale modifier changes decimal formatting")
+    @Test("locale modifier changes currency formatting")
     func localeModifier() throws {
         let rate = try #require(Rate(numerator: 1, denominator: 2))
         let unitRate = UnitRate<GBP, String>(rate, per: "hr")
-        let en = unitRate.formatted(.number.locale(enUS))
-        let de = unitRate.formatted(.number.locale(deDE))
-        #expect(en == "0.5/hr")
-        #expect(de == "0,5/hr")
-    }
-
-    @Test("separator modifier changes the delimiter")
-    func separatorModifier() throws {
-        let rate = try #require(Rate(numerator: 1, denominator: 1))
-        let unitRate = UnitRate<GBP, String>(rate, per: "hr")
-        #expect(unitRate.formatted(.rate.separator(.custom(" per "))) == "1/1 per hr")
-    }
-
-    // MARK: - Static factories
-
-    @Test("static .rate factory produces rate mode")
-    func staticRate() throws {
-        let rate = try #require(Rate(numerator: 1, denominator: 2))
-        let unitRate = UnitRate<GBP, String>(rate, per: "hr")
-        let fromFactory = unitRate.formatted(.rate)
-        let fromInit = unitRate.formatted(UnitRate<GBP, String>.FormatStyle(.rate))
-        #expect(fromFactory == fromInit)
-    }
-
-    @Test("static .number factory produces number mode")
-    func staticNumber() throws {
-        let rate = try #require(Rate(numerator: 1, denominator: 2))
-        let unitRate = UnitRate<GBP, String>(rate, per: "hr")
-        let fromFactory = unitRate.formatted(.number.locale(enUS))
-        let fromInit = unitRate.formatted(UnitRate<GBP, String>.FormatStyle(.number, locale: enUS))
-        #expect(fromFactory == fromInit)
-    }
-
-    @Test("static .price factory produces price mode")
-    func staticPrice() throws {
-        let rate = try #require(Rate(numerator: 1, denominator: 2))
-        let unitRate = UnitRate<GBP, String>(rate, per: "hr")
-        let fromFactory = unitRate.formatted(.price.locale(enGB))
-        let fromInit = unitRate.formatted(UnitRate<GBP, String>.FormatStyle(.price, locale: enGB))
-        #expect(fromFactory == fromInit)
+        let style = UnitRate<GBP, String>.FormatStyle(locale: enGB)
+        let result = unitRate.formatted(style)
+        #expect(result == "£0.50/hr")
     }
 
     // MARK: - formatted() convenience
 
-    @Test("formatted() uses default .rate style")
+    @Test("formatted() uses default style with autoupdatingCurrent locale")
     func formattedDefault() throws {
-        let rate = try #require(Rate(numerator: 23, denominator: 1_000_000))
-        let unitRate = UnitRate<GBP, String>(rate, per: "kWh")
-        #expect(unitRate.formatted() == unitRate.formatted(.rate))
+        let rate = try #require(Rate(numerator: 5, denominator: 1))
+        let unitRate = UnitRate<GBP, String>(rate, per: "hr")
+        let result = unitRate.formatted()
+        // Currency symbol should be present regardless of locale
+        #expect(result.hasSuffix("/hr"))
     }
 
     // MARK: - Edge cases
@@ -233,22 +106,24 @@ struct UnitRateFormatStyleTests {
     func emptyUnit() throws {
         let rate = try #require(Rate(numerator: 1, denominator: 1))
         let unitRate = UnitRate<GBP, String>(rate, per: "")
-        #expect(unitRate.formatted(.rate) == "1/1/")
+        let result = unitRate.formatted(.init(locale: enGB))
+        #expect(result == "£1.00/")
     }
 
     @Test("unit containing separator character")
     func unitContainingSeparator() throws {
         let rate = try #require(Rate(numerator: 1, denominator: 1))
         let unitRate = UnitRate<GBP, String>(rate, per: "kg/m³")
-        #expect(unitRate.formatted(.rate) == "1/1/kg/m³")
+        let result = unitRate.formatted(.init(locale: enGB))
+        #expect(result == "£1.00/kg/m³")
     }
 
-    @Test("denominator 1 rate in price mode")
-    func priceModeWholePounds() throws {
-        let rate = try #require(Rate(numerator: 5, denominator: 1))
-        let unitRate = UnitRate<GBP, String>(rate, per: "hr")
-        let result = unitRate.formatted(.price.locale(enGB))
-        #expect(result == "£5.00/hr")
+    @Test("very small rate shows sufficient decimals")
+    func verySmallRate() throws {
+        let rate = try #require(Rate(numerator: 1, denominator: 10_000_000))
+        let unitRate = UnitRate<GBP, String>(rate, per: "kWh")
+        let result = unitRate.formatted(.init(locale: enGB))
+        #expect(result == "£0.0000001/kWh")
     }
 }
 
@@ -264,36 +139,38 @@ struct UnitRateFormatStyleDimensionTests {
 
     // MARK: - Basic Dimension formatting
 
-    @Test("number mode with UnitEnergy abbreviated (en_US)")
-    func numberModeEnergyAbbreviated() throws {
+    @Test("UnitEnergy abbreviated (en_GB)")
+    func energyAbbreviated() throws {
         let rate = try #require(Rate(numerator: 23, denominator: 1_000_000))
         let unitRate = UnitRate<GBP, UnitEnergy>(rate, per: .kilowattHours)
-        let result = unitRate.formatted(.number.locale(enUS).unitWidth(.abbreviated))
-        #expect(result == "0.000023/kWh")
+        let result = unitRate.formatted(.init(locale: enGB))
+        #expect(result == "£0.000023 kWh")
     }
 
-    @Test("number mode with UnitEnergy wide (en_US)")
-    func numberModeEnergyWide() throws {
+    @Test("UnitEnergy wide (en_US)")
+    func energyWide() throws {
         let rate = try #require(Rate(numerator: 23, denominator: 1_000_000))
         let unitRate = UnitRate<GBP, UnitEnergy>(rate, per: .kilowattHours)
-        let result = unitRate.formatted(.number.locale(enUS).unitWidth(.wide))
+        let result = unitRate.formatted(.init(locale: enUS, unitWidth: .wide))
         #expect(result.contains("kilowatt"))
+        #expect(result.contains("£"))
     }
 
-    @Test("price mode with UnitEnergy (en_GB)")
-    func priceModeEnergy() throws {
-        let rate = try #require(Rate(numerator: 23, denominator: 1_000_000))
-        let unitRate = UnitRate<GBP, UnitEnergy>(rate, per: .kilowattHours)
-        let result = unitRate.formatted(.price.locale(enGB))
-        #expect(result == "£0.000023/kWh")
-    }
-
-    @Test("rate mode with Dimension uses localised label")
-    func rateModeEnergy() throws {
+    @Test("USD with UnitMass abbreviated (en_US)")
+    func massAbbreviatedUSD() throws {
         let rate = try #require(Rate(numerator: 5, denominator: 1))
-        let unitRate = UnitRate<USD, UnitEnergy>(rate, per: .kilowattHours)
-        let result = unitRate.formatted(.rate.locale(enUS))
-        #expect(result == "5/1/kWh")
+        let unitRate = UnitRate<USD, UnitMass>(rate, per: .kilograms)
+        let result = unitRate.formatted(.init(locale: enUS))
+        #expect(result == "$5.00 kg")
+    }
+
+    @Test("UnitMass wide (en_US)")
+    func massWide() throws {
+        let rate = try #require(Rate(numerator: 3, denominator: 1))
+        let unitRate = UnitRate<USD, UnitMass>(rate, per: .kilograms)
+        let result = unitRate.formatted(.init(locale: enUS, unitWidth: .wide))
+        #expect(result.contains("kilogram"))
+        #expect(result.contains("$"))
     }
 
     // MARK: - Localisation
@@ -302,15 +179,16 @@ struct UnitRateFormatStyleDimensionTests {
     func dimensionGermanAbbreviated() throws {
         let rate = try #require(Rate(numerator: 1, denominator: 1))
         let unitRate = UnitRate<EUR, UnitLength>(rate, per: .kilometers)
-        let result = unitRate.formatted(.number.locale(deDE).unitWidth(.abbreviated))
-        #expect(result == "1/km")
+        let result = unitRate.formatted(.init(locale: deDE))
+        #expect(result.contains("km"))
+        #expect(result.contains("€"))
     }
 
     @Test("Dimension unit localised to German (wide)")
     func dimensionGermanWide() throws {
         let rate = try #require(Rate(numerator: 1, denominator: 1))
         let unitRate = UnitRate<EUR, UnitLength>(rate, per: .kilometers)
-        let result = unitRate.formatted(.number.locale(deDE).unitWidth(.wide))
+        let result = unitRate.formatted(.init(locale: deDE, unitWidth: .wide))
         #expect(result.contains("Kilometer"))
     }
 
@@ -318,7 +196,7 @@ struct UnitRateFormatStyleDimensionTests {
     func dimensionFrenchWide() throws {
         let rate = try #require(Rate(numerator: 1, denominator: 1))
         let unitRate = UnitRate<EUR, UnitLength>(rate, per: .kilometers)
-        let result = unitRate.formatted(.number.locale(frFR).unitWidth(.wide))
+        let result = unitRate.formatted(.init(locale: frFR, unitWidth: .wide))
         #expect(result.contains("kilomètre"))
     }
 
@@ -332,93 +210,37 @@ struct UnitRateFormatStyleDimensionTests {
         #expect(result.contains("kWh"))
     }
 
-    // MARK: - Custom separator with Dimension
-
-    @Test("custom separator with Dimension unit")
-    func customSeparatorDimension() throws {
-        let rate = try #require(Rate(numerator: 5, denominator: 1))
-        let unitRate = UnitRate<GBP, UnitEnergy>(rate, per: .kilowattHours)
-        let result = unitRate.formatted(.number.locale(enGB).separator(.custom(" per ")))
-        #expect(result == "5 per kWh")
-    }
-
     // MARK: - Narrow unit width
 
     @Test("Dimension unit with narrow width")
     func dimensionNarrowWidth() throws {
         let rate = try #require(Rate(numerator: 1, denominator: 1))
         let unitRate = UnitRate<EUR, UnitLength>(rate, per: .kilometers)
-        let result = unitRate.formatted(.number.locale(enUS).unitWidth(.narrow))
+        let result = unitRate.formatted(.init(locale: enUS, unitWidth: .narrow))
         #expect(result.contains("km"))
-    }
-
-    // MARK: - Additional Dimension units
-
-    @Test("UnitMass abbreviation (en_US)")
-    func dimensionMassAbbreviated() throws {
-        let rate = try #require(Rate(numerator: 3, denominator: 1))
-        let unitRate = UnitRate<USD, UnitMass>(rate, per: .kilograms)
-        let result = unitRate.formatted(.number.locale(enUS).unitWidth(.abbreviated))
-        #expect(result == "3/kg")
-    }
-
-    @Test("UnitMass wide (en_US)")
-    func dimensionMassWide() throws {
-        let rate = try #require(Rate(numerator: 3, denominator: 1))
-        let unitRate = UnitRate<USD, UnitMass>(rate, per: .kilograms)
-        let result = unitRate.formatted(.number.locale(enUS).unitWidth(.wide))
-        #expect(result.contains("kilogram"))
-    }
-
-    // MARK: - French locale
-
-    @Test("number mode with French locale uses comma")
-    func dimensionFrenchNumber() throws {
-        let rate = try #require(Rate(numerator: 1, denominator: 2))
-        let unitRate = UnitRate<EUR, UnitEnergy>(rate, per: .kilowattHours)
-        let result = unitRate.formatted(.number.locale(frFR))
-        #expect(result.contains("0,5"))
-    }
-
-    // MARK: - Chained modifiers
-
-    @Test("chained modifiers: locale + separator + unitWidth")
-    func chainedModifiers() throws {
-        let rate = try #require(Rate(numerator: 5, denominator: 1))
-        let unitRate = UnitRate<EUR, UnitEnergy>(rate, per: .kilowattHours)
-        let result = unitRate.formatted(.number.locale(deDE).separator(.custom(" pro ")).unitWidth(.abbreviated))
-        #expect(result == "5 pro kWh")
-    }
-
-    // MARK: - Price mode with Dimension
-
-    @Test("price mode with UnitMass (USD)")
-    func priceModeMass() throws {
-        let rate = try #require(Rate(numerator: 5, denominator: 1))
-        let unitRate = UnitRate<USD, UnitMass>(rate, per: .kilograms)
-        let result = unitRate.formatted(.price.locale(enUS))
-        #expect(result == "$5.00/kg")
-    }
-
-    // MARK: - formatted(_:) with explicit init
-
-    @Test("formatted(_:) with explicit FormatStyle init for Dimension")
-    func formattedExplicitInit() throws {
-        let rate = try #require(Rate(numerator: 10, denominator: 1))
-        let unitRate = UnitRate<GBP, UnitEnergy>(rate, per: .kilowattHours)
-        let style = UnitRate<GBP, UnitEnergy>.FormatStyle(.number, locale: enGB)
-        let result = unitRate.formatted(style)
-        #expect(result == "10/kWh")
     }
 
     // MARK: - Very small rates
 
-    @Test("price mode very small rate shows sufficient decimals")
-    func priceVerySmallRate() throws {
+    @Test("very small rate shows sufficient decimals")
+    func verySmallRate() throws {
         let rate = try #require(Rate(numerator: 1, denominator: 10_000_000))
         let unitRate = UnitRate<GBP, UnitEnergy>(rate, per: .kilowattHours)
-        let result = unitRate.formatted(.price.locale(enGB))
-        #expect(result == "£0.0000001/kWh")
+        let result = unitRate.formatted(.init(locale: enGB))
+        #expect(result == "£0.0000001 kWh")
+    }
+
+    // MARK: - Unit width modifier
+
+    @Test("unitWidth modifier changes label form")
+    func unitWidthModifier() throws {
+        let rate = try #require(Rate(numerator: 5, denominator: 1))
+        let unitRate = UnitRate<GBP, UnitEnergy>(rate, per: .kilowattHours)
+        let abbreviated = unitRate.formatted(.init(locale: enGB, unitWidth: .abbreviated))
+        let wide = unitRate.formatted(.init(locale: enGB, unitWidth: .wide))
+        #expect(abbreviated.contains("kWh"))
+        #expect(wide.contains("kilowatt"))
+        #expect(abbreviated != wide)
     }
 }
 

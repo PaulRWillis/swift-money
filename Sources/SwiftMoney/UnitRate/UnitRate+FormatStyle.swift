@@ -5,32 +5,21 @@ extension UnitRate where U: CustomStringConvertible {
 
     // MARK: - FormatStyle
 
-    /// A format style that produces a localised string for a `UnitRate` value.
+    /// A format style that produces a localised currency string for a `UnitRate` value.
     ///
-    /// `UnitRate.FormatStyle` supports three output modes:
-    /// - `.rate` — the raw fraction followed by the unit (e.g. `"23/1000000 / kWh"`)
-    /// - `.number` — a locale-aware decimal followed by the unit (e.g. `"0.000023 / kWh"`)
-    /// - `.price` — a locale-aware currency amount followed by the unit (e.g. `"£0.000023/kWh"`)
+    /// The value portion is always rendered as a currency amount (e.g. `"£0.000023"`)
+    /// because a `UnitRate` represents money per unit — stripping the currency
+    /// context would produce a misleading output.
     ///
-    /// The separator between the value and unit is configurable (default `"/"`).
+    /// For `Dimension` units, the unit label is localised using Foundation's CLDR
+    /// data and spacing is determined by the locale. For `String` units, the literal
+    /// string is used with a `"/"` separator.
     ///
     /// ```swift
     /// let rate = UnitRate<GBP, String>(Rate("23/1000000")!, per: "kWh")
-    /// rate.formatted(.price)              // "£0.000023/kWh"
-    /// rate.formatted(.number.locale(de))  // "0,000023/kWh"
-    /// rate.formatted(.rate)               // "23/1000000 / kWh"
+    /// rate.formatted()  // "£0.000023/kWh"
     /// ```
     public struct FormatStyle: Equatable, Hashable, Sendable, Codable {
-
-        /// The output mode determining how the rate value is rendered.
-        public enum Mode: String, Equatable, Hashable, Sendable, Codable {
-            /// Raw fraction: `"23/1000000 / kWh"`.
-            case rate
-            /// Locale-aware decimal: `"0.000023 / kWh"`.
-            case number
-            /// Locale-aware currency: `"£0.000023/kWh"`.
-            case price
-        }
 
         /// The width of the unit label (applies to `Dimension` units only).
         public enum UnitWidth: String, Equatable, Hashable, Sendable, Codable {
@@ -42,48 +31,23 @@ extension UnitRate where U: CustomStringConvertible {
             case narrow
         }
 
-        /// The separator placed between the formatted value and unit label.
-        public struct Separator: Codable, Equatable, Hashable, Sendable {
-            /// The raw separator string.
-            internal let rawValue: String
-
-            internal init(_ rawValue: String) { self.rawValue = rawValue }
-
-            /// `"/"` — a forward slash with no spaces (default).
-            public static var slash: Separator { Separator("/") }
-
-            /// `" / "` — a forward slash surrounded by spaces.
-            public static var spacedSlash: Separator { Separator(" / ") }
-
-            /// A custom separator string.
-            public static func custom(_ separator: String) -> Separator { Separator(separator) }
-        }
-
         // MARK: - Stored state
 
-        private var mode: Mode
-        private var locale: Locale
-        private var separator: Separator
-        private var unitWidth: UnitWidth
+        internal var locale: Locale
+        internal var unitWidth: UnitWidth
 
         // MARK: - Initialiser
 
-        /// Creates a format style with the given mode, locale, separator, and unit width.
+        /// Creates a format style with the given locale and unit width.
         ///
         /// - Parameters:
-        ///   - mode: The output mode. Defaults to `.rate`.
-        ///   - locale: The locale for number/currency formatting. Defaults to `.autoupdatingCurrent`.
-        ///   - separator: The separator between value and unit. Defaults to `.slash`.
+        ///   - locale: The locale for currency formatting. Defaults to `.autoupdatingCurrent`.
         ///   - unitWidth: The width of the unit label for `Dimension` units. Defaults to `.abbreviated`.
         public init(
-            _ mode: Mode = .rate,
             locale: Locale = .autoupdatingCurrent,
-            separator: Separator = .slash,
             unitWidth: UnitWidth = .abbreviated
         ) {
-            self.mode = mode
             self.locale = locale
-            self.separator = separator
             self.unitWidth = unitWidth
         }
 
@@ -92,11 +56,6 @@ extension UnitRate where U: CustomStringConvertible {
         /// Returns a copy with the given locale.
         public func locale(_ locale: Locale) -> FormatStyle {
             var s = self; s.locale = locale; return s
-        }
-
-        /// Returns a copy with the given separator between value and unit.
-        public func separator(_ separator: Separator) -> FormatStyle {
-            var s = self; s.separator = separator; return s
         }
 
         /// Returns a copy with the given unit label width.
@@ -112,32 +71,13 @@ extension UnitRate where U: CustomStringConvertible {
         /// Formats the unit rate value using `String(describing:)` for the unit label.
         internal func _format(_ value: UnitRate<C, U>) -> String {
             let unitLabel = String(describing: value.unit)
-            return _formatWithLabel(value, unitLabel: unitLabel)
+            return "\(_formatPrice(value.rate))/\(unitLabel)"
         }
 
-        /// Formats the unit rate value using a pre-resolved unit label.
-        internal func _formatWithLabel(_ value: UnitRate<C, U>, unitLabel: String) -> String {
-            let valueString: String
-
-            switch mode {
-            case .rate:
-                valueString = value.rate.description
-
-            case .number:
-                let decimal = _rateAsDecimal(value.rate)
-                valueString = decimal.formatted(.number.locale(locale))
-
-            case .price:
-                valueString = _formatPrice(value.rate)
-            }
-
-            return "\(valueString)\(separator.rawValue)\(unitLabel)"
-        }
-
-        // MARK: - Private helpers
+        // MARK: - Internal helpers
 
         /// Converts a `Rate` to its exact `Decimal` equivalent.
-        private func _rateAsDecimal(_ rate: Rate) -> Decimal {
+        internal func _rateAsDecimal(_ rate: Rate) -> Decimal {
             let numerator = Decimal(rate.numeratorValue)
             let denominator = Decimal(rate.denominatorValue)
             return numerator / denominator
@@ -147,11 +87,7 @@ extension UnitRate where U: CustomStringConvertible {
         ///
         /// Produces the major-unit price per unit (e.g. "£0.000023" for a rate
         /// of 23/1000000 in GBP with minimalQuantisation 100).
-        private func _formatPrice(_ rate: Rate) -> String {
-            // Convert rate to minor units: rate represents major units per unit,
-            // so minor units = numerator * minimalQuantisation / denominator.
-            // But for display we want the major-unit decimal value:
-            // majorUnits = numerator / denominator (already the rate's meaning).
+        internal func _formatPrice(_ rate: Rate) -> String {
             let decimal = _rateAsDecimal(rate)
             var style = Decimal.FormatStyle.Currency(
                 code: C.code.stringValue,
@@ -196,61 +132,70 @@ extension UnitRate where U: CustomStringConvertible {
     public func formatted(_ format: FormatStyle) -> String {
         format.format(self)
     }
-}
 
-// MARK: - Static factory shorthand
-
-extension UnitRate.FormatStyle where U: CustomStringConvertible {
-    /// A format style showing the raw rate fraction and unit.
-    ///
-    /// ```swift
-    /// unitRate.formatted(.rate)  // "23/1000000 / kWh"
-    /// ```
-    public static var rate: Self { .init(.rate) }
-
-    /// A format style showing a locale-aware decimal and unit.
-    ///
-    /// ```swift
-    /// unitRate.formatted(.number)  // "0.000023/kWh"
-    /// ```
-    public static var number: Self { .init(.number) }
-
-    /// A format style showing a locale-aware currency price and unit.
-    ///
-    /// ```swift
-    /// unitRate.formatted(.price)  // "£0.000023/kWh"
-    /// ```
-    public static var price: Self { .init(.price) }
+    /// Formats `self` as an `AttributedString` with component runs.
+    public func formatted(_ format: AttributedFormatStyle) -> AttributedString {
+        format.format(self)
+    }
 }
 
 // MARK: - Dimension-specific formatting
 
 extension UnitRate.FormatStyle where U: Dimension {
     /// Formats a `UnitRate` whose unit is a `Dimension`, using a localised
-    /// unit label from Foundation's `MeasurementFormatter`.
+    /// unit label extracted from Foundation's `Measurement.FormatStyle.attributed`.
     ///
-    /// This overload is preferred over the generic `CustomStringConvertible`
-    /// version when `U` conforms to `Dimension`, providing proper
-    /// internationalisation of unit symbols and names.
+    /// Foundation's CLDR data provides locale-aware unit names and spacing.
+    /// The value portion is always formatted as a currency amount.
     internal func _formatDimension(_ value: UnitRate<C, U>) -> String {
-        let unitLabel = _localisedUnitLabel(value.unit)
-        return _formatWithLabel(value, unitLabel: unitLabel)
+        let (spacing, unitLabel) = _localisedSpacingAndUnit(value.unit)
+        let valueString = _formatPrice(value.rate)
+        return "\(valueString)\(spacing)\(unitLabel)"
     }
 
-    /// Returns a localised unit label for the given `Dimension` unit.
-    private func _localisedUnitLabel(_ unit: U) -> String {
-        let formatter = MeasurementFormatter()
-        formatter.locale = locale
-        formatter.unitOptions = .providedUnit
+    /// Extracts the localised spacing and unit label from Foundation's attributed output.
+    ///
+    /// Uses `Measurement.FormatStyle.attributed` with `.asProvided` to prevent
+    /// auto-conversion to the locale's preferred unit. The attributed string
+    /// has three runs: `.value`, `nil` (spacing), `.unit`.
+    private func _localisedSpacingAndUnit(_ unit: U) -> (spacing: String, unit: String) {
+        let measurement = Measurement(value: 1.0, unit: unit)
+        let width = _foundationWidth()
+        let style = Measurement<U>.FormatStyle.measurement(
+            width: width,
+            usage: .asProvided
+        ).locale(locale)
+        let attributed = measurement.formatted(style.attributed)
+
+        var spacing = ""
+        var unitText = ""
+
+        for (component, range) in attributed.runs[\.measurement] {
+            let text = String(attributed[range].characters)
+            switch component {
+            case .unit:
+                unitText += text
+            case .value:
+                break
+            default:
+                // nil component = spacing between value and unit
+                spacing += text
+            }
+        }
+
+        return (spacing, unitText)
+    }
+
+    /// Maps our `UnitWidth` to Foundation's `Measurement.FormatStyle.UnitWidth`.
+    private func _foundationWidth() -> Measurement<U>.FormatStyle.UnitWidth {
         switch unitWidth {
         case .abbreviated:
-            formatter.unitStyle = .short
+            return .abbreviated
         case .wide:
-            formatter.unitStyle = .long
+            return .wide
         case .narrow:
-            formatter.unitStyle = .short
+            return .narrow
         }
-        return formatter.string(from: unit)
     }
 }
 
@@ -265,6 +210,131 @@ extension UnitRate where U: Dimension {
     /// Formats `self` using the given format style with a localised unit label.
     public func formatted(_ format: FormatStyle) -> String {
         format._formatDimension(self)
+    }
+
+    /// Formats `self` as an `AttributedString` with component runs.
+    public func formatted(_ format: AttributedFormatStyle) -> AttributedString {
+        format.format(self)
+    }
+}
+
+// MARK: - Attributed string output
+
+/// The component of a `UnitRate` format run.
+///
+/// Used to tag runs in an `AttributedString` returned by
+/// `UnitRate.FormatStyle.attributed`, allowing consumers to style
+/// the value and unit portions independently.
+public enum UnitRateFormatAttribute: CodableAttributedStringKey, MarkdownDecodableAttributedStringKey {
+    public typealias Value = Component
+    public static let name = "SwiftMoney.UnitRateFormat"
+
+    /// Identifies which part of the formatted unit rate a run represents.
+    public enum Component: String, Codable, Sendable {
+        /// The formatted price/number/rate value.
+        case value
+        /// The unit label (e.g. "kWh", "kilowatt-hours").
+        case unit
+    }
+}
+
+extension AttributeScopes {
+    /// Attribute scope for `UnitRate` formatting.
+    public struct UnitRateFormatAttributes: AttributeScope {
+        public let unitRateComponent: UnitRateFormatAttribute
+    }
+
+    /// The `UnitRate` formatting attributes.
+    public var unitRateFormat: UnitRateFormatAttributes.Type { UnitRateFormatAttributes.self }
+}
+
+extension AttributeDynamicLookup {
+    public subscript<T: AttributedStringKey>(
+        dynamicMember keyPath: KeyPath<AttributeScopes.UnitRateFormatAttributes, T>
+    ) -> T {
+        self[T.self]
+    }
+}
+
+// MARK: - Attributed formatting
+
+extension UnitRate.FormatStyle where U: CustomStringConvertible {
+    /// Returns an `AttributedString` with runs tagged by `UnitRateFormatAttribute`.
+    ///
+    /// The output has two runs:
+    /// - `.value` — the formatted price, number, or rate fraction
+    /// - `.unit` — the unit label (including separator/spacing)
+    ///
+    /// For `String` units, a `"/"` separator prefixes the unit run.
+    /// For `Dimension` units, Foundation-localised spacing is used instead.
+    public var attributed: UnitRate<C, U>.AttributedFormatStyle {
+        UnitRate<C, U>.AttributedFormatStyle(base: self)
+    }
+}
+
+extension UnitRate where U: CustomStringConvertible {
+
+    /// A format style that produces `AttributedString` output for a `UnitRate`.
+    public struct AttributedFormatStyle: Foundation.FormatStyle, Sendable {
+        internal let base: FormatStyle
+
+        public func format(_ value: UnitRate<C, U>) -> AttributedString {
+            let valueString = base._formatPrice(value.rate)
+
+            var valueAttr = AttributedString(valueString)
+            valueAttr[UnitRateFormatAttribute.self] = .value
+
+            let unitPart: String
+            if let dimension = value.unit as? Dimension {
+                unitPart = Self._dimensionUnitPart(
+                    dimension: dimension,
+                    unitWidth: base.unitWidth,
+                    locale: base.locale
+                )
+            } else {
+                unitPart = "/\(value.unit)"
+            }
+
+            var unitAttr = AttributedString(unitPart)
+            unitAttr[UnitRateFormatAttribute.self] = .unit
+
+            return valueAttr + unitAttr
+        }
+
+        /// Extracts spacing + unit label from Foundation's attributed output using type-erased Dimension.
+        private static func _dimensionUnitPart(
+            dimension: Dimension,
+            unitWidth: UnitRate<C, U>.FormatStyle.UnitWidth,
+            locale: Locale
+        ) -> String {
+            let measurement = Measurement<Dimension>(value: 1.0, unit: dimension)
+            let width: Measurement<Dimension>.FormatStyle.UnitWidth
+            switch unitWidth {
+            case .abbreviated: width = .abbreviated
+            case .wide: width = .wide
+            case .narrow: width = .narrow
+            }
+            let style = Measurement<Dimension>.FormatStyle.measurement(
+                width: width,
+                usage: .asProvided
+            ).locale(locale)
+            let attributed = measurement.formatted(style.attributed)
+
+            var spacing = ""
+            var unitText = ""
+            for (component, range) in attributed.runs[\.measurement] {
+                let text = String(attributed[range].characters)
+                switch component {
+                case .unit:
+                    unitText += text
+                case .value:
+                    break
+                default:
+                    spacing += text
+                }
+            }
+            return "\(spacing)\(unitText)"
+        }
     }
 }
 

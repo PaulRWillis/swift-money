@@ -4,11 +4,11 @@
 import Foundation
 
 extension UnitRate: CustomStringConvertible where U: CustomStringConvertible {
-    /// The unit rate formatted using the default `FormatStyle` (`.rate` mode).
+    /// The unit rate formatted as a localised currency string.
     ///
     /// ```swift
     /// let oilPrice = UnitRate<USD, String>(Rate("14500/200")!, per: "barrel")
-    /// oilPrice.description   // "145/2/barrel"
+    /// oilPrice.description   // "$72.50/barrel"
     /// ```
     public var description: String {
         formatted()
