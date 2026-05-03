@@ -31,9 +31,9 @@ extension Rate: LosslessStringConvertible {
         let parts = description.split(separator: "/", maxSplits: 1)
         guard parts.count == 2,
               !parts[1].contains("/"),
-              let n = Int64(parts[0]),
-              let d = Int64(parts[1])
+              let numerator = Int64(parts[0]),
+              let denominator = Int64(parts[1])
         else { return nil }
-        self.init(numerator: n, denominator: d)
+        self.init(numerator: numerator, denominator: denominator)
     }
 }
