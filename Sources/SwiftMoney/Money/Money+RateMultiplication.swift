@@ -150,6 +150,7 @@ extension Money {
 /// Proof that the tie comparison `abs(r)*2` never overflows `Int128`:
 /// - `abs(remainder) < denominator ≤ Int64.max`
 /// - Therefore `abs(remainder)*2 < 2×Int64.max ≪ Int128.max`
+@inlinable
 internal func _roundInt128(
     truncated: Int128,
     remainder: Int128,
