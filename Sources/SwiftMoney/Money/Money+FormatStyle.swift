@@ -164,18 +164,18 @@ extension Money.FormatStyle {
     /// 2. Convert: `minor_units = displayed × minQ`.
     /// 3. Round half-up and convert to `Int64`.
     internal func _parse(_ value: String) throws -> Money<Currency> {
-        let minQ = Decimal(Money<Currency>.minimalQuantisation.int64Value)
+        let quantisation = Decimal(Money<Currency>.minimalQuantisation.int64Value)
 
         let displayed = try _decimalFormatStyle().parseStrategy.parse(value)
 
-        var product = displayed * minQ
+        var product = displayed * quantisation
         var rounded = Decimal()
         NSDecimalRound(&rounded, &product, 0, .plain)   // round half-up
 
-        let int64 = (rounded as NSDecimalNumber).int64Value
-        guard Decimal(int64) == rounded else { throw Money<Currency>.ParseStrategy.ParseError.overflow }
-        guard int64 != .min             else { throw Money<Currency>.ParseStrategy.ParseError.overflow }
-        return Money<Currency>(_unchecked: int64)
+        let roundedMinorUnits = (rounded as NSDecimalNumber).int64Value
+        guard Decimal(roundedMinorUnits) == rounded else { throw Money<Currency>.ParseStrategy.ParseError.overflow }
+        guard roundedMinorUnits != .min             else { throw Money<Currency>.ParseStrategy.ParseError.overflow }
+        return Money<Currency>(_unchecked: roundedMinorUnits)
     }
 }
 
