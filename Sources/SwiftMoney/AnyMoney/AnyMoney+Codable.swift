@@ -126,7 +126,8 @@ extension AnyMoney {
                 debugDescription: "AnyMoney currencyCode cannot be empty"
             )
         }
-        guard quantisationInt > 0 else {
+        let isPositiveQuantisation = quantisationInt > 0
+        guard isPositiveQuantisation else {
             throw DecodingError.dataCorruptedError(
                 forKey: .minimalQuantisation,
                 in: container,
@@ -194,7 +195,8 @@ extension AnyMoney {
         var rounded = Decimal()
         NSDecimalRound(&rounded, &product, 0, .plain)
         let roundedMinorUnits = (rounded as NSDecimalNumber).int64Value
-        guard Decimal(roundedMinorUnits) == rounded else {
+        let isWithinInt64Range = Decimal(roundedMinorUnits) == rounded
+        guard isWithinInt64Range else {
             throw DecodingError.dataCorrupted(
                 DecodingError.Context(
                     codingPath: codingPath,
@@ -202,7 +204,8 @@ extension AnyMoney {
                 )
             )
         }
-        guard roundedMinorUnits != .min else {
+        let isNaNSentinel = roundedMinorUnits == .min
+        guard !isNaNSentinel else {
             throw DecodingError.dataCorrupted(
                 DecodingError.Context(
                     codingPath: codingPath,
