@@ -155,7 +155,7 @@ extension AnyMoney {
             )
         }
         let code = CurrencyCode(currencyCodeString)
-        guard let minQ = resolver(code) else {
+        guard let minimalQuantisation = resolver(code) else {
             throw DecodingError.dataCorrupted(
                 DecodingError.Context(
                     codingPath: container.codingPath,
@@ -169,15 +169,15 @@ extension AnyMoney {
             minorUnits = try container.decode(Int64.self, forKey: .amount)
         case .majorUnits:
             let decimal = try container.decode(Decimal.self, forKey: .amount)
-            minorUnits = try _decimalToMinorUnits(decimal, minQ: minQ, codingPath: container.codingPath)
+            minorUnits = try _decimalToMinorUnits(decimal, minQ: minimalQuantisation, codingPath: container.codingPath)
         case .string(let locale):
             let string = try container.decode(String.self, forKey: .amount)
             let decimal = try _parseFormattedAmount(
                 string, currencyCode: code, locale: locale, codingPath: container.codingPath
             )
-            minorUnits = try _decimalToMinorUnits(decimal, minQ: minQ, codingPath: container.codingPath)
+            minorUnits = try _decimalToMinorUnits(decimal, minQ: minimalQuantisation, codingPath: container.codingPath)
         }
-        return AnyMoney(minorUnits: minorUnits, currencyCode: code, minimalQuantisation: minQ)
+        return AnyMoney(minorUnits: minorUnits, currencyCode: code, minimalQuantisation: minimalQuantisation)
     }
 
     // MARK: Shared arithmetic helpers (internal so MoneyBag+Codable.swift can reuse them)
@@ -189,12 +189,12 @@ extension AnyMoney {
         minQ: MinimalQuantisation,
         codingPath: [any CodingKey]
     ) throws -> Int64 {
-        let minQDecimal = Decimal(minQ.int64Value)
-        var product = decimal * minQDecimal
+        let quantisationDecimal = Decimal(minQ.int64Value)
+        var product = decimal * quantisationDecimal
         var rounded = Decimal()
         NSDecimalRound(&rounded, &product, 0, .plain)
-        let int64 = (rounded as NSDecimalNumber).int64Value
-        guard Decimal(int64) == rounded else {
+        let roundedMinorUnits = (rounded as NSDecimalNumber).int64Value
+        guard Decimal(roundedMinorUnits) == rounded else {
             throw DecodingError.dataCorrupted(
                 DecodingError.Context(
                     codingPath: codingPath,
@@ -202,15 +202,15 @@ extension AnyMoney {
                 )
             )
         }
-        guard int64 != .min else {
+        guard roundedMinorUnits != .min else {
             throw DecodingError.dataCorrupted(
                 DecodingError.Context(
                     codingPath: codingPath,
-                    debugDescription: "Decoded minor-unit value \(int64) collides with the NaN sentinel (Int64.min)."
+                    debugDescription: "Decoded minor-unit value \(roundedMinorUnits) collides with the NaN sentinel (Int64.min)."
                 )
             )
         }
-        return int64
+        return roundedMinorUnits
     }
 
     /// Parses a locale-formatted currency string to a major-unit `Decimal`.
