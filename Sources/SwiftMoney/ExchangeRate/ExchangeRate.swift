@@ -162,14 +162,14 @@ public struct ExchangeRate<From: Currency, To: Currency>: Sendable {
         of money: Money<From>,
         rounding: FloatingPointRoundingRule = .toNearestOrAwayFromZero
     ) -> Conversion<From, To> {
-        let r = money.multiplied(by: rate, rounding: rounding)
-        let amount = Money<To>(_unchecked: r.amount.minorUnits)
+        let multiplication = money.multiplied(by: rate, rounding: rounding)
+        let amount = Money<To>(_unchecked: multiplication.amount.minorUnits)
         // Wrap the Rate effectiveRate as a typed ExchangeRate.
         // effectiveRate.numeratorValue == 0 only when a non-zero input rounds to zero;
         // in that case there is no meaningful typed rate to return.
-        let hasNonZeroEffectiveRate = r.effectiveRate.numeratorValue > 0
+        let hasNonZeroEffectiveRate = multiplication.effectiveRate.numeratorValue > 0
         let effectiveRate: ExchangeRate<From, To>? = hasNonZeroEffectiveRate
-            ? ExchangeRate(_uncheckedRate: r.effectiveRate)
+            ? ExchangeRate(_uncheckedRate: multiplication.effectiveRate)
             : nil
         return Conversion(amount: amount, effectiveRate: effectiveRate)
     }
@@ -226,23 +226,23 @@ extension ExchangeRate: Codable {
 
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        let from = try container.decode(Int64.self, forKey: .fromMinorUnits)
-        let to   = try container.decode(Int64.self, forKey: .toMinorUnits)
-        let isPositiveFrom = from > 0
+        let fromMinorUnits = try container.decode(Int64.self, forKey: .fromMinorUnits)
+        let toMinorUnits   = try container.decode(Int64.self, forKey: .toMinorUnits)
+        let isPositiveFrom = fromMinorUnits > 0
         guard isPositiveFrom else {
             throw DecodingError.dataCorruptedError(
                 forKey: .fromMinorUnits, in: container,
                 debugDescription: "ExchangeRate fromMinorUnits must be positive"
             )
         }
-        let isPositiveTo = to > 0
+        let isPositiveTo = toMinorUnits > 0
         guard isPositiveTo else {
             throw DecodingError.dataCorruptedError(
                 forKey: .toMinorUnits, in: container,
                 debugDescription: "ExchangeRate toMinorUnits must be positive"
             )
         }
-        self.init(_uncheckedRate: Rate(_unchecked: to, denominator: from))
+        self.init(_uncheckedRate: Rate(_unchecked: toMinorUnits, denominator: fromMinorUnits))
     }
 
     public func encode(to encoder: any Encoder) throws {
