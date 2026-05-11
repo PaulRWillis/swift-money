@@ -99,7 +99,7 @@ enum BTC: Currency {
 
 ```swift
 let a = Money<GBP>(minorUnits: 125)      // £1.25
-let b: Money<GBP> = 500                  // £5.00 (integer literal = minor units)
+let b = Money<GBP>(minorUnits: 500)      // £5.00
 let c = Money<GBP>.zero                  // £0.00
 let d = Money<GBP>.nan                   // NaN sentinel
 d.isNaN                                  // true

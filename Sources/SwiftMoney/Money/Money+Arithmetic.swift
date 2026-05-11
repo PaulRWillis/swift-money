@@ -14,8 +14,8 @@ extension Money: AdditiveArithmetic {
     /// matching Swift `Int` behavior.
     ///
     /// ```swift
-    /// let a: Money<GBP> = 105 // £1.05
-    /// let b: Money<GBP> = 325 // £3.25
+    /// let a = Money<GBP>(minorUnits: 105) // £1.05
+    /// let b = Money<GBP>(minorUnits: 325) // £3.25
     /// let sum = a + b  // 430 (£4.30)
     /// ```
     ///
@@ -39,7 +39,7 @@ extension Money: AdditiveArithmetic {
     /// Traps on overflow or NaN.
     ///
     /// ```swift
-    /// var total: Money<GBP> = 100 // £1.00
+    /// var total = Money<GBP>(minorUnits: 100) // £1.00
     /// total += Money<GBP>(minorUnits: 5)
     /// // total is now 105 (£1.05)
     /// ```
@@ -58,8 +58,8 @@ extension Money: AdditiveArithmetic {
     /// matching Swift `Int` behavior.
     ///
     /// ```swift
-    /// let a: Money<GBP> = 1050 // £10.50
-    /// let b: Money<GBP> = 325 // £3.25
+    /// let a = Money<GBP>(minorUnits: 1050) // £10.50
+    /// let b = Money<GBP>(minorUnits: 325) // £3.25
     /// let diff = a - b  // 725 (£7.25)
     /// ```
     ///
@@ -83,7 +83,7 @@ extension Money: AdditiveArithmetic {
     /// Traps on overflow or NaN.
     ///
     /// ```swift
-    /// var balance: Money<GBP> = 100_00 // £100.00
+    /// var balance = Money<GBP>(minorUnits: 100_00) // £100.00
     /// balance -= Money<GBP>(minorUnits: 2550) // £25.50
     /// // balance is now 7450 // £74.50
     /// ```
