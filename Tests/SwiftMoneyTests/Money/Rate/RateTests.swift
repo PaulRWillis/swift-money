@@ -167,18 +167,18 @@ struct RateTests {
         #expect(Rate(Decimal.nan) == nil)
     }
 
-    // MARK: - ExpressibleByIntegerLiteral
+    // MARK: - Integer-valued Rate
 
-    @Test("Integer literal 2 produces 2/1")
-    func integerLiteralTwo () throws {
-        let r: Rate = 2
+    @Test("Whole-number rate 2 produces 2/1")
+    func wholeNumberRateTwo() throws {
+        let r = try #require(Rate(numerator: 2, denominator: 1))
         #expect(r.numeratorValue == 2)
         #expect(r.denominatorValue == 1)
     }
 
-    @Test("Integer literal 1 produces 1/1")
-    func integerLiteralOne () throws {
-        let r: Rate = 1
+    @Test("Whole-number rate 1 produces 1/1")
+    func wholeNumberRateOne() throws {
+        let r = try #require(Rate(numerator: 1, denominator: 1))
         #expect(r.numeratorValue == 1)
         #expect(r.denominatorValue == 1)
     }
@@ -206,11 +206,11 @@ struct RateTests {
         #expect(a != b)
     }
 
-    @Test("Integer literal equals explicit 1/1 init")
-    func integerLiteralEqualsExplicitInit () throws {
-        let literal: Rate = 1
-        let explicit = try #require(Rate(numerator: 1, denominator: 1))
-        #expect(literal == explicit)
+    @Test("Explicit 1/1 init equals itself")
+    func explicitOneEqualsItself() throws {
+        let a = try #require(Rate(numerator: 1, denominator: 1))
+        let b = try #require(Rate(numerator: 1, denominator: 1))
+        #expect(a == b)
     }
 
     // MARK: - Hashable

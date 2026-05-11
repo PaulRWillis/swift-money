@@ -152,11 +152,11 @@ struct Money_RateMultiplicationTests {
     // MARK: - Integer-valued rate (whole number multiplier via Rate)
 
     @Test("100 × 2/1 = 200")
-    func integerRate () throws {
-        let expectedRate = try #require(Rate(numerator: 2, denominator: 1))
-        let r = Money<TST_100>(minorUnits: 100).multiplied(by: 2)
+    func integerRate() throws {
+        let rate = try #require(Rate(numerator: 2, denominator: 1))
+        let r = Money<TST_100>(minorUnits: 100).multiplied(by: rate)
         #expect(r.amount == Money<TST_100>(minorUnits: 200))
-        #expect(r.effectiveRate == expectedRate)
+        #expect(r.effectiveRate == rate)
     }
 
     // MARK: - * Rate operator

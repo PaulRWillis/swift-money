@@ -8,7 +8,7 @@
 /// let tax      = Rate(numerator: 11, denominator: 100)   // 11%
 /// let discount = Rate(numerator: -1, denominator: 10)    // -10%
 /// let quarter  = Rate(Decimal(string: "0.25")!)          // 1/4
-/// let doubling: Rate = 2                                 // 2/1
+/// let doubling = Rate(numerator: 2, denominator: 1)      // 2/1
 /// ```
 ///
 /// Fractions are automatically reduced at initialisation time using the
