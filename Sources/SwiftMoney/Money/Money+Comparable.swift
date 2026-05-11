@@ -23,7 +23,7 @@ extension Money: Equatable {
     /// - Complexity: O(1) -- single integer comparison.
     @inlinable
     public static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs._storage == rhs._storage
+        lhs._minorUnits == rhs._minorUnits
     }
 }
 
@@ -51,7 +51,7 @@ extension Money: Comparable {
     /// - Complexity: O(1) -- single integer comparison.
     @inlinable
     public static func < (lhs: Self, rhs: Self) -> Bool {
-        lhs._storage < rhs._storage
+        lhs._minorUnits < rhs._minorUnits
     }
 }
 
@@ -66,7 +66,7 @@ extension Money: Hashable {
     /// - Parameter hasher: The hasher to use when combining the components of this instance.
     @inlinable
     public func hash(into hasher: inout Hasher) {
-        hasher.combine(_storage)
+        hasher.combine(_minorUnits)
     }
 }
 
@@ -94,7 +94,7 @@ extension Money {
     @inlinable
     public static func minimum(_ x: Self, _ y: Self) -> Self {
         precondition(!x.isNaN && !y.isNaN, "NaN in Money minimum")
-        return x._storage <= y._storage ? x : y
+        return x._minorUnits <= y._minorUnits ? x : y
     }
 
     /// Returns the greater of the two given values.
@@ -118,6 +118,6 @@ extension Money {
     @inlinable
     public static func maximum(_ x: Self, _ y: Self) -> Self {
         precondition(!x.isNaN && !y.isNaN, "NaN in Money maximum")
-        return x._storage >= y._storage ? x : y
+        return x._minorUnits >= y._minorUnits ? x : y
     }
 }

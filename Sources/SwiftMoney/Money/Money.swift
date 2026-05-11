@@ -10,7 +10,7 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     internal typealias Storage = MinorUnits
 
     @usableFromInline
-    internal var _storage: Storage
+    internal var _minorUnits: Storage
 
     /// The currency type
     public var currency: any SwiftMoney.Currency.Type {
@@ -31,7 +31,7 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     /// onePound.minorUnits  // 100
     /// ```
     @inlinable
-    public var minorUnits: MinorUnits { _storage }
+    public var minorUnits: MinorUnits { _minorUnits }
 
     /// Creates a zero value.
     ///
@@ -41,7 +41,7 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     /// ```
     @inlinable
     public init() {
-        self._storage = 0
+        self._minorUnits = 0
     }
 
     /// Creates a new instance from the given integer, if it can be represented
@@ -59,7 +59,7 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     @inlinable
     public init?<T: BinaryInteger>(exactly source: T) {
         guard let int64 = Int64(exactly: source) else { return nil }
-        self._storage = int64
+        self._minorUnits = int64
     }
 
     /// Creates a `Money` value with the given number of minor units.
@@ -73,7 +73,7 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
             value != Storage.min,
             "Use Money.nan — \(Storage.min) is reserved as the NaN sentinel"
         )
-        self._storage = value
+        self._minorUnits = value
     }
 
     /// Creates a `Money` value with the given number of minor units.
@@ -86,7 +86,7 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
             minorUnits != Storage.min,
             "Use Money.nan — \(Storage.min) is reserved as the NaN sentinel"
         )
-        self._storage = minorUnits
+        self._minorUnits = minorUnits
     }
 
     /// Creates a `Money` value directly from the raw storage integer, bypassing
@@ -96,7 +96,7 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     /// by `Codable` decoding where the sentinel value must be preserved.
     @usableFromInline
     internal init(_unchecked storage: Storage) {
-        self._storage = storage
+        self._minorUnits = storage
     }
 
     // MARK: - Special values
@@ -120,7 +120,7 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     /// A Boolean value indicating whether this value is NaN (not-a-number).
     @inlinable
     public var isNaN: Bool {
-        _storage == .min
+        _minorUnits == .min
     }
 
     /// A Boolean value indicating whether this value is finite (not NaN).
@@ -139,7 +139,7 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     /// NaN returns `.plus`.
     @inlinable
     public var sign: FloatingPointSign {
-        _storage < 0 && !isNaN ? .minus : .plus
+        _minorUnits < 0 && !isNaN ? .minus : .plus
     }
 
     /// The largest representable value in minor units: `9,223,372,036,854,775,807`.
