@@ -5,14 +5,14 @@ import Testing
 struct Money_MagnitudeTests {
     @Test("Numeric magnitude for positive")
     func magnitudePositive() {
-        let value: Money<TST_100> = 425
-        #expect(value.magnitude == 425)
+        let value = Money<TST_100>(minorUnits: 425)
+        #expect(value.magnitude == Money<TST_100>(minorUnits: 425))
     }
 
     @Test("Numeric magnitude for negative")
     func magnitudeNegative() {
-        let value: Money<TST_100> = -201
-        #expect(value.magnitude == 201)
+        let value = Money<TST_100>(minorUnits: -201)
+        #expect(value.magnitude == Money<TST_100>(minorUnits: 201))
     }
 
     @Test("Numeric magnitude for NaN traps")
@@ -27,9 +27,9 @@ struct Money_MagnitudeTests {
 
     @Test("Magnitude type is Money")
     func magnitudeType() {
-        let value: Money<TST_100> = 42
+        let value = Money<TST_100>(minorUnits: 42)
         let magnitude: Money<TST_100> = value.magnitude
-        #expect(magnitude == 42 as Money)
+        #expect(magnitude == Money<TST_100>(minorUnits: 42))
     }
 
     @Test("Magnitude of min")

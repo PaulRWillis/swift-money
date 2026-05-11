@@ -8,16 +8,16 @@ struct Money_AdditionTests {
 
     @Test("Addition of positive values")
     func addPositive() {
-        let a: Money<TST_100> = 2
-        let b: Money<TST_100> = 3
-        #expect(a + b == 5)
+        let a = Money<TST_100>(minorUnits: 2)
+        let b = Money<TST_100>(minorUnits: 3)
+        #expect(a + b == Money<TST_100>(minorUnits: 5))
     }
 
     @Test("Addition of positive to negative")
     func addPositiveToNegative() {
-        let neg: Money<TST_100> = -3
-        let pos: Money<TST_100> = 2
-        #expect(neg + pos == -1)
+        let neg = Money<TST_100>(minorUnits: -3)
+        let pos = Money<TST_100>(minorUnits: 2)
+        #expect(neg + pos == Money<TST_100>(minorUnits: -1))
     }
 
     @Test("Addition of positive to zero")
@@ -30,21 +30,21 @@ struct Money_AdditionTests {
 
     @Test("Addition of negative to positive")
     func addNegativeToPositive() {
-        let pos: Money<TST_100> = 2
-        let neg: Money<TST_100> = -3
-        #expect(pos + neg == -1)
+        let pos = Money<TST_100>(minorUnits: 2)
+        let neg = Money<TST_100>(minorUnits: -3)
+        #expect(pos + neg == Money<TST_100>(minorUnits: -1))
     }
 
     @Test("Addition of negative values")
     func addNegativeToNegative() {
-        let a: Money<TST_100> = -2
-        let b: Money<TST_100> = -3
-        #expect(a + b == -5)
+        let a = Money<TST_100>(minorUnits: -2)
+        let b = Money<TST_100>(minorUnits: -3)
+        #expect(a + b == Money<TST_100>(minorUnits: -5))
     }
 
     @Test("Addition of negative to zero")
     func addNegativeToZero() {
-        let neg: Money<TST_100> = -1
+        let neg = Money<TST_100>(minorUnits: -1)
         #expect(.zero + neg == neg)
     }
 
@@ -52,13 +52,13 @@ struct Money_AdditionTests {
 
     @Test("Addition of zero to positive")
     func addZeroToPositive() {
-        let pos: Money<TST_100> = 3
+        let pos = Money<TST_100>(minorUnits: 3)
         #expect(pos + .zero == pos)
     }
 
     @Test("Addition of zero to negative")
     func addZeroToNegative() {
-        let neg: Money<TST_100> = -1
+        let neg = Money<TST_100>(minorUnits: -1)
         #expect(neg + .zero == neg)
     }
 
@@ -71,23 +71,23 @@ struct Money_AdditionTests {
 
     @Test("Addition assignment")
     func addAssign() {
-        var a: Money<TST_100> = 100
-        a += 5
-        #expect(a == 105)
+        var a = Money<TST_100>(minorUnits: 100)
+        a += Money<TST_100>(minorUnits: 5)
+        #expect(a == Money<TST_100>(minorUnits: 105))
     }
 
     @Test("Addition assignment of negative")
     func addAssignNegative() {
-        var a: Money<TST_100> = 100
-        a += -5
-        #expect(a == 95)
+        var a = Money<TST_100>(minorUnits: 100)
+        a += Money<TST_100>(minorUnits: -5)
+        #expect(a == Money<TST_100>(minorUnits: 95))
     }
 
     @Test("Addition assignment of two negatives")
     func addAssignTwoNegatives() {
-        var a: Money<TST_100> = -50
-        a += -5
-        #expect(a == -55)
+        var a = Money<TST_100>(minorUnits: -50)
+        a += Money<TST_100>(minorUnits: -5)
+        #expect(a == Money<TST_100>(minorUnits: -55))
     }
 
     // MARK: Addition assignment (Money RHS)

@@ -9,8 +9,8 @@ extension Money: Equatable {
     /// NaN inequality.
     ///
     /// ```swift
-    /// let a: Money<GBP> = 105
-    /// let b: Money<GBP> = 105
+    /// let a = Money<GBP>(minorUnits: 105)
+    /// let b = Money<GBP>(minorUnits: 105)
     /// a == b  // true
     ///
     /// Money<GBP>.nan == .nan  // true (sentinel semantics)
@@ -37,8 +37,8 @@ extension Money: Comparable {
     /// a strict total order suitable for sorting.
     ///
     /// ```swift
-    /// let a: Money<GBP> = 20
-    /// let b: Money<GBP> = 10
+    /// let a = Money<GBP>(minorUnits: 20)
+    /// let b = Money<GBP>(minorUnits: 10)
     /// a < b  // true
     ///
     /// Money<GBP>.nan < a  // true (NaN sorts before all values)

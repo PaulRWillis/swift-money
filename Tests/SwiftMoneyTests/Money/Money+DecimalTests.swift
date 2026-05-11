@@ -155,7 +155,7 @@ struct Money_DecimalTests {
 
     @Test("Decimal convenience initializer")
     func decimalConvenienceInit() {
-        let fixed: Money<TST_100> = 12345
+        let fixed = Money<TST_100>(minorUnits: 12345)
         let decimal = Decimal(exactly: fixed)
         #expect(decimal == Decimal(string: "123.45"))
     }
