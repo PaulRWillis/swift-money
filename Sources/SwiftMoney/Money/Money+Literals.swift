@@ -1,1 +1,8 @@
-// ExpressibleByIntegerLiteral conformance intentionally removed.\n// Integer literals on Money are ambiguous (minor units vs major units).\n// Use Money(minorUnits:) instead.
+// MARK: - ExpressibleByIntegerLiteral (poisoned)
+
+extension Money {
+    @available(*, unavailable, message: "Use Money(minorUnits:) for explicit minor-unit values")
+    public init(integerLiteral value: Int64) {
+        fatalError("Use Money(minorUnits:) for explicit minor-unit values")
+    }
+}
