@@ -126,16 +126,22 @@ extension CodingUserInfoKey {
     /// The user-info key for ``AnyMoneyEncodingStrategy``.
     ///
     /// Prefer ``JSONEncoder/anyMoneyEncodingStrategy`` over setting this key directly.
-    public static let anyMoneyEncodingStrategy = CodingUserInfoKey(
-        rawValue: "io.swiftmoney.anymoney.encoding-strategy"
-    )!
+    public static let anyMoneyEncodingStrategy: CodingUserInfoKey = {
+        guard let key = CodingUserInfoKey(rawValue: "io.swiftmoney.anymoney.encoding-strategy") else {
+            preconditionFailure("CodingUserInfoKey creation failed for anyMoneyEncodingStrategy")
+        }
+        return key
+    }()
 
     /// The user-info key for ``AnyMoneyDecodingStrategy``.
     ///
     /// Prefer ``JSONDecoder/anyMoneyDecodingStrategy`` over setting this key directly.
-    public static let anyMoneyDecodingStrategy = CodingUserInfoKey(
-        rawValue: "io.swiftmoney.anymoney.decoding-strategy"
-    )!
+    public static let anyMoneyDecodingStrategy: CodingUserInfoKey = {
+        guard let key = CodingUserInfoKey(rawValue: "io.swiftmoney.anymoney.decoding-strategy") else {
+            preconditionFailure("CodingUserInfoKey creation failed for anyMoneyDecodingStrategy")
+        }
+        return key
+    }()
 }
 
 // MARK: - JSONEncoder / JSONDecoder convenience properties

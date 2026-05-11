@@ -23,20 +23,20 @@ private struct MyRates: ExchangeRateProvider {
 @Suite("README — Compilation Verification")
 struct ReadmeVerificationTests {
 
-    @Test func introExample() {
+    @Test func introExample() throws {
         let price = Money<GBP>(minorUnits: 1250)
-        let vatRate = Rate(numerator: 1, denominator: 5)!
+        let vatRate = try #require(Rate(numerator: 1, denominator: 5))
         let vat = price.multiplied(by: vatRate, rounding: .toNearestOrAwayFromZero)
         #expect(vat.amount == Money<GBP>(minorUnits: 250))
     }
 
     @Test func creatingValues() {
-        let a = Money<GBP>(minorUnits: 125)
-        let b: Money<GBP> = 500
-        let c = Money<GBP>.zero
-        let d = Money<GBP>.nan
-        #expect(d.isNaN)
-        _ = (a, b, c)
+        let fromMinorUnits = Money<GBP>(minorUnits: 125)
+        let fromLiteral: Money<GBP> = 500
+        let zero = Money<GBP>.zero
+        let nan = Money<GBP>.nan
+        #expect(nan.isNaN)
+        _ = (fromMinorUnits, fromLiteral, zero)
     }
 
     @Test func arithmetic() {
@@ -69,15 +69,15 @@ struct ReadmeVerificationTests {
         }
     }
 
-    @Test func fractionalMultiplication() {
+    @Test func fractionalMultiplication() throws {
         let price = Money<GBP>(minorUnits: 1000)
-        let vatRate = Rate(numerator: 1, denominator: 5)!
+        let vatRate = try #require(Rate(numerator: 1, denominator: 5))
         let vat = price.multiplied(by: vatRate, rounding: .toNearestOrAwayFromZero)
         #expect(vat.amount == Money<GBP>(minorUnits: 200))
     }
 
-    @Test func exchangeRates() {
-        let rate = ExchangeRate<GBP, USD>(from: 100, to: 135)!
+    @Test func exchangeRates() throws {
+        let rate = try #require(ExchangeRate<GBP, USD>(from: 100, to: 135))
         let gbp = Money<GBP>(minorUnits: 1000)
         let usd = rate.convert(gbp)
         #expect(usd == Money<USD>(minorUnits: 1350))

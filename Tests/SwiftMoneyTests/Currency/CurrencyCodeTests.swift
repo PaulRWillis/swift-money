@@ -99,10 +99,10 @@ struct CurrencyCodeTests {
 
     @Test("CurrencyCode can be used as a Set element")
     func usableInSet() {
-        let a: CurrencyCode = "GBP"
-        let b: CurrencyCode = "GBP"
-        let c: CurrencyCode = "EUR"
-        let set: Set<CurrencyCode> = [a, b, c]
+        let gbp: CurrencyCode = "GBP"
+        let duplicateGbp: CurrencyCode = "GBP"
+        let eur: CurrencyCode = "EUR"
+        let set: Set<CurrencyCode> = [gbp, duplicateGbp, eur]
         #expect(set.count == 2)
     }
 

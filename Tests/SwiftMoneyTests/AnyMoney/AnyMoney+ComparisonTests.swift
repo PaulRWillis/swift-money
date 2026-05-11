@@ -8,30 +8,30 @@ struct AnyMoney_ComparisonTests {
 
     @Test("Same currency and amount are equal")
     func equalSameCurrencyAndAmount() {
-        let a = Money<TST_100>(minorUnits: 500).erased
-        let b = Money<TST_100>(minorUnits: 500).erased
-        #expect(a == b)
+        let money1 = Money<TST_100>(minorUnits: 500).erased
+        let money2 = Money<TST_100>(minorUnits: 500).erased
+        #expect(money1 == money2)
     }
 
     @Test("Same currency, different amount are not equal")
     func notEqualDifferentAmount() {
-        let a = Money<TST_100>(minorUnits: 100).erased
-        let b = Money<TST_100>(minorUnits: 200).erased
-        #expect(a != b)
+        let money1 = Money<TST_100>(minorUnits: 100).erased
+        let money2 = Money<TST_100>(minorUnits: 200).erased
+        #expect(money1 != money2)
     }
 
     @Test("Different currency are not equal even with same minorUnits")
     func notEqualDifferentCurrency() {
-        let a = Money<TST_100>(minorUnits: 100).erased
-        let b = Money<TST_1>(minorUnits: 100).erased
-        #expect(a != b)
+        let money1 = Money<TST_100>(minorUnits: 100).erased
+        let money2 = Money<TST_1>(minorUnits: 100).erased
+        #expect(money1 != money2)
     }
 
     @Test("NaN equals NaN (sentinel semantics, not IEEE 754)")
     func nanEqualsSelf() {
-        let a = Money<TST_100>.nan.erased
-        let b = Money<TST_100>.nan.erased
-        #expect(a == b)
+        let nan1 = Money<TST_100>.nan.erased
+        let nan2 = Money<TST_100>.nan.erased
+        #expect(nan1 == nan2)
     }
 
     @Test("NaN is not equal to zero")
@@ -43,16 +43,16 @@ struct AnyMoney_ComparisonTests {
 
     @Test("Equal values produce equal hashes")
     func equalValuesHaveEqualHashes() {
-        let a = Money<TST_100>(minorUnits: 12345).erased
-        let b = Money<TST_100>(minorUnits: 12345).erased
-        #expect(a.hashValue == b.hashValue)
+        let money1 = Money<TST_100>(minorUnits: 12345).erased
+        let money2 = Money<TST_100>(minorUnits: 12345).erased
+        #expect(money1.hashValue == money2.hashValue)
     }
 
     @Test("Can be stored in a Set, deduplicating equal values")
     func hashableInSet() {
-        let a = Money<TST_100>(minorUnits: 100).erased
-        let b = Money<TST_100>(minorUnits: 200).erased
-        let set: Set<AnyMoney> = [a, b, a]
+        let money1 = Money<TST_100>(minorUnits: 100).erased
+        let money2 = Money<TST_100>(minorUnits: 200).erased
+        let set: Set<AnyMoney> = [money1, money2, money1]
         #expect(set.count == 2)
     }
 
@@ -66,9 +66,9 @@ struct AnyMoney_ComparisonTests {
 
     @Test("Different currencies with same minorUnits produce different Set entries")
     func differentCurrenciesDistinctInSet() {
-        let a = Money<TST_100>(minorUnits: 100).erased
-        let b = Money<TST_1>(minorUnits: 100).erased
-        let set: Set<AnyMoney> = [a, b]
+        let money1 = Money<TST_100>(minorUnits: 100).erased
+        let money2 = Money<TST_1>(minorUnits: 100).erased
+        let set: Set<AnyMoney> = [money1, money2]
         #expect(set.count == 2)
     }
 
@@ -84,10 +84,10 @@ struct AnyMoney_ComparisonTests {
 
     @Test("Equal values are not less than each other")
     func equalValuesNotLessThan() {
-        let a = Money<TST_100>(minorUnits: 10).erased
-        let b = Money<TST_100>(minorUnits: 10).erased
-        #expect(!(a < b))
-        #expect(!(b < a))
+        let money1 = Money<TST_100>(minorUnits: 10).erased
+        let money2 = Money<TST_100>(minorUnits: 10).erased
+        #expect(!(money1 < money2))
+        #expect(!(money2 < money1))
     }
 
     @Test("Negative values sort before positive within same currency")
