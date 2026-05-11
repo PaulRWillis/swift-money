@@ -146,7 +146,7 @@ public struct MoneyBag: Sendable {
     public mutating func add<C: Currency>(_ money: Money<C>) {
         precondition(!money.isNaN, "NaN in MoneyBag.add")
         let existing = _storage[C.code]?.minorUnits ?? 0
-        let (result, overflow) = existing.addingReportingOverflow(money.minorUnits)
+        let (result, overflow) = existing.addingReportingOverflow(money._minorUnits)
         precondition(!overflow, "MoneyBag.add overflow")
         _storage[C.code] = AnyMoney(
             minorUnits: result,
@@ -174,7 +174,7 @@ public struct MoneyBag: Sendable {
     public mutating func subtract<C: Currency>(_ money: Money<C>) {
         precondition(!money.isNaN, "NaN in MoneyBag.subtract")
         let existing = _storage[C.code]?.minorUnits ?? 0
-        let (result, overflow) = existing.subtractingReportingOverflow(money.minorUnits)
+        let (result, overflow) = existing.subtractingReportingOverflow(money._minorUnits)
         precondition(!overflow, "MoneyBag.subtract overflow")
         _storage[C.code] = AnyMoney(
             minorUnits: result,
