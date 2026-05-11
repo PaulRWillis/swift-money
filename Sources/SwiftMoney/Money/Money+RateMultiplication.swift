@@ -39,12 +39,12 @@ extension Money {
         precondition(!isNaN, "Cannot multiply NaN")
 
         // Zero input: 0 × anything == 0; rate is undefined so return input rate.
-        if _storage == 0 {
+        if _minorUnits == 0 {
             return RateCalculation(amount: .zero, effectiveRate: rate)
         }
 
         // Multiply in Int128 to avoid Int64 overflow (max product ≈ 8.5×10³⁷ < Int128.max).
-        let product = Int128(_storage) * Int128(rate.numeratorValue)
+        let product = Int128(_minorUnits) * Int128(rate.numeratorValue)
         let denominator = Int128(rate.denominatorValue)
         let (truncated, remainder) = product.quotientAndRemainder(dividingBy: denominator)
 
@@ -66,7 +66,7 @@ extension Money {
         )
 
         let resultMoney = Money(_unchecked: minorUnits)
-        let effectiveRate = _effectiveRate(result: minorUnits, input: _storage)
+        let effectiveRate = _effectiveRate(result: minorUnits, input: _minorUnits)
 
         return RateCalculation(amount: resultMoney, effectiveRate: effectiveRate)
     }
