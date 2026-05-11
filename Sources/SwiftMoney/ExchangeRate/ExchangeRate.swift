@@ -131,6 +131,7 @@ public struct ExchangeRate<From: Currency, To: Currency>: Sendable {
 
     // MARK: - Conversion
 
+    // TODO: Rename to `ExchangeRate.convert(_ amount: Money<From>, rounding: FloatingPointRoundingRule = .toNearestOrAwayFromZero)
     /// Converts a `Money<From>` amount to `Money<To>`, returning both the
     /// converted amount and the actual rate that was applied after rounding.
     ///
@@ -164,6 +165,7 @@ public struct ExchangeRate<From: Currency, To: Currency>: Sendable {
     ) -> Conversion<From, To> {
         let multiplication = money.multiplied(by: rate, rounding: rounding)
         let amount = Money<To>(_unchecked: multiplication.amount.minorUnits)
+        // TODO: Replace with `guard let`?
         // Wrap the Rate effectiveRate as a typed ExchangeRate.
         // effectiveRate.numeratorValue == 0 only when a non-zero input rounds to zero;
         // in that case there is no meaningful typed rate to return.
