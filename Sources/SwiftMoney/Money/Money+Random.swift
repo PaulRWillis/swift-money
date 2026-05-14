@@ -9,8 +9,14 @@ extension Money {
     /// - Precondition: Neither bound may be NaN.
     @inlinable
     public static func random(in range: ClosedRange<Money>) -> Money {
-        var g = SystemRandomNumberGenerator()
-        return random(in: range, using: &g)
+        precondition(
+            !range.lowerBound.isNaN && !range.upperBound.isNaN,
+            "Money.random(in:) range must not contain NaN"
+        )
+        let raw = Int64.random(
+            in: range.lowerBound._minorUnits...range.upperBound._minorUnits
+        )
+        return Money(_unchecked: raw)
     }
 
     /// Returns a random value within the specified closed range, using the given
@@ -47,8 +53,14 @@ extension Money {
     /// - Precondition: `range` must not be empty.
     @inlinable
     public static func random(in range: Range<Money>) -> Money {
-        var g = SystemRandomNumberGenerator()
-        return random(in: range, using: &g)
+        precondition(
+            !range.lowerBound.isNaN && !range.upperBound.isNaN,
+            "Money.random(in:) range must not contain NaN"
+        )
+        let raw = Int64.random(
+            in: range.lowerBound._minorUnits..<range.upperBound._minorUnits
+        )
+        return Money(_unchecked: raw)
     }
 
     /// Returns a random value within the specified half-open range, using the given
