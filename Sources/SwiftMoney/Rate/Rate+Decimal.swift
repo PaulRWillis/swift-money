@@ -43,7 +43,7 @@ extension Rate {
     private static func _extractSignificand(from decimal: Decimal, exponent: Int) -> Int64? {
         var input = decimal
         var significandDecimal = Decimal()
-        NSDecimalMultiplyByPowerOf10(&significandDecimal, &input, Int16(-exponent), .plain)
+        _ = NSDecimalMultiplyByPowerOf10(&significandDecimal, &input, Int16(-exponent), .plain)
 
         let significand = NSDecimalNumber(decimal: significandDecimal).int64Value
         let isRoundTripExact = Decimal(significand) == significandDecimal
