@@ -109,14 +109,6 @@ struct ExchangeRateTests {
         #expect(result == Money<GBP>(minorUnits: 0))
     }
 
-    @Test("NaN input traps")
-    func nanInputTraps() async {
-        await #expect(processExitsWith: .failure) {
-            guard let rate = ExchangeRate<EUR, GBP>(from: 100, to: 85) else { return }
-            _ = rate.convert(.nan)
-        }
-    }
-
     // MARK: - Equatable & Hashable
 
     @Test("Equal rates have equal hashes")

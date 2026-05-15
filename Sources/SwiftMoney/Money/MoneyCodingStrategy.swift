@@ -19,7 +19,6 @@ public enum MoneyAmountEncodingStrategy: Sendable {
     ///
     /// For example, £1.25 encodes as `125` (in pence).
     ///
-    /// This is the only strategy that preserves the ``Money/nan`` sentinel (`Int64.min`).
     case minorUnits
 
     /// Encode as a decimal major-unit value.
@@ -31,7 +30,6 @@ public enum MoneyAmountEncodingStrategy: Sendable {
     ///   present in older JSON parsers. For bit-perfect fidelity, prefer
     ///   ``minorUnits`` or ``string(locale:)``.
     ///
-    /// - Important: ``Money/nan`` cannot be represented as a major-unit decimal and
     ///   will throw `EncodingError.invalidValue` at encode time.
     case majorUnits
 
@@ -39,7 +37,6 @@ public enum MoneyAmountEncodingStrategy: Sendable {
     ///
     /// For example, £1.25 encodes as `"£1.25"` with the `en_GB` locale.
     ///
-    /// - Important: ``Money/nan`` cannot be represented as a string and will throw
     ///   `EncodingError.invalidValue` at encode time.
     case string(locale: Locale)
 }
@@ -83,7 +80,6 @@ extension MoneyAmountEncodingStrategy {
 /// encoder.moneyEncodingStrategy = .majorUnits
 /// // 1.25
 ///
-/// encoder.moneyEncodingStrategy = .minorUnits  // also preserves Money.nan
 /// // 125
 ///
 /// encoder.moneyEncodingStrategy = .string(locale: Locale(identifier: "en_GB"))
@@ -93,8 +89,6 @@ extension MoneyAmountEncodingStrategy {
 /// // "£1.25"  (locale-dependent)
 /// ```
 ///
-/// - Important: Only ``minorUnits`` preserves ``Money/nan``; all other strategies throw
-///   `EncodingError.invalidValue` when encoding a NaN value.
 public enum MoneyEncodingStrategy: Sendable {
 
     /// Encode as a JSON object with separate `"currencyCode"` and `"amount"` fields.
@@ -105,7 +99,6 @@ public enum MoneyEncodingStrategy: Sendable {
     ///
     /// The `amount` sub-field uses the given ``MoneyAmountEncodingStrategy``.
     ///
-    /// - Important: ``Money/nan`` cannot be represented and will throw
     ///   `EncodingError.invalidValue` at encode time.
     case object(amount: MoneyAmountEncodingStrategy)
 
@@ -115,7 +108,6 @@ public enum MoneyEncodingStrategy: Sendable {
     /// 125
     /// ```
     ///
-    /// This is the only strategy that preserves the ``Money/nan`` sentinel.
     case minorUnits
 
     /// Encode as a bare decimal major-unit value.
@@ -126,7 +118,6 @@ public enum MoneyEncodingStrategy: Sendable {
     ///
     /// - Note: Encoding is exact. See ``MoneyAmountEncodingStrategy/majorUnits``
     ///   for precision notes.
-    /// - Important: ``Money/nan`` cannot be represented and will throw
     ///   `EncodingError.invalidValue` at encode time.
     case majorUnits
 
@@ -136,7 +127,6 @@ public enum MoneyEncodingStrategy: Sendable {
     /// "£1.25"
     /// ```
     ///
-    /// - Important: ``Money/nan`` cannot be represented and will throw
     ///   `EncodingError.invalidValue` at encode time.
     case string(locale: Locale)
 }
@@ -174,7 +164,6 @@ public enum MoneyAmountDecodingStrategy: Sendable {
     ///
     /// Expects a JSON integer. For example, `125` decodes to £1.25.
     ///
-    /// `Int64.min` (the ``Money/nan`` sentinel) is preserved on decode.
     case minorUnits
 
     /// Decode from a decimal major-unit value.
@@ -237,7 +226,6 @@ extension MoneyAmountDecodingStrategy {
 /// decoder.moneyDecodingStrategy = .majorUnits
 /// // 1.25  →  Money<GBP>(minorUnits: 125)
 ///
-/// decoder.moneyDecodingStrategy = .minorUnits  // also preserves Money.nan
 /// // 125   →  Money<GBP>(minorUnits: 125)
 ///
 /// decoder.moneyDecodingStrategy = .string(locale: Locale(identifier: "en_GB"))
@@ -248,7 +236,6 @@ extension MoneyAmountDecodingStrategy {
 /// ```
 ///
 /// - Note: For `.object`, `"currencyCode"` must equal `Currency.code`; a mismatch throws
-///   `DecodingError.typeMismatch`. Only ``minorUnits`` preserves ``Money/nan``.
 public enum MoneyDecodingStrategy: Sendable {
 
     /// Decode from a JSON object with separate `"currencyCode"` and `"amount"` fields.
@@ -261,7 +248,6 @@ public enum MoneyDecodingStrategy: Sendable {
 
     /// Decode from a bare integer number of minor units.
     ///
-    /// `Int64.min` (the ``Money/nan`` sentinel) is preserved on decode.
     case minorUnits
 
     /// Decode from a bare decimal major-unit value.
@@ -340,7 +326,6 @@ extension JSONEncoder {
     /// encoder.moneyEncodingStrategy = .majorUnits
     /// // 1.25
     ///
-    /// encoder.moneyEncodingStrategy = .minorUnits  // also preserves Money.nan
     /// // 125
     ///
     /// encoder.moneyEncodingStrategy = .string(locale: Locale(identifier: "en_GB"))
@@ -350,8 +335,6 @@ extension JSONEncoder {
     /// // "£1.25"  (locale-dependent)
     /// ```
     ///
-    /// - Note: Only `.minorUnits` preserves ``Money/nan``; all other strategies throw
-    ///   `EncodingError.invalidValue` when encoding a NaN value.
     public var moneyEncodingStrategy: MoneyEncodingStrategy {
         get { userInfo[.moneyEncodingStrategy] as? MoneyEncodingStrategy ?? .object }
         set { userInfo[.moneyEncodingStrategy] = newValue }
@@ -386,7 +369,6 @@ extension JSONDecoder {
     /// decoder.moneyDecodingStrategy = .majorUnits
     /// // 1.25
     ///
-    /// decoder.moneyDecodingStrategy = .minorUnits  // also preserves Money.nan
     /// // 125
     ///
     /// decoder.moneyDecodingStrategy = .string(locale: Locale(identifier: "en_GB"))
@@ -397,7 +379,6 @@ extension JSONDecoder {
     /// ```
     ///
     /// - Note: For `.object`, `"currencyCode"` must equal `Currency.code`; a mismatch throws
-    ///   `DecodingError.typeMismatch`. Only `.minorUnits` preserves ``Money/nan``.
     public var moneyDecodingStrategy: MoneyDecodingStrategy {
         get { userInfo[.moneyDecodingStrategy] as? MoneyDecodingStrategy ?? .object }
         set { userInfo[.moneyDecodingStrategy] = newValue }

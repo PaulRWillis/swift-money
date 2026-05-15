@@ -20,14 +20,6 @@ struct Money_NegationTests {
         #expect(value == Money<TST_100>(minorUnits: 201))
     }
 
-    @Test("Negating NaN traps with `negate()`")
-    func negateNaN() async {
-        await #expect(processExitsWith: .failure) {
-            var nan = Money<TST_100>.nan
-            nan.negate()
-        }
-    }
-
     @Test("Negating zero with `negate()`")
     func negateZero() {
         var zero = Money<TST_100>.zero
@@ -35,11 +27,12 @@ struct Money_NegationTests {
         #expect(zero == .zero)
     }
 
-    @Test("Negative of min with `negate()`")
-    func negativeOfMin() {
-        var min = Money<TST_100>.min
-        min.negate()
-        #expect(min == .max)
+    @Test("Negating min with `negate()` traps (Int64 overflow)")
+    func negativeOfMin() async {
+        await #expect(processExitsWith: .failure) {
+            var min = Money<TST_100>.min
+            min.negate()
+        }
     }
 
     // MARK: - Negation with `-` prefix operator
@@ -56,18 +49,15 @@ struct Money_NegationTests {
         #expect(-neg == Money<TST_100>(minorUnits: 201))
     }
 
-    @Test("Negating NaN traps with `negate()`")
-    func negateNaNWithPrefixOperator() async {
-        await #expect(processExitsWith: .failure) { _ = -Money<TST_100>.nan }
-    }
-
     @Test("Negating zero with `negate()`")
     func negateZeroWithPrefixOperator() {
         #expect(-Money<TST_100>.zero == .zero)
     }
 
-    @Test("Negative of min with `negate()`")
-    func negativeOfMinWithPrefixOperator() {
-        #expect(-Money<TST_100>.min == .max)
+    @Test("Negating min with prefix `-` traps (Int64 overflow)")
+    func negativeOfMinWithPrefixOperator() async {
+        await #expect(processExitsWith: .failure) {
+            _ = -Money<TST_100>.min
+        }
     }
 }

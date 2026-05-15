@@ -88,26 +88,8 @@ extension AnyMoney {
         case .minorUnits:
             try container.encode(minorUnits, forKey: .amount)
         case .majorUnits:
-            guard !isNaN else {
-                throw EncodingError.invalidValue(
-                    self,
-                    EncodingError.Context(
-                        codingPath: encoder.codingPath,
-                        debugDescription: "AnyMoney.nan cannot be encoded using .object(amount: .majorUnits). Use .full or .object(amount: .minorUnits) to preserve NaN."
-                    )
-                )
-            }
             try container.encode(decimalValue, forKey: .amount)
         case .string(let locale):
-            guard !isNaN else {
-                throw EncodingError.invalidValue(
-                    self,
-                    EncodingError.Context(
-                        codingPath: encoder.codingPath,
-                        debugDescription: "AnyMoney.nan cannot be encoded using .object(amount: .string). Use .full or .object(amount: .minorUnits) to preserve NaN."
-                    )
-                )
-            }
             try container.encode(formatted(AnyMoney.FormatStyle().locale(locale)), forKey: .amount)
         }
     }
@@ -184,7 +166,7 @@ extension AnyMoney {
     // MARK: Shared arithmetic helpers (internal so MoneyBag+Codable.swift can reuse them)
 
     /// Multiplies a major-unit Decimal by `minimalQuantisation`, rounds to nearest minor
-    /// unit (`.plain`), and converts to `Int64`. Throws on overflow or NaN-sentinel collision.
+    /// unit (`.plain`), and converts to `Int64`. Throws on overflow.
     internal static func _decimalToMinorUnits(
         _ decimal: Decimal,
         minimalQuantisation: MinimalQuantisation,
@@ -201,15 +183,6 @@ extension AnyMoney {
                 DecodingError.Context(
                     codingPath: codingPath,
                     debugDescription: "Decoded major-unit value \(decimal) overflows the Int64 minor-unit range."
-                )
-            )
-        }
-        let isNaNSentinel = roundedMinorUnits == .min
-        guard !isNaNSentinel else {
-            throw DecodingError.dataCorrupted(
-                DecodingError.Context(
-                    codingPath: codingPath,
-                    debugDescription: "Decoded minor-unit value \(roundedMinorUnits) collides with the NaN sentinel (Int64.min)."
                 )
             )
         }

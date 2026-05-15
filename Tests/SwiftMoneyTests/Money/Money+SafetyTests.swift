@@ -33,18 +33,6 @@ struct Money_SafetyTests {
         #expect(decoded == original)
     }
 
-    @Test("Money<GBP>.nan encodes and decodes as NaN using .minorUnits strategy")
-    func codableNaN() throws {
-        let original = Money<GBP>.nan
-        let encoder = JSONEncoder()
-        encoder.moneyEncodingStrategy = .minorUnits
-        let decoder = JSONDecoder()
-        decoder.moneyDecodingStrategy = .minorUnits
-        let data    = try encoder.encode(original)
-        let decoded = try decoder.decode(Money<GBP>.self, from: data)
-        #expect(decoded.isNaN)
-    }
-
     @Test("Money<JPY> encodes and decodes correctly (minQ = 1)")
     func codableJPY() throws {
         let original = Money<JPY>(minorUnits: 99_999)
@@ -76,27 +64,12 @@ struct Money_SafetyTests {
         #expect(desc.contains("£1.50") || !money.formatted(Money<GBP>.FormatStyle().locale(enGB)).isEmpty)
     }
 
-    @Test("debugDescription for NaN contains 'NaN' and currency code")
-    func debugDescriptionNaN() {
-        let money = Money<GBP>.nan
-        let desc  = money.debugDescription
-        #expect(desc.contains("GBP"))
-        #expect(desc.contains("NaN"))
-    }
-
     @Test("AnyMoney debugDescription contains currency code and minor units")
     func anyMoneyDebugDescription() {
         let any = Money<GBP>(minorUnits: 150).erased
         let desc = any.debugDescription
         #expect(desc.contains("GBP"))
         #expect(desc.contains("150"))
-    }
-
-    @Test("AnyMoney NaN debugDescription contains 'NaN'")
-    func anyMoneyDebugDescriptionNaN() {
-        let any = Money<GBP>.nan.erased
-        let desc = any.debugDescription
-        #expect(desc.contains("NaN"))
     }
 
     @Test("MoneyBag debugDescription contains currency code and minor units for each entry")

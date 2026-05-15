@@ -45,12 +45,10 @@ import Foundation
 /// ```
 ///
 /// - Important: `.array` and `.dictionary` strategies that use a non-`.minorUnits` amount
-///   encoding throw `EncodingError.invalidValue` for NaN entries.
 public enum MoneyBagEncodingStrategy: Sendable {
 
     /// Encode as `{"entries":[...]}` where each entry uses ``AnyMoneyEncodingStrategy/full``.
     ///
-    /// This is the **default** strategy. It is fully self-contained and preserves NaN entries.
     case full
 
     /// Encode as a bare JSON array where each element uses the given ``AnyMoneyEncodingStrategy``.

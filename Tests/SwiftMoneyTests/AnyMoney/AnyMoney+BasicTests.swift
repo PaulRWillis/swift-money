@@ -42,38 +42,6 @@ struct AnyMoney_BasicTests {
         #expect(any.currency == TST_1.self)
     }
 
-    // MARK: - isNaN / isFinite
-
-    @Test("isNaN is false for a normal value")
-    func isNaNFalseForNormal() {
-        let any = Money<TST_100>(minorUnits: 100).erased
-        #expect(!any.isNaN)
-    }
-
-    @Test("isFinite is true for a normal value")
-    func isFiniteTrueForNormal() {
-        let any = Money<TST_100>(minorUnits: 100).erased
-        #expect(any.isFinite)
-    }
-
-    @Test("isNaN is true for an erased NaN")
-    func isNaNTrueForErasedNaN() {
-        let any = Money<TST_100>.nan.erased
-        #expect(any.isNaN)
-    }
-
-    @Test("isFinite is false for an erased NaN")
-    func isFiniteFalseForErasedNaN() {
-        let any = Money<TST_100>.nan.erased
-        #expect(!any.isFinite)
-    }
-
-    @Test("NaN minorUnits equals Int64.min (sentinel)")
-    func nanMinorUnitsSentinel() {
-        let any = Money<TST_100>.nan.erased
-        #expect(any.minorUnits == Int64.min)
-    }
-
     // MARK: - erased
 
     @Test("erased preserves minorUnits")
@@ -103,10 +71,4 @@ struct AnyMoney_BasicTests {
         #expect(any.asMoney(TST_1.self) == nil)
     }
 
-    @Test("asMoney preserves NaN through round-trip")
-    func asMoneyPreservesNaN() throws {
-        let original = Money<TST_100>.nan
-        let roundTripped = try #require(original.erased.asMoney(TST_100.self))
-        #expect(roundTripped.isNaN)
-    }
 }

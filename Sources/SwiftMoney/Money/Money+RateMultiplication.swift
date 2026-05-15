@@ -31,13 +31,10 @@ extension Money {
     ///     number of minor units. Defaults to `.toNearestOrAwayFromZero`.
     /// - Returns: A `RateCalculation` containing the rounded
     ///   result and the actual rate applied.
-    /// - Precondition: `self` must not be NaN.
     public func multiplied(
         by rate: Rate,
         rounding: FloatingPointRoundingRule = .toNearestOrAwayFromZero
     ) -> RateCalculation<Currency> {
-        precondition(!isNaN, "Cannot multiply NaN")
-
         // Zero input: 0 × anything == 0; rate is undefined so return input rate.
         if _minorUnits == 0 {
             return RateCalculation(amount: .zero, effectiveRate: rate)
@@ -56,16 +53,12 @@ extension Money {
             rule: rounding
         )
 
-        // Bounds check: result must fit in Int64 and must not equal the NaN sentinel.
+        // Bounds check: result must fit in Int64.
         guard let minorUnits = Int64(exactly: minorUnits128) else {
             preconditionFailure("Money fractional multiplication result overflows Int64")
         }
-        precondition(
-            minorUnits != .min,
-            "Money fractional multiplication produced NaN sentinel"
-        )
 
-        let resultMoney = Money(_unchecked: minorUnits)
+        let resultMoney = Money(minorUnits: minorUnits)
         let effectiveRate = _effectiveRate(result: minorUnits, input: _minorUnits)
 
         return RateCalculation(amount: resultMoney, effectiveRate: effectiveRate)
@@ -73,14 +66,14 @@ extension Money {
 
     /// Builds the effective rate = result / input in lowest terms,
     /// normalised so the denominator is positive (Rate contract).
-    ///
-    /// - Precondition: `input` must not be 0 or `Int64.min`.
     private func _effectiveRate(result: Int64, input: Int64) -> Rate {
         if input > 0 {
             return Rate(_unchecked: result, denominator: input)
-        } else {
-            return Rate(_unchecked: -result, denominator: -input)
         }
+        // input < 0: negate both to normalise denominator to positive.
+        precondition(input != .min && result != .min,
+                     "Effective rate computation requires negation of Int64.min, which overflows")
+        return Rate(_unchecked: -result, denominator: -input)
     }
 }
 
@@ -99,7 +92,6 @@ extension Money {
     /// r.effectiveRate  // Rate(numerator: 1, denominator: 101)
     /// ```
     ///
-    /// - Precondition: `lhs` must not be NaN.
     public static func * (
         lhs: Money,
         rhs: Rate
@@ -128,7 +120,6 @@ extension Money {
     ///
     /// - Returns: `nil` if `rhs` cannot be converted to a `Rate`
     ///   (e.g. it is NaN, has an exponent ≥ 19, or its significand overflows `Int64`).
-    /// - Precondition: `lhs` must not be NaN.
     public static func * (
         lhs: Money,
         rhs: Decimal

@@ -146,54 +146,6 @@ struct MoneyBag_ArithmeticTests {
         #expect(total == Money<TST_100>(minorUnits: 600))
     }
 
-    // MARK: - NaN traps
-
-    @Test("adding NaN traps")
-    func addingNaNTraps() async {
-        await #expect(processExitsWith: .failure) {
-            _ = MoneyBag().adding(Money<TST_100>.nan)
-        }
-    }
-
-    @Test("subtracting NaN traps")
-    func subtractingNaNTraps() async {
-        await #expect(processExitsWith: .failure) {
-            _ = MoneyBag().subtracting(Money<TST_100>.nan)
-        }
-    }
-
-    @Test("mutating add of NaN traps")
-    func mutatingAddNaNTraps() async {
-        await #expect(processExitsWith: .failure) {
-            var bag = MoneyBag()
-            bag.add(Money<TST_100>.nan)
-        }
-    }
-
-    @Test("+= NaN traps")
-    func plusEqualsNaNTraps() async {
-        await #expect(processExitsWith: .failure) {
-            var bag = MoneyBag()
-            bag += Money<TST_100>.nan
-        }
-    }
-
-    @Test("mutating subtract of NaN traps")
-    func mutatingSubtractNaNTraps() async {
-        await #expect(processExitsWith: .failure) {
-            var bag = MoneyBag()
-            bag.subtract(Money<TST_100>.nan)
-        }
-    }
-
-    @Test("-= NaN traps")
-    func minusEqualsNaNTraps() async {
-        await #expect(processExitsWith: .failure) {
-            var bag = MoneyBag()
-            bag -= Money<TST_100>.nan
-        }
-    }
-
     // MARK: - Overflow traps
 
     @Test("mutating add traps on overflow")

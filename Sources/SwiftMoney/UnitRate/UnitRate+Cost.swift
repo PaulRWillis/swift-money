@@ -42,7 +42,7 @@ extension UnitRate {
             rounding: rounding
         )
 
-        let resultMoney = Money<C>(_unchecked: minorUnits)
+        let resultMoney = Money<C>(minorUnits: minorUnits)
         let effectiveRate = effectiveRate(minorUnits: minorUnits, quantity: quantity)
         return RateCalculation(amount: resultMoney, effectiveRate: effectiveRate)
     }
@@ -57,6 +57,7 @@ extension UnitRate {
     ) -> Int64 {
         let minimalQuantisation = C.minimalQuantisation.int64Value
         let denominator = rate.denominatorValue
+        precondition(quantity != .min, "UnitRate price: quantity must not be Int64.min")
         let absoluteQuantity = quantity < 0 ? -quantity : quantity
 
         // GCD pass 1: reduce quantity against denominator.
@@ -85,7 +86,6 @@ extension UnitRate {
         guard let minorUnits = Int64(exactly: minorUnits128) else {
             preconditionFailure("UnitRate price calculation overflows Int64")
         }
-        precondition(minorUnits != .min, "UnitRate price calculation produced NaN sentinel")
         return minorUnits
     }
 
@@ -95,6 +95,9 @@ extension UnitRate {
         if quantity > 0 {
             return Rate(_unchecked: minorUnits, denominator: quantity)
         }
+        // quantity < 0: negate both to normalise denominator to positive.
+        precondition(minorUnits != .min && quantity != .min,
+                     "Effective rate computation requires negation of Int64.min, which overflows")
         return Rate(_unchecked: -minorUnits, denominator: -quantity)
     }
 }

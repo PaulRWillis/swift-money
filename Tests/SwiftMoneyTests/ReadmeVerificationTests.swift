@@ -34,8 +34,6 @@ struct ReadmeVerificationTests {
         let fromMinorUnits = Money<GBP>(minorUnits: 125)
         let fromLiteral = Money<GBP>(minorUnits: 500)
         let zero = Money<GBP>.zero
-        let nan = Money<GBP>.nan
-        #expect(nan.isNaN)
         _ = (fromMinorUnits, fromLiteral, zero)
     }
 

@@ -69,7 +69,7 @@ extension UnitRate where U: Dimension {
         }
 
         return RateCalculation(
-            amount: Money<C>(_unchecked: minorUnits),
+            amount: Money<C>(minorUnits: minorUnits),
             effectiveRate: effectiveRate
         )
     }
@@ -136,7 +136,7 @@ extension UnitRate where U: Dimension {
 
     /// Computes the minor units for a fractional quantity × rate calculation.
     ///
-    /// Returns `nil` if the result overflows `Int64` or equals the NaN sentinel.
+    /// Returns `nil` if the result overflows `Int64`.
     private func computeMinorUnits(
         quantity: Rate,
         rounding: FloatingPointRoundingRule
@@ -153,8 +153,7 @@ extension UnitRate where U: Dimension {
             rule: rounding
         )
 
-        guard let minorUnits = Int64(exactly: minorUnits128),
-              minorUnits != .min else {
+        guard let minorUnits = Int64(exactly: minorUnits128) else {
             return nil
         }
         return minorUnits
@@ -172,8 +171,18 @@ extension UnitRate where U: Dimension {
     ) -> Rate? {
         let isNegative = (minorUnits < 0) != (quantity.numeratorValue < 0)
 
-        let absoluteMinorUnits = minorUnits < 0 ? -minorUnits : minorUnits
-        let absoluteQuantityNumerator = quantity.numeratorValue < 0
+        let absoluteMinorUnits: Int64
+        if minorUnits == .min {
+            // -Int64.min overflows; cannot express as a positive Int64.
+            return nil
+        }
+        absoluteMinorUnits = minorUnits < 0 ? -minorUnits : minorUnits
+
+        let absoluteQuantityNumerator: Int64
+        if quantity.numeratorValue == .min {
+            return nil
+        }
+        absoluteQuantityNumerator = quantity.numeratorValue < 0
             ? -quantity.numeratorValue : quantity.numeratorValue
 
         let gcd = _gcd(absoluteMinorUnits, absoluteQuantityNumerator)

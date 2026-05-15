@@ -4,13 +4,11 @@ extension AnyMoney: Equatable {
     /// Returns a Boolean value indicating whether two values are equal.
     ///
     /// Two `AnyMoney` values are equal when both their ``currencyCode`` and
-    /// ``minorUnits`` match. NaN compares equal to itself (sentinel semantics,
-    /// not IEEE 754), which is consistent with `Money<C>` equality.
+    /// ``minorUnits`` match.
     ///
     /// ```swift
     /// Money<GBP>(minorUnits: 500).erased == Money<GBP>(minorUnits: 500).erased  // true
     /// Money<GBP>(minorUnits: 500).erased == Money<EUR>(minorUnits: 500).erased  // false
-    /// Money<GBP>.nan.erased == Money<GBP>.nan.erased                            // true
     /// ```
     ///
     /// - Complexity: O(1)
@@ -45,8 +43,6 @@ extension AnyMoney: Comparable {
     ///
     /// 1. Values are first ordered by ``currencyCode`` lexicographically.
     /// 2. Within the same currency, values are ordered by ``minorUnits``.
-    ///    NaN (`Int64.min`) sorts before all non-NaN values, consistent with
-    ///    `Money<C>` ordering.
     ///
     /// This means `sorted()` on a `[AnyMoney]` is always deterministic, even
     /// for mixed-currency arrays.

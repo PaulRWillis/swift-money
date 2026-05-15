@@ -64,82 +64,30 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
 
     /// Creates a `Money` value with the given number of minor units.
     ///
-    /// - Precondition: `minorUnits` must not equal `Int.min` on 64-bit platforms
-    ///   (equivalently `Int64.min`), which is reserved as the NaN sentinel.
-    ///   Use `Money.nan` to obtain a NaN value explicitly.
+    /// ```swift
+    /// let v = Money<GBP>(minorUnits: 150) // £1.50
+    /// ```
     public init(minorUnits: Int) {
-        let value = Storage(minorUnits)
-        precondition(
-            value != Storage.min,
-            "Use Money.nan — \(Storage.min) is reserved as the NaN sentinel"
-        )
-        self._minorUnits = value
+        self._minorUnits = Storage(minorUnits)
     }
 
     /// Creates a `Money` value with the given number of minor units.
     ///
-    /// - Precondition: `minorUnits` must not equal `MinorUnits.min` (`Int64.min`),
-    ///   which is reserved as the NaN sentinel. Use `Money.nan` to obtain a NaN
-    ///   value explicitly.
+    /// ```swift
+    /// let v = Money<GBP>(minorUnits: Int64(150)) // £1.50
+    /// ```
     public init(minorUnits: MinorUnits) {
-        precondition(
-            minorUnits != Storage.min,
-            "Use Money.nan — \(Storage.min) is reserved as the NaN sentinel"
-        )
         self._minorUnits = minorUnits
-    }
-
-    /// Creates a `Money` value directly from the raw storage integer, bypassing
-    /// the NaN-sentinel guard.
-    ///
-    /// Used internally by factory properties (`nan`, `max`, `min`, etc.) and
-    /// by `Codable` decoding where the sentinel value must be preserved.
-    @usableFromInline
-    internal init(_unchecked storage: Storage) {
-        self._minorUnits = storage
     }
 
     // MARK: - Special values
 
-    /// The NaN (not-a-number) sentinel value.
-    ///
-    /// Uses `Int64.min` (-9,223,372,036,854,775,808) as the sentinel because:
-    /// - It has no valid negation in `Int64` (negating `Int64.min` overflows)
-    /// - It is outside the range of any practical financial value
-    /// - Checking `.isNaN` is a single integer comparison
-    ///
-    /// ```swift
-    /// let missing: Money<GBP> = .nan
-    /// missing.isNaN  // true
-    /// ```
-    @inlinable
-    public static var nan: Money {
-        Money(_unchecked: Storage.min)
-    }
-
-    /// A Boolean value indicating whether this value is NaN (not-a-number).
-    @inlinable
-    public var isNaN: Bool {
-        _minorUnits == .min
-    }
-
-    /// A Boolean value indicating whether this value is finite (not NaN).
-    ///
-    /// `Money` has no infinity representation, so all non-NaN
-    /// values are finite.
-    @inlinable
-    public var isFinite: Bool {
-        !isNaN
-    }
-
     /// The sign of this value.
     ///
-    /// Returns `.minus` for negative values (including negative zero, which
-    /// cannot occur in this type), `.plus` for zero and positive values.
-    /// NaN returns `.plus`.
+    /// Returns `.minus` for negative values, `.plus` for zero and positive values.
     @inlinable
     public var sign: FloatingPointSign {
-        _minorUnits < 0 && !isNaN ? .minus : .plus
+        _minorUnits < 0 ? .minus : .plus
     }
 
     /// The largest representable value in minor units: `9,223,372,036,854,775,807`.
@@ -148,12 +96,10 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
         Money(minorUnits: Storage.max)
     }
 
-    /// The smallest representable value in minor units: `-9,223,372,036,854,775,807`.
-    ///
-    /// `Int64.min` is reserved as the NaN sentinel, so `.min` uses `Int64.min + 1`.
+    /// The smallest representable value in minor units: `-9,223,372,036,854,775,808`.
     @inlinable
     public static var min: Money {
-        Money(minorUnits: Storage.min + 1)
+        Money(minorUnits: Storage.min)
     }
 
     /// The smallest positive value in minor units: `1`.
@@ -168,14 +114,6 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     @inlinable
     public static var greatestFiniteMagnitude: Money {
         Money(minorUnits: Storage.max)
-    }
-
-    /// The least (most negative) finite magnitude in minor units: `-9,223,372,036,854,775,807`.
-    ///
-    /// Equal to ``min`` since all representable values are finite.
-    @inlinable
-    public static var leastFiniteMagnitude: Money {
-        min
     }
 }
 

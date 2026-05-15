@@ -695,15 +695,12 @@ struct UnitRate_MeasurementTests {
         #expect(rate.price(for: usage) == nil)
     }
 
-    @Test("fractional path: result equals exactly Int64.min (NaN sentinel) → returns nil")
+    @Test("fractional path: result equals exactly Int64.min → returns nil (effective rate overflow)")
     func fractionalPathExactlyInt64Min() throws {
         // rate = 4611686018427387904/25 (= 2^62 / 25), USD (minQ=100), qty = -0.5.
-        // qtyNum=-1, qtyDen=2. rateNum=2^62, rateDen=25 (coprime).
-        // g1 = gcd(1, 25) = 1. g2 = gcd(2^62, 2) = 2.
-        // redRateNum = 2^61, redQtyDen = 1. remainingDen = 25.
-        // g3 = gcd(100, 25) = 25, redMinQ = 4, finalDen = 1.
         // product = (-1) × 2^61 × 4 = -2^63 = Int64.min.
-        // Bounds check rejects exactly Int64.min → returns nil.
+        // The minor units fit in Int64, but the effective rate computation
+        // requires negating Int64.min, which overflows → returns nil.
         let rate = try #require(UnitRate<USD, UnitEnergy>(
             numerator: 4_611_686_018_427_387_904, denominator: 25, per: .kilowattHours
         ))

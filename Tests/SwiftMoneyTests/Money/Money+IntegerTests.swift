@@ -13,16 +13,17 @@ struct Money_IntegerTests {
         #expect(Int(value) == 12399)
     }
 
-    @Test("Int traps on NaN")
-    func intTrapsOnNaN() async {
-        await #expect(processExitsWith: .failure) { _ = Int(Money<TST_100>.nan) }
-    }
-
     @Test("Int min + 1 round trips")
     func intMinPlusOne() {
         let intNearMin = Int.min + 1
         let value = Money<TST_100>(minorUnits: intNearMin)
         #expect(Int(value) == intNearMin)
+    }
+
+    @Test("Int.min (Int64.min) round trips")
+    func intMin() {
+        let value = Money<TST_100>(minorUnits: Int.min)
+        #expect(Int(value) == Int.min)
     }
 
     @Test("Int max round trips")
@@ -39,12 +40,6 @@ struct Money_IntegerTests {
         let int = Int(12399)
         let value = Money<TST_100>(minorUnits: int)
         #expect(Int(exactly: value) == 12399)
-    }
-
-    @Test("Exact money init traps on NaN")
-    func exactInitTrapsForIntNaN() {
-        let value = Money<TST_100>.nan
-        #expect(Int(exactly: value) == nil)
     }
 
     @Test("Exact money init success on Int.min + 1")
@@ -70,11 +65,6 @@ struct Money_IntegerTests {
         #expect(Int64(value) == 12399)
     }
 
-    @Test("Int64 traps on NaN")
-    func int64TrapsOnNaN() async {
-        await #expect(processExitsWith: .failure) { _ = Int64(Money<TST_100>.nan) }
-    }
-
     @Test("Int64 min + 1 round trips")
     func int64MinPlusOne() {
         let int64NearMin = Int64.min + 1
@@ -89,6 +79,12 @@ struct Money_IntegerTests {
         #expect(Int64(value) == int64Max)
     }
 
+    @Test("Int64.min round trips")
+    func int64Min() {
+        let value = Money<TST_100>(minorUnits: Int64.min)
+        #expect(Int64(value) == Int64.min)
+    }
+
     // MARK: - Exact Int64 Conversions
 
     @Test("Exact money init success on Int64")
@@ -96,12 +92,6 @@ struct Money_IntegerTests {
         let int64 = Int64(12399)
         let value = Money<TST_100>(minorUnits: int64)
         #expect(Int64(exactly: value) == 12399)
-    }
-
-    @Test("Exact money init traps on Int64 NaN")
-    func exactInitForInt64NaN() {
-        let value = Money<TST_100>.nan
-        #expect(Int64(exactly: value) == nil)
     }
 
     @Test("Exact money init success on Int64.min + 1")
@@ -125,11 +115,6 @@ struct Money_IntegerTests {
         let int32 = Int32(12399)
         let value = try #require(Money<TST_100>(exactly: int32))
         #expect(Int32(value) == 12399)
-    }
-
-    @Test("Int32 traps on NaN")
-    func int32TrapsOnNaN() async {
-        await #expect(processExitsWith: .failure) { _ = Int32(Money<TST_100>.nan) }
     }
 
     @Test("Int32 min round trips")
@@ -171,12 +156,6 @@ struct Money_IntegerTests {
         let int32 = Int32(12399)
         let value = try #require(Money<TST_100>(exactly: int32))
         #expect(Int32(exactly: value) == 12399)
-    }
-
-    @Test("Exact money init is nil on Int32 NaN")
-    func exactInitForInt32NaN() {
-        let value = Money<TST_100>.nan
-        #expect(Int32(exactly: value) == nil)
     }
 
     @Test("Exact money init success on Int32.min")
@@ -223,11 +202,6 @@ struct Money_IntegerTests {
         #expect(UInt(value) == Int64.max)
     }
 
-    @Test("UInt traps on NaN")
-    func uintTrapsOnNaN() async {
-        await #expect(processExitsWith: .failure) { _ = UInt(Money<TST_100>.nan) }
-    }
-
     @Test("UInt min round trips")
     func uintMin() async {
         let uintMin = Int64(UInt.min)
@@ -260,12 +234,6 @@ struct Money_IntegerTests {
         #expect(UInt(exactly: value) == 12399)
     }
 
-    @Test("Exact money init is nil on UInt NaN")
-    func exactInitForUIntNaN() {
-        let value = Money<TST_100>.nan
-        #expect(UInt(exactly: value) == nil)
-    }
-
     @Test("Exact money init success on UInt.min")
     func exactInitForUIntMin() throws {
         let uintMin = UInt.min
@@ -294,11 +262,6 @@ struct Money_IntegerTests {
         let uint64 = UInt64(Int64.max)
         let value = try #require(Money<TST_100>(exactly: uint64))
         #expect(UInt64(value) == Int64.max)
-    }
-
-    @Test("UInt64 traps on NaN")
-    func uint64TrapsOnNaN() async {
-        await #expect(processExitsWith: .failure) { _ = UInt64(Money<TST_100>.nan) }
     }
 
     @Test("UInt64 min round trips")
@@ -333,12 +296,6 @@ struct Money_IntegerTests {
         #expect(UInt64(exactly: value) == 12399)
     }
 
-    @Test("Exact money init is nil on UInt64 NaN")
-    func exactInitForUInt64NaN() {
-        let value = Money<TST_100>.nan
-        #expect(UInt64(exactly: value) == nil)
-    }
-
     @Test("Exact money init success on UInt64.min")
     func exactInitForUInt64Min() throws {
         let uint64Min = UInt64.min
@@ -360,11 +317,6 @@ struct Money_IntegerTests {
         let uint32 = UInt32(12399)
         let value = try #require(Money<TST_100>(exactly: uint32))
         #expect(UInt32(value) == 12399)
-    }
-
-    @Test("UInt32 traps on NaN")
-    func uint32TrapsOnNaN() async {
-        await #expect(processExitsWith: .failure) { _ = UInt32(Money<TST_100>.nan) }
     }
 
     @Test("UInt32 min round trips")
@@ -397,12 +349,6 @@ struct Money_IntegerTests {
         let uint32 = UInt32(12399)
         let value = try #require(Money<TST_100>(exactly: uint32))
         #expect(UInt32(exactly: value) == 12399)
-    }
-
-    @Test("Exact money init is nil on UInt32 NaN")
-    func exactInitForUInt32NaN() {
-        let value = Money<TST_100>.nan
-        #expect(UInt32(exactly: value) == nil)
     }
 
     @Test("Exact money init success on UInt32.min")

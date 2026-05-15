@@ -9,8 +9,6 @@ struct Money_InitializationTests {
         let zero = Money<TST_100>()
         #expect(zero.minorUnits == 0)
         #expect(zero == .zero)
-        #expect(!zero.isNaN)
-        #expect(zero == .zero)
     }
 
     // MARK: - Int init
@@ -33,11 +31,10 @@ struct Money_InitializationTests {
         #expect(intMax.minorUnits == Int.max)
     }
 
-    @Test("Init traps for Int.min (NaN sentinel)")
-    func intMinInitTraps() async {
-        await #expect(processExitsWith: .failure) {
-            _ = Money<TST_100>(minorUnits: Int.min)
-        }
+    @Test("Init success for Int.min")
+    func intMinInit() {
+        let intMin = Money<TST_100>(minorUnits: Int.min)
+        #expect(intMin.minorUnits == Int.min)
     }
 
     // MARK: - Int64 init
@@ -60,11 +57,10 @@ struct Money_InitializationTests {
         #expect(int64Max.minorUnits == Int64.max)
     }
 
-    @Test("Init traps for Int64.min (NaN sentinel)")
-    func int64MinInitTraps() async {
-        await #expect(processExitsWith: .failure) {
-            _ = Money<TST_100>(minorUnits: Int64.min)
-        }
+    @Test("Init success for Int64.min")
+    func int64MinInit() {
+        let int64Min = Money<TST_100>(minorUnits: Int64.min)
+        #expect(int64Min.minorUnits == Int64.min)
     }
 
     // MARK: - Exact integer init for Int128

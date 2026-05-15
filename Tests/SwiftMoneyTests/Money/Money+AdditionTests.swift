@@ -140,20 +140,18 @@ struct Money_AdditionTests {
         #expect(amounts.reduce(.zero, +) == Money<TST_100>(minorUnits: 120))
     }
 
-    // MARK: - NaN traps
+    // MARK: - Int64.min arithmetic
 
-    @Test("Addition traps on NaN lhs")
-    func addNaNLhsTraps() async {
-        await #expect(processExitsWith: .failure) {
-            _ = Money<TST_100>.nan + Money<TST_100>(minorUnits: 1)
-        }
+    @Test("Adding zero to Int64.min value succeeds")
+    func addZeroToInt64Min() {
+        let min = Money<TST_100>(minorUnits: Int64.min)
+        #expect(min + .zero == min)
     }
 
-    @Test("Addition traps on NaN rhs")
-    func addNaNRhsTraps() async {
-        await #expect(processExitsWith: .failure) {
-            _ = Money<TST_100>(minorUnits: 1) + Money<TST_100>.nan
-        }
+    @Test("Adding 1 to Int64.min value succeeds")
+    func addOneToInt64Min() {
+        let min = Money<TST_100>(minorUnits: Int64.min)
+        #expect(min + Money<TST_100>(minorUnits: 1) == Money<TST_100>(minorUnits: Int64.min + 1))
     }
 
     // MARK: - Overflow traps
@@ -169,36 +167,6 @@ struct Money_AdditionTests {
     func addUnderflowTraps() async {
         await #expect(processExitsWith: .failure) {
             _ = Money<TST_100>.min + Money<TST_100>(minorUnits: -1)
-        }
-    }
-
-    @Test("Addition assignment traps on NaN rhs")
-    func addAssignNaNRhsTraps() async {
-        await #expect(processExitsWith: .failure) {
-            var a = Money<TST_100>(minorUnits: 100)
-            a += .nan
-            _ = a
-        }
-    }
-
-    @Test("Addition assignment traps on NaN lhs")
-    func addAssignNaNLhsTraps() async {
-        await #expect(processExitsWith: .failure) {
-            var a = Money<TST_100>.nan
-            a += Money<TST_100>(minorUnits: 1)
-            _ = a
-        }
-    }
-
-    @Test("Reduce traps when array contains NaN")
-    func reduceTrapsOnNaN() async {
-        await #expect(processExitsWith: .failure) {
-            let amounts: [Money<TST_100>] = [
-                Money(minorUnits: 100),
-                .nan,
-                Money(minorUnits: 200)
-            ]
-            _ = amounts.reduce(.zero, +)
         }
     }
 }

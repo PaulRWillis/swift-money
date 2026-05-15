@@ -17,9 +17,6 @@ extension Money: CustomDebugStringConvertible {
     /// // "Money<GBP>(minorUnits: 150) — \"£1.50\""
     /// ```
     public var debugDescription: String {
-        if isNaN {
-            return "Money<\(Currency.code)>(NaN)"
-        }
         return "Money<\(Currency.code)>(minorUnits: \(_minorUnits)) — \"\(formatted())\""
     }
 }

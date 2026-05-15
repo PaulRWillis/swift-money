@@ -24,10 +24,11 @@ struct Money_RandomTests {
         #expect(value == only)
     }
 
-    @Test("random(in: .min ... .max) returns finite value")
+    @Test("random(in: .min ... .max) returns value in bounds")
     func closedRangeFullFiniteDomain() {
         let value = Money<TST_100>.random(in: .min ... .max)
-        #expect(!value.isNaN)
+        #expect(value >= .min)
+        #expect(value <= .max)
     }
 
     @Test("random(in: ClosedRange, using:) is deterministic with seeded generator")
@@ -48,20 +49,6 @@ struct Money_RandomTests {
             values.insert(Money<TST_100>.random(in: range).minorUnits)
         }
         #expect(values.count >= 2)
-    }
-
-    @Test("random(in: ClosedRange) traps on NaN lower bound")
-    func closedRangeNaNLowerBoundTraps() async {
-        await #expect(processExitsWith: .failure) {
-            _ = Money<TST_100>.random(in: .nan ... .max)
-        }
-    }
-
-    @Test("random(in: ClosedRange) traps on NaN upper bound")
-    func closedRangeNaNUpperBoundTraps() async {
-        await #expect(processExitsWith: .failure) {
-            _ = Money<TST_100>.random(in: .min ... .nan)
-        }
     }
 
     // MARK: - Range
@@ -105,19 +92,6 @@ struct Money_RandomTests {
         }
     }
 
-    @Test("random(in: Range) traps on NaN lower bound")
-    func rangeNaNLowerBoundTraps() async {
-        await #expect(processExitsWith: .failure) {
-            _ = Money<TST_100>.random(in: .nan ..< .max)
-        }
-    }
-
-    @Test("random(in: Range) traps on NaN upper bound")
-    func rangeNaNUpperBoundTraps() async {
-        await #expect(processExitsWith: .failure) {
-            _ = Money<TST_100>.random(in: .min ..< .nan)
-        }
-    }
 }
 
 // MARK: - Seeded Random Number Generator

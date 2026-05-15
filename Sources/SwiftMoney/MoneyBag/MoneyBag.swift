@@ -30,11 +30,6 @@
 /// multi-currency positions, not "available funds". Enforcing non-negative
 /// constraints is the responsibility of the calling domain model.
 ///
-/// ## NaN
-///
-/// Adding or subtracting a NaN `Money<C>` value traps with a precondition
-/// failure, consistent with `Money<C>` arithmetic.
-///
 /// ## Future FX support
 ///
 /// A `total(in:using:)` method converting all accumulated amounts to a
@@ -61,7 +56,6 @@ public struct MoneyBag: Sendable {
     /// ```
     ///
     /// - Parameter money: The initial money value.
-    /// - Precondition: `money` must not be NaN.
     public init<C: Currency>(_ money: Money<C>) {
         self._storage = [:]
         add(money)
@@ -141,10 +135,8 @@ public struct MoneyBag: Sendable {
     /// ```
     ///
     /// - Parameter money: The value to add.
-    /// - Precondition: `money` must not be NaN.
     /// - Precondition: The accumulated result must not overflow `Int64`.
     public mutating func add<C: Currency>(_ money: Money<C>) {
-        precondition(!money.isNaN, "NaN in MoneyBag.add")
         let existing = _storage[C.code]?.minorUnits ?? 0
         let (result, overflow) = existing.addingReportingOverflow(money._minorUnits)
         precondition(!overflow, "MoneyBag.add overflow")
@@ -169,10 +161,8 @@ public struct MoneyBag: Sendable {
     /// ```
     ///
     /// - Parameter money: The value to subtract.
-    /// - Precondition: `money` must not be NaN.
     /// - Precondition: The accumulated result must not overflow `Int64`.
     public mutating func subtract<C: Currency>(_ money: Money<C>) {
-        precondition(!money.isNaN, "NaN in MoneyBag.subtract")
         let existing = _storage[C.code]?.minorUnits ?? 0
         let (result, overflow) = existing.subtractingReportingOverflow(money._minorUnits)
         precondition(!overflow, "MoneyBag.subtract overflow")
@@ -238,7 +228,6 @@ public struct MoneyBag: Sendable {
     ///
     /// - Parameter money: The value to add.
     /// - Returns: A new `MoneyBag` with `money` accumulated.
-    /// - Precondition: `money` must not be NaN.
     public func adding<C: Currency>(_ money: Money<C>) -> MoneyBag {
         var copy = self
         copy.add(money)
@@ -256,7 +245,6 @@ public struct MoneyBag: Sendable {
     ///
     /// - Parameter money: The value to subtract.
     /// - Returns: A new `MoneyBag` with `money` subtracted.
-    /// - Precondition: `money` must not be NaN.
     public func subtracting<C: Currency>(_ money: Money<C>) -> MoneyBag {
         var copy = self
         copy.subtract(money)

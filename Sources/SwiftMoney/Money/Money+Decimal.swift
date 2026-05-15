@@ -3,12 +3,9 @@ import Foundation
 
 extension Money {
     /// The value as a `Foundation.Decimal`. Backwards-compatibility convenience for `Decimal(self)`.
-    ///
-    /// Returns `Decimal.nan` for NaN.
     @inlinable
     public var decimalValue: Decimal {
-        if isNaN { return Decimal.nan }
-        return Decimal(_minorUnits) / Decimal(Self.minimalQuantisation.int64Value)
+        Decimal(_minorUnits) / Decimal(Self.minimalQuantisation.int64Value)
     }
 }
 
@@ -16,8 +13,6 @@ extension Money {
     /// Creates a value from a `Foundation.Decimal`.
     /// The `Decimal` value must be a valid representation of a `Money` amount
     /// in its given currency.
-    ///
-    /// Creates `.nan` if the input is `Decimal.nan`.
     ///
     /// ```swift
     /// let pounds = Decimal(123.45)
@@ -28,15 +23,13 @@ extension Money {
     /// ```
     ///
     /// - Parameter decimal: The `Foundation.Decimal` value to convert.
+    /// - Precondition: The `Decimal` must not be NaN.
     /// - Precondition: The  `Decimal` value must be an exact valid amount in
     /// the associated currency.
     /// - Precondition: The scaled result must fit in `Int64`.
     /// - Precondition: The `scaleFactor` of the currency must not be 0.
     public init(_ decimal: Decimal) {
-        if decimal.isNaN {
-            self = .nan
-            return
-        }
+        precondition(!decimal.isNaN, "Cannot create Money from Decimal.nan")
 
         let factor = Decimal(Self.minimalQuantisation.int64Value)
 
@@ -53,21 +46,14 @@ extension Money {
             Decimal(int64Value) == scaled,
             "Decimal value \(decimal) overflows Money range"
         )
-        // Guard against NaN sentinel
-        precondition(
-            int64Value != .min,
-            "Decimal value \(decimal) maps to NaN sentinel"
-        )
 
         self._minorUnits = int64Value
     }
 
     /// Creates a value from a `Foundation.Decimal`. Returns `nil` if the
     /// scaled result does not fit in `Int64`, if the `scaleFactor` of the currency is 0,
-    /// or if the `Decimal` value is not a valid representation of a `Money` amount
-    /// in its given currency
-    ///
-    /// Creates `.nan` if the input is `Decimal.nan`.
+    /// if the `Decimal` is NaN, or if the `Decimal` value is not a valid representation
+    /// of a `Money` amount in its given currency.
     ///
     /// ```swift
     /// let pounds = Decimal(123.45)
@@ -80,10 +66,7 @@ extension Money {
     /// - Parameter decimal: The `Foundation.Decimal` value to convert.
     /// - Returns: A `Money` if the value is representable, otherwise `nil`.
     public init?(exactly decimal: Decimal) {
-        if decimal.isNaN {
-            self = .nan
-            return
-        }
+        if decimal.isNaN { return nil }
 
         let factor = Decimal(Self.minimalQuantisation.int64Value)
 
@@ -94,9 +77,6 @@ extension Money {
 
         // Overflow check: round-trip must match
         guard Decimal(int64Value) == scaled else { return nil }
-
-        // Guard against NaN sentinel
-        guard int64Value != .min else { return nil }
 
         self._minorUnits = int64Value
     }
@@ -113,23 +93,6 @@ extension Decimal {
     /// - Parameter value: The money value to convert.
     @inlinable
     public init<C: Currency>(_ value: Money<C>) {
-        self = value.decimalValue
-    }
-
-    /// Creates a `Decimal` from a `Money`, returning `nil` for NaN.
-    ///
-    /// ```swift
-    /// let money = Money<GBP>(99.95)   // £99.95
-    /// let decimal = Decimal(exactly: money)   // Optional(Decimal(99.95))
-    ///
-    /// let nan = Decimal(exactly: Money.nan)  // nil
-    /// ```
-    ///
-    /// - Parameter value: The money value to convert.
-    /// - Returns: A `Decimal` if the value is not NaN, otherwise `nil`.
-    @inlinable
-    public init?<C: Currency>(exactly value: Money<C>) {
-        if value.isNaN { return nil }
         self = value.decimalValue
     }
 }

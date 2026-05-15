@@ -112,13 +112,12 @@ extension MoneyBag {
             integerSum += adjustment
         }
 
-        // Bounds check: result must fit in Int64 and must not equal the NaN sentinel.
+        // Bounds check: result must fit in Int64.
         precondition(
             integerSum >= Int128(Int64.min) && integerSum <= Int128(Int64.max),
             "MoneyBag.total: converted total overflows Int64"
         )
         let finalMinorUnits = Int64(integerSum)
-        precondition(finalMinorUnits != .min, "MoneyBag.total: result is NaN sentinel")
 
         let (exactNumerator, exactDenominator) = _reducedExactFraction(
             integerSum: preRoundIntegerSum,
@@ -127,7 +126,7 @@ extension MoneyBag {
         )
 
         return MoneyConversionResult(
-            total: Money<Target>(_unchecked: finalMinorUnits),
+            total: Money<Target>(minorUnits: finalMinorUnits),
             exactNumerator: exactNumerator,
             exactDenominator: exactDenominator
         )

@@ -4,29 +4,7 @@ import SwiftMoney
 @Suite("Money — Int64 boundary values")
 struct Money_BoundaryTests {
 
-    // MARK: - NaN sentinel boundary
-
-    @Test("Money with Int64.min + 1 is not NaN")
-    func minPlusOneIsNotNaN() {
-        let m = Money<TST_100>(minorUnits: Int64.min + 1)
-        #expect(!m.isNaN)
-        #expect(m.minorUnits == Int64.min + 1)
-    }
-
-    @Test("Money.nan equals Int64.min sentinel")
-    func nanIsSentinel() {
-        let nan = Money<TST_100>.nan
-        #expect(nan.isNaN)
-    }
-
     // MARK: - Comparison at boundaries
-
-    @Test("NaN compares less than all finite values including Int64.min + 1")
-    func nanSortsFirst() {
-        let nan = Money<TST_100>.nan
-        let minFinite = Money<TST_100>(minorUnits: Int64.min + 1)
-        #expect(nan < minFinite)
-    }
 
     @Test("Max value compares greater than zero")
     func maxValueComparison() {
@@ -35,14 +13,6 @@ struct Money_BoundaryTests {
     }
 
     // MARK: - Hash consistency at boundaries
-
-    @Test("Equal NaN values produce equal hashes")
-    func nanHashConsistency() {
-        let a = Money<TST_100>.nan
-        let b = Money<TST_100>.nan
-        #expect(a == b)
-        #expect(a.hashValue == b.hashValue)
-    }
 
     @Test("Equal max values produce equal hashes")
     func maxHashConsistency() {
@@ -137,6 +107,6 @@ struct ExchangeRate_BoundaryTests {
         let r = ExchangeRate<TST_100, TST_1>(from: 1, to: 1)!
         let money = Money<TST_100>(minorUnits: 1)
         let result = r.convert(money)
-        #expect(!result.isNaN)
+        #expect(result.minorUnits == 1)
     }
 }

@@ -10,8 +10,7 @@ extension Money: AdditiveArithmetic {
 
     /// Returns the sum of two values.
     ///
-    /// Traps if either operand is NaN or if the result overflows,
-    /// matching Swift `Int` behavior.
+    /// Traps if the result overflows, matching Swift `Int` behavior.
     ///
     /// ```swift
     /// let a = Money<GBP>(minorUnits: 105) // £1.05
@@ -23,20 +22,17 @@ extension Money: AdditiveArithmetic {
     ///   - lhs: The first addend.
     ///   - rhs: The second addend.
     /// - Returns: The sum of `lhs` and `rhs`.
-    /// - Precondition: Neither operand may be NaN.
     /// - Precondition: The result must fit in `Int64`.
     @inlinable
     public static func + (lhs: Self, rhs: Self) -> Self {
-        precondition(!lhs.isNaN && !rhs.isNaN, "NaN in Money addition")
         let (result, overflow) = lhs._minorUnits.addingReportingOverflow(rhs._minorUnits)
         precondition(!overflow, "Money addition overflow")
-        precondition(result != .min, "Money addition produced NaN sentinel")
         return Self(minorUnits: result)
     }
 
     /// Adds the right-hand value to the left-hand value in place.
     ///
-    /// Traps on overflow or NaN.
+    /// Traps on overflow.
     ///
     /// ```swift
     /// var total = Money<GBP>(minorUnits: 100) // £1.00
@@ -54,8 +50,7 @@ extension Money: AdditiveArithmetic {
 
     /// Returns the difference of two values.
     ///
-    /// Traps if either operand is NaN or if the result overflows,
-    /// matching Swift `Int` behavior.
+    /// Traps if the result overflows, matching Swift `Int` behavior.
     ///
     /// ```swift
     /// let a = Money<GBP>(minorUnits: 1050) // £10.50
@@ -67,20 +62,17 @@ extension Money: AdditiveArithmetic {
     ///   - lhs: The minuend.
     ///   - rhs: The subtrahend.
     /// - Returns: The difference of `lhs` and `rhs`.
-    /// - Precondition: Neither operand may be NaN.
     /// - Precondition: The result must fit in `Int64` after scaling.
     @inlinable
     public static func - (lhs: Self, rhs: Self) -> Self {
-        precondition(!lhs.isNaN && !rhs.isNaN, "NaN in Money subtraction")
         let (result, overflow) = lhs._minorUnits.subtractingReportingOverflow(rhs._minorUnits)
         precondition(!overflow, "Money subtraction overflow")
-        precondition(result != .min, "Money subtraction produced NaN sentinel")
         return Self(minorUnits: result)
     }
 
     /// Subtracts the right-hand value from the left-hand value in place.
     ///
-    /// Traps on overflow or NaN.
+    /// Traps on overflow.
     ///
     /// ```swift
     /// var balance = Money<GBP>(minorUnits: 100_00) // £100.00
@@ -100,24 +92,20 @@ extension Money: AdditiveArithmetic {
 public extension Money {
     /// Returns the result of multiplying a `Money` value by an `Int64` scalar.
     ///
-    /// Traps if `lhs` is NaN or if the result overflows `Int64`.
+    /// Traps if the result overflows `Int64`.
     ///
-    /// - Precondition: `lhs` must not be NaN.
     /// - Precondition: The result must fit in `Int64`.
     @inlinable
     static func * (lhs: Money, rhs: Int64) -> Money {
-        precondition(!lhs.isNaN, "NaN in Money multiplication")
         let (result, overflow) = lhs._minorUnits.multipliedReportingOverflow(by: rhs)
         precondition(!overflow, "Money multiplication overflow")
-        precondition(result != .min, "Money multiplication produced NaN sentinel")
-        return Money(_unchecked: result)
+        return Money(minorUnits: result)
     }
 
     /// Returns the result of multiplying an `Int64` scalar by a `Money` value.
     ///
-    /// Traps if `rhs` is NaN or if the result overflows `Int64`.
+    /// Traps if the result overflows `Int64`.
     ///
-    /// - Precondition: `rhs` must not be NaN.
     /// - Precondition: The result must fit in `Int64`.
     @inlinable
     static func * (lhs: Int64, rhs: Money) -> Money {
@@ -126,7 +114,7 @@ public extension Money {
 
     /// Multiplies a `Money` value by an `Int64` scalar in place.
     ///
-    /// Traps on NaN or overflow.
+    /// Traps on overflow.
     @inlinable
     static func *= (lhs: inout Money, rhs: Int64) {
         lhs = lhs * rhs

@@ -153,18 +153,17 @@ public struct ExchangeRate<From: Currency, To: Currency>: Sendable {
     /// minor unit of `To` at this rate).
     ///
     /// - Parameters:
-    ///   - money: The amount to convert. Must not be NaN.
+    ///   - money: The amount to convert.
     ///   - rounding: The rounding rule for fractional minor units.
     ///     Defaults to `.toNearestOrAwayFromZero`.
     /// - Returns: An ``Conversion`` with the converted amount
     ///   and actual rate.
-    /// - Precondition: `money` must not be NaN.
     public func conversionResult(
         of money: Money<From>,
         rounding: FloatingPointRoundingRule = .toNearestOrAwayFromZero
     ) -> Conversion<From, To> {
         let multiplication = money.multiplied(by: rate, rounding: rounding)
-        let amount = Money<To>(_unchecked: multiplication.amount._minorUnits)
+        let amount = Money<To>(minorUnits: multiplication.amount._minorUnits)
         // TODO: Replace with `guard let`?
         // Wrap the Rate effectiveRate as a typed ExchangeRate.
         // effectiveRate.numeratorValue == 0 only when a non-zero input rounds to zero;
@@ -188,11 +187,10 @@ public struct ExchangeRate<From: Currency, To: Currency>: Sendable {
     /// ```
     ///
     /// - Parameters:
-    ///   - money: The amount to convert. Must not be NaN.
+    ///   - money: The amount to convert.
     ///   - rounding: The rounding rule for fractional minor units.
     ///     Defaults to `.toNearestOrAwayFromZero`.
     /// - Returns: The converted amount expressed in `To`.
-    /// - Precondition: `money` must not be NaN.
     public func convert(
         _ money: Money<From>,
         rounding: FloatingPointRoundingRule = .toNearestOrAwayFromZero
