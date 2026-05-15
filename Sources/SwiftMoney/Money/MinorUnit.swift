@@ -29,7 +29,10 @@ public struct MinorUnit: Sendable {
     // MARK: - Storage
 
     @usableFromInline
-    internal let _value: Int64
+    internal typealias Storage = Int64
+
+    @usableFromInline
+    internal let _storage: Storage
 
     // MARK: - Initialisers
 
@@ -43,8 +46,8 @@ public struct MinorUnit: Sendable {
     /// ```
     @inlinable
     public init?<T: BinaryInteger>(exactly value: T) {
-        guard let int64 = Int64(exactly: value), int64 != .min else { return nil }
-        self._value = int64
+        guard let storage = Storage(exactly: value), storage != .min else { return nil }
+        self._storage = storage
     }
 
 }
@@ -54,13 +57,13 @@ public struct MinorUnit: Sendable {
 extension MinorUnit {
 
     /// The zero value.
-    public static let zero: MinorUnit = 0
+    public static let zero = MinorUnit(integerLiteral: 0)
 
     /// The maximum representable value (`Int64.max`).
-    public static let max: MinorUnit = 9_223_372_036_854_775_807
+    public static let max = MinorUnit(integerLiteral: Storage.max)
 
     /// The minimum representable value (`Int64.min + 1`).
-    public static let min: MinorUnit = -9_223_372_036_854_775_807
+    public static let min = MinorUnit(integerLiteral: Storage.min + 1)
 }
 
 // MARK: - Equatable
@@ -68,7 +71,7 @@ extension MinorUnit {
 extension MinorUnit: Equatable {
     @inlinable
     public static func == (lhs: MinorUnit, rhs: MinorUnit) -> Bool {
-        lhs._value == rhs._value
+        lhs._storage == rhs._storage
     }
 }
 
@@ -77,7 +80,7 @@ extension MinorUnit: Equatable {
 extension MinorUnit: Comparable {
     @inlinable
     public static func < (lhs: MinorUnit, rhs: MinorUnit) -> Bool {
-        lhs._value < rhs._value
+        lhs._storage < rhs._storage
     }
 }
 
@@ -86,14 +89,14 @@ extension MinorUnit: Comparable {
 extension MinorUnit: Hashable {
     @inlinable
     public func hash(into hasher: inout Hasher) {
-        hasher.combine(_value)
+        hasher.combine(_storage)
     }
 }
 
 // MARK: - CustomStringConvertible
 
 extension MinorUnit: CustomStringConvertible {
-    public var description: String { _value.description }
+    public var description: String { _storage.description }
 }
 
 // MARK: - Codable
@@ -101,19 +104,19 @@ extension MinorUnit: CustomStringConvertible {
 extension MinorUnit: Codable {
     public init(from decoder: any Decoder) throws {
         let container = try decoder.singleValueContainer()
-        let value = try container.decode(Int64.self)
+        let value = try container.decode(Storage.self)
         guard value != .min else {
             throw DecodingError.dataCorruptedError(
                 in: container,
                 debugDescription: "MinorUnit cannot represent Int64.min (decoded \(value))"
             )
         }
-        self._value = value
+        self._storage = value
     }
 
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.singleValueContainer()
-        try container.encode(_value)
+        try container.encode(_storage)
     }
 }
 
@@ -123,7 +126,7 @@ extension MinorUnit: ExpressibleByIntegerLiteral {
     @inlinable
     public init(integerLiteral value: Int64) {
         precondition(value != .min, "MinorUnit cannot represent Int64.min")
-        self._value = value
+        self._storage = value
     }
 }
 
@@ -138,6 +141,6 @@ extension Int64 {
     /// ```
     @inlinable
     public init(_ minorUnit: MinorUnit) {
-        self = minorUnit._value
+        self = minorUnit._storage
     }
 }
