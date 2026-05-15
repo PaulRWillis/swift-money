@@ -187,7 +187,7 @@ extension MoneyBag: Codable {
             case .majorUnits:
                 let decimal = try container.decode(Decimal.self, forKey: key)
                 minorUnits = try AnyMoney._decimalToMinorUnits(
-                    decimal, minQ: minimalQuantisation, codingPath: container.codingPath
+                    decimal, minimalQuantisation: minimalQuantisation, codingPath: container.codingPath
                 )
             case .string(let locale):
                 let string = try container.decode(String.self, forKey: key)
@@ -195,7 +195,7 @@ extension MoneyBag: Codable {
                     string, currencyCode: currencyCode, locale: locale, codingPath: container.codingPath
                 )
                 minorUnits = try AnyMoney._decimalToMinorUnits(
-                    decimal, minQ: minimalQuantisation, codingPath: container.codingPath
+                    decimal, minimalQuantisation: minimalQuantisation, codingPath: container.codingPath
                 )
             }
             storage[currencyCode] = AnyMoney(

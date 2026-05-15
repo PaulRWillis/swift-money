@@ -62,21 +62,21 @@ extension Money {
             return copy
         }
 
-        public func presentation(_ p: Configuration.Presentation) -> FormatStyle {
+        public func presentation(_ presentation: Configuration.Presentation) -> FormatStyle {
             var copy = self
-            copy.presentation = p
+            copy.presentation = presentation
             return copy
         }
 
-        public func grouping(_ g: Configuration.Grouping) -> FormatStyle {
+        public func grouping(_ grouping: Configuration.Grouping) -> FormatStyle {
             var copy = self
-            copy.grouping = g
+            copy.grouping = grouping
             return copy
         }
 
-        public func precision(_ p: Configuration.Precision) -> FormatStyle {
+        public func precision(_ precision: Configuration.Precision) -> FormatStyle {
             var copy = self
-            copy.precision = p
+            copy.precision = precision
             return copy
         }
 
@@ -98,9 +98,9 @@ extension Money {
             return copy
         }
 
-        public func notation(_ n: Configuration.Notation) -> FormatStyle {
+        public func notation(_ notation: Configuration.Notation) -> FormatStyle {
             var copy = self
-            copy.notation = n
+            copy.notation = notation
             return copy
         }
     }
@@ -232,8 +232,8 @@ extension Money.FormatStyle {
     /// ```swift
     /// money.formatted(.presentation(.isoCode))
     /// ```
-    public static func presentation(_ p: Configuration.Presentation) -> Self {
-        Self().presentation(p)
+    public static func presentation(_ presentation: Configuration.Presentation) -> Self {
+        Self().presentation(presentation)
     }
 
     /// Returns a style with the given grouping.
@@ -241,8 +241,8 @@ extension Money.FormatStyle {
     /// ```swift
     /// money.formatted(.grouping(.never))
     /// ```
-    public static func grouping(_ g: Configuration.Grouping) -> Self {
-        Self().grouping(g)
+    public static func grouping(_ grouping: Configuration.Grouping) -> Self {
+        Self().grouping(grouping)
     }
 
     /// Returns a style with the given precision.
@@ -250,8 +250,8 @@ extension Money.FormatStyle {
     /// ```swift
     /// money.formatted(.precision(.fractionLength(0)))
     /// ```
-    public static func precision(_ p: Configuration.Precision) -> Self {
-        Self().precision(p)
+    public static func precision(_ precision: Configuration.Precision) -> Self {
+        Self().precision(precision)
     }
 
     /// Returns a style with the given decimal separator strategy.
@@ -280,8 +280,8 @@ extension Money.FormatStyle {
     /// ```swift
     /// money.formatted(.notation(.compactName))
     /// ```
-    public static func notation(_ n: Configuration.Notation) -> Self {
-        Self().notation(n)
+    public static func notation(_ notation: Configuration.Notation) -> Self {
+        Self().notation(notation)
     }
 }
 #endif
