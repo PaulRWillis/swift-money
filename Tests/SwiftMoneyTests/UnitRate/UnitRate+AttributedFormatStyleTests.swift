@@ -78,8 +78,8 @@ struct UnitRateAttributedFormatStyleTests {
 
         let runs = Array(attributed.runs[\.unitRateComponent])
         let unitText = String(attributed[runs[1].1].characters)
-        // Foundation provides a space before the abbreviated unit
-        #expect(unitText.hasPrefix(" "))
+        // Separator is always "/" regardless of locale CLDR spacing
+        #expect(unitText.hasPrefix("/"))
     }
 
     @Test("attributed Dimension: full text matches plain formatted output")

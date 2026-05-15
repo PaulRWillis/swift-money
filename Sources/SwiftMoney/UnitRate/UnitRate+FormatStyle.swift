@@ -146,20 +146,20 @@ extension UnitRate.FormatStyle where U: Dimension {
     /// Formats a `UnitRate` whose unit is a `Dimension`, using a localised
     /// unit label extracted from Foundation's `Measurement.FormatStyle.attributed`.
     ///
-    /// Foundation's CLDR data provides locale-aware unit names and spacing.
+    /// Foundation's CLDR data provides locale-aware unit names.
     /// The value portion is always formatted as a currency amount.
+    /// A "/" separator communicates the "per" relationship.
     internal func _formatDimension(_ value: UnitRate<C, U>) -> String {
-        let (spacing, unitLabel) = _localisedSpacingAndUnit(value.unit)
+        let unitLabel = _localisedUnitLabel(value.unit)
         let valueString = _formatPrice(value.rate)
-        return "\(valueString)\(spacing)\(unitLabel)"
+        return "\(valueString)/\(unitLabel)"
     }
 
-    /// Extracts the localised spacing and unit label from Foundation's attributed output.
+    /// Extracts the localised unit label from Foundation's attributed output.
     ///
     /// Uses `Measurement.FormatStyle.attributed` with `.asProvided` to prevent
-    /// auto-conversion to the locale's preferred unit. The attributed string
-    /// has three runs: `.value`, `nil` (spacing), `.unit`.
-    private func _localisedSpacingAndUnit(_ unit: U) -> (spacing: String, unit: String) {
+    /// auto-conversion to the locale's preferred unit.
+    private func _localisedUnitLabel(_ unit: U) -> String {
         let measurement = Measurement(value: 1.0, unit: unit)
         let width = _foundationWidth()
         let style = Measurement<U>.FormatStyle.measurement(
@@ -168,7 +168,6 @@ extension UnitRate.FormatStyle where U: Dimension {
         ).locale(locale)
         let attributed = measurement.formatted(style.attributed)
 
-        var spacing = ""
         var unitText = ""
 
         for (component, range) in attributed.runs[\.measurement] {
@@ -179,12 +178,11 @@ extension UnitRate.FormatStyle where U: Dimension {
             case .value:
                 break
             default:
-                // nil component = spacing between value and unit
-                spacing += text
+                break
             }
         }
 
-        return (spacing, unitText)
+        return unitText
     }
 
     /// Maps our `UnitWidth` to Foundation's `Measurement.FormatStyle.UnitWidth`.
@@ -327,7 +325,6 @@ extension UnitRate where U: CustomStringConvertible {
             ).locale(locale)
             let attributed = measurement.formatted(style.attributed)
 
-            var spacing = ""
             var unitText = ""
             for (component, range) in attributed.runs[\.measurement] {
                 let text = String(attributed[range].characters)
@@ -337,10 +334,10 @@ extension UnitRate where U: CustomStringConvertible {
                 case .value:
                     break
                 default:
-                    spacing += text
+                    break
                 }
             }
-            return "\(spacing)\(unitText)"
+            return "/\(unitText)"
         }
         #endif
     }
