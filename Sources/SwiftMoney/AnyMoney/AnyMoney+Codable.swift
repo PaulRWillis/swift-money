@@ -170,27 +170,27 @@ extension AnyMoney {
             minorUnits = try container.decode(Int64.self, forKey: .amount)
         case .majorUnits:
             let decimal = try container.decode(Decimal.self, forKey: .amount)
-            minorUnits = try _decimalToMinorUnits(decimal, minQ: minimalQuantisation, codingPath: container.codingPath)
+            minorUnits = try _decimalToMinorUnits(decimal, minimalQuantisation: minimalQuantisation, codingPath: container.codingPath)
         case .string(let locale):
             let string = try container.decode(String.self, forKey: .amount)
             let decimal = try _parseFormattedAmount(
                 string, currencyCode: code, locale: locale, codingPath: container.codingPath
             )
-            minorUnits = try _decimalToMinorUnits(decimal, minQ: minimalQuantisation, codingPath: container.codingPath)
+            minorUnits = try _decimalToMinorUnits(decimal, minimalQuantisation: minimalQuantisation, codingPath: container.codingPath)
         }
         return AnyMoney(minorUnits: minorUnits, currencyCode: code, minimalQuantisation: minimalQuantisation)
     }
 
     // MARK: Shared arithmetic helpers (internal so MoneyBag+Codable.swift can reuse them)
 
-    /// Multiplies a major-unit Decimal by `minQ`, rounds to nearest minor unit (`.plain`),
-    /// and converts to `Int64`. Throws on overflow or NaN-sentinel collision.
+    /// Multiplies a major-unit Decimal by `minimalQuantisation`, rounds to nearest minor
+    /// unit (`.plain`), and converts to `Int64`. Throws on overflow or NaN-sentinel collision.
     internal static func _decimalToMinorUnits(
         _ decimal: Decimal,
-        minQ: MinimalQuantisation,
+        minimalQuantisation: MinimalQuantisation,
         codingPath: [any CodingKey]
     ) throws -> Int64 {
-        let quantisationDecimal = Decimal(minQ.int64Value)
+        let quantisationDecimal = Decimal(minimalQuantisation.int64Value)
         var product = decimal * quantisationDecimal
         var rounded = Decimal()
         NSDecimalRound(&rounded, &product, 0, .plain)

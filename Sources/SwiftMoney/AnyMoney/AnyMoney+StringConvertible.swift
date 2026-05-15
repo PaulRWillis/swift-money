@@ -20,7 +20,8 @@ extension AnyMoney: CustomDebugStringConvertible {
     /// // "AnyMoney(GBP, minorUnits: 150) — \"£1.50\""
     /// ```
     public var debugDescription: String {
-        if minorUnits == .min {
+        let isNaN = minorUnits == .min
+        if isNaN {
             return "AnyMoney(\(currencyCode), NaN)"
         }
         return "AnyMoney(\(currencyCode), minorUnits: \(minorUnits)) — \"\(formatted())\""
