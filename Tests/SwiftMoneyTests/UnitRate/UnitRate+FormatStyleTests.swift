@@ -165,7 +165,7 @@ struct UnitRateFormatStyleDimensionTests {
         let rate = try #require(Rate(numerator: 23, denominator: 1_000_000))
         let unitRate = UnitRate<GBP, UnitEnergy>(rate, per: .kilowattHours)
         let result = unitRate.formatted(.init(locale: enGB))
-        #expect(result == "£0.000023 kWh")
+        #expect(result == "£0.000023/kWh")
     }
 
     @Test("UnitEnergy wide (en_US)")
@@ -182,7 +182,7 @@ struct UnitRateFormatStyleDimensionTests {
         let rate = try #require(Rate(numerator: 5, denominator: 1))
         let unitRate = UnitRate<USD, UnitMass>(rate, per: .kilograms)
         let result = unitRate.formatted(.init(locale: enUS))
-        #expect(result == "$5.00 kg")
+        #expect(result == "$5.00/kg")
     }
 
     @Test("UnitMass wide (en_US)")
@@ -248,7 +248,7 @@ struct UnitRateFormatStyleDimensionTests {
         let rate = try #require(Rate(numerator: 1, denominator: 10_000_000))
         let unitRate = UnitRate<GBP, UnitEnergy>(rate, per: .kilowattHours)
         let result = unitRate.formatted(.init(locale: enGB))
-        #expect(result == "£0.0000001 kWh")
+        #expect(result == "£0.0000001/kWh")
     }
 
     // MARK: - Unit width modifier
