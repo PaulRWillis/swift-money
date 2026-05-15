@@ -105,13 +105,13 @@ extension MinorUnit: Codable {
     public init(from decoder: any Decoder) throws {
         let container = try decoder.singleValueContainer()
         let value = try container.decode(Storage.self)
-        guard value != .min else {
+        guard let minorUnit = MinorUnit(exactly: value) else {
             throw DecodingError.dataCorruptedError(
                 in: container,
                 debugDescription: "MinorUnit cannot represent Int64.min (decoded \(value))"
             )
         }
-        self._storage = value
+        self = minorUnit
     }
 
     public func encode(to encoder: any Encoder) throws {
@@ -125,8 +125,10 @@ extension MinorUnit: Codable {
 extension MinorUnit: ExpressibleByIntegerLiteral {
     @inlinable
     public init(integerLiteral value: Int64) {
-        precondition(value != .min, "MinorUnit cannot represent Int64.min")
-        self._storage = value
+        guard let minorUnit = MinorUnit(exactly: value) else {
+            preconditionFailure("MinorUnit cannot represent Int64.min")
+        }
+        self = minorUnit
     }
 }
 
