@@ -162,6 +162,20 @@ struct MinorUnitTests {
         #expect(zero.description == "0")
     }
 
+    // MARK: - CustomDebugStringConvertible
+
+    @Test("debugDescription includes the type name")
+    func debugDescriptionIncludesTypeName() {
+        let mu: MinorUnit = 150
+        #expect(mu.debugDescription == "MinorUnit(150)")
+    }
+
+    @Test("debugDescription works for negative values")
+    func debugDescriptionNegative() {
+        let mu: MinorUnit = -50
+        #expect(mu.debugDescription == "MinorUnit(-50)")
+    }
+
     // MARK: - Codable
 
     @Test("Encodes to a JSON integer")

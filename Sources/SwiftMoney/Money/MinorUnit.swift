@@ -6,7 +6,7 @@
 /// `Int64.min + 1 ... Int64.max`.
 ///
 /// ```swift
-/// let mu = MinorUnit(150)
+/// let mu: MinorUnit = 150
 /// Int64(mu)  // 150
 /// ```
 ///
@@ -97,6 +97,12 @@ extension MinorUnit: Hashable {
 
 extension MinorUnit: CustomStringConvertible {
     public var description: String { _storage.description }
+}
+
+// MARK: - CustomDebugStringConvertible
+
+extension MinorUnit: CustomDebugStringConvertible {
+    public var debugDescription: String { "MinorUnit(\(_storage))" }
 }
 
 // MARK: - Codable
