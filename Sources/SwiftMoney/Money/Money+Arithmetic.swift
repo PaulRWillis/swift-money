@@ -28,7 +28,7 @@ extension Money: AdditiveArithmetic {
     @inlinable
     public static func + (lhs: Self, rhs: Self) -> Self {
         precondition(!lhs.isNaN && !rhs.isNaN, "NaN in Money addition")
-        let (result, overflow) = lhs._minorUnits.addingReportingOverflow(rhs._minorUnits)
+        let (result, overflow) = lhs.minorUnits.addingReportingOverflow(rhs.minorUnits)
         precondition(!overflow, "Money addition overflow")
         precondition(result != .min, "Money addition produced NaN sentinel")
         return Self(minorUnits: result)
@@ -72,7 +72,7 @@ extension Money: AdditiveArithmetic {
     @inlinable
     public static func - (lhs: Self, rhs: Self) -> Self {
         precondition(!lhs.isNaN && !rhs.isNaN, "NaN in Money subtraction")
-        let (result, overflow) = lhs._minorUnits.subtractingReportingOverflow(rhs._minorUnits)
+        let (result, overflow) = lhs.minorUnits.subtractingReportingOverflow(rhs.minorUnits)
         precondition(!overflow, "Money subtraction overflow")
         precondition(result != .min, "Money subtraction produced NaN sentinel")
         return Self(minorUnits: result)
@@ -107,7 +107,7 @@ public extension Money {
     @inlinable
     static func * (lhs: Money, rhs: Int64) -> Money {
         precondition(!lhs.isNaN, "NaN in Money multiplication")
-        let (result, overflow) = lhs._minorUnits.multipliedReportingOverflow(by: rhs)
+        let (result, overflow) = lhs.minorUnits.multipliedReportingOverflow(by: rhs)
         precondition(!overflow, "Money multiplication overflow")
         precondition(result != .min, "Money multiplication produced NaN sentinel")
         return Money(_unchecked: result)

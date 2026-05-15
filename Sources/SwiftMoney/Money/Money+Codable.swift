@@ -76,7 +76,7 @@ extension Money: Codable {
 
     private func _encodeMinorUnits(to encoder: any Encoder) throws {
         var container = encoder.singleValueContainer()
-        try container.encode(_minorUnits)
+        try container.encode(minorUnits)
     }
 
     private func _encodeMajorUnits(to encoder: any Encoder) throws {
@@ -121,7 +121,7 @@ extension Money: Codable {
         try container.encode(Currency.code.stringValue, forKey: .currencyCode)
         switch amountStrategy {
         case .minorUnits:
-            try container.encode(_minorUnits, forKey: .amount)
+            try container.encode(minorUnits, forKey: .amount)
         case .majorUnits:
             try container.encode(_majorUnitsDecimal(), forKey: .amount)
         case .string(let locale):
@@ -195,7 +195,7 @@ extension Money: Codable {
     /// Converts `_minorUnits` (minor units) to major-unit `Decimal` for encoding.
     private func _majorUnitsDecimal() -> Decimal {
         let quantisation = Decimal(Currency.minimalQuantisation.int64Value)
-        return Decimal(_minorUnits) / quantisation
+        return Decimal(minorUnits) / quantisation
     }
 
     /// Converts a major-unit `Decimal` into a `Money` value by multiplying by

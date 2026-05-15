@@ -17,7 +17,7 @@ extension Money {
     public func distributed(into n: DistributionParts) -> Distribution<Currency> {
         precondition(!isNaN, "Cannot distribute NaN")
 
-        let amount = _minorUnits
+        let amount = minorUnits
         let parts = Storage(n.intValue)
         let quotient  = amount / parts
         let remainder = amount % parts          // same sign as amount (Swift semantics)
