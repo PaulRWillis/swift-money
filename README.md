@@ -297,7 +297,7 @@ bag.formatted(locale: locale)         // "£125.50" (entries joined by ", ")
 `Money<C>.FormatStyle` conforms to `ParseableFormatStyle`:
 
 ```swift
-let format = Money<GBP>.FormatStyle(locale: Locale(identifier: "en_GB"))
+let format = Money<GBP>.FormatStyle().locale(Locale(identifier: "en_GB"))
 let parsed = try Money<GBP>("£125.50", format: format)  // Money<GBP>(minorUnits: 12550)
 
 // Round-trip guarantee:

@@ -73,7 +73,7 @@ extension MoneyBag: Codable {
                             )
                         )
                     }
-                    try dictionaryContainer.encode(entry.formatted(AnyMoney.FormatStyle(locale: locale)), forKey: key)
+                    try dictionaryContainer.encode(entry.formatted(AnyMoney.FormatStyle().locale(locale)), forKey: key)
                 }
             }
         }

@@ -73,7 +73,7 @@ struct Money_SafetyTests {
         let desc  = money.debugDescription
         #expect(desc.contains("GBP"))
         #expect(desc.contains("150"))
-        #expect(desc.contains("£1.50") || !money.formatted(Money<GBP>.FormatStyle(locale: enGB)).isEmpty)
+        #expect(desc.contains("£1.50") || !money.formatted(Money<GBP>.FormatStyle().locale(enGB)).isEmpty)
     }
 
     @Test("debugDescription for NaN contains 'NaN' and currency code")

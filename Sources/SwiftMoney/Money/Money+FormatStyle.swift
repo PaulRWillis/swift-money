@@ -12,7 +12,8 @@ extension Money {
     /// units for display via the currency's `minimalQuantisation`.
     ///
     /// ```swift
-    /// let style = Money<GBP>.FormatStyle(locale: Locale(identifier: "en_GB"))
+    /// let style = Money<GBP>.FormatStyle()
+    ///     .locale(Locale(identifier: "en_GB"))
     ///     .sign(strategy: .always())
     ///
     /// style.format(Money<GBP>(minorUnits: 150))  // "+£1.50"
@@ -35,8 +36,8 @@ extension Money {
 
         // MARK: - Initialiser
 
-        public init(locale: Locale = .autoupdatingCurrent) {
-            self.locale = locale
+        public init() {
+            self.locale = .autoupdatingCurrent
             self.signDisplayStrategy = .automatic
             self.presentation = .standard
             self.grouping = nil
@@ -210,13 +211,11 @@ extension Money {
 extension Money.FormatStyle {
     /// Returns a style with the given locale.
     ///
-    /// Equivalent to `Money<C>.FormatStyle(locale: locale)`.
-    ///
     /// ```swift
     /// money.formatted(.locale(Locale(identifier: "en_GB")))
     /// ```
     public static func locale(_ locale: Locale) -> Self {
-        Self(locale: locale)
+        Self().locale(locale)
     }
 
     /// Returns a style with the given sign strategy.

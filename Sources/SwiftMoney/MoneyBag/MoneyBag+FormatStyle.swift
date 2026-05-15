@@ -22,7 +22,7 @@ extension MoneyBag {
     /// - Parameter locale: The locale used to format each amount.
     ///   Defaults to `.autoupdatingCurrent`.
     public func formatted(locale: Locale = .autoupdatingCurrent) -> String {
-        let style = AnyMoney.FormatStyle(locale: locale)
+        let style = AnyMoney.FormatStyle().locale(locale)
         return balances.map { $0.formatted(style) }.joined(separator: ", ")
     }
 }

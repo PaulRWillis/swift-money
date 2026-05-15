@@ -15,15 +15,15 @@ struct Money_FormatStyleTests {
 
     @Test
     func whenFormatAsCurrency_shouldRepresentAsTypedCurrency() {
-        let poundFormatStyle = Money<GBP>.FormatStyle(locale: enGB)
+        let poundFormatStyle = Money<GBP>.FormatStyle().locale(enGB)
         let pounds = poundFormatStyle.format(Money<GBP>(minorUnits: 100))
         #expect(pounds == "£1.00")
 
-        let euroFormatStyle = Money<EUR>.FormatStyle(locale: enGB)
+        let euroFormatStyle = Money<EUR>.FormatStyle().locale(enGB)
         let euros = euroFormatStyle.format(Money<EUR>(minorUnits: 100))
         #expect(euros == "€1.00")
 
-        let dollarFormatStyle = Money<USD>.FormatStyle(locale: enGB)
+        let dollarFormatStyle = Money<USD>.FormatStyle().locale(enGB)
         let dollars = dollarFormatStyle.format(Money<USD>(minorUnits: 100))
         #expect(dollars == "US$1.00")
     }
@@ -31,7 +31,7 @@ struct Money_FormatStyleTests {
     @Test
     func whenFormatAsCurrency_shouldRespectMinimalQuantisation() {
         // Japanese Yen (JPY) has no minor units, unlike e.g. US Dollars (USD) with 100 cents to the dollar
-        let yenFormatStyle = Money<JPY>.FormatStyle(locale: enGB)
+        let yenFormatStyle = Money<JPY>.FormatStyle().locale(enGB)
         let yen = yenFormatStyle.format(Money<JPY>(minorUnits: 100))
         #expect(yen == "JP¥100")
     }
@@ -39,7 +39,7 @@ struct Money_FormatStyleTests {
     @Test
     func whenFormatAsCurrencyWithLocale_shouldRespectLocaleCurrencyRepresentation() {
         localesAndMoneys.forEach { (locale, expectedValue) in
-            let formatStyle = Money<EUR>.FormatStyle(locale: locale)
+            let formatStyle = Money<EUR>.FormatStyle().locale(locale)
             let formattedValue = formatStyle.format(Money<EUR>(minorUnits: 105))
 
             #expect(formattedValue == expectedValue, "String representations should be equal for locale: \(locale.identifier)")
@@ -50,7 +50,7 @@ struct Money_FormatStyleTests {
 
     @Test
     func sign_shouldDefaultToAutomatic() {
-        let formatStyle = Money<GBP>.FormatStyle(locale: enGB)
+        let formatStyle = Money<GBP>.FormatStyle().locale(enGB)
 
         #expect(formatStyle.format(Money<GBP>(minorUnits: 100)) == "£1.00")
         #expect(formatStyle.format(Money<GBP>(minorUnits: -100)) == "-£1.00")
@@ -59,7 +59,7 @@ struct Money_FormatStyleTests {
 
     @Test
     func sign_shouldSupportAlwaysShowingSign() {
-        let formatStyle = Money<GBP>.FormatStyle(locale: enGB)
+        let formatStyle = Money<GBP>.FormatStyle().locale(enGB)
             .sign(strategy: .always())
 
         #expect(formatStyle.format(Money<GBP>(minorUnits: 100)) == "+£1.00")
@@ -69,7 +69,7 @@ struct Money_FormatStyleTests {
 
     @Test
     func sign_shouldSupportAlwaysShowingSignExceptZero() {
-        let formatStyle = Money<GBP>.FormatStyle(locale: enGB)
+        let formatStyle = Money<GBP>.FormatStyle().locale(enGB)
             .sign(strategy: .always(showZero: false))
 
         #expect(formatStyle.format(Money<GBP>(minorUnits: 100)) == "+£1.00")
@@ -79,7 +79,7 @@ struct Money_FormatStyleTests {
 
     @Test
     func sign_shouldSupportAccountingFormat() {
-        let formatStyle = Money<GBP>.FormatStyle(locale: enGB)
+        let formatStyle = Money<GBP>.FormatStyle().locale(enGB)
             .sign(strategy: .accounting)
 
         #expect(formatStyle.format(Money<GBP>(minorUnits: 100)) == "£1.00")
@@ -89,7 +89,7 @@ struct Money_FormatStyleTests {
 
     @Test
     func sign_shouldSupportAccountingAlways() {
-        let formatStyle = Money<GBP>.FormatStyle(locale: enGB)
+        let formatStyle = Money<GBP>.FormatStyle().locale(enGB)
             .sign(strategy: .accountingAlways(showZero: true))
 
         #expect(formatStyle.format(Money<GBP>(minorUnits: 100)) == "+£1.00")
@@ -99,7 +99,7 @@ struct Money_FormatStyleTests {
 
     @Test
     func sign_shouldSupportAccountingAlwaysExceptZero() {
-        let formatStyle = Money<GBP>.FormatStyle(locale: enGB)
+        let formatStyle = Money<GBP>.FormatStyle().locale(enGB)
             .sign(strategy: .accountingAlways(showZero: false))
 
         #expect(formatStyle.format(Money<GBP>(minorUnits: 100)) == "+£1.00")
@@ -109,7 +109,7 @@ struct Money_FormatStyleTests {
 
     @Test
     func sign_shouldSupportNeverShowingSign() {
-        let formatStyle = Money<GBP>.FormatStyle(locale: enGB)
+        let formatStyle = Money<GBP>.FormatStyle().locale(enGB)
             .sign(strategy: .never)
 
         #expect(formatStyle.format(Money<GBP>(minorUnits: 100)) == "£1.00")
@@ -119,7 +119,7 @@ struct Money_FormatStyleTests {
 
     @Test
     func sign_shouldSupportAutomaticConfiguration() {
-        let formatStyle = Money<GBP>.FormatStyle(locale: enGB)
+        let formatStyle = Money<GBP>.FormatStyle().locale(enGB)
             .sign(strategy: .automatic)
 
         #expect(formatStyle.format(Money<GBP>(minorUnits: 100)) == "£1.00")
@@ -132,7 +132,7 @@ struct Money_FormatStyleTests {
     @Test
     func presentation_shouldDefaultToAutomatic() {
         // .standard (default) is locale-aware: en_GB shows USD as "US$" (foreign currency)
-        let style = Money<USD>.FormatStyle(locale: enGB)
+        let style = Money<USD>.FormatStyle().locale(enGB)
         #expect(style.format(Money<USD>(minorUnits: 201)) == "US$2.01")
         #expect(style.format(Money<USD>(minorUnits: -201)) == "-US$2.01")
         #expect(style.format(Money<USD>(minorUnits: 0)) == "US$0.00")
@@ -140,7 +140,7 @@ struct Money_FormatStyleTests {
 
     @Test
     func presentation_shouldSupportFullCurrencyName() {
-        let formatStyle = Money<USD>.FormatStyle(locale: enUS)
+        let formatStyle = Money<USD>.FormatStyle().locale(enUS)
             .presentation(.fullName)
 
         #expect(formatStyle.format(Money<USD>(minorUnits: 307)) == "3.07 US dollars")
@@ -150,7 +150,7 @@ struct Money_FormatStyleTests {
 
     @Test
     func presentation_shouldSupportISOCode() {
-        let formatStyle = Money<USD>.FormatStyle(locale: enUS)
+        let formatStyle = Money<USD>.FormatStyle().locale(enUS)
             .presentation(.isoCode)
 
         #expect(formatStyle.format(Money<USD>(minorUnits: 307)) == "USD 3.07")
@@ -160,7 +160,7 @@ struct Money_FormatStyleTests {
 
     @Test
     func presentation_shouldSupportNarrowCurrencyName() {
-        let formatStyle = Money<USD>.FormatStyle(locale: enUS)
+        let formatStyle = Money<USD>.FormatStyle().locale(enUS)
             .presentation(.narrow)
 
         #expect(formatStyle.format(Money<USD>(minorUnits: 307)) == "$3.07")
@@ -171,7 +171,7 @@ struct Money_FormatStyleTests {
     @Test
     func presentation_shouldSupportStandardCurrencyName() {
         // en_GB shows USD as "US$" via unit-width-short (foreign currency needs disambiguation)
-        let formatStyle = Money<USD>.FormatStyle(locale: enGB)
+        let formatStyle = Money<USD>.FormatStyle().locale(enGB)
             .presentation(.standard)
 
         #expect(formatStyle.format(Money<USD>(minorUnits: 307)) == "US$3.07")
@@ -182,7 +182,7 @@ struct Money_FormatStyleTests {
 
     @Test("grouping(.automatic) applies locale-appropriate thousands separator")
     func groupingAutomatic() {
-        let style = Money<USD>.FormatStyle(locale: enGB).grouping(.automatic)
+        let style = Money<USD>.FormatStyle().locale(enGB).grouping(.automatic)
         #expect(style.format(Money<USD>(minorUnits: 1_000_000)).contains(","))
     }
 
@@ -191,13 +191,13 @@ struct Money_FormatStyleTests {
         // grouping(.never) on currencies with minQ>1 (e.g. GBP/USD) triggers a Foundation
         // ICU skeleton issue when scale/0.01 is combined with group-off — use JPY (minQ=1,
         // scale=1.0 exactly) to verify behaviour without hitting that limitation.
-        let style = Money<JPY>.FormatStyle(locale: enGB).grouping(.never)
+        let style = Money<JPY>.FormatStyle().locale(enGB).grouping(.never)
         #expect(style.format(Money<JPY>(minorUnits: 10_000)) == "JP¥10000")
     }
 
     @Test("notation(.compactName) abbreviates large amounts")
     func notationCompactName() {
-        let style = Money<GBP>.FormatStyle(locale: enGB).notation(.compactName)
+        let style = Money<GBP>.FormatStyle().locale(enGB).notation(.compactName)
         let result = style.format(Money<GBP>(minorUnits: 1_500_000))
         // ICU compact abbreviation varies by platform ("£15k" vs "£15K"),
         // so compare against Foundation's own output.
@@ -209,7 +209,7 @@ struct Money_FormatStyleTests {
 
     @Test("formatted(_:) convenience applies the given style")
     func formattedConvenience() {
-        let style = Money<GBP>.FormatStyle(locale: enGB).sign(strategy: .always())
+        let style = Money<GBP>.FormatStyle().locale(enGB).sign(strategy: .always())
         let money = Money<GBP>(minorUnits: 150)
         #expect(money.formatted(style) == "+£1.50")
     }
@@ -237,7 +237,7 @@ struct Money_FormatStyle_StaticFactoryTests {
     func localeDotSyntax() {
         let money = Money<GBP>(minorUnits: 150)
         let dotSyntax = money.formatted(.locale(enGB))
-        let explicit  = money.formatted(Money<GBP>.FormatStyle(locale: enGB))
+        let explicit  = money.formatted(Money<GBP>.FormatStyle().locale(enGB))
         #expect(dotSyntax == explicit)
     }
 
@@ -253,7 +253,7 @@ struct Money_FormatStyle_StaticFactoryTests {
     func groupingDotSyntax() {
         let money = Money<GBP>(minorUnits: 1_234_567)
         let dotSyntax = money.formatted(.grouping(.never).locale(enGB))
-        let explicit  = money.formatted(Money<GBP>.FormatStyle(locale: enGB).grouping(.never))
+        let explicit  = money.formatted(Money<GBP>.FormatStyle().locale(enGB).grouping(.never))
         #expect(dotSyntax == explicit)
     }
 
@@ -270,7 +270,7 @@ struct Money_FormatStyle_StaticFactoryTests {
     func precisionDotSyntax() {
         let money = Money<GBP>(minorUnits: 150)
         let dotSyntax = money.formatted(.precision(.fractionLength(0)).locale(enGB))
-        let explicit  = money.formatted(Money<GBP>.FormatStyle(locale: enGB).precision(.fractionLength(0)))
+        let explicit  = money.formatted(Money<GBP>.FormatStyle().locale(enGB).precision(.fractionLength(0)))
         #expect(dotSyntax == explicit)
     }
 
@@ -313,7 +313,7 @@ struct Money_FormatStyle_StaticFactoryTests {
     func roundedDotSyntax() {
         let money = Money<GBP>(minorUnits: 150)
         let dotSyntax = money.formatted(.rounded().locale(enGB))
-        let explicit  = money.formatted(Money<GBP>.FormatStyle(locale: enGB).rounded())
+        let explicit  = money.formatted(Money<GBP>.FormatStyle().locale(enGB).rounded())
         #expect(dotSyntax == explicit)
     }
 
@@ -324,7 +324,7 @@ struct Money_FormatStyle_StaticFactoryTests {
         let money = Money<GBP>(minorUnits: 1_234_567)
         // Start from .grouping, then chain .locale
         let chained = money.formatted(.grouping(.never).locale(enGB))
-        let baseline = money.formatted(Money<GBP>.FormatStyle(locale: enGB).grouping(.never))
+        let baseline = money.formatted(Money<GBP>.FormatStyle().locale(enGB).grouping(.never))
         #expect(chained == baseline)
     }
 }
