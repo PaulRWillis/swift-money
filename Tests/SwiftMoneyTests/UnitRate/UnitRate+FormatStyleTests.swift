@@ -18,7 +18,7 @@ struct UnitRateFormatStyleTests {
     func gbpSmallRate() throws {
         let rate = try #require(Rate(numerator: 23, denominator: 1_000_000))
         let unitRate = UnitRate<GBP, String>(rate, per: "kWh")
-        let result = unitRate.formatted(.init(locale: enGB))
+        let result = unitRate.formatted(.locale(enGB))
         #expect(result == "£0.000023/kWh")
     }
 
@@ -26,7 +26,7 @@ struct UnitRateFormatStyleTests {
     func usdLargeRate() throws {
         let rate = try #require(Rate(numerator: 14500, denominator: 200))
         let unitRate = UnitRate<USD, String>(rate, per: "barrel")
-        let result = unitRate.formatted(.init(locale: enUS))
+        let result = unitRate.formatted(.locale(enUS))
         #expect(result == "$72.50/barrel")
     }
 
@@ -34,7 +34,7 @@ struct UnitRateFormatStyleTests {
     func jpyNoDecimals() throws {
         let rate = try #require(Rate(numerator: 150, denominator: 1))
         let unitRate = UnitRate<JPY, String>(rate, per: "litre")
-        let result = unitRate.formatted(.init(locale: Locale(identifier: "ja_JP")))
+        let result = unitRate.formatted(.locale(Locale(identifier: "ja_JP")))
         #expect(result == "¥150/litre")
     }
 
@@ -42,14 +42,14 @@ struct UnitRateFormatStyleTests {
     func negativeRate() throws {
         let rate = try #require(Rate(numerator: -5, denominator: 100))
         let unitRate = UnitRate<GBP, String>(rate, per: "kWh")
-        let result = unitRate.formatted(.init(locale: enGB))
+        let result = unitRate.formatted(.locale(enGB))
         #expect(result == "-£0.05/kWh")
     }
 
     @Test("zero rate")
     func zeroRate() throws {
         let unitRate = UnitRate<GBP, String>(.zero, per: "kWh")
-        let result = unitRate.formatted(.init(locale: enGB))
+        let result = unitRate.formatted(.locale(enGB))
         #expect(result == "£0.00/kWh")
     }
 
@@ -57,7 +57,7 @@ struct UnitRateFormatStyleTests {
     func germanLocale() throws {
         let rate = try #require(Rate(numerator: 14500, denominator: 200))
         let unitRate = UnitRate<USD, String>(rate, per: "barrel")
-        let result = unitRate.formatted(.init(locale: deDE))
+        let result = unitRate.formatted(.locale(deDE))
         #expect(result.contains("72,50"))
         #expect(result.hasSuffix("/barrel"))
     }
@@ -66,7 +66,7 @@ struct UnitRateFormatStyleTests {
     func wholePounds() throws {
         let rate = try #require(Rate(numerator: 5, denominator: 1))
         let unitRate = UnitRate<GBP, String>(rate, per: "hr")
-        let result = unitRate.formatted(.init(locale: enGB))
+        let result = unitRate.formatted(.locale(enGB))
         #expect(result == "£5.00/hr")
     }
 
@@ -74,7 +74,7 @@ struct UnitRateFormatStyleTests {
     func multiWordUnit() throws {
         let rate = try #require(Rate(numerator: 50, denominator: 1))
         let unitRate = UnitRate<USD, String>(rate, per: "barrel of oil")
-        let result = unitRate.formatted(.init(locale: enUS))
+        let result = unitRate.formatted(.locale(enUS))
         #expect(result == "$50.00/barrel of oil")
     }
 
@@ -84,7 +84,7 @@ struct UnitRateFormatStyleTests {
     func localeModifier() throws {
         let rate = try #require(Rate(numerator: 1, denominator: 2))
         let unitRate = UnitRate<GBP, String>(rate, per: "hr")
-        let style = UnitRate<GBP, String>.FormatStyle(locale: enGB)
+        let style = UnitRate<GBP, String>.FormatStyle().locale(enGB)
         let result = unitRate.formatted(style)
         #expect(result == "£0.50/hr")
     }
@@ -126,7 +126,7 @@ struct UnitRateFormatStyleTests {
     func emptyUnit() throws {
         let rate = try #require(Rate(numerator: 1, denominator: 1))
         let unitRate = UnitRate<GBP, String>(rate, per: "")
-        let result = unitRate.formatted(.init(locale: enGB))
+        let result = unitRate.formatted(.locale(enGB))
         #expect(result == "£1.00/")
     }
 
@@ -134,7 +134,7 @@ struct UnitRateFormatStyleTests {
     func unitContainingSeparator() throws {
         let rate = try #require(Rate(numerator: 1, denominator: 1))
         let unitRate = UnitRate<GBP, String>(rate, per: "kg/m³")
-        let result = unitRate.formatted(.init(locale: enGB))
+        let result = unitRate.formatted(.locale(enGB))
         #expect(result == "£1.00/kg/m³")
     }
 
@@ -142,7 +142,7 @@ struct UnitRateFormatStyleTests {
     func verySmallRate() throws {
         let rate = try #require(Rate(numerator: 1, denominator: 10_000_000))
         let unitRate = UnitRate<GBP, String>(rate, per: "kWh")
-        let result = unitRate.formatted(.init(locale: enGB))
+        let result = unitRate.formatted(.locale(enGB))
         #expect(result == "£0.0000001/kWh")
     }
 }
@@ -164,7 +164,7 @@ struct UnitRateFormatStyleDimensionTests {
     func energyAbbreviated() throws {
         let rate = try #require(Rate(numerator: 23, denominator: 1_000_000))
         let unitRate = UnitRate<GBP, UnitEnergy>(rate, per: .kilowattHours)
-        let result = unitRate.formatted(.init(locale: enGB))
+        let result = unitRate.formatted(.locale(enGB))
         #expect(result == "£0.000023/kWh")
     }
 
@@ -172,7 +172,7 @@ struct UnitRateFormatStyleDimensionTests {
     func energyWide() throws {
         let rate = try #require(Rate(numerator: 23, denominator: 1_000_000))
         let unitRate = UnitRate<GBP, UnitEnergy>(rate, per: .kilowattHours)
-        let result = unitRate.formatted(.init(locale: enUS, unitWidth: .wide))
+        let result = unitRate.formatted(.unitWidth(.wide).locale(enUS))
         #expect(result.contains("kilowatt"))
         #expect(result.contains("£"))
     }
@@ -181,7 +181,7 @@ struct UnitRateFormatStyleDimensionTests {
     func massAbbreviatedUSD() throws {
         let rate = try #require(Rate(numerator: 5, denominator: 1))
         let unitRate = UnitRate<USD, UnitMass>(rate, per: .kilograms)
-        let result = unitRate.formatted(.init(locale: enUS))
+        let result = unitRate.formatted(.locale(enUS))
         #expect(result == "$5.00/kg")
     }
 
@@ -189,7 +189,7 @@ struct UnitRateFormatStyleDimensionTests {
     func massWide() throws {
         let rate = try #require(Rate(numerator: 3, denominator: 1))
         let unitRate = UnitRate<USD, UnitMass>(rate, per: .kilograms)
-        let result = unitRate.formatted(.init(locale: enUS, unitWidth: .wide))
+        let result = unitRate.formatted(.unitWidth(.wide).locale(enUS))
         #expect(result.contains("kilogram"))
         #expect(result.contains("$"))
     }
@@ -200,7 +200,7 @@ struct UnitRateFormatStyleDimensionTests {
     func dimensionGermanAbbreviated() throws {
         let rate = try #require(Rate(numerator: 1, denominator: 1))
         let unitRate = UnitRate<EUR, UnitLength>(rate, per: .kilometers)
-        let result = unitRate.formatted(.init(locale: deDE))
+        let result = unitRate.formatted(.locale(deDE))
         #expect(result.contains("km"))
         #expect(result.contains("€"))
     }
@@ -209,7 +209,7 @@ struct UnitRateFormatStyleDimensionTests {
     func dimensionGermanWide() throws {
         let rate = try #require(Rate(numerator: 1, denominator: 1))
         let unitRate = UnitRate<EUR, UnitLength>(rate, per: .kilometers)
-        let result = unitRate.formatted(.init(locale: deDE, unitWidth: .wide))
+        let result = unitRate.formatted(.unitWidth(.wide).locale(deDE))
         #expect(result.contains("Kilometer"))
     }
 
@@ -217,7 +217,7 @@ struct UnitRateFormatStyleDimensionTests {
     func dimensionFrenchWide() throws {
         let rate = try #require(Rate(numerator: 1, denominator: 1))
         let unitRate = UnitRate<EUR, UnitLength>(rate, per: .kilometers)
-        let result = unitRate.formatted(.init(locale: frFR, unitWidth: .wide))
+        let result = unitRate.formatted(.unitWidth(.wide).locale(frFR))
         #expect(result.contains("kilomètre"))
     }
 
@@ -237,7 +237,7 @@ struct UnitRateFormatStyleDimensionTests {
     func dimensionNarrowWidth() throws {
         let rate = try #require(Rate(numerator: 1, denominator: 1))
         let unitRate = UnitRate<EUR, UnitLength>(rate, per: .kilometers)
-        let result = unitRate.formatted(.init(locale: enUS, unitWidth: .narrow))
+        let result = unitRate.formatted(.unitWidth(.narrow).locale(enUS))
         #expect(result.contains("km"))
     }
 
@@ -247,7 +247,7 @@ struct UnitRateFormatStyleDimensionTests {
     func verySmallRate() throws {
         let rate = try #require(Rate(numerator: 1, denominator: 10_000_000))
         let unitRate = UnitRate<GBP, UnitEnergy>(rate, per: .kilowattHours)
-        let result = unitRate.formatted(.init(locale: enGB))
+        let result = unitRate.formatted(.locale(enGB))
         #expect(result == "£0.0000001/kWh")
     }
 
@@ -257,8 +257,8 @@ struct UnitRateFormatStyleDimensionTests {
     func unitWidthModifier() throws {
         let rate = try #require(Rate(numerator: 5, denominator: 1))
         let unitRate = UnitRate<GBP, UnitEnergy>(rate, per: .kilowattHours)
-        let abbreviated = unitRate.formatted(.init(locale: enGB, unitWidth: .abbreviated))
-        let wide = unitRate.formatted(.init(locale: enGB, unitWidth: .wide))
+        let abbreviated = unitRate.formatted(.unitWidth(.abbreviated).locale(enGB))
+        let wide = unitRate.formatted(.unitWidth(.wide).locale(enGB))
         #expect(abbreviated.contains("kWh"))
         #expect(wide.contains("kilowatt"))
         #expect(abbreviated != wide)

@@ -156,7 +156,7 @@ struct ReadmeVerificationTests {
         let rate = try #require(Rate(numerator: 23, denominator: 1_000_000))
         let unitRate = UnitRate<GBP, String>(rate, per: "kWh")
         let locale = Locale(identifier: "en_GB")
-        let result = unitRate.formatted(.init(locale: locale))
+        let result = unitRate.formatted(.locale(locale))
         #expect(result == "£0.000023/kWh")
     }
 
