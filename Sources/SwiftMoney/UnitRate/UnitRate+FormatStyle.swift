@@ -38,24 +38,19 @@ extension UnitRate where U: CustomStringConvertible {
 
         // MARK: - Initialiser
 
-        /// Creates a format style with the given locale and unit width.
-        ///
-        /// - Parameters:
-        ///   - locale: The locale for currency formatting. Defaults to `.autoupdatingCurrent`.
-        ///   - unitWidth: The width of the unit label for `Dimension` units. Defaults to `.abbreviated`.
-        public init(
-            locale: Locale = .autoupdatingCurrent,
-            unitWidth: UnitWidth = .abbreviated
-        ) {
-            self.locale = locale
-            self.unitWidth = unitWidth
+        /// Creates a format style with default locale and abbreviated unit width.
+        public init() {
+            self.locale = .autoupdatingCurrent
+            self.unitWidth = .abbreviated
         }
 
         // MARK: - Modifiers
 
         /// Returns a copy with the given locale.
         public func locale(_ locale: Locale) -> FormatStyle {
-            var s = self; s.locale = locale; return s
+            var copy = self
+            copy.locale = locale
+            return copy
         }
 
         /// Returns a copy with the given unit label width.
@@ -63,7 +58,9 @@ extension UnitRate where U: CustomStringConvertible {
         /// Only affects `Dimension` units; `String` units always use their
         /// literal value regardless of this setting.
         public func unitWidth(_ width: UnitWidth) -> FormatStyle {
-            var s = self; s.unitWidth = width; return s
+            var copy = self
+            copy.unitWidth = width
+            return copy
         }
 
         // MARK: - Formatting
@@ -117,6 +114,32 @@ extension UnitRate where U: CustomStringConvertible {
 extension UnitRate.FormatStyle: Foundation.FormatStyle where U: CustomStringConvertible {
     public func format(_ value: UnitRate<C, U>) -> String {
         _format(value)
+    }
+}
+
+// MARK: - Static factory shorthand
+//
+// Enables dot-syntax at call sites where the argument type is known:
+//   unitRate.formatted(.locale(enGB))
+//   unitRate.formatted(.unitWidth(.wide).locale(enUS))
+
+extension UnitRate.FormatStyle {
+    /// Returns a style with the given locale.
+    ///
+    /// ```swift
+    /// unitRate.formatted(.locale(Locale(identifier: "en_GB")))
+    /// ```
+    public static func locale(_ locale: Locale) -> Self {
+        Self().locale(locale)
+    }
+
+    /// Returns a style with the given unit label width.
+    ///
+    /// ```swift
+    /// unitRate.formatted(.unitWidth(.wide))
+    /// ```
+    public static func unitWidth(_ width: UnitWidth) -> Self {
+        Self().unitWidth(width)
     }
 }
 

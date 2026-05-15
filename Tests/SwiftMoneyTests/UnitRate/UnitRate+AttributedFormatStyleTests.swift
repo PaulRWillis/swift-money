@@ -17,7 +17,7 @@ struct UnitRateAttributedFormatStyleTests {
     func attributedProducesRuns() throws {
         let rate = try #require(Rate(numerator: 23, denominator: 1_000_000))
         let unitRate = UnitRate<GBP, String>(rate, per: "kWh")
-        let style = UnitRate<GBP, String>.FormatStyle(locale: enGB)
+        let style = UnitRate<GBP, String>.FormatStyle().locale(enGB)
         let attributed = unitRate.formatted(style.attributed)
 
         let runs = Array(attributed.runs[\.unitRateComponent])
@@ -33,7 +33,7 @@ struct UnitRateAttributedFormatStyleTests {
     func attributedSeparatorIncludedInUnit() throws {
         let rate = try #require(Rate(numerator: 5, denominator: 1))
         let unitRate = UnitRate<USD, String>(rate, per: "gallon")
-        let style = UnitRate<USD, String>.FormatStyle(locale: enUS)
+        let style = UnitRate<USD, String>.FormatStyle().locale(enUS)
         let attributed = unitRate.formatted(style.attributed)
 
         let runs = Array(attributed.runs[\.unitRateComponent])
@@ -46,7 +46,7 @@ struct UnitRateAttributedFormatStyleTests {
     func attributedMatchesPlain() throws {
         let rate = try #require(Rate(numerator: 23, denominator: 1_000_000))
         let unitRate = UnitRate<GBP, String>(rate, per: "kWh")
-        let style = UnitRate<GBP, String>.FormatStyle(locale: enGB)
+        let style = UnitRate<GBP, String>.FormatStyle().locale(enGB)
 
         let plain = unitRate.formatted(style)
         let attributed = unitRate.formatted(style.attributed)
@@ -60,7 +60,7 @@ struct UnitRateAttributedFormatStyleTests {
     func dimensionAttributedRuns() throws {
         let rate = try #require(Rate(numerator: 23, denominator: 1_000_000))
         let unitRate = UnitRate<GBP, UnitEnergy>(rate, per: .kilowattHours)
-        let style = UnitRate<GBP, UnitEnergy>.FormatStyle(locale: enGB)
+        let style = UnitRate<GBP, UnitEnergy>.FormatStyle().locale(enGB)
         let attributed = unitRate.formatted(style.attributed)
 
         let runs = Array(attributed.runs[\.unitRateComponent])
@@ -73,7 +73,7 @@ struct UnitRateAttributedFormatStyleTests {
     func dimensionAttributedSpacing() throws {
         let rate = try #require(Rate(numerator: 1, denominator: 1))
         let unitRate = UnitRate<GBP, UnitLength>(rate, per: .kilometers)
-        let style = UnitRate<GBP, UnitLength>.FormatStyle(locale: enGB)
+        let style = UnitRate<GBP, UnitLength>.FormatStyle().locale(enGB)
         let attributed = unitRate.formatted(style.attributed)
 
         let runs = Array(attributed.runs[\.unitRateComponent])
@@ -86,7 +86,7 @@ struct UnitRateAttributedFormatStyleTests {
     func dimensionAttributedMatchesPlain() throws {
         let rate = try #require(Rate(numerator: 23, denominator: 1_000_000))
         let unitRate = UnitRate<GBP, UnitEnergy>(rate, per: .kilowattHours)
-        let style = UnitRate<GBP, UnitEnergy>.FormatStyle(locale: enGB)
+        let style = UnitRate<GBP, UnitEnergy>.FormatStyle().locale(enGB)
 
         let plain = unitRate.formatted(style)
         let attributed = unitRate.formatted(style.attributed)
@@ -97,7 +97,7 @@ struct UnitRateAttributedFormatStyleTests {
     func dimensionAttributedWideWidth() throws {
         let rate = try #require(Rate(numerator: 3, denominator: 1))
         let unitRate = UnitRate<USD, UnitMass>(rate, per: .kilograms)
-        let style = UnitRate<USD, UnitMass>.FormatStyle(locale: enUS, unitWidth: .wide)
+        let style = UnitRate<USD, UnitMass>.FormatStyle().unitWidth(.wide).locale(enUS)
         let attributed = unitRate.formatted(style.attributed)
 
         let runs = Array(attributed.runs[\.unitRateComponent])
@@ -109,7 +109,7 @@ struct UnitRateAttributedFormatStyleTests {
     func dimensionAttributedGermanLocale() throws {
         let rate = try #require(Rate(numerator: 23, denominator: 1_000_000))
         let unitRate = UnitRate<GBP, UnitEnergy>(rate, per: .kilowattHours)
-        let style = UnitRate<GBP, UnitEnergy>.FormatStyle(locale: deDE, unitWidth: .wide)
+        let style = UnitRate<GBP, UnitEnergy>.FormatStyle().unitWidth(.wide).locale(deDE)
         let attributed = unitRate.formatted(style.attributed)
 
         let runs = Array(attributed.runs[\.unitRateComponent])
@@ -121,7 +121,7 @@ struct UnitRateAttributedFormatStyleTests {
     func attributedFullCoverage() throws {
         let rate = try #require(Rate(numerator: 5, denominator: 1))
         let unitRate = UnitRate<USD, String>(rate, per: "barrel")
-        let style = UnitRate<USD, String>.FormatStyle(locale: enUS)
+        let style = UnitRate<USD, String>.FormatStyle().locale(enUS)
         let attributed = unitRate.formatted(style.attributed)
 
         let fullText = String(attributed.characters)
@@ -138,7 +138,7 @@ struct UnitRateAttributedFormatStyleTests {
     func dimensionAttributedFullCoverage() throws {
         let rate = try #require(Rate(numerator: 3, denominator: 1))
         let unitRate = UnitRate<USD, UnitMass>(rate, per: .kilograms)
-        let style = UnitRate<USD, UnitMass>.FormatStyle(locale: enUS)
+        let style = UnitRate<USD, UnitMass>.FormatStyle().locale(enUS)
         let attributed = unitRate.formatted(style.attributed)
 
         let fullText = String(attributed.characters)
@@ -158,7 +158,7 @@ struct UnitRateAttributedFormatStyleTests {
     func attributeScopeKeyPath() throws {
         let rate = try #require(Rate(numerator: 5, denominator: 1))
         let unitRate = UnitRate<USD, String>(rate, per: "barrel")
-        let style = UnitRate<USD, String>.FormatStyle(locale: enUS)
+        let style = UnitRate<USD, String>.FormatStyle().locale(enUS)
         let attributed = unitRate.formatted(style.attributed)
 
         // Access via key path (exercises AttributeDynamicLookup subscript)
