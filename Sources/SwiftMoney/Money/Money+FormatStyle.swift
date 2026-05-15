@@ -175,7 +175,8 @@ extension Money.FormatStyle {
 
         let roundedMinorUnits = (rounded as NSDecimalNumber).int64Value
         guard Decimal(roundedMinorUnits) == rounded else { throw Money<Currency>.ParseStrategy.ParseError.overflow }
-        return Money<Currency>(minorUnits: roundedMinorUnits)
+        guard let minorUnit = MinorUnit(exactly: roundedMinorUnits) else { throw Money<Currency>.ParseStrategy.ParseError.overflow }
+        return Money<Currency>(minorUnits: minorUnit)
     }
 }
 
@@ -183,7 +184,7 @@ extension Money.FormatStyle {
 
 extension Money.FormatStyle: Foundation.FormatStyle {
     public func format(_ value: Money) -> String {
-        value._minorUnits.formatted(_integerFormatStyle())
+        Int64(value._minorUnits).formatted(_integerFormatStyle())
     }
 }
 

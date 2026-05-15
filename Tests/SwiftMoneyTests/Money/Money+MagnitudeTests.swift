@@ -27,10 +27,9 @@ struct Money_MagnitudeTests {
         #expect(magnitude == Money<TST_100>(minorUnits: 42))
     }
 
-    @Test("Magnitude of min traps (Int64 overflow)")
-    func magnitudeOfMin() async {
-        await #expect(processExitsWith: .failure) {
-            _ = Money<TST_100>.min.magnitude
-        }
+    @Test("Magnitude of .min succeeds (MinorUnit excludes Int64.min)")
+    func magnitudeOfMin() {
+        let mag = Money<TST_100>.min.magnitude
+        #expect(mag == Money<TST_100>.max)
     }
 }

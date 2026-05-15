@@ -98,7 +98,7 @@ extension AnyMoney {
 
     private static func _decodeFull(from decoder: any Decoder) throws -> AnyMoney {
         let container = try decoder.container(keyedBy: FullKey.self)
-        let minorUnits = try container.decode(Int64.self, forKey: .minorUnits)
+        let minorUnits = try container.decode(MinorUnit.self, forKey: .minorUnits)
         let currencyCodeString = try container.decode(String.self, forKey: .currencyCode)
         let quantisationInt = try container.decode(Int64.self, forKey: .minimalQuantisation)
         guard !currencyCodeString.isEmpty else {
@@ -146,10 +146,10 @@ extension AnyMoney {
                 )
             )
         }
-        let minorUnits: Int64
+        let minorUnits: MinorUnit
         switch amountStrategy {
         case .minorUnits:
-            minorUnits = try container.decode(Int64.self, forKey: .amount)
+            minorUnits = try container.decode(MinorUnit.self, forKey: .amount)
         case .majorUnits:
             let decimal = try container.decode(Decimal.self, forKey: .amount)
             minorUnits = try _decimalToMinorUnits(decimal, minimalQuantisation: minimalQuantisation, codingPath: container.codingPath)
@@ -171,7 +171,7 @@ extension AnyMoney {
         _ decimal: Decimal,
         minimalQuantisation: MinimalQuantisation,
         codingPath: [any CodingKey]
-    ) throws -> Int64 {
+    ) throws -> MinorUnit {
         let quantisationDecimal = Decimal(minimalQuantisation.int64Value)
         var product = decimal * quantisationDecimal
         var rounded = Decimal()
@@ -186,7 +186,15 @@ extension AnyMoney {
                 )
             )
         }
-        return roundedMinorUnits
+        guard let minorUnit = MinorUnit(exactly: roundedMinorUnits) else {
+            throw DecodingError.dataCorrupted(
+                DecodingError.Context(
+                    codingPath: codingPath,
+                    debugDescription: "Decoded major-unit value \(decimal) produces unrepresentable minor units."
+                )
+            )
+        }
+        return minorUnit
     }
 
     /// Parses a locale-formatted currency string to a major-unit `Decimal`.

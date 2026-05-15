@@ -22,10 +22,10 @@ struct Money_BasicTests {
 
     @Test("Special values")
     func specialValues() {
-        #expect(Money<TST_100>.max.minorUnits == Int64.max)
-        #expect(Money<TST_100>.min.minorUnits == Int64.min)
+        #expect(Money<TST_100>.max.minorUnits == .max)
+        #expect(Money<TST_100>.min.minorUnits == .min)
         #expect(Money<TST_100>.leastNonzeroMagnitude.minorUnits == 1)
-        #expect(Money<TST_100>.greatestFiniteMagnitude.minorUnits == Int64.max)
+        #expect(Money<TST_100>.greatestFiniteMagnitude.minorUnits == .max)
     }
 
     @Test("sign returns .plus for positive/zero, .minus for negative")

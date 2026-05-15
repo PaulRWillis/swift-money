@@ -9,9 +9,12 @@ extension Money {
     @inlinable
     public static func random(in range: ClosedRange<Money>) -> Money {
         let raw = Int64.random(
-            in: range.lowerBound._minorUnits...range.upperBound._minorUnits
+            in: Int64(range.lowerBound._minorUnits)...Int64(range.upperBound._minorUnits)
         )
-        return Money(minorUnits: raw)
+        guard let minorUnit = MinorUnit(exactly: raw) else {
+            preconditionFailure("Money.random produced unrepresentable value")
+        }
+        return Money(minorUnits: minorUnit)
     }
 
     /// Returns a random value within the specified closed range, using the given
@@ -28,10 +31,13 @@ extension Money {
         using generator: inout T
     ) -> Money {
         let raw = Int64.random(
-            in: range.lowerBound._minorUnits...range.upperBound._minorUnits,
+            in: Int64(range.lowerBound._minorUnits)...Int64(range.upperBound._minorUnits),
             using: &generator
         )
-        return Money(minorUnits: raw)
+        guard let minorUnit = MinorUnit(exactly: raw) else {
+            preconditionFailure("Money.random produced unrepresentable value")
+        }
+        return Money(minorUnits: minorUnit)
     }
 
     /// Returns a random value within the specified half-open range.
@@ -43,9 +49,12 @@ extension Money {
     @inlinable
     public static func random(in range: Range<Money>) -> Money {
         let raw = Int64.random(
-            in: range.lowerBound._minorUnits..<range.upperBound._minorUnits
+            in: Int64(range.lowerBound._minorUnits)..<Int64(range.upperBound._minorUnits)
         )
-        return Money(minorUnits: raw)
+        guard let minorUnit = MinorUnit(exactly: raw) else {
+            preconditionFailure("Money.random produced unrepresentable value")
+        }
+        return Money(minorUnits: minorUnit)
     }
 
     /// Returns a random value within the specified half-open range, using the given
@@ -64,9 +73,12 @@ extension Money {
         using generator: inout T
     ) -> Money {
         let raw = Int64.random(
-            in: range.lowerBound._minorUnits..<range.upperBound._minorUnits,
+            in: Int64(range.lowerBound._minorUnits)..<Int64(range.upperBound._minorUnits),
             using: &generator
         )
-        return Money(minorUnits: raw)
+        guard let minorUnit = MinorUnit(exactly: raw) else {
+            preconditionFailure("Money.random produced unrepresentable value")
+        }
+        return Money(minorUnits: minorUnit)
     }
 }

@@ -144,8 +144,8 @@ extension Int64 {
     /// Creates an `Int64` from a `MinorUnit`.
     ///
     /// ```swift
-    /// let mu = MinorUnit(150)
-    /// Int64(mu)  // 150
+    /// let minorUnit = MinorUnit(150)
+    /// Int64(minorUnit)  // 150
     /// ```
     @inlinable
     public init(_ minorUnit: MinorUnit) {

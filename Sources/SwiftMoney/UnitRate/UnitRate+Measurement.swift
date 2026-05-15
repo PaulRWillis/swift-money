@@ -68,8 +68,11 @@ extension UnitRate where U: Dimension {
             return nil
         }
 
+        guard let minorUnit = MinorUnit(exactly: minorUnits) else {
+            return nil
+        }
         return RateCalculation(
-            amount: Money<C>(minorUnits: minorUnits),
+            amount: Money<C>(minorUnits: minorUnit),
             effectiveRate: effectiveRate
         )
     }

@@ -6,24 +6,26 @@ extension Money {
 
     /// The absolute value of this instance.
     ///
-    /// Traps when called on `.min` (`Int64.min`), whose negation overflows,
-    /// matching Swift's `Int` behavior.
+    /// Safe for all representable values because `MinorUnit` excludes
+    /// `Int64.min`, whose negation would overflow.
     ///
     /// ```swift
     /// let v = Money("-5.0")!
     /// v.magnitude  // 5.0
     /// ```
-    /// - Precondition: The value must not be `.min`.
     @inlinable
     public var magnitude: Magnitude {
-        precondition(_minorUnits != .min, "Money.magnitude: negating .min overflows Int64")
-        return Money(minorUnits: abs(_minorUnits))
+        let absValue = abs(Int64(_minorUnits))
+        guard let minorUnit = MinorUnit(exactly: absValue) else {
+            preconditionFailure("Money.magnitude: abs produced unrepresentable value")
+        }
+        return Money(minorUnits: minorUnit)
     }
 
     /// Returns the additive inverse of this value.
     ///
-    /// Traps when called on `.min` (`Int64.min`), whose negation overflows,
-    /// matching Swift's `Int` behavior.
+    /// Safe for all representable values because `MinorUnit` excludes
+    /// `Int64.min`, whose negation would overflow.
     ///
     /// ```swift
     /// let price = Money<GBP>(4250) // £42.50
@@ -32,7 +34,6 @@ extension Money {
     ///
     /// - Parameter operand: The value to negate.
     /// - Returns: The negated value.
-    /// - Precondition: The operand must not be `.min`.
     @inlinable
     public prefix static func - (operand: Money) -> Money {
         var copy = operand
@@ -42,18 +43,20 @@ extension Money {
 
     /// Replaces this value with its additive inverse.
     ///
-    /// Traps when called on `.min` (`Int64.min`), whose negation overflows,
-    /// matching Swift's `Int` behavior.
+    /// Safe for all representable values because `MinorUnit` excludes
+    /// `Int64.min`, whose negation would overflow.
     ///
     /// ```swift
     /// var price = Money<GBP>(4250) // £42.50
     /// price.negate()
     /// // price is now -4250 (-£42.50)
     /// ```
-    /// - Precondition: The value must not be `.min`.
     @inlinable
     public mutating func negate() {
-        precondition(_minorUnits != .min, "Money.negate(): negating .min overflows Int64")
-        _minorUnits = -_minorUnits
+        let negated = -Int64(_minorUnits)
+        guard let minorUnit = MinorUnit(exactly: negated) else {
+            preconditionFailure("Money.negate: negation produced unrepresentable value")
+        }
+        _minorUnits = minorUnit
     }
 }

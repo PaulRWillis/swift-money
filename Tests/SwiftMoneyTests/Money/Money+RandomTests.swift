@@ -44,7 +44,7 @@ struct Money_RandomTests {
     @Test("random(in: ClosedRange) produces at least 2 distinct values over 100 calls")
     func closedRangeDistinct() {
         let range = Money<TST_100>(minorUnits: 0)...Money<TST_100>(minorUnits: 1_000_000)
-        var values: Set<Int64> = []
+        var values: Set<MinorUnit> = []
         for _ in 0..<100 {
             values.insert(Money<TST_100>.random(in: range).minorUnits)
         }
@@ -77,7 +77,7 @@ struct Money_RandomTests {
     @Test("random(in: Range) produces at least 2 distinct values over 100 calls")
     func rangeDistinct() {
         let range = Money<TST_100>(minorUnits: 0)..<Money<TST_100>(minorUnits: 1_000_000)
-        var values: Set<Int64> = []
+        var values: Set<MinorUnit> = []
         for _ in 0..<100 {
             values.insert(Money<TST_100>.random(in: range).minorUnits)
         }

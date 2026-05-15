@@ -86,8 +86,11 @@ extension ExchangeRate {
             _ value: ExchangeRate<From, To>,
             separator: Separator
         ) -> String {
+            guard let oneMajorMinorUnit = MinorUnit(exactly: From.minimalQuantisation.int64Value) else {
+                preconditionFailure("MinimalQuantisation value is unrepresentable as MinorUnit")
+            }
             let oneMajorUnit = Money<From>(
-                minorUnits: From.minimalQuantisation.int64Value
+                minorUnits: oneMajorMinorUnit
             )
             let converted = value.convert(oneMajorUnit)
             let fromStyle = Money<From>.FormatStyle().locale(locale)

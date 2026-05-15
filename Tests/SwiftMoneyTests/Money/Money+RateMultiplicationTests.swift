@@ -50,7 +50,7 @@ struct Money_RateMultiplicationTests {
             .multiplied(by: try #require(Rate(numerator: numerator, denominator: denominator)))
         // input × (actualNumerator / actualDenominator) == result
         let reconstructed = minorUnits * r.effectiveRate.numeratorValue / r.effectiveRate.denominatorValue
-        #expect(reconstructed == r.amount.minorUnits)
+        #expect(reconstructed == Int64(r.amount.minorUnits))
     }
 
     // MARK: - Rounding rules

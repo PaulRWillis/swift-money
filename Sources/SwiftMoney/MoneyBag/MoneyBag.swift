@@ -137,11 +137,14 @@ public struct MoneyBag: Sendable {
     /// - Parameter money: The value to add.
     /// - Precondition: The accumulated result must not overflow `Int64`.
     public mutating func add<C: Currency>(_ money: Money<C>) {
-        let existing = _storage[C.code]?.minorUnits ?? 0
-        let (result, overflow) = existing.addingReportingOverflow(money._minorUnits)
+        let existing = Int64(_storage[C.code]?.minorUnits ?? 0)
+        let (result, overflow) = existing.addingReportingOverflow(Int64(money._minorUnits))
         precondition(!overflow, "MoneyBag.add overflow")
+        guard let minorUnit = MinorUnit(exactly: result) else {
+            preconditionFailure("MoneyBag.add produced unrepresentable value")
+        }
         _storage[C.code] = AnyMoney(
-            minorUnits: result,
+            minorUnits: minorUnit,
             currencyCode: C.code,
             minimalQuantisation: C.minimalQuantisation,
             currency: C.self
@@ -163,11 +166,14 @@ public struct MoneyBag: Sendable {
     /// - Parameter money: The value to subtract.
     /// - Precondition: The accumulated result must not overflow `Int64`.
     public mutating func subtract<C: Currency>(_ money: Money<C>) {
-        let existing = _storage[C.code]?.minorUnits ?? 0
-        let (result, overflow) = existing.subtractingReportingOverflow(money._minorUnits)
+        let existing = Int64(_storage[C.code]?.minorUnits ?? 0)
+        let (result, overflow) = existing.subtractingReportingOverflow(Int64(money._minorUnits))
         precondition(!overflow, "MoneyBag.subtract overflow")
+        guard let minorUnit = MinorUnit(exactly: result) else {
+            preconditionFailure("MoneyBag.subtract produced unrepresentable value")
+        }
         _storage[C.code] = AnyMoney(
-            minorUnits: result,
+            minorUnits: minorUnit,
             currencyCode: C.code,
             minimalQuantisation: C.minimalQuantisation,
             currency: C.self
@@ -183,11 +189,14 @@ public struct MoneyBag: Sendable {
     /// - Precondition: No accumulated result may overflow `Int64`.
     public mutating func add(_ other: MoneyBag) {
         for entry in other._storage.values {
-            let existing = _storage[entry.currencyCode]?.minorUnits ?? 0
-            let (result, overflow) = existing.addingReportingOverflow(entry.minorUnits)
+            let existing = Int64(_storage[entry.currencyCode]?.minorUnits ?? 0)
+            let (result, overflow) = existing.addingReportingOverflow(Int64(entry.minorUnits))
             precondition(!overflow, "MoneyBag.add overflow")
+            guard let minorUnit = MinorUnit(exactly: result) else {
+                preconditionFailure("MoneyBag.add produced unrepresentable value")
+            }
             _storage[entry.currencyCode] = AnyMoney(
-                minorUnits: result,
+                minorUnits: minorUnit,
                 currencyCode: entry.currencyCode,
                 minimalQuantisation: entry.minimalQuantisation,
                 currency: entry.currency
@@ -204,11 +213,14 @@ public struct MoneyBag: Sendable {
     /// - Precondition: No accumulated result may overflow `Int64`.
     public mutating func subtract(_ other: MoneyBag) {
         for entry in other._storage.values {
-            let existing = _storage[entry.currencyCode]?.minorUnits ?? 0
-            let (result, overflow) = existing.subtractingReportingOverflow(entry.minorUnits)
+            let existing = Int64(_storage[entry.currencyCode]?.minorUnits ?? 0)
+            let (result, overflow) = existing.subtractingReportingOverflow(Int64(entry.minorUnits))
             precondition(!overflow, "MoneyBag.subtract overflow")
+            guard let minorUnit = MinorUnit(exactly: result) else {
+                preconditionFailure("MoneyBag.subtract produced unrepresentable value")
+            }
             _storage[entry.currencyCode] = AnyMoney(
-                minorUnits: result,
+                minorUnits: minorUnit,
                 currencyCode: entry.currencyCode,
                 minimalQuantisation: entry.minimalQuantisation,
                 currency: entry.currency

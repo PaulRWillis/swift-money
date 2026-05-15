@@ -1,16 +1,14 @@
 public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     /// The storage type for money's minor-unit count.
     ///
-    /// Currently `Int64`. A future version may widen this to `Int128`;
-    /// code that refers to `Money<C>.MinorUnits` rather than `Int64`
-    /// directly will require only a recompile rather than source edits.
-    public typealias MinorUnits = Int64
+    /// Wraps `Int64`, rejecting `Int64.min` at construction because its
+    /// negation overflows. Code that refers to `Money<C>.MinorUnits`
+    /// rather than the concrete type directly will require only a
+    /// recompile if the underlying representation changes.
+    public typealias MinorUnits = MinorUnit
 
     @usableFromInline
-    internal typealias Storage = MinorUnits
-
-    @usableFromInline
-    internal var _minorUnits: Storage
+    internal var _minorUnits: MinorUnit
 
     /// The currency type
     public var currency: any SwiftMoney.Currency.Type {
@@ -28,10 +26,10 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     ///
     /// ```swift
     /// let onePound = Money<GBP>(minorUnits: 100) // £1.00
-    /// onePound.minorUnits  // 100
+    /// onePound.minorUnits  // MinorUnit(100)
     /// ```
     @inlinable
-    public var minorUnits: MinorUnits { _minorUnits }
+    public var minorUnits: MinorUnit { _minorUnits }
 
     /// Creates a zero value.
     ///
@@ -45,21 +43,20 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     }
 
     /// Creates a new instance from the given integer, if it can be represented
-    /// exactly within the Int64 range.
+    /// exactly as a `MinorUnit`.
     ///
-    /// Returns `nil` if the value cannot be converted to `Int64`.
+    /// Returns `nil` if the value cannot be converted.
     ///
     /// ```swift
-    /// let v = Money<GBP>(exactly: 42)     // Optional(42); 42p
-    /// let big = Money(exactly: Int64.max)  // nil (overflow)
+    /// let v = Money<GBP>(exactly: 42)  // Optional; 42p
     /// ```
     ///
     /// - Parameter source: The integer value to represent.
     /// - Returns: A `Money` if the value fits, otherwise `nil`.
     @inlinable
     public init?<T: BinaryInteger>(exactly source: T) {
-        guard let int64 = Int64(exactly: source) else { return nil }
-        self._minorUnits = int64
+        guard let minorUnit = MinorUnit(exactly: source) else { return nil }
+        self._minorUnits = minorUnit
     }
 
     /// Creates a `Money` value with the given number of minor units.
@@ -67,17 +64,24 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     /// ```swift
     /// let v = Money<GBP>(minorUnits: 150) // £1.50
     /// ```
-    public init(minorUnits: Int) {
-        self._minorUnits = Storage(minorUnits)
+    public init(minorUnits: MinorUnit) {
+        self._minorUnits = minorUnits
     }
 
     /// Creates a `Money` value with the given number of minor units.
     ///
+    /// Traps if the value cannot be represented as a `MinorUnit`
+    /// (i.e., if it equals `Int64.min`).
+    ///
     /// ```swift
     /// let v = Money<GBP>(minorUnits: Int64(150)) // £1.50
     /// ```
-    public init(minorUnits: MinorUnits) {
-        self._minorUnits = minorUnits
+    @inlinable
+    public init<T: BinaryInteger>(minorUnits value: T) {
+        guard let minorUnit = MinorUnit(exactly: value) else {
+            preconditionFailure("minorUnits value \(value) cannot be represented as MinorUnit")
+        }
+        self._minorUnits = minorUnit
     }
 
     // MARK: - Special values
@@ -90,16 +94,16 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
         _minorUnits < 0 ? .minus : .plus
     }
 
-    /// The largest representable value in minor units: `9,223,372,036,854,775,807`.
+    /// The largest representable value.
     @inlinable
     public static var max: Money {
-        Money(minorUnits: Storage.max)
+        Money(minorUnits: .max)
     }
 
-    /// The smallest representable value in minor units: `-9,223,372,036,854,775,808`.
+    /// The smallest representable value.
     @inlinable
     public static var min: Money {
-        Money(minorUnits: Storage.min)
+        Money(minorUnits: .min)
     }
 
     /// The smallest positive value in minor units: `1`.
@@ -108,12 +112,12 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
         Money(minorUnits: 1)
     }
 
-    /// The largest finite magnitude in minor units: `9,223,372,036,854,775,807`.
+    /// The largest finite magnitude.
     ///
     /// Equal to ``max`` since all representable values are finite.
     @inlinable
     public static var greatestFiniteMagnitude: Money {
-        Money(minorUnits: Storage.max)
+        Money(minorUnits: .max)
     }
 }
 

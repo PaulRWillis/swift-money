@@ -22,7 +22,7 @@ extension Int {
     /// - Parameter value: The money value to convert.
     @inlinable
     public init<C: Currency>(_ value: Money<C>) {
-        guard let narrow = Int(exactly: value._minorUnits) else {
+        guard let narrow = Int(exactly: Int64(value._minorUnits)) else {
             preconditionFailure("Money minor units, \(value._minorUnits), exceeds Int range")
         }
         self = narrow
@@ -51,7 +51,7 @@ extension Int {
     @inlinable
     public init?<C: Currency>(exactly value: Money<C>) {
         
-        guard let narrow = Int(exactly: value._minorUnits) else { return nil }
+        guard let narrow = Int(exactly: Int64(value._minorUnits)) else { return nil }
         self = narrow
     }
 }
@@ -78,10 +78,7 @@ extension Int64 {
     /// - Parameter value: The money value to convert.
     @inlinable
     public init<C: Currency>(_ value: Money<C>) {
-        guard let narrow = Int64(exactly: value._minorUnits) else {
-            preconditionFailure("Money minor units, \(value._minorUnits), exceeds Int64 range")
-        }
-        self = narrow
+        self = Int64(value._minorUnits)
     }
 
     /// Creates an `Int64` from a `Money`, returning `nil` if the
@@ -106,9 +103,7 @@ extension Int64 {
     /// - Returns: An `Int64` if the conversion is exact, otherwise `nil`.
     @inlinable
     public init?<C: Currency>(exactly value: Money<C>) {
-        
-        guard let narrow = Int64(exactly: value._minorUnits) else { return nil }
-        self = narrow
+        self = Int64(value._minorUnits)
     }
 }
 
@@ -136,7 +131,7 @@ extension Int32 {
     /// - Precondition: The integer part must fit in `Int32`.
     @inlinable
     public init<C: Currency>(_ value: Money<C>) {
-        guard let narrow = Int32(exactly: value._minorUnits) else {
+        guard let narrow = Int32(exactly: Int64(value._minorUnits)) else {
             preconditionFailure("Money minor units, \(value._minorUnits), exceeds Int32 range")
         }
         self = narrow
@@ -165,7 +160,7 @@ extension Int32 {
     @inlinable
     public init?<C: Currency>(exactly value: Money<C>) {
         
-        guard let narrow = Int32(exactly: value._minorUnits) else { return nil }
+        guard let narrow = Int32(exactly: Int64(value._minorUnits)) else { return nil }
         self = narrow
     }
 }
@@ -196,7 +191,7 @@ extension UInt {
     /// - Precondition: The integer part must fit in `UInt`.
     @inlinable
     public init<C: Currency>(_ value: Money<C>) {
-        guard let narrow = UInt(exactly: value._minorUnits) else {
+        guard let narrow = UInt(exactly: Int64(value._minorUnits)) else {
             preconditionFailure("Money minor units, \(value._minorUnits), exceeds UInt range")
         }
         self = narrow
@@ -225,7 +220,7 @@ extension UInt {
     @inlinable
     public init?<C: Currency>(exactly value: Money<C>) {
         
-        guard let narrow = UInt(exactly: value._minorUnits) else { return nil }
+        guard let narrow = UInt(exactly: Int64(value._minorUnits)) else { return nil }
         self = narrow
     }
 }
@@ -254,7 +249,7 @@ extension UInt64 {
     /// - Precondition: The integer part must fit in `UInt64`.
     @inlinable
     public init<C: Currency>(_ value: Money<C>) {
-        guard let narrow = UInt64(exactly: value._minorUnits) else {
+        guard let narrow = UInt64(exactly: Int64(value._minorUnits)) else {
             preconditionFailure("Money minor units, \(value._minorUnits), exceeds UInt64 range")
         }
         self = narrow
@@ -283,7 +278,7 @@ extension UInt64 {
     @inlinable
     public init?<C: Currency>(exactly value: Money<C>) {
         
-        guard let narrow = UInt64(exactly: value._minorUnits) else { return nil }
+        guard let narrow = UInt64(exactly: Int64(value._minorUnits)) else { return nil }
         self = narrow
     }
 }
@@ -312,7 +307,7 @@ extension UInt32 {
     /// - Precondition: The integer part must fit in `UInt32`.
     @inlinable
     public init<C: Currency>(_ value: Money<C>) {
-        guard let narrow = UInt32(exactly: value._minorUnits) else {
+        guard let narrow = UInt32(exactly: Int64(value._minorUnits)) else {
             preconditionFailure("Money minor units, \(value._minorUnits), exceeds UInt32 range")
         }
         self = narrow
@@ -341,7 +336,7 @@ extension UInt32 {
     @inlinable
     public init?<C: Currency>(exactly value: Money<C>) {
         
-        guard let narrow = UInt32(exactly: value._minorUnits) else { return nil }
+        guard let narrow = UInt32(exactly: Int64(value._minorUnits)) else { return nil }
         self = narrow
     }
 }

@@ -48,11 +48,12 @@ struct Money_DecimalTests {
         }
     }
 
-    @Test("Money init from Decimal succeeds at Int64.min boundary")
-    func decimalInitWithInt64MinBoundary() {
-        let decimal = Decimal(-92233720368547758.08) // 1/100 of Int64.min
-        let value = Money<TST_100>(decimal)
-        #expect(value.minorUnits == Int64.min)
+    @Test("Money init from Decimal traps at Int64.min boundary")
+    func decimalInitWithInt64MinBoundary() async {
+        await #expect(processExitsWith: .failure) {
+            let decimal = Decimal(-92233720368547758.08) // 1/100 of Int64.min
+            _ = Money<TST_100>(decimal)
+        }
     }
 
     @Test("Money init from Decimal traps on overflow")
@@ -111,11 +112,11 @@ struct Money_DecimalTests {
         #expect(Money<GBP>(exactly: Decimal.nan) == nil)
     }
 
-    @Test("Money init from exact Decimal succeeds at Int64.min boundary")
+    @Test("Money init from exact Decimal returns nil at Int64.min boundary")
     func decimalExactInitWithInt64MinBoundary() {
         let decimal = Decimal(-92233720368547758.08) // 1/100 of Int64.min
         let value = Money<TST_100>(exactly: decimal)
-        #expect(value?.minorUnits == Int64.min)
+        #expect(value == nil)
     }
 
     @Test("Money init from exact Decimal returns nil on overflow")

@@ -28,7 +28,7 @@ public struct AnyMoney: Sendable {
     // MARK: - Stored properties
 
     /// The raw minor units of this money value.
-    public let minorUnits: Int64
+    public let minorUnits: MinorUnit
 
     /// The ISO 4217 or custom currency code, e.g. `CurrencyCode("GBP")`.
     public let currencyCode: CurrencyCode
@@ -68,7 +68,7 @@ public struct AnyMoney: Sendable {
     /// `MoneyBag.add`). Omit it (defaulting to `nil`) for `Codable` decoding
     /// where only the scalar fields are available.
     internal init(
-        minorUnits: Int64,
+        minorUnits: MinorUnit,
         currencyCode: CurrencyCode,
         minimalQuantisation: MinimalQuantisation,
         currency: (any Currency.Type)? = nil

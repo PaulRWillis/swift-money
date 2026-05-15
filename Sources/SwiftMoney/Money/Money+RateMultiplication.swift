@@ -41,7 +41,8 @@ extension Money {
         }
 
         // Multiply in Int128 to avoid Int64 overflow (max product ≈ 8.5×10³⁷ < Int128.max).
-        let product = Int128(_minorUnits) * Int128(rate.numeratorValue)
+        let inputInt64 = Int64(_minorUnits)
+        let product = Int128(inputInt64) * Int128(rate.numeratorValue)
         let denominator = Int128(rate.denominatorValue)
         let (truncated, remainder) = product.quotientAndRemainder(dividingBy: denominator)
 
@@ -58,21 +59,25 @@ extension Money {
             preconditionFailure("Money fractional multiplication result overflows Int64")
         }
 
-        let resultMoney = Money(minorUnits: minorUnits)
-        let effectiveRate = _effectiveRate(result: minorUnits, input: _minorUnits)
+        guard let resultMinorUnit = MinorUnit(exactly: minorUnits) else {
+            preconditionFailure("Money fractional multiplication produced unrepresentable value")
+        }
+        let resultMoney = Money(minorUnits: resultMinorUnit)
+        let effectiveRate = _effectiveRate(result: minorUnits, input: inputInt64)
 
         return RateCalculation(amount: resultMoney, effectiveRate: effectiveRate)
     }
 
     /// Builds the effective rate = result / input in lowest terms,
     /// normalised so the denominator is positive (Rate contract).
+    ///
+    /// Both `result` and `input` are guaranteed to exclude `Int64.min`
+    /// because they originate from `MinorUnit` values.
     private func _effectiveRate(result: Int64, input: Int64) -> Rate {
         if input > 0 {
             return Rate(_unchecked: result, denominator: input)
         }
         // input < 0: negate both to normalise denominator to positive.
-        precondition(input != .min && result != .min,
-                     "Effective rate computation requires negation of Int64.min, which overflows")
         return Rate(_unchecked: -result, denominator: -input)
     }
 }

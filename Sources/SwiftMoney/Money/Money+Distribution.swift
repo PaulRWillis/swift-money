@@ -14,20 +14,26 @@ extension Money {
     ///
     /// - Parameter n: Number of parts; must be ≥ 1.
     public func distributed(into n: DistributionParts) -> Distribution<Currency> {
-        let amount = _minorUnits
-        let parts = Storage(n.intValue)
+        let amount = Int64(_minorUnits)
+        let parts = Int64(n.intValue)
         let quotient  = amount / parts
         let remainder = amount % parts          // same sign as amount (Swift semantics)
         let remainderCount = Int(abs(remainder))
-        let smaller = Money(minorUnits: quotient)
+        guard let smallerMU = MinorUnit(exactly: quotient) else {
+            preconditionFailure("Money.distributed: quotient is unrepresentable")
+        }
+        let smaller = Money(minorUnits: smallerMU)
 
         guard remainderCount > 0 else {
             return .exact(share: smaller, count: n.intValue)
         }
 
-        let sign: Storage = amount >= 0 ? 1 : -1
+        let sign: Int64 = amount >= 0 ? 1 : -1
+        guard let largerMU = MinorUnit(exactly: quotient + sign) else {
+            preconditionFailure("Money.distributed: larger share is unrepresentable")
+        }
         return .uneven(
-            larger: Money(minorUnits: quotient + sign),
+            larger: Money(minorUnits: largerMU),
             largerCount: remainderCount,
             smaller: smaller,
             smallerCount: n.intValue - remainderCount

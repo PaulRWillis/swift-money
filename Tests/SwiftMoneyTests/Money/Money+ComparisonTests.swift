@@ -101,24 +101,24 @@ struct Money_ComparisonTests {
         #expect(Money<TST_100>.min < Money<TST_100>.max)
     }
 
-    @Test("Int64.min value equals itself")
-    func int64MinEquality() {
-        let a = Money<TST_100>(minorUnits: Int64.min)
-        let b = Money<TST_100>(minorUnits: Int64.min)
+    @Test(".min value equals itself")
+    func minEquality() {
+        let a = Money<TST_100>.min
+        let b = Money<TST_100>.min
         #expect(a == b)
     }
 
-    @Test("Int64.min value is less than Int64.min + 1")
-    func int64MinLessThan() {
-        let min = Money<TST_100>(minorUnits: Int64.min)
-        let minPlusOne = Money<TST_100>(minorUnits: Int64.min + 1)
+    @Test(".min value is less than .min + 1")
+    func minLessThanMinPlusOne() {
+        let min = Money<TST_100>.min
+        let minPlusOne = Money<TST_100>(minorUnits: Int64(MinorUnit.min) + 1)
         #expect(min < minPlusOne)
     }
 
-    @Test("Int64.min value hashes consistently")
-    func int64MinHash() {
-        let a = Money<TST_100>(minorUnits: Int64.min)
-        let b = Money<TST_100>(minorUnits: Int64.min)
+    @Test(".min value hashes consistently")
+    func minHash() {
+        let a = Money<TST_100>.min
+        let b = Money<TST_100>.min
         #expect(a.hashValue == b.hashValue)
     }
 
@@ -148,7 +148,7 @@ struct Money_ComparisonTests {
         let max = Money<TST_100>.max
         let min = Money<TST_100>.min
         let justBelowMax = Money<TST_100>(minorUnits: Int64.max - 1)
-        let justAboveMin = Money<TST_100>(minorUnits: Int64.min + 2)
+        let justAboveMin = Money<TST_100>(minorUnits: Int64(MinorUnit.min) + 1)
 
         #expect(justBelowMax < max)
         #expect(justAboveMin > min)

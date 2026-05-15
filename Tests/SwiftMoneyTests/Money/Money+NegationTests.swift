@@ -27,12 +27,11 @@ struct Money_NegationTests {
         #expect(zero == .zero)
     }
 
-    @Test("Negating min with `negate()` traps (Int64 overflow)")
-    func negativeOfMin() async {
-        await #expect(processExitsWith: .failure) {
-            var min = Money<TST_100>.min
-            min.negate()
-        }
+    @Test("Negating .min with `negate()` succeeds (MinorUnit excludes Int64.min)")
+    func negativeOfMin() {
+        var min = Money<TST_100>.min
+        min.negate()
+        #expect(min == Money<TST_100>.max)
     }
 
     // MARK: - Negation with `-` prefix operator
@@ -54,10 +53,8 @@ struct Money_NegationTests {
         #expect(-Money<TST_100>.zero == .zero)
     }
 
-    @Test("Negating min with prefix `-` traps (Int64 overflow)")
-    func negativeOfMinWithPrefixOperator() async {
-        await #expect(processExitsWith: .failure) {
-            _ = -Money<TST_100>.min
-        }
+    @Test("Negating .min with prefix `-` succeeds (MinorUnit excludes Int64.min)")
+    func negativeOfMinWithPrefixOperator() {
+        #expect(-Money<TST_100>.min == Money<TST_100>.max)
     }
 }

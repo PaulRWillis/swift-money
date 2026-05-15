@@ -109,7 +109,7 @@ struct AnyMoney_ComparisonTests {
         let sorted = values.sorted()
         // "TST_1" < "TST_100" lexicographically, so TST_1 entries come first
         let expectedCurrençyCodes = ["TST_1", "TST_1", "TST_1", "TST_100", "TST_100", "TST_100"]
-        let expectedMinorUnits: [Int64] = [10, 20, 30, 10, 20, 30]
+        let expectedMinorUnits: [MinorUnit] = [10, 20, 30, 10, 20, 30]
         #expect(sorted.map { String($0.currencyCode) } == expectedCurrençyCodes)
         #expect(sorted.map(\.minorUnits) == expectedMinorUnits)
     }

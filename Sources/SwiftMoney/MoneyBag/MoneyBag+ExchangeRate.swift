@@ -78,7 +78,7 @@ extension MoneyBag {
             func computeExact<From: Currency>(_ from: From.Type) -> (quotient: Int128, remainder: Int128, denominator: Int128)? {
                 guard let rate = provider.rate(from: from, to: target) else { return nil }
                 // product = minorUnits × numerator — fits in Int128 (max ≈ 8.5×10³⁷ < Int128.max)
-                let product = Int128(anyMoney.minorUnits) * Int128(rate.rate.numeratorValue)
+                let product = Int128(Int64(anyMoney.minorUnits)) * Int128(rate.rate.numeratorValue)
                 let denominator = Int128(rate.rate.denominatorValue)
                 let (quotient, remainder) = product.quotientAndRemainder(dividingBy: denominator)
                 return (quotient, remainder, denominator)
@@ -125,8 +125,11 @@ extension MoneyBag {
             fractionalDenominator: fractionalDenominator
         )
 
+        guard let minorUnit = MinorUnit(exactly: finalMinorUnits) else {
+            preconditionFailure("MoneyBag.total: converted total is unrepresentable")
+        }
         return MoneyConversionResult(
-            total: Money<Target>(minorUnits: finalMinorUnits),
+            total: Money<Target>(minorUnits: minorUnit),
             exactNumerator: exactNumerator,
             exactDenominator: exactDenominator
         )

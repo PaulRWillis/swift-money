@@ -103,7 +103,7 @@ extension Money: Codable {
 
     private static func _decodeMinorUnits(from decoder: any Decoder) throws -> Money<Currency> {
         let container = try decoder.singleValueContainer()
-        let minorUnits = try container.decode(Int64.self)
+        let minorUnits = try container.decode(MinorUnit.self)
         return Money(minorUnits: minorUnits)
     }
 
@@ -140,7 +140,7 @@ extension Money: Codable {
 
         switch amountStrategy {
         case .minorUnits:
-            let minorUnits = try container.decode(Int64.self, forKey: .amount)
+            let minorUnits = try container.decode(MinorUnit.self, forKey: .amount)
             return Money(minorUnits: minorUnits)
         case .majorUnits:
             let decimal = try container.decode(Decimal.self, forKey: .amount)
@@ -164,7 +164,7 @@ extension Money: Codable {
     /// Converts `_minorUnits` (minor units) to major-unit `Decimal` for encoding.
     private func _majorUnitsDecimal() -> Decimal {
         let quantisation = Decimal(Currency.minimalQuantisation.int64Value)
-        return Decimal(_minorUnits) / quantisation
+        return Decimal(Int64(_minorUnits)) / quantisation
     }
 
     /// Converts a major-unit `Decimal` into a `Money` value by multiplying by
@@ -184,7 +184,14 @@ extension Money: Codable {
             )
             throw DecodingError.dataCorrupted(context)
         }
-        return Money(minorUnits: roundedMinorUnits)
+        guard let minorUnit = MinorUnit(exactly: roundedMinorUnits) else {
+            let context = DecodingError.Context(
+                codingPath: codingPath,
+                debugDescription: "Decoded major-unit value \(decimal) produces unrepresentable minor units."
+            )
+            throw DecodingError.dataCorrupted(context)
+        }
+        return Money(minorUnits: minorUnit)
     }
 }
 #endif

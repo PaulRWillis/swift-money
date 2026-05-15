@@ -28,13 +28,13 @@ struct Money_InitializationTests {
     @Test("Init success for Int.max")
     func intMaxInit() {
         let intMax = Money<TST_100>(minorUnits: Int.max)
-        #expect(intMax.minorUnits == Int.max)
+        #expect(intMax.minorUnits == .max)
     }
 
-    @Test("Init success for Int.min")
+    @Test("Init rejects Int.min (Int64.min)")
     func intMinInit() {
-        let intMin = Money<TST_100>(minorUnits: Int.min)
-        #expect(intMin.minorUnits == Int.min)
+        let intMin = Money<TST_100>(exactly: Int.min)
+        #expect(intMin == nil)
     }
 
     // MARK: - Int64 init
@@ -54,13 +54,13 @@ struct Money_InitializationTests {
     @Test("Init success for Int64.max")
     func int64MaxInit() {
         let int64Max = Money<TST_100>(minorUnits: Int64.max)
-        #expect(int64Max.minorUnits == Int64.max)
+        #expect(int64Max.minorUnits == .max)
     }
 
-    @Test("Init success for Int64.min")
+    @Test("Init rejects Int64.min")
     func int64MinInit() {
-        let int64Min = Money<TST_100>(minorUnits: Int64.min)
-        #expect(int64Min.minorUnits == Int64.min)
+        let int64Min = Money<TST_100>(exactly: Int64.min)
+        #expect(int64Min == nil)
     }
 
     // MARK: - Exact integer init for Int128
@@ -90,14 +90,13 @@ struct Money_InitializationTests {
     func exactIntegerInitForInt64Max() {
         let int64Max = Money<TST_100>(exactly: Int64.max)
         #expect(int64Max != nil)
-        #expect(int64Max?.minorUnits == Int64.max)
+        #expect(int64Max?.minorUnits == .max)
     }
 
-    @Test("Exact integer init success for Int64.min")
+    @Test("Exact integer init rejects Int64.min")
     func exactIntegerInitForInt64Min() {
         let int64Min = Money<TST_100>(exactly: Int64.min)
-        #expect(int64Min != nil)
-        #expect(int64Min?.minorUnits == Int64.min)
+        #expect(int64Min == nil)
     }
 
     // MARK: - Exact integer init for Int32
@@ -106,14 +105,14 @@ struct Money_InitializationTests {
     func exactIntegerInitForInt32Max() {
         let int32Max = Money<TST_100>(exactly: Int32.max)
         #expect(int32Max != nil)
-        #expect(int32Max?.minorUnits == Int64(Int32.max))
+        #expect(int32Max?.minorUnits == MinorUnit(exactly: Int32.max))
     }
 
     @Test("Exact integer init success for Int32.min")
     func exactIntegerInitForInt32Min() {
         let Int32Min = Money<TST_100>(exactly: Int32.min)
         #expect(Int32Min != nil)
-        #expect(Int32Min?.minorUnits == Int64(Int32.min))
+        #expect(Int32Min?.minorUnits == MinorUnit(exactly: Int32.min))
     }
 
     // MARK: - Exact integer init for Int16
@@ -122,14 +121,14 @@ struct Money_InitializationTests {
     func exactIntegerInitForInt16Max() {
         let int16Max = Money<TST_100>(exactly: Int16.max)
         #expect(int16Max != nil)
-        #expect(int16Max?.minorUnits == Int64(Int16.max))
+        #expect(int16Max?.minorUnits == MinorUnit(exactly: Int16.max))
     }
 
     @Test("Exact integer init success for Int16.min")
     func exactIntegerInitForInt16Min() {
         let Int16Min = Money<TST_100>(exactly: Int16.min)
         #expect(Int16Min != nil)
-        #expect(Int16Min?.minorUnits == Int64(Int16.min))
+        #expect(Int16Min?.minorUnits == MinorUnit(exactly: Int16.min))
     }
 
     // MARK: - Exact integer init for Int8
@@ -138,14 +137,14 @@ struct Money_InitializationTests {
     func exactIntegerInitForInt8Max() {
         let int8Max = Money<TST_100>(exactly: Int8.max)
         #expect(int8Max != nil)
-        #expect(int8Max?.minorUnits == Int64(Int8.max))
+        #expect(int8Max?.minorUnits == MinorUnit(exactly: Int8.max))
     }
 
     @Test("Exact integer init success for Int8.min")
     func exactIntegerInitForInt8Min() {
         let Int8Min = Money<TST_100>(exactly: Int8.min)
         #expect(Int8Min != nil)
-        #expect(Int8Min?.minorUnits == Int64(Int8.min))
+        #expect(Int8Min?.minorUnits == MinorUnit(exactly: Int8.min))
     }
 
     // MARK: - Exact integer init for UInt
@@ -165,6 +164,6 @@ struct Money_InitializationTests {
     @Test("Init success for UInt.min")
     func uintMinInit() throws {
         let uintMin = try #require(Money<TST_100>(exactly: UInt.min))
-        #expect(uintMin.minorUnits == Int64(UInt.min))
+        #expect(uintMin.minorUnits == MinorUnit(exactly: UInt.min))
     }
 }

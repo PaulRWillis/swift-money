@@ -42,7 +42,10 @@ extension UnitRate {
             rounding: rounding
         )
 
-        let resultMoney = Money<C>(minorUnits: minorUnits)
+        guard let minorUnit = MinorUnit(exactly: minorUnits) else {
+            preconditionFailure("UnitRate price produced unrepresentable value")
+        }
+        let resultMoney = Money<C>(minorUnits: minorUnit)
         let effectiveRate = effectiveRate(minorUnits: minorUnits, quantity: quantity)
         return RateCalculation(amount: resultMoney, effectiveRate: effectiveRate)
     }

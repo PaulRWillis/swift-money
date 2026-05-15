@@ -25,9 +25,12 @@ extension Money: AdditiveArithmetic {
     /// - Precondition: The result must fit in `Int64`.
     @inlinable
     public static func + (lhs: Self, rhs: Self) -> Self {
-        let (result, overflow) = lhs._minorUnits.addingReportingOverflow(rhs._minorUnits)
+        let (result, overflow) = Int64(lhs._minorUnits).addingReportingOverflow(Int64(rhs._minorUnits))
         precondition(!overflow, "Money addition overflow")
-        return Self(minorUnits: result)
+        guard let minorUnit = MinorUnit(exactly: result) else {
+            preconditionFailure("Money addition produced unrepresentable value")
+        }
+        return Self(minorUnits: minorUnit)
     }
 
     /// Adds the right-hand value to the left-hand value in place.
@@ -65,9 +68,12 @@ extension Money: AdditiveArithmetic {
     /// - Precondition: The result must fit in `Int64` after scaling.
     @inlinable
     public static func - (lhs: Self, rhs: Self) -> Self {
-        let (result, overflow) = lhs._minorUnits.subtractingReportingOverflow(rhs._minorUnits)
+        let (result, overflow) = Int64(lhs._minorUnits).subtractingReportingOverflow(Int64(rhs._minorUnits))
         precondition(!overflow, "Money subtraction overflow")
-        return Self(minorUnits: result)
+        guard let minorUnit = MinorUnit(exactly: result) else {
+            preconditionFailure("Money subtraction produced unrepresentable value")
+        }
+        return Self(minorUnits: minorUnit)
     }
 
     /// Subtracts the right-hand value from the left-hand value in place.
@@ -97,9 +103,12 @@ public extension Money {
     /// - Precondition: The result must fit in `Int64`.
     @inlinable
     static func * (lhs: Money, rhs: Int64) -> Money {
-        let (result, overflow) = lhs._minorUnits.multipliedReportingOverflow(by: rhs)
+        let (result, overflow) = Int64(lhs._minorUnits).multipliedReportingOverflow(by: rhs)
         precondition(!overflow, "Money multiplication overflow")
-        return Money(minorUnits: result)
+        guard let minorUnit = MinorUnit(exactly: result) else {
+            preconditionFailure("Money multiplication produced unrepresentable value")
+        }
+        return Money(minorUnits: minorUnit)
     }
 
     /// Returns the result of multiplying an `Int64` scalar by a `Money` value.

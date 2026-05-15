@@ -20,10 +20,11 @@ struct Money_IntegerTests {
         #expect(Int(value) == intNearMin)
     }
 
-    @Test("Int.min (Int64.min) round trips")
-    func intMin() {
-        let value = Money<TST_100>(minorUnits: Int.min)
-        #expect(Int(value) == Int.min)
+    @Test("Int.min (Int64.min) construction traps")
+    func intMin() async {
+        await #expect(processExitsWith: .failure) {
+            _ = Money<TST_100>(minorUnits: Int.min)
+        }
     }
 
     @Test("Int max round trips")
@@ -79,10 +80,11 @@ struct Money_IntegerTests {
         #expect(Int64(value) == int64Max)
     }
 
-    @Test("Int64.min round trips")
-    func int64Min() {
-        let value = Money<TST_100>(minorUnits: Int64.min)
-        #expect(Int64(value) == Int64.min)
+    @Test("Int64.min construction traps")
+    func int64Min() async {
+        await #expect(processExitsWith: .failure) {
+            _ = Money<TST_100>(minorUnits: Int64.min)
+        }
     }
 
     // MARK: - Exact Int64 Conversions

@@ -10,7 +10,7 @@ extension AnyMoney {
     /// ```
     @inlinable
     public var decimalValue: Decimal {
-        Decimal(minorUnits) / Decimal(minimalQuantisation.int64Value)
+        Decimal(Int64(minorUnits)) / Decimal(minimalQuantisation.int64Value)
     }
 }
 #endif

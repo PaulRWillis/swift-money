@@ -220,7 +220,7 @@ struct MoneyBag_TotalTests {
             Issue.record("total returned nil")
             return
         }
-        let residual = r.exactNumerator - Int128(r.total.minorUnits) * r.exactDenominator
+        let residual = r.exactNumerator - Int128(Int64(r.total.minorUnits)) * r.exactDenominator
         let absResidual = residual < 0 ? -residual : residual
         // Invariant: |residual| × 2 ≤ exactDenominator (single-rounding guarantee)
         #expect(absResidual * 2 <= r.exactDenominator)

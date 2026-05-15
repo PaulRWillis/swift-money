@@ -140,18 +140,18 @@ struct Money_AdditionTests {
         #expect(amounts.reduce(.zero, +) == Money<TST_100>(minorUnits: 120))
     }
 
-    // MARK: - Int64.min arithmetic
+    // MARK: - .min arithmetic
 
-    @Test("Adding zero to Int64.min value succeeds")
-    func addZeroToInt64Min() {
-        let min = Money<TST_100>(minorUnits: Int64.min)
+    @Test("Adding zero to .min value succeeds")
+    func addZeroToMin() {
+        let min = Money<TST_100>.min
         #expect(min + .zero == min)
     }
 
-    @Test("Adding 1 to Int64.min value succeeds")
-    func addOneToInt64Min() {
-        let min = Money<TST_100>(minorUnits: Int64.min)
-        #expect(min + Money<TST_100>(minorUnits: 1) == Money<TST_100>(minorUnits: Int64.min + 1))
+    @Test("Adding 1 to .min value succeeds")
+    func addOneToMin() {
+        let min = Money<TST_100>.min
+        #expect(min + Money<TST_100>(minorUnits: 1) == Money<TST_100>(minorUnits: Int64(MinorUnit.min) + 1))
     }
 
     // MARK: - Overflow traps

@@ -162,10 +162,10 @@ extension MoneyBag: Codable {
                     )
                 )
             }
-            let minorUnits: Int64
+            let minorUnits: MinorUnit
             switch amountStrategy {
             case .minorUnits:
-                minorUnits = try container.decode(Int64.self, forKey: key)
+                minorUnits = try container.decode(MinorUnit.self, forKey: key)
             case .majorUnits:
                 let decimal = try container.decode(Decimal.self, forKey: key)
                 minorUnits = try AnyMoney._decimalToMinorUnits(

@@ -124,7 +124,7 @@ extension AnyMoney.FormatStyle: Foundation.FormatStyle {
         if let decimalSeparatorStrategy      { style = style.decimalSeparator(strategy: decimalSeparatorStrategy) }
         if let roundedRule                   { style = style.rounded(rule: roundedRule, increment: roundedIncrement) }
         if let notation                      { style = style.notation(notation) }
-        return value.minorUnits.formatted(style)
+        return Int64(value.minorUnits).formatted(style)
     }
 }
 

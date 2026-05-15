@@ -5,7 +5,7 @@ extension Money {
     /// The value as a `Foundation.Decimal`. Backwards-compatibility convenience for `Decimal(self)`.
     @inlinable
     public var decimalValue: Decimal {
-        Decimal(_minorUnits) / Decimal(Self.minimalQuantisation.int64Value)
+        Decimal(Int64(_minorUnits)) / Decimal(Self.minimalQuantisation.int64Value)
     }
 }
 
@@ -47,7 +47,10 @@ extension Money {
             "Decimal value \(decimal) overflows Money range"
         )
 
-        self._minorUnits = int64Value
+        guard let minorUnit = MinorUnit(exactly: int64Value) else {
+            preconditionFailure("Decimal value \(decimal) produces unrepresentable minor units")
+        }
+        self._minorUnits = minorUnit
     }
 
     /// Creates a value from a `Foundation.Decimal`. Returns `nil` if the
@@ -78,7 +81,8 @@ extension Money {
         // Overflow check: round-trip must match
         guard Decimal(int64Value) == scaled else { return nil }
 
-        self._minorUnits = int64Value
+        guard let minorUnit = MinorUnit(exactly: int64Value) else { return nil }
+        self._minorUnits = minorUnit
     }
 }
 
