@@ -5,7 +5,6 @@ extension Money {
     /// The value as a `Foundation.Decimal`. Backwards-compatibility convenience for `Decimal(self)`.
     ///
     /// Returns `Decimal.nan` for NaN.
-    @inlinable
     public var decimalValue: Decimal {
         if isNaN { return Decimal.nan }
         return Decimal(minorUnits) / Decimal(Self.minimalQuantisation.int64Value)
@@ -111,7 +110,6 @@ extension Decimal {
     /// ```
     ///
     /// - Parameter value: The money value to convert.
-    @inlinable
     public init<C: Currency>(_ value: Money<C>) {
         self = value.decimalValue
     }
@@ -127,7 +125,6 @@ extension Decimal {
     ///
     /// - Parameter value: The money value to convert.
     /// - Returns: A `Decimal` if the value is not NaN, otherwise `nil`.
-    @inlinable
     public init?<C: Currency>(exactly value: Money<C>) {
         if value.isNaN { return nil }
         self = value.decimalValue

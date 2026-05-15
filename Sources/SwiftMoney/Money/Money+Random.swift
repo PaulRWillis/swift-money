@@ -7,7 +7,6 @@ extension Money {
     /// - Parameter range: The range in which to create a random value.
     /// - Returns: A random value within the bounds of `range`.
     /// - Precondition: Neither bound may be NaN.
-    @inlinable
     public static func random(in range: ClosedRange<Money>) -> Money {
         precondition(
             !range.lowerBound.isNaN && !range.upperBound.isNaN,
@@ -28,7 +27,6 @@ extension Money {
     ///     new random value.
     /// - Returns: A random value within the bounds of `range`.
     /// - Precondition: Neither bound may be NaN.
-    @inlinable
     public static func random<T: RandomNumberGenerator>(
         in range: ClosedRange<Money>,
         using generator: inout T
@@ -51,7 +49,6 @@ extension Money {
     /// - Returns: A random value within the bounds of `range`.
     /// - Precondition: Neither bound may be NaN.
     /// - Precondition: `range` must not be empty.
-    @inlinable
     public static func random(in range: Range<Money>) -> Money {
         precondition(
             !range.lowerBound.isNaN && !range.upperBound.isNaN,
@@ -74,7 +71,6 @@ extension Money {
     /// - Returns: A random value within the bounds of `range`.
     /// - Precondition: Neither bound may be NaN.
     /// - Precondition: `range` must not be empty.
-    @inlinable
     public static func random<T: RandomNumberGenerator>(
         in range: Range<Money>,
         using generator: inout T

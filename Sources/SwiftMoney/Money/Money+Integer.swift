@@ -21,7 +21,6 @@ extension Int {
     ///
     /// - Parameter value: The money value to convert.
     /// - Precondition: The value must not be NaN.
-    @inlinable
     public init<C: Currency>(_ value: Money<C>) {
         precondition(!value.isNaN, "Cannot convert NaN to Int")
         guard let narrow = Int(exactly: value.minorUnits) else {
@@ -51,7 +50,6 @@ extension Int {
     ///
     /// - Parameter value: The money value to convert.
     /// - Returns: An `Int` if the conversion is exact, otherwise `nil`.
-    @inlinable
     public init?<C: Currency>(exactly value: Money<C>) {
         if value.isNaN { return nil }
         guard let narrow = Int(exactly: value.minorUnits) else { return nil }
@@ -80,7 +78,6 @@ extension Int64 {
     ///
     /// - Parameter value: The money value to convert.
     /// - Precondition: The value must not be NaN.
-    @inlinable
     public init<C: Currency>(_ value: Money<C>) {
         precondition(!value.isNaN, "Cannot convert NaN to Int64")
         guard let narrow = Int64(exactly: value.minorUnits) else {
@@ -110,7 +107,6 @@ extension Int64 {
     ///
     /// - Parameter value: The money value to convert.
     /// - Returns: An `Int64` if the conversion is exact, otherwise `nil`.
-    @inlinable
     public init?<C: Currency>(exactly value: Money<C>) {
         if value.isNaN { return nil }
         guard let narrow = Int64(exactly: value.minorUnits) else { return nil }
@@ -141,7 +137,6 @@ extension Int32 {
     /// - Parameter value: The money value to convert.
     /// - Precondition: The value must not be NaN.
     /// - Precondition: The integer part must fit in `Int32`.
-    @inlinable
     public init<C: Currency>(_ value: Money<C>) {
         precondition(!value.isNaN, "Cannot convert NaN to Int32")
         guard let narrow = Int32(exactly: value.minorUnits) else {
@@ -171,7 +166,6 @@ extension Int32 {
     ///
     /// - Parameter value: The money value to convert.
     /// - Returns: An `Int32` if the conversion is exact, otherwise `nil`.
-    @inlinable
     public init?<C: Currency>(exactly value: Money<C>) {
         if value.isNaN { return nil }
         guard let narrow = Int32(exactly: value.minorUnits) else { return nil }
@@ -204,7 +198,6 @@ extension UInt {
     /// - Parameter value: The money value to convert.
     /// - Precondition: The value must not be NaN.
     /// - Precondition: The integer part must fit in `UInt`.
-    @inlinable
     public init<C: Currency>(_ value: Money<C>) {
         precondition(!value.isNaN, "Cannot convert NaN to UInt")
         guard let narrow = UInt(exactly: value.minorUnits) else {
@@ -234,7 +227,6 @@ extension UInt {
     ///
     /// - Parameter value: The money value to convert.
     /// - Returns: A `UInt` if the conversion is exact, otherwise `nil`.
-    @inlinable
     public init?<C: Currency>(exactly value: Money<C>) {
         if value.isNaN { return nil }
         guard let narrow = UInt(exactly: value.minorUnits) else { return nil }
@@ -265,7 +257,6 @@ extension UInt64 {
     /// - Parameter value: The money value to convert.
     /// - Precondition: The value must not be NaN.
     /// - Precondition: The integer part must fit in `UInt64`.
-    @inlinable
     public init<C: Currency>(_ value: Money<C>) {
         precondition(!value.isNaN, "Cannot convert NaN to UInt64")
         guard let narrow = UInt64(exactly: value.minorUnits) else {
@@ -295,7 +286,6 @@ extension UInt64 {
     ///
     /// - Parameter value: The money value to convert.
     /// - Returns: A `UInt64` if the conversion is exact, otherwise `nil`.
-    @inlinable
     public init?<C: Currency>(exactly value: Money<C>) {
         if value.isNaN { return nil }
         guard let narrow = UInt64(exactly: value.minorUnits) else { return nil }
@@ -326,7 +316,6 @@ extension UInt32 {
     /// - Parameter value: The money value to convert.
     /// - Precondition: The value must not be NaN.
     /// - Precondition: The integer part must fit in `UInt32`.
-    @inlinable
     public init<C: Currency>(_ value: Money<C>) {
         precondition(!value.isNaN, "Cannot convert NaN to UInt32")
         guard let narrow = UInt32(exactly: value.minorUnits) else {
@@ -356,7 +345,6 @@ extension UInt32 {
     ///
     /// - Parameter value: The money value to convert.
     /// - Returns: A `UInt32` if the conversion is exact, otherwise `nil`.
-    @inlinable
     public init?<C: Currency>(exactly value: Money<C>) {
         if value.isNaN { return nil }
         guard let narrow = UInt32(exactly: value.minorUnits) else { return nil }
