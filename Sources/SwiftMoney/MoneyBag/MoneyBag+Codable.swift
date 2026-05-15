@@ -120,52 +120,11 @@ extension MoneyBag: Codable {
 
         case .dictionary(let amountStrategy, let resolver):
             // {"GBP": 1.25, "JPY": 500, ...}
-            let dictionaryContainer = try decoder.container(keyedBy: _StringCodingKey.self)
-            var storage: [CurrencyCode: AnyMoney] = [:]
-            for key in dictionaryContainer.allKeys {
-                let code = CurrencyCode(key.stringValue)
-                guard let minimalQuantisation = resolver(code) else {
-                    throw DecodingError.dataCorrupted(
-                        DecodingError.Context(
-                            codingPath: dictionaryContainer.codingPath,
-                            debugDescription: "No MinimalQuantisation found for currency '\(code)'. Provide a resolver that covers this currency."
-                        )
-                    )
-                }
-                let isNewCurrency = storage[code] == nil
-                guard isNewCurrency else {
-                    throw DecodingError.dataCorrupted(
-                        DecodingError.Context(
-                            codingPath: dictionaryContainer.codingPath,
-                            debugDescription: "Duplicate currency code '\(code)' in MoneyBag dictionary."
-                        )
-                    )
-                }
-                let minorUnits: Int64
-                switch amountStrategy {
-                case .minorUnits:
-                    minorUnits = try dictionaryContainer.decode(Int64.self, forKey: key)
-                case .majorUnits:
-                    let decimal = try dictionaryContainer.decode(Decimal.self, forKey: key)
-                    minorUnits = try AnyMoney._decimalToMinorUnits(
-                        decimal, minQ: minimalQuantisation, codingPath: dictionaryContainer.codingPath
-                    )
-                case .string(let locale):
-                    let string = try dictionaryContainer.decode(String.self, forKey: key)
-                    let decimal = try AnyMoney._parseFormattedAmount(
-                        string, currencyCode: code, locale: locale, codingPath: dictionaryContainer.codingPath
-                    )
-                    minorUnits = try AnyMoney._decimalToMinorUnits(
-                        decimal, minQ: minimalQuantisation, codingPath: dictionaryContainer.codingPath
-                    )
-                }
-                storage[code] = AnyMoney(
-                    minorUnits: minorUnits,
-                    currencyCode: code,
-                    minimalQuantisation: minimalQuantisation
-                )
-            }
-            self._storage = storage
+            self._storage = try MoneyBag._decodeDictionary(
+                amountStrategy: amountStrategy,
+                resolver: resolver,
+                from: decoder
+            )
         }
     }
 
@@ -189,6 +148,61 @@ extension MoneyBag: Codable {
                 )
             }
             storage[entry.currencyCode] = entry
+        }
+        return storage
+    }
+
+    /// Decodes a `{"GBP": ..., "JPY": ...}` dictionary into storage,
+    /// resolving each currency code's `MinimalQuantisation` via the provided closure.
+    private static func _decodeDictionary(
+        amountStrategy: MoneyAmountDecodingStrategy,
+        resolver: @Sendable (CurrencyCode) -> MinimalQuantisation?,
+        from decoder: any Decoder
+    ) throws -> [CurrencyCode: AnyMoney] {
+        let container = try decoder.container(keyedBy: _StringCodingKey.self)
+        var storage: [CurrencyCode: AnyMoney] = [:]
+        for key in container.allKeys {
+            let currencyCode = CurrencyCode(key.stringValue)
+            guard let minimalQuantisation = resolver(currencyCode) else {
+                throw DecodingError.dataCorrupted(
+                    DecodingError.Context(
+                        codingPath: container.codingPath,
+                        debugDescription: "No MinimalQuantisation found for currency '\(currencyCode)'. Provide a resolver that covers this currency."
+                    )
+                )
+            }
+            let isNewCurrency = storage[currencyCode] == nil
+            guard isNewCurrency else {
+                throw DecodingError.dataCorrupted(
+                    DecodingError.Context(
+                        codingPath: container.codingPath,
+                        debugDescription: "Duplicate currency code '\(currencyCode)' in MoneyBag dictionary."
+                    )
+                )
+            }
+            let minorUnits: Int64
+            switch amountStrategy {
+            case .minorUnits:
+                minorUnits = try container.decode(Int64.self, forKey: key)
+            case .majorUnits:
+                let decimal = try container.decode(Decimal.self, forKey: key)
+                minorUnits = try AnyMoney._decimalToMinorUnits(
+                    decimal, minQ: minimalQuantisation, codingPath: container.codingPath
+                )
+            case .string(let locale):
+                let string = try container.decode(String.self, forKey: key)
+                let decimal = try AnyMoney._parseFormattedAmount(
+                    string, currencyCode: currencyCode, locale: locale, codingPath: container.codingPath
+                )
+                minorUnits = try AnyMoney._decimalToMinorUnits(
+                    decimal, minQ: minimalQuantisation, codingPath: container.codingPath
+                )
+            }
+            storage[currencyCode] = AnyMoney(
+                minorUnits: minorUnits,
+                currencyCode: currencyCode,
+                minimalQuantisation: minimalQuantisation
+            )
         }
         return storage
     }
