@@ -20,6 +20,6 @@ extension Money: CustomDebugStringConvertible {
         if isNaN {
             return "Money<\(Currency.code)>(NaN)"
         }
-        return "Money<\(Currency.code)>(minorUnits: \(_minorUnits)) — \"\(formatted())\""
+        return "Money<\(Currency.code)>(minorUnits: \(minorUnits)) — \"\(formatted())\""
     }
 }

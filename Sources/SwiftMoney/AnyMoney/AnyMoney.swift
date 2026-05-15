@@ -61,7 +61,7 @@ public struct AnyMoney: Sendable {
     ///
     /// - Parameter money: The typed money value to erase.
     public init<C: Currency>(_ money: Money<C>) {
-        self.minorUnits = money._minorUnits
+        self.minorUnits = money.minorUnits
         self.currencyCode = C.code
         self.minimalQuantisation = C.minimalQuantisation
         self.currency = C.self

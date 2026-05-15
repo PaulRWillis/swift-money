@@ -184,7 +184,7 @@ extension Money.FormatStyle {
 
 extension Money.FormatStyle: Foundation.FormatStyle {
     public func format(_ value: Money) -> String {
-        value._minorUnits.formatted(_integerFormatStyle())
+        value.minorUnits.formatted(_integerFormatStyle())
     }
 }
 

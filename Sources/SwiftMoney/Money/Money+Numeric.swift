@@ -16,7 +16,7 @@ extension Money {
     @inlinable
     public var magnitude: Magnitude {
         precondition(!isNaN, "magnitude called on NaN")
-        return Money(minorUnits: abs(_minorUnits))
+        return Money(minorUnits: abs(minorUnits))
     }
 
     /// Returns the additive inverse of this value.
@@ -51,6 +51,6 @@ extension Money {
     @inlinable
     public mutating func negate() {
         precondition(!isNaN, "NaN in Money negation")
-        _minorUnits = -_minorUnits
+        self = Self(minorUnits: -minorUnits)
     }
 }

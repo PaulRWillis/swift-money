@@ -24,8 +24,8 @@ extension Int {
     @inlinable
     public init<C: Currency>(_ value: Money<C>) {
         precondition(!value.isNaN, "Cannot convert NaN to Int")
-        guard let narrow = Int(exactly: value._minorUnits) else {
-            preconditionFailure("Money minor units, \(value._minorUnits), exceeds Int range")
+        guard let narrow = Int(exactly: value.minorUnits) else {
+            preconditionFailure("Money minor units, \(value.minorUnits), exceeds Int range")
         }
         self = narrow
     }
@@ -54,7 +54,7 @@ extension Int {
     @inlinable
     public init?<C: Currency>(exactly value: Money<C>) {
         if value.isNaN { return nil }
-        guard let narrow = Int(exactly: value._minorUnits) else { return nil }
+        guard let narrow = Int(exactly: value.minorUnits) else { return nil }
         self = narrow
     }
 }
@@ -83,8 +83,8 @@ extension Int64 {
     @inlinable
     public init<C: Currency>(_ value: Money<C>) {
         precondition(!value.isNaN, "Cannot convert NaN to Int64")
-        guard let narrow = Int64(exactly: value._minorUnits) else {
-            preconditionFailure("Money minor units, \(value._minorUnits), exceeds Int64 range")
+        guard let narrow = Int64(exactly: value.minorUnits) else {
+            preconditionFailure("Money minor units, \(value.minorUnits), exceeds Int64 range")
         }
         self = narrow
     }
@@ -113,7 +113,7 @@ extension Int64 {
     @inlinable
     public init?<C: Currency>(exactly value: Money<C>) {
         if value.isNaN { return nil }
-        guard let narrow = Int64(exactly: value._minorUnits) else { return nil }
+        guard let narrow = Int64(exactly: value.minorUnits) else { return nil }
         self = narrow
     }
 }
@@ -144,8 +144,8 @@ extension Int32 {
     @inlinable
     public init<C: Currency>(_ value: Money<C>) {
         precondition(!value.isNaN, "Cannot convert NaN to Int32")
-        guard let narrow = Int32(exactly: value._minorUnits) else {
-            preconditionFailure("Money minor units, \(value._minorUnits), exceeds Int32 range")
+        guard let narrow = Int32(exactly: value.minorUnits) else {
+            preconditionFailure("Money minor units, \(value.minorUnits), exceeds Int32 range")
         }
         self = narrow
     }
@@ -174,7 +174,7 @@ extension Int32 {
     @inlinable
     public init?<C: Currency>(exactly value: Money<C>) {
         if value.isNaN { return nil }
-        guard let narrow = Int32(exactly: value._minorUnits) else { return nil }
+        guard let narrow = Int32(exactly: value.minorUnits) else { return nil }
         self = narrow
     }
 }
@@ -207,8 +207,8 @@ extension UInt {
     @inlinable
     public init<C: Currency>(_ value: Money<C>) {
         precondition(!value.isNaN, "Cannot convert NaN to UInt")
-        guard let narrow = UInt(exactly: value._minorUnits) else {
-            preconditionFailure("Money minor units, \(value._minorUnits), exceeds UInt range")
+        guard let narrow = UInt(exactly: value.minorUnits) else {
+            preconditionFailure("Money minor units, \(value.minorUnits), exceeds UInt range")
         }
         self = narrow
     }
@@ -237,7 +237,7 @@ extension UInt {
     @inlinable
     public init?<C: Currency>(exactly value: Money<C>) {
         if value.isNaN { return nil }
-        guard let narrow = UInt(exactly: value._minorUnits) else { return nil }
+        guard let narrow = UInt(exactly: value.minorUnits) else { return nil }
         self = narrow
     }
 }
@@ -268,8 +268,8 @@ extension UInt64 {
     @inlinable
     public init<C: Currency>(_ value: Money<C>) {
         precondition(!value.isNaN, "Cannot convert NaN to UInt64")
-        guard let narrow = UInt64(exactly: value._minorUnits) else {
-            preconditionFailure("Money minor units, \(value._minorUnits), exceeds UInt64 range")
+        guard let narrow = UInt64(exactly: value.minorUnits) else {
+            preconditionFailure("Money minor units, \(value.minorUnits), exceeds UInt64 range")
         }
         self = narrow
     }
@@ -298,7 +298,7 @@ extension UInt64 {
     @inlinable
     public init?<C: Currency>(exactly value: Money<C>) {
         if value.isNaN { return nil }
-        guard let narrow = UInt64(exactly: value._minorUnits) else { return nil }
+        guard let narrow = UInt64(exactly: value.minorUnits) else { return nil }
         self = narrow
     }
 }
@@ -329,8 +329,8 @@ extension UInt32 {
     @inlinable
     public init<C: Currency>(_ value: Money<C>) {
         precondition(!value.isNaN, "Cannot convert NaN to UInt32")
-        guard let narrow = UInt32(exactly: value._minorUnits) else {
-            preconditionFailure("Money minor units, \(value._minorUnits), exceeds UInt32 range")
+        guard let narrow = UInt32(exactly: value.minorUnits) else {
+            preconditionFailure("Money minor units, \(value.minorUnits), exceeds UInt32 range")
         }
         self = narrow
     }
@@ -359,7 +359,7 @@ extension UInt32 {
     @inlinable
     public init?<C: Currency>(exactly value: Money<C>) {
         if value.isNaN { return nil }
-        guard let narrow = UInt32(exactly: value._minorUnits) else { return nil }
+        guard let narrow = UInt32(exactly: value.minorUnits) else { return nil }
         self = narrow
     }
 }

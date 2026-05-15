@@ -14,7 +14,7 @@ extension Money {
             "Money.random(in:) range must not contain NaN"
         )
         let raw = Int64.random(
-            in: range.lowerBound._minorUnits...range.upperBound._minorUnits
+            in: range.lowerBound.minorUnits...range.upperBound.minorUnits
         )
         return Money(_unchecked: raw)
     }
@@ -38,7 +38,7 @@ extension Money {
             "Money.random(in:) range must not contain NaN"
         )
         let raw = Int64.random(
-            in: range.lowerBound._minorUnits...range.upperBound._minorUnits,
+            in: range.lowerBound.minorUnits...range.upperBound.minorUnits,
             using: &generator
         )
         return Money(_unchecked: raw)
@@ -58,7 +58,7 @@ extension Money {
             "Money.random(in:) range must not contain NaN"
         )
         let raw = Int64.random(
-            in: range.lowerBound._minorUnits..<range.upperBound._minorUnits
+            in: range.lowerBound.minorUnits..<range.upperBound.minorUnits
         )
         return Money(_unchecked: raw)
     }
@@ -84,7 +84,7 @@ extension Money {
             "Money.random(in:) range must not contain NaN"
         )
         let raw = Int64.random(
-            in: range.lowerBound._minorUnits..<range.upperBound._minorUnits,
+            in: range.lowerBound.minorUnits..<range.upperBound.minorUnits,
             using: &generator
         )
         return Money(_unchecked: raw)

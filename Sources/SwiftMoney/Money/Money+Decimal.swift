@@ -8,7 +8,7 @@ extension Money {
     @inlinable
     public var decimalValue: Decimal {
         if isNaN { return Decimal.nan }
-        return Decimal(_minorUnits) / Decimal(Self.minimalQuantisation.int64Value)
+        return Decimal(minorUnits) / Decimal(Self.minimalQuantisation.int64Value)
     }
 }
 
@@ -59,7 +59,7 @@ extension Money {
             "Decimal value \(decimal) maps to NaN sentinel"
         )
 
-        self._minorUnits = int64Value
+        self = Self(minorUnits: int64Value)
     }
 
     /// Creates a value from a `Foundation.Decimal`. Returns `nil` if the
@@ -98,7 +98,7 @@ extension Money {
         // Guard against NaN sentinel
         guard int64Value != .min else { return nil }
 
-        self._minorUnits = int64Value
+        self = Self(minorUnits: int64Value)
     }
 }
 
