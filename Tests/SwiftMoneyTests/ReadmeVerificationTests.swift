@@ -116,7 +116,7 @@ struct ReadmeVerificationTests {
     }
 
     @Test func parsing() throws {
-        let format = Money<GBP>.FormatStyle(locale: Locale(identifier: "en_GB"))
+        let format = Money<GBP>.FormatStyle().locale(Locale(identifier: "en_GB"))
         let parsed = try Money<GBP>("£125.50", format: format)
         #expect(parsed == Money<GBP>(minorUnits: 12550))
         #expect(try format.parseStrategy.parse(format.format(parsed)) == parsed)

@@ -19,22 +19,22 @@ struct AnyMoney_FormatStyleTests {
     @Test("formatted() matches Money<GBP> output for GBP")
     func formattedMatchesTypedGBP() {
         let money = Money<GBP>(minorUnits: 100)
-        let style = Money<GBP>.FormatStyle(locale: enGB)
-        #expect(money.erased.formatted(AnyMoney.FormatStyle(locale: enGB)) == money.formatted(style))
+        let style = Money<GBP>.FormatStyle().locale(enGB)
+        #expect(money.erased.formatted(AnyMoney.FormatStyle().locale(enGB)) == money.formatted(style))
     }
 
     @Test("formatted() matches Money<EUR> output for EUR")
     func formattedMatchesTypedEUR() {
         let money = Money<EUR>(minorUnits: 100)
-        let style = Money<EUR>.FormatStyle(locale: enGB)
-        #expect(money.erased.formatted(AnyMoney.FormatStyle(locale: enGB)) == money.formatted(style))
+        let style = Money<EUR>.FormatStyle().locale(enGB)
+        #expect(money.erased.formatted(AnyMoney.FormatStyle().locale(enGB)) == money.formatted(style))
     }
 
     @Test("formatted() matches Money<JPY> output for JPY (ratio-1 currency)")
     func formattedMatchesTypedJPY() {
         let money = Money<JPY>(minorUnits: 500)
-        let style = Money<JPY>.FormatStyle(locale: enUS)
-        #expect(money.erased.formatted(AnyMoney.FormatStyle(locale: enUS)) == money.formatted(style))
+        let style = Money<JPY>.FormatStyle().locale(enUS)
+        #expect(money.erased.formatted(AnyMoney.FormatStyle().locale(enUS)) == money.formatted(style))
     }
 
     @Test(
@@ -50,7 +50,7 @@ struct AnyMoney_FormatStyleTests {
     )
     func formattedCurrencySymbol(any: AnyMoney, expected: String) {
         // en_GB: GBP→£, EUR→€, JPY→JP¥ (foreign-currency disambiguation symbols)
-        #expect(any.formatted(AnyMoney.FormatStyle(locale: Locale(identifier: "en_GB"))) == expected)
+        #expect(any.formatted(AnyMoney.FormatStyle().locale(Locale(identifier: "en_GB"))) == expected)
     }
 
     // MARK: - CustomStringConvertible
@@ -91,7 +91,7 @@ struct AnyMoney_FormatStyle_StaticFactoryTests {
     @Test(".locale(_:) produces the same result as the designated initialiser")
     func localeDotSyntax() {
         let dotSyntax = gbp150.formatted(.locale(enGB))
-        let explicit  = gbp150.formatted(AnyMoney.FormatStyle(locale: enGB))
+        let explicit  = gbp150.formatted(AnyMoney.FormatStyle().locale(enGB))
         #expect(dotSyntax == explicit)
     }
 
@@ -106,7 +106,7 @@ struct AnyMoney_FormatStyle_StaticFactoryTests {
     func groupingDotSyntax() {
         let large = Money<GBP>(minorUnits: 1_234_567).erased
         let dotSyntax = large.formatted(.grouping(.never).locale(enGB))
-        let explicit  = large.formatted(AnyMoney.FormatStyle(locale: enGB).grouping(.never))
+        let explicit  = large.formatted(AnyMoney.FormatStyle().locale(enGB).grouping(.never))
         #expect(dotSyntax == explicit)
     }
 
@@ -126,7 +126,7 @@ struct AnyMoney_FormatStyle_StaticFactoryTests {
     @Test(".precision(_:) equals FormatStyle().precision(_:) on the same value")
     func precisionDotSyntax() {
         let dotSyntax = gbp150.formatted(.precision(.fractionLength(0)).locale(enGB))
-        let explicit  = gbp150.formatted(AnyMoney.FormatStyle(locale: enGB).precision(.fractionLength(0)))
+        let explicit  = gbp150.formatted(AnyMoney.FormatStyle().locale(enGB).precision(.fractionLength(0)))
         #expect(dotSyntax == explicit)
     }
 
@@ -157,7 +157,7 @@ struct AnyMoney_FormatStyle_StaticFactoryTests {
     @Test(".rounded() equals FormatStyle().rounded() on the same value")
     func roundedDotSyntax() {
         let dotSyntax = gbp150.formatted(.rounded().locale(enGB))
-        let explicit  = gbp150.formatted(AnyMoney.FormatStyle(locale: enGB).rounded())
+        let explicit  = gbp150.formatted(AnyMoney.FormatStyle().locale(enGB).rounded())
         #expect(dotSyntax == explicit)
     }
 
@@ -167,7 +167,7 @@ struct AnyMoney_FormatStyle_StaticFactoryTests {
     func chainingFromStaticFactory() {
         let large = Money<GBP>(minorUnits: 1_234_567).erased
         let chained  = large.formatted(.grouping(.never).locale(enGB))
-        let baseline = large.formatted(AnyMoney.FormatStyle(locale: enGB).grouping(.never))
+        let baseline = large.formatted(AnyMoney.FormatStyle().locale(enGB).grouping(.never))
         #expect(chained == baseline)
     }
 }

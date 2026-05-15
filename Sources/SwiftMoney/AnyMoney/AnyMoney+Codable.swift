@@ -108,7 +108,7 @@ extension AnyMoney {
                     )
                 )
             }
-            try container.encode(formatted(AnyMoney.FormatStyle(locale: locale)), forKey: .amount)
+            try container.encode(formatted(AnyMoney.FormatStyle().locale(locale)), forKey: .amount)
         }
     }
 

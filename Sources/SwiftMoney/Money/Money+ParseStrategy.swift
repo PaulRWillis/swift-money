@@ -12,7 +12,7 @@ extension Money {
     /// `ParseableFormatStyle` conformance; do not initialise directly.
     ///
     /// ```swift
-    /// let style = Money<GBP>.FormatStyle(locale: Locale(identifier: "en_GB"))
+    /// let style = Money<GBP>.FormatStyle().locale(Locale(identifier: "en_GB"))
     /// let pounds = try style.parseStrategy.parse("£1.50")
     /// // pounds == Money<GBP>(minorUnits: 150)
     /// ```
@@ -23,7 +23,7 @@ extension Money {
     /// parse back to the original value:
     ///
     /// ```swift
-    /// let style = Money<GBP>.FormatStyle(locale: Locale(identifier: "en_GB"))
+    /// let style = Money<GBP>.FormatStyle().locale(Locale(identifier: "en_GB"))
     /// let original = Money<GBP>(minorUnits: 1234)
     /// let string   = style.format(original)           // "£12.34"
     /// let parsed   = try style.parseStrategy.parse(string)
@@ -96,7 +96,7 @@ extension Money {
     /// Creates a `Money` value by parsing a formatted currency string.
     ///
     /// ```swift
-    /// let style = Money<GBP>.FormatStyle(locale: Locale(identifier: "en_GB"))
+    /// let style = Money<GBP>.FormatStyle().locale(Locale(identifier: "en_GB"))
     /// let money = try Money<GBP>("£12.34", format: style)
     /// money.minorUnits  // 1234
     /// ```

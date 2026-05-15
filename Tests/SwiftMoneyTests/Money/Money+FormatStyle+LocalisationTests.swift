@@ -38,7 +38,7 @@ struct Money_FormatStyle_LocalisationTests {
         let minorUnits: Int64 = 123_456
         let money = Money<GBP>(minorUnits: minorUnits)
 
-        let ours = Money<GBP>.FormatStyle(locale: locale).format(money)
+        let ours = Money<GBP>.FormatStyle().locale(locale).format(money)
 
         let reference = minorUnits.formatted(
             IntegerFormatStyle<Int64>.Currency(code: "GBP", locale: locale)
@@ -59,7 +59,7 @@ struct Money_FormatStyle_LocalisationTests {
         let minorUnits: Int64 = 12_345
         let money = Money<JPY>(minorUnits: minorUnits)
 
-        let ours = Money<JPY>.FormatStyle(locale: locale).format(money)
+        let ours = Money<JPY>.FormatStyle().locale(locale).format(money)
 
         let reference = minorUnits.formatted(
             IntegerFormatStyle<Int64>.Currency(code: "JPY", locale: locale)
@@ -80,7 +80,7 @@ struct Money_FormatStyle_LocalisationTests {
         let minorUnits: Int64 = 1_234_567
         let money = Money<TestKWD>(minorUnits: minorUnits)
 
-        let ours = Money<TestKWD>.FormatStyle(locale: locale).format(money)
+        let ours = Money<TestKWD>.FormatStyle().locale(locale).format(money)
 
         let reference = minorUnits.formatted(
             IntegerFormatStyle<Int64>.Currency(code: "KWD", locale: locale)
@@ -98,7 +98,7 @@ struct Money_FormatStyle_LocalisationTests {
         arguments: localizationTestLocales
     )
     func isoCodeContainsCurrencyCode(locale: Locale) {
-        let style = Money<GBP>.FormatStyle(locale: locale).presentation(.isoCode)
+        let style = Money<GBP>.FormatStyle().locale(locale).presentation(.isoCode)
         let result = style.format(Money<GBP>(minorUnits: 12_345))
         #expect(result.contains("GBP"), "Locale \(locale.identifier): \(result.debugDescription) should contain \"GBP\"")
     }
@@ -113,8 +113,8 @@ struct Money_FormatStyle_LocalisationTests {
         // 12,345,678 major units — large enough to trigger thousands grouping in any locale.
         // Note: sign is left as .automatic (default) to avoid the ICU sign-auto+group-off bug.
         let amount = Money<GBP>(minorUnits: 1_234_567_800)
-        let withGrouping    = Money<GBP>.FormatStyle(locale: locale).grouping(.automatic).format(amount)
-        let withoutGrouping = Money<GBP>.FormatStyle(locale: locale).grouping(.never).format(amount)
+        let withGrouping    = Money<GBP>.FormatStyle().locale(locale).grouping(.automatic).format(amount)
+        let withoutGrouping = Money<GBP>.FormatStyle().locale(locale).grouping(.never).format(amount)
         #expect(
             withoutGrouping.count <= withGrouping.count,
             "Locale \(locale.identifier): grouping(.never) (\(withoutGrouping.count) chars) should be ≤ grouping(.automatic) (\(withGrouping.count) chars)"

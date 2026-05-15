@@ -6,7 +6,7 @@ import Testing
 ///
 /// ## Fidelity approach
 ///
-/// `MoneyBag.formatted(locale:)` delegates to `AnyMoney.FormatStyle(locale:)` and
+/// `MoneyBag.formatted(locale:)` delegates to `AnyMoney.FormatStyle().locale(_:)` and
 /// joins the results with `", "` in currency-code sort order. These tests
 /// verify that the `locale` parameter is correctly threaded through for each
 /// entry across all locales, by independently reconstructing the expected string
@@ -32,7 +32,7 @@ struct MoneyBag_FormatStyle_LocalisationTests {
     )
     func formattedMatchesManualJoin(locale: Locale) {
         let bag = makeTestBag()
-        let style = AnyMoney.FormatStyle(locale: locale)
+        let style = AnyMoney.FormatStyle().locale(locale)
         let expected = bag.balances.map { $0.formatted(style) }.joined(separator: ", ")
         let result = bag.formatted(locale: locale)
         #expect(result == expected, "Locale \(locale.identifier): got \(result.debugDescription), want \(expected.debugDescription)")
@@ -48,9 +48,9 @@ struct MoneyBag_FormatStyle_LocalisationTests {
         let bag = makeTestBag()
         let result = bag.formatted(locale: locale)
         // GBP < JPY < KWD lexicographically, so GBP entry must appear before JPY which appears before KWD.
-        let gbpFormatted = Money<GBP>(minorUnits: 123_456).erased.formatted(AnyMoney.FormatStyle(locale: locale))
-        let jpyFormatted = Money<JPY>(minorUnits: 12_345).erased.formatted(AnyMoney.FormatStyle(locale: locale))
-        let kwdFormatted = Money<TestKWD>(minorUnits: 1_234_567).erased.formatted(AnyMoney.FormatStyle(locale: locale))
+        let gbpFormatted = Money<GBP>(minorUnits: 123_456).erased.formatted(AnyMoney.FormatStyle().locale(locale))
+        let jpyFormatted = Money<JPY>(minorUnits: 12_345).erased.formatted(AnyMoney.FormatStyle().locale(locale))
+        let kwdFormatted = Money<TestKWD>(minorUnits: 1_234_567).erased.formatted(AnyMoney.FormatStyle().locale(locale))
         let gbpRange = try #require(result.range(of: gbpFormatted), "Locale \(locale.identifier): GBP entry not found in \(result.debugDescription)")
         let jpyRange = try #require(result.range(of: jpyFormatted), "Locale \(locale.identifier): JPY entry not found in \(result.debugDescription)")
         let kwdRange = try #require(result.range(of: kwdFormatted), "Locale \(locale.identifier): KWD entry not found in \(result.debugDescription)")

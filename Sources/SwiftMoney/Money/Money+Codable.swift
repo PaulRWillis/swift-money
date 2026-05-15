@@ -104,7 +104,7 @@ extension Money: Codable {
             )
         }
         var container = encoder.singleValueContainer()
-        try container.encode(self.formatted(Money<Currency>.FormatStyle(locale: locale)))
+        try container.encode(self.formatted(Money<Currency>.FormatStyle().locale(locale)))
     }
 
     private func _encodeObject(amountStrategy: MoneyAmountEncodingStrategy, to encoder: any Encoder) throws {
@@ -125,7 +125,7 @@ extension Money: Codable {
         case .majorUnits:
             try container.encode(_majorUnitsDecimal(), forKey: .amount)
         case .string(let locale):
-            try container.encode(self.formatted(Money<Currency>.FormatStyle(locale: locale)), forKey: .amount)
+            try container.encode(self.formatted(Money<Currency>.FormatStyle().locale(locale)), forKey: .amount)
         }
     }
 
@@ -148,7 +148,7 @@ extension Money: Codable {
         let container = try decoder.singleValueContainer()
         let formattedAmount = try container.decode(String.self)
         do {
-            return try Money<Currency>(formattedAmount, format: Money<Currency>.FormatStyle(locale: locale))
+            return try Money<Currency>(formattedAmount, format: Money<Currency>.FormatStyle().locale(locale))
         } catch {
             throw DecodingError.dataCorruptedError(
                 in: container,
@@ -179,7 +179,7 @@ extension Money: Codable {
         case .string(let locale):
             let formattedAmount = try container.decode(String.self, forKey: .amount)
             do {
-                return try Money<Currency>(formattedAmount, format: Money<Currency>.FormatStyle(locale: locale))
+                return try Money<Currency>(formattedAmount, format: Money<Currency>.FormatStyle().locale(locale))
             } catch {
                 throw DecodingError.dataCorruptedError(
                     forKey: .amount,

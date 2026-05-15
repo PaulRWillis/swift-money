@@ -22,8 +22,8 @@ struct AnyMoney_FormatStyle_LocalisationTests {
     )
     func gbpFidelity(locale: Locale) {
         let money = Money<GBP>(minorUnits: 123_456)
-        let typed = Money<GBP>.FormatStyle(locale: locale).format(money)
-        let any   = money.erased.formatted(AnyMoney.FormatStyle(locale: locale))
+        let typed = Money<GBP>.FormatStyle().locale(locale).format(money)
+        let any   = money.erased.formatted(AnyMoney.FormatStyle().locale(locale))
         #expect(any == typed, "Locale \(locale.identifier): AnyMoney got \(any.debugDescription), Money<GBP> got \(typed.debugDescription)")
     }
 
@@ -35,8 +35,8 @@ struct AnyMoney_FormatStyle_LocalisationTests {
     )
     func jpyFidelity(locale: Locale) {
         let money = Money<JPY>(minorUnits: 12_345)
-        let typed = Money<JPY>.FormatStyle(locale: locale).format(money)
-        let any   = money.erased.formatted(AnyMoney.FormatStyle(locale: locale))
+        let typed = Money<JPY>.FormatStyle().locale(locale).format(money)
+        let any   = money.erased.formatted(AnyMoney.FormatStyle().locale(locale))
         #expect(any == typed, "Locale \(locale.identifier): AnyMoney got \(any.debugDescription), Money<JPY> got \(typed.debugDescription)")
     }
 
@@ -48,8 +48,8 @@ struct AnyMoney_FormatStyle_LocalisationTests {
     )
     func kwdFidelity(locale: Locale) {
         let money = Money<TestKWD>(minorUnits: 1_234_567)
-        let typed = Money<TestKWD>.FormatStyle(locale: locale).format(money)
-        let any   = money.erased.formatted(AnyMoney.FormatStyle(locale: locale))
+        let typed = Money<TestKWD>.FormatStyle().locale(locale).format(money)
+        let any   = money.erased.formatted(AnyMoney.FormatStyle().locale(locale))
         #expect(any == typed, "Locale \(locale.identifier): AnyMoney got \(any.debugDescription), Money<TestKWD> got \(typed.debugDescription)")
     }
 
@@ -60,7 +60,7 @@ struct AnyMoney_FormatStyle_LocalisationTests {
         arguments: localizationTestLocales
     )
     func isoCodeContainsCurrencyCode(locale: Locale) {
-        let style = AnyMoney.FormatStyle(locale: locale).presentation(.isoCode)
+        let style = AnyMoney.FormatStyle().locale(locale).presentation(.isoCode)
         let result = Money<GBP>(minorUnits: 12_345).erased.formatted(style)
         #expect(result.contains("GBP"), "Locale \(locale.identifier): \(result.debugDescription) should contain \"GBP\"")
     }
@@ -73,8 +73,8 @@ struct AnyMoney_FormatStyle_LocalisationTests {
     )
     func groupingNeverNoLongerThanAutomatic(locale: Locale) {
         let amount = Money<GBP>(minorUnits: 1_234_567_800).erased
-        let withGrouping    = amount.formatted(AnyMoney.FormatStyle(locale: locale).grouping(.automatic))
-        let withoutGrouping = amount.formatted(AnyMoney.FormatStyle(locale: locale).grouping(.never))
+        let withGrouping    = amount.formatted(AnyMoney.FormatStyle().locale(locale).grouping(.automatic))
+        let withoutGrouping = amount.formatted(AnyMoney.FormatStyle().locale(locale).grouping(.never))
         #expect(
             withoutGrouping.count <= withGrouping.count,
             "Locale \(locale.identifier): grouping(.never) (\(withoutGrouping.count) chars) should be ≤ grouping(.automatic) (\(withGrouping.count) chars)"

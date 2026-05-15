@@ -135,7 +135,7 @@ struct Money_ComparisonTests {
         // 42 pence = £0.42 — three construction paths that must all produce equal values.
         let fromLiteral = Money<GBP>(minorUnits: 42)                        // integerLiteral => _storage = 42
         let fromMinorUnits = Money<GBP>(minorUnits: 42)
-        let formatStyle    = Money<GBP>.FormatStyle(locale: Locale(identifier: "en_GB"))
+        let formatStyle    = Money<GBP>.FormatStyle().locale(Locale(identifier: "en_GB"))
         let fromString     = try Money<GBP>("£0.42", format: formatStyle)
 
         #expect(fromLiteral   == fromMinorUnits)

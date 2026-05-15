@@ -90,8 +90,8 @@ extension ExchangeRate {
                 minorUnits: From.minimalQuantisation.int64Value
             )
             let converted = value.convert(oneMajorUnit)
-            let fromStyle = Money<From>.FormatStyle(locale: locale)
-            let toStyle = Money<To>.FormatStyle(locale: locale)
+            let fromStyle = Money<From>.FormatStyle().locale(locale)
+            let toStyle = Money<To>.FormatStyle().locale(locale)
             return fromStyle.format(oneMajorUnit)
                 + separator.rawValue
                 + toStyle.format(converted)

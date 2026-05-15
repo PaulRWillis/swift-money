@@ -12,7 +12,7 @@ struct Money_ParseStrategyTests {
 
     @Test("FormatStyle.parseStrategy returns a ParseStrategy")
     func parseStrategyProperty() {
-        let style = Money<GBP>.FormatStyle(locale: enGB)
+        let style = Money<GBP>.FormatStyle().locale(enGB)
         let strategy = style.parseStrategy
         // Sanity: strategy is the ParseStrategy type (confirmed by parse call below)
         #expect(type(of: strategy) == Money<GBP>.ParseStrategy.self)
@@ -20,7 +20,7 @@ struct Money_ParseStrategyTests {
 
     @Test("Money<C>.init(_:format:) parses correctly")
     func convenienceInit() throws {
-        let style = Money<GBP>.FormatStyle(locale: enGB)
+        let style = Money<GBP>.FormatStyle().locale(enGB)
         let money = try Money<GBP>("£12.34", format: style)
         #expect(money.minorUnits == 1234)
     }
@@ -30,7 +30,7 @@ struct Money_ParseStrategyTests {
     @Test("GBP round-trip: positive amount")
     func gbpRoundTripPositive() throws {
         let original = Money<GBP>(minorUnits: 12_345)           // £123.45
-        let style    = Money<GBP>.FormatStyle(locale: enGB)
+        let style    = Money<GBP>.FormatStyle().locale(enGB)
         let string   = style.format(original)
         let parsed   = try style.parseStrategy.parse(string)
         #expect(parsed == original)
@@ -39,7 +39,7 @@ struct Money_ParseStrategyTests {
     @Test("GBP round-trip: negative amount")
     func gbpRoundTripNegative() throws {
         let original = Money<GBP>(minorUnits: -9_876)           // -£98.76
-        let style    = Money<GBP>.FormatStyle(locale: enGB)
+        let style    = Money<GBP>.FormatStyle().locale(enGB)
         let string   = style.format(original)
         let parsed   = try style.parseStrategy.parse(string)
         #expect(parsed == original)
@@ -48,7 +48,7 @@ struct Money_ParseStrategyTests {
     @Test("GBP round-trip: zero")
     func gbpRoundTripZero() throws {
         let original = Money<GBP>.zero
-        let style    = Money<GBP>.FormatStyle(locale: enGB)
+        let style    = Money<GBP>.FormatStyle().locale(enGB)
         let string   = style.format(original)
         let parsed   = try style.parseStrategy.parse(string)
         #expect(parsed == original)
@@ -57,7 +57,7 @@ struct Money_ParseStrategyTests {
     @Test("GBP round-trip: single minor unit (£0.01)")
     func gbpRoundTripOneMinorUnit() throws {
         let original = Money<GBP>(minorUnits: 1)
-        let style    = Money<GBP>.FormatStyle(locale: enGB)
+        let style    = Money<GBP>.FormatStyle().locale(enGB)
         let string   = style.format(original)
         let parsed   = try style.parseStrategy.parse(string)
         #expect(parsed == original)
@@ -68,7 +68,7 @@ struct Money_ParseStrategyTests {
     @Test("JPY round-trip: positive amount")
     func jpyRoundTripPositive() throws {
         let original = Money<JPY>(minorUnits: 12_345)
-        let style    = Money<JPY>.FormatStyle(locale: enGB)
+        let style    = Money<JPY>.FormatStyle().locale(enGB)
         let string   = style.format(original)
         let parsed   = try style.parseStrategy.parse(string)
         #expect(parsed == original)
@@ -77,7 +77,7 @@ struct Money_ParseStrategyTests {
     @Test("JPY round-trip: negative amount")
     func jpyRoundTripNegative() throws {
         let original = Money<JPY>(minorUnits: -9_999)
-        let style    = Money<JPY>.FormatStyle(locale: enGB)
+        let style    = Money<JPY>.FormatStyle().locale(enGB)
         let string   = style.format(original)
         let parsed   = try style.parseStrategy.parse(string)
         #expect(parsed == original)
@@ -88,7 +88,7 @@ struct Money_ParseStrategyTests {
     @Test("KWD round-trip: positive amount (3-decimal currency)")
     func kwdRoundTripPositive() throws {
         let original = Money<TestKWD>(minorUnits: 1_234_567)    // KWD 1,234.567
-        let style    = Money<TestKWD>.FormatStyle(locale: enGB)
+        let style    = Money<TestKWD>.FormatStyle().locale(enGB)
         let string   = style.format(original)
         let parsed   = try style.parseStrategy.parse(string)
         #expect(parsed == original)
@@ -97,7 +97,7 @@ struct Money_ParseStrategyTests {
     @Test("KWD round-trip: single minor unit (KWD 0.001)")
     func kwdRoundTripOneMinorUnit() throws {
         let original = Money<TestKWD>(minorUnits: 1)
-        let style    = Money<TestKWD>.FormatStyle(locale: enGB)
+        let style    = Money<TestKWD>.FormatStyle().locale(enGB)
         let string   = style.format(original)
         let parsed   = try style.parseStrategy.parse(string)
         #expect(parsed == original)
@@ -108,7 +108,7 @@ struct Money_ParseStrategyTests {
     @Test("Round-trip with .presentation(.isoCode)")
     func roundTripISOCode() throws {
         let original = Money<USD>(minorUnits: 4_200)
-        let style    = Money<USD>.FormatStyle(locale: enUS).presentation(.isoCode)
+        let style    = Money<USD>.FormatStyle().locale(enUS).presentation(.isoCode)
         let string   = style.format(original)
         let parsed   = try style.parseStrategy.parse(string)
         #expect(parsed == original)
@@ -117,7 +117,7 @@ struct Money_ParseStrategyTests {
     @Test("Round-trip with .presentation(.fullName)")
     func roundTripFullName() throws {
         let original = Money<USD>(minorUnits: 4_200)
-        let style    = Money<USD>.FormatStyle(locale: enUS).presentation(.fullName)
+        let style    = Money<USD>.FormatStyle().locale(enUS).presentation(.fullName)
         let string   = style.format(original)
         let parsed   = try style.parseStrategy.parse(string)
         #expect(parsed == original)
@@ -126,7 +126,7 @@ struct Money_ParseStrategyTests {
     @Test("Round-trip with .sign(strategy: .always())")
     func roundTripSignAlways() throws {
         let original = Money<GBP>(minorUnits: 5_000)
-        let style    = Money<GBP>.FormatStyle(locale: enGB).sign(strategy: .always())
+        let style    = Money<GBP>.FormatStyle().locale(enGB).sign(strategy: .always())
         let string   = style.format(original)                   // "+£50.00"
         let parsed   = try style.parseStrategy.parse(string)
         #expect(parsed == original)
@@ -135,7 +135,7 @@ struct Money_ParseStrategyTests {
     @Test("Round-trip with .sign(strategy: .accounting) on negative value")
     func roundTripSignAccounting() throws {
         let original = Money<GBP>(minorUnits: -5_000)
-        let style    = Money<GBP>.FormatStyle(locale: enGB).sign(strategy: .accounting)
+        let style    = Money<GBP>.FormatStyle().locale(enGB).sign(strategy: .accounting)
         let string   = style.format(original)                   // "(£50.00)"
         let parsed   = try style.parseStrategy.parse(string)
         #expect(parsed == original)
@@ -149,7 +149,7 @@ struct Money_ParseStrategyTests {
     )
     func gbpRoundTripAcrossLocales(locale: Locale) throws {
         let original = Money<GBP>(minorUnits: 12_345)
-        let style    = Money<GBP>.FormatStyle(locale: locale)
+        let style    = Money<GBP>.FormatStyle().locale(locale)
         let string   = style.format(original)
         let parsed   = try style.parseStrategy.parse(string)
         #expect(
@@ -164,7 +164,7 @@ struct Money_ParseStrategyTests {
     )
     func jpyRoundTripAcrossLocales(locale: Locale) throws {
         let original = Money<JPY>(minorUnits: 12_345)
-        let style    = Money<JPY>.FormatStyle(locale: locale)
+        let style    = Money<JPY>.FormatStyle().locale(locale)
         let string   = style.format(original)
         let parsed   = try style.parseStrategy.parse(string)
         #expect(
@@ -179,7 +179,7 @@ struct Money_ParseStrategyTests {
     )
     func kwdRoundTripAcrossLocales(locale: Locale) throws {
         let original = Money<TestKWD>(minorUnits: 1_234_567)
-        let style    = Money<TestKWD>.FormatStyle(locale: locale)
+        let style    = Money<TestKWD>.FormatStyle().locale(locale)
         let string   = style.format(original)
         let parsed   = try style.parseStrategy.parse(string)
         #expect(
@@ -192,7 +192,7 @@ struct Money_ParseStrategyTests {
 
     @Test("parse throws on a non-currency string")
     func parseThrowsOnGarbage() {
-        let style = Money<GBP>.FormatStyle(locale: enGB)
+        let style = Money<GBP>.FormatStyle().locale(enGB)
         #expect(throws: (any Error).self) {
             try style.parseStrategy.parse("not a number")
         }
@@ -200,7 +200,7 @@ struct Money_ParseStrategyTests {
 
     @Test("parse throws on an empty string")
     func parseThrowsOnEmpty() {
-        let style = Money<GBP>.FormatStyle(locale: enGB)
+        let style = Money<GBP>.FormatStyle().locale(enGB)
         #expect(throws: (any Error).self) {
             try style.parseStrategy.parse("")
         }
@@ -210,28 +210,28 @@ struct Money_ParseStrategyTests {
 
     @Test("ParseStrategy is Equatable — same format style produces equal strategies")
     func parseStrategyEquality() {
-        let styleA = Money<GBP>.FormatStyle(locale: enGB)
-        let styleB = Money<GBP>.FormatStyle(locale: enGB)
+        let styleA = Money<GBP>.FormatStyle().locale(enGB)
+        let styleB = Money<GBP>.FormatStyle().locale(enGB)
         #expect(styleA.parseStrategy == styleB.parseStrategy)
     }
 
     @Test("ParseStrategy is Equatable — different locales produce different strategies")
     func parseStrategyInequality() {
-        let strategyGB = Money<GBP>.FormatStyle(locale: enGB).parseStrategy
-        let strategyUS = Money<GBP>.FormatStyle(locale: enUS).parseStrategy
+        let strategyGB = Money<GBP>.FormatStyle().locale(enGB).parseStrategy
+        let strategyUS = Money<GBP>.FormatStyle().locale(enUS).parseStrategy
         #expect(strategyGB != strategyUS)
     }
 
     @Test("ParseStrategy is Hashable — equal strategies have equal hashes")
     func parseStrategyHashable() {
-        let styleA = Money<GBP>.FormatStyle(locale: enGB)
-        let styleB = Money<GBP>.FormatStyle(locale: enGB)
+        let styleA = Money<GBP>.FormatStyle().locale(enGB)
+        let styleB = Money<GBP>.FormatStyle().locale(enGB)
         #expect(styleA.parseStrategy.hashValue == styleB.parseStrategy.hashValue)
     }
 
     @Test("ParseStrategy is Codable — encodes and decodes to the same strategy")
     func parseStrategyCodable() throws {
-        let strategy = Money<GBP>.FormatStyle(locale: enGB).parseStrategy
+        let strategy = Money<GBP>.FormatStyle().locale(enGB).parseStrategy
         let data     = try JSONEncoder().encode(strategy)
         let decoded  = try JSONDecoder().decode(Money<GBP>.ParseStrategy.self, from: data)
         #expect(strategy == decoded)

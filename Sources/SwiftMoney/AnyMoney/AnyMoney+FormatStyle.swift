@@ -13,7 +13,7 @@ extension AnyMoney {
     ///
     /// ```swift
     /// Money<GBP>(minorUnits: 150).erased
-    ///     .formatted(AnyMoney.FormatStyle(locale: Locale(identifier: "en_GB")))
+    ///     .formatted(.locale(Locale(identifier: "en_GB")))
     /// // "£1.50"
     /// ```
     public struct FormatStyle: Equatable, Hashable, Sendable, Codable {
@@ -34,8 +34,8 @@ extension AnyMoney {
 
         // MARK: - Initialiser
 
-        public init(locale: Locale = .autoupdatingCurrent) {
-            self.locale = locale
+        public init() {
+            self.locale = .autoupdatingCurrent
             self.signDisplayStrategy = .automatic
             self.presentation = .standard
             self.grouping = nil
@@ -141,7 +141,7 @@ extension AnyMoney.FormatStyle {
     /// anyMoney.formatted(.locale(Locale(identifier: "en_GB")))
     /// ```
     public static func locale(_ locale: Locale) -> Self {
-        Self(locale: locale)
+        Self().locale(locale)
     }
 
     /// Returns a style with the given sign strategy.
