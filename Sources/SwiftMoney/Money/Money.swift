@@ -81,15 +81,6 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
         self._minorUnits = minorUnits
     }
 
-    /// Creates a `Money` value directly from the raw storage integer, bypassing
-    /// the NaN-sentinel guard.
-    ///
-    /// Used internally by factory properties (`nan`, `max`, `min`, etc.) and
-    /// by `Codable` decoding where the sentinel value must be preserved.
-    internal init(_unchecked storage: Storage) {
-        self._minorUnits = storage
-    }
-
     // MARK: - Special values
 
     /// A Boolean value indicating whether this value is NaN (not-a-number).
