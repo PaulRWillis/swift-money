@@ -27,18 +27,6 @@ struct AnyMoney_ComparisonTests {
         #expect(money1 != money2)
     }
 
-    @Test("NaN equals NaN (sentinel semantics, not IEEE 754)")
-    func nanEqualsSelf() {
-        let nan1 = Money<TST_100>.nan.erased
-        let nan2 = Money<TST_100>.nan.erased
-        #expect(nan1 == nan2)
-    }
-
-    @Test("NaN is not equal to zero")
-    func nanNotEqualToZero() {
-        #expect(Money<TST_100>.nan.erased != Money<TST_100>.zero.erased)
-    }
-
     // MARK: - Hashable
 
     @Test("Equal values produce equal hashes")
@@ -95,15 +83,6 @@ struct AnyMoney_ComparisonTests {
         let neg = Money<TST_100>(minorUnits: -5).erased
         let pos = Money<TST_100>(minorUnits: 5).erased
         #expect(neg < pos)
-    }
-
-    @Test("NaN sorts before all non-NaN values within same currency")
-    func nanSortsFirstSameCurrency() {
-        let nan = Money<TST_100>.nan.erased
-        let zero = Money<TST_100>.zero.erased
-        let positive = Money<TST_100>(minorUnits: 1).erased
-        #expect(nan < zero)
-        #expect(nan < positive)
     }
 
     // MARK: - Comparable — cross-currency total order

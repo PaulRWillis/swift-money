@@ -206,22 +206,4 @@ struct Money_RateMultiplicationTests {
     func decimalOperatorNaNReturnsNil () throws {
         #expect((Money<TST_100>(minorUnits: 100) * Decimal.nan) == nil)
     }
-
-    // MARK: - Precondition traps
-
-    @Test("multiplied(by:) traps on NaN input")
-    func nanTraps() async {
-        await #expect(processExitsWith: .failure) {
-            guard let rate = Rate(numerator: 1, denominator: 100) else { return }
-            _ = Money<TST_100>.nan.multiplied(by: rate)
-        }
-    }
-
-    @Test("* Rate operator traps on NaN input")
-    func nanOperatorTraps() async {
-        await #expect(processExitsWith: .failure) {
-            guard let rate = Rate(numerator: 1, denominator: 100) else { return }
-            _ = Money<TST_100>.nan * rate
-        }
-    }
 }

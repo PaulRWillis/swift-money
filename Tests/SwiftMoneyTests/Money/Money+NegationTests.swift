@@ -20,14 +20,6 @@ struct Money_NegationTests {
         #expect(value == Money<TST_100>(minorUnits: 201))
     }
 
-    @Test("Negating NaN traps with `negate()`")
-    func negateNaN() async {
-        await #expect(processExitsWith: .failure) {
-            var nan = Money<TST_100>.nan
-            nan.negate()
-        }
-    }
-
     @Test("Negating zero with `negate()`")
     func negateZero() {
         var zero = Money<TST_100>.zero
@@ -54,11 +46,6 @@ struct Money_NegationTests {
     func negateNegativeWithPrefixOperator() {
         let neg = Money<TST_100>(minorUnits: -201)
         #expect(-neg == Money<TST_100>(minorUnits: 201))
-    }
-
-    @Test("Negating NaN traps with `negate()`")
-    func negateNaNWithPrefixOperator() async {
-        await #expect(processExitsWith: .failure) { _ = -Money<TST_100>.nan }
     }
 
     @Test("Negating zero with `negate()`")

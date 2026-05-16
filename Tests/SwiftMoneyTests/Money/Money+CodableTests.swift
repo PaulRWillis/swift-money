@@ -191,15 +191,6 @@ struct Money_Codable_ObjectStrategyTests {
         }
     }
 
-    @Test("object: NaN encoding throws EncodingError")
-    func objectNaNThrows() {
-        let encoder = JSONEncoder()
-        encoder.moneyEncodingStrategy = .object(amount: .majorUnits)
-        #expect(throws: EncodingError.self) {
-            try encoder.encode(Money<GBP>.nan)
-        }
-    }
-
     @Test("object: decoding from JSON with known values is correct")
     func objectDecoding() throws {
         let json = try #require(#"{"currencyCode":"GBP","amount":1.25}"#.data(using: .utf8))
@@ -259,18 +250,6 @@ struct Money_Codable_MinorUnitsStrategyTests {
         let original = Money<JPY>(minorUnits: 99_999)
         let decoded = try decoder.decode(Money<JPY>.self, from: encoder.encode(original))
         #expect(decoded == original)
-    }
-
-    @Test("minorUnits: decoding Int64.min throws DecodingError")
-    func minorUnitsDecodingInt64MinThrows() throws {
-        let encoder = JSONEncoder()
-        encoder.moneyEncodingStrategy = .minorUnits
-        let decoder = JSONDecoder()
-        decoder.moneyDecodingStrategy = .minorUnits
-        let encoded = try encoder.encode(Money<GBP>.nan)
-        #expect(throws: DecodingError.self) {
-            try decoder.decode(Money<GBP>.self, from: encoded)
-        }
     }
 
     @Test("minorUnits: decoding known JSON value")
@@ -372,15 +351,6 @@ struct Money_Codable_MajorUnitsStrategyTests {
         #expect(decoded == original)
     }
 
-    @Test("majorUnits: NaN encoding throws EncodingError")
-    func majorUnitsNaNThrows() {
-        let encoder = JSONEncoder()
-        encoder.moneyEncodingStrategy = .majorUnits
-        #expect(throws: EncodingError.self) {
-            try encoder.encode(Money<GBP>.nan)
-        }
-    }
-
     @Test("majorUnits: decoding known JSON value")
     func majorUnitsDecoding() throws {
         let json = try #require("1.25".data(using: .utf8))
@@ -446,15 +416,6 @@ struct Money_Codable_StringStrategyTests {
         let original = Money<JPY>(minorUnits: 1000)
         let decoded = try decoder.decode(Money<JPY>.self, from: encoder.encode(original))
         #expect(decoded == original)
-    }
-
-    @Test("string: NaN encoding throws EncodingError")
-    func stringNaNThrows() {
-        let encoder = JSONEncoder()
-        encoder.moneyEncodingStrategy = .string(locale: enGB)
-        #expect(throws: EncodingError.self) {
-            try encoder.encode(Money<GBP>.nan)
-        }
     }
 
     @Test("string: decoding invalid string throws DecodingError")

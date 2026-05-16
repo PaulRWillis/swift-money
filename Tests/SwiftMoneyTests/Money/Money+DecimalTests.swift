@@ -7,12 +7,6 @@ struct Money_DecimalTests {
 
     // MARK: - decimalValue
 
-    @Test("decimalValue returns Decimal.nan for Money.nan")
-    func decimalValueForNaN() {
-        let moneyNaN = Money<TST_100>.nan
-        #expect(moneyNaN.decimalValue == .nan)
-    }
-
     @Test("decimalValue returns correct Decimal for Money")
     func decimalValue() {
         let value = Money<TST_100>(minorUnits: 42)
@@ -158,19 +152,7 @@ struct Money_DecimalTests {
         #expect(decimal == Decimal(string: "123.45"))
     }
 
-    @Test("Decimal NaN handling")
-    func decimalNaN() {
-        let moneyNaN = Money<TST_100>.nan
-        #expect(Decimal(moneyNaN).isNaN)
-    }
-
     // MARK: - Decimal init from exact Money
-
-    @Test("Decimal exact init returns nil on NaN")
-    func decimalExactInitNaN() {
-        let moneyNaN = Money<TST_100>.nan
-        #expect(Decimal(exactly: moneyNaN) == nil)
-    }
 
     @Test("Decimal exact init returns value on non-NaN")
     func decimalExactInitNonNaN() {

@@ -59,13 +59,12 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     /// Creates a `Money` value with the given number of minor units.
     ///
     /// - Precondition: `minorUnits` must not equal `Int.min` on 64-bit platforms
-    ///   (equivalently `Int64.min`), which is reserved as the NaN sentinel.
-    ///   Use `Money.nan` to obtain a NaN value explicitly.
+    ///   (equivalently `Int64.min`), which is reserved as an internal sentinel.
     public init(minorUnits: Int) {
         let value = Storage(minorUnits)
         precondition(
             value != Storage.min,
-            "Use Money.nan — \(Storage.min) is reserved as the NaN sentinel"
+            "\(Storage.min) is reserved and cannot be used as a minor-unit value"
         )
         self._minorUnits = value
     }
@@ -73,12 +72,11 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     /// Creates a `Money` value with the given number of minor units.
     ///
     /// - Precondition: `minorUnits` must not equal `MinorUnits.min` (`Int64.min`),
-    ///   which is reserved as the NaN sentinel. Use `Money.nan` to obtain a NaN
-    ///   value explicitly.
+    ///   which is reserved as an internal sentinel.
     public init(minorUnits: MinorUnits) {
         precondition(
             minorUnits != Storage.min,
-            "Use Money.nan — \(Storage.min) is reserved as the NaN sentinel"
+            "\(Storage.min) is reserved and cannot be used as a minor-unit value"
         )
         self._minorUnits = minorUnits
     }
@@ -93,21 +91,6 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     }
 
     // MARK: - Special values
-
-    /// The NaN (not-a-number) sentinel value.
-    ///
-    /// Uses `Int64.min` (-9,223,372,036,854,775,808) as the sentinel because:
-    /// - It has no valid negation in `Int64` (negating `Int64.min` overflows)
-    /// - It is outside the range of any practical financial value
-    /// - Checking `.isNaN` is a single integer comparison
-    ///
-    /// ```swift
-    /// let missing: Money<GBP> = .nan
-    /// missing.isNaN  // true
-    /// ```
-    public static var nan: Money {
-        Money(_unchecked: Storage.min)
-    }
 
     /// A Boolean value indicating whether this value is NaN (not-a-number).
     public var isNaN: Bool {

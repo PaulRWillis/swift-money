@@ -94,38 +94,11 @@ struct Money_ComparisonTests {
         #expect(dict[price] == "test")
     }
 
-    // MARK: - NaN Comparison Semantics
-
-    @Test("NaN is not equal to zero")
-    func nanNotEqualToZero() {
-        #expect(Money<TST_100>.nan != .zero)
-    }
-
-    @Test("NaN sorts below everything")
-    func nanSortsBelowAll() {
-        let nan = Money<TST_100>.nan
-        let neg = Money<TST_100>(minorUnits: -99999)
-        #expect(nan < neg)
-        #expect(!(neg < nan))
-    }
-
     // MARK: - Additional Comparison Edge Cases
-
-    @Test("NaN == NaN is true (sentinel semantics)")
-    func nanEqualsNan() {
-        #expect(Money<TST_100>.nan == Money<TST_100>.nan)
-    }
 
     @Test("min < max")
     func minLessThanMax() {
         #expect(Money<TST_100>.min < Money<TST_100>.max)
-    }
-
-    @Test("Hashable — NaN values have equal hashes")
-    func nanHashConsistency() {
-        let a = Money<TST_100>.nan
-        let b = Money<TST_100>.nan
-        #expect(a.hashValue == b.hashValue)
     }
 
     // MARK: - Hash Consistency Across Construction Paths (inspired by rust_decimal/shopspring)
