@@ -3,7 +3,6 @@
 /// Conformance to `AdditiveArithmetic`, providing `+`, `-`, `+=`, `-=`, `and `.zero`.
 extension Money: AdditiveArithmetic {
     /// The zero value.
-    @inlinable
     public static var zero: Money {
         Money(minorUnits: 0)
     }
@@ -25,7 +24,6 @@ extension Money: AdditiveArithmetic {
     /// - Returns: The sum of `lhs` and `rhs`.
     /// - Precondition: Neither operand may be NaN.
     /// - Precondition: The result must fit in `Int64`.
-    @inlinable
     public static func + (lhs: Self, rhs: Self) -> Self {
         precondition(!lhs.isNaN && !rhs.isNaN, "NaN in Money addition")
         let (result, overflow) = lhs.minorUnits.addingReportingOverflow(rhs.minorUnits)
@@ -47,7 +45,6 @@ extension Money: AdditiveArithmetic {
     /// - Parameters:
     ///   - lhs: The value to modify.
     ///   - rhs: The value to add.
-    @inlinable
     public static func += (lhs: inout Self, rhs: Self) {
         lhs = lhs + rhs
     }
@@ -69,7 +66,6 @@ extension Money: AdditiveArithmetic {
     /// - Returns: The difference of `lhs` and `rhs`.
     /// - Precondition: Neither operand may be NaN.
     /// - Precondition: The result must fit in `Int64` after scaling.
-    @inlinable
     public static func - (lhs: Self, rhs: Self) -> Self {
         precondition(!lhs.isNaN && !rhs.isNaN, "NaN in Money subtraction")
         let (result, overflow) = lhs.minorUnits.subtractingReportingOverflow(rhs.minorUnits)
@@ -91,7 +87,6 @@ extension Money: AdditiveArithmetic {
     /// - Parameters:
     ///   - lhs: The value to modify.
     ///   - rhs: The value to subtract.
-    @inlinable
     public static func -= (lhs: inout Self, rhs: Self) {
         lhs = lhs - rhs
     }
@@ -104,7 +99,6 @@ public extension Money {
     ///
     /// - Precondition: `lhs` must not be NaN.
     /// - Precondition: The result must fit in `Int64`.
-    @inlinable
     static func * (lhs: Money, rhs: Int64) -> Money {
         precondition(!lhs.isNaN, "NaN in Money multiplication")
         let (result, overflow) = lhs.minorUnits.multipliedReportingOverflow(by: rhs)
@@ -119,7 +113,6 @@ public extension Money {
     ///
     /// - Precondition: `rhs` must not be NaN.
     /// - Precondition: The result must fit in `Int64`.
-    @inlinable
     static func * (lhs: Int64, rhs: Money) -> Money {
         rhs * lhs
     }
@@ -127,7 +120,6 @@ public extension Money {
     /// Multiplies a `Money` value by an `Int64` scalar in place.
     ///
     /// Traps on NaN or overflow.
-    @inlinable
     static func *= (lhs: inout Money, rhs: Int64) {
         lhs = lhs * rhs
     }

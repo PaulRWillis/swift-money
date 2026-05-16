@@ -21,7 +21,6 @@ extension Money: Equatable {
     ///   - rhs: Another value to compare.
     /// - Returns: `true` if the two values have the same raw storage.
     /// - Complexity: O(1) -- single integer comparison.
-    @inlinable
     public static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.minorUnits == rhs.minorUnits
     }
@@ -49,7 +48,6 @@ extension Money: Comparable {
     ///   - rhs: Another value to compare.
     /// - Returns: `true` if `lhs` is strictly less than `rhs`.
     /// - Complexity: O(1) -- single integer comparison.
-    @inlinable
     public static func < (lhs: Self, rhs: Self) -> Bool {
         lhs.minorUnits < rhs.minorUnits
     }
@@ -64,7 +62,6 @@ extension Money: Hashable {
     /// satisfying the `Hashable` contract.
     ///
     /// - Parameter hasher: The hasher to use when combining the components of this instance.
-    @inlinable
     public func hash(into hasher: inout Hasher) {
         hasher.combine(minorUnits)
     }
@@ -91,7 +88,6 @@ extension Money {
     /// - Returns: The lesser of `x` and `y`.
     /// - Precondition: Neither argument may be NaN.
     /// - Complexity: O(1) -- single integer comparison after NaN checks.
-    @inlinable
     public static func minimum(_ x: Self, _ y: Self) -> Self {
         precondition(!x.isNaN && !y.isNaN, "NaN in Money minimum")
         return x.minorUnits <= y.minorUnits ? x : y
@@ -115,7 +111,6 @@ extension Money {
     /// - Returns: The greater of `x` and `y`.
     /// - Precondition: Neither argument may be NaN.
     /// - Complexity: O(1) -- single integer comparison after NaN checks.
-    @inlinable
     public static func maximum(_ x: Self, _ y: Self) -> Self {
         precondition(!x.isNaN && !y.isNaN, "NaN in Money maximum")
         return x.minorUnits >= y.minorUnits ? x : y

@@ -6,10 +6,8 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     /// directly will require only a recompile rather than source edits.
     public typealias MinorUnits = Int64
 
-    @usableFromInline
     internal typealias Storage = MinorUnits
 
-    @usableFromInline
     internal var _minorUnits: Storage
 
     /// The currency type
@@ -18,7 +16,6 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     }
 
     /// The minimal quantisation of this currency (number of minor units per major unit).
-    @usableFromInline
     internal static var minimalQuantisation: MinimalQuantisation { Currency.minimalQuantisation }
 
     /// The raw minor units of this money value.
@@ -30,7 +27,6 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     /// let onePound = Money<GBP>(minorUnits: 100) // £1.00
     /// onePound.minorUnits  // 100
     /// ```
-    @inlinable
     public var minorUnits: MinorUnits { _minorUnits }
 
     /// Creates a zero value.
@@ -39,7 +35,6 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     /// let zero = Money<GBP>()
     /// zero == .zero  // true
     /// ```
-    @inlinable
     public init() {
         self._minorUnits = 0
     }
@@ -56,7 +51,6 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     ///
     /// - Parameter source: The integer value to represent.
     /// - Returns: A `Money` if the value fits, otherwise `nil`.
-    @inlinable
     public init?<T: BinaryInteger>(exactly source: T) {
         guard let int64 = Int64(exactly: source) else { return nil }
         self._minorUnits = int64
@@ -94,7 +88,6 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     ///
     /// Used internally by factory properties (`nan`, `max`, `min`, etc.) and
     /// by `Codable` decoding where the sentinel value must be preserved.
-    @usableFromInline
     internal init(_unchecked storage: Storage) {
         self._minorUnits = storage
     }
@@ -112,13 +105,11 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     /// let missing: Money<GBP> = .nan
     /// missing.isNaN  // true
     /// ```
-    @inlinable
     public static var nan: Money {
         Money(_unchecked: Storage.min)
     }
 
     /// A Boolean value indicating whether this value is NaN (not-a-number).
-    @inlinable
     public var isNaN: Bool {
         _minorUnits == .min
     }
@@ -127,7 +118,6 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     ///
     /// `Money` has no infinity representation, so all non-NaN
     /// values are finite.
-    @inlinable
     public var isFinite: Bool {
         !isNaN
     }
@@ -137,13 +127,11 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     /// Returns `.minus` for negative values (including negative zero, which
     /// cannot occur in this type), `.plus` for zero and positive values.
     /// NaN returns `.plus`.
-    @inlinable
     public var sign: FloatingPointSign {
         _minorUnits < 0 && !isNaN ? .minus : .plus
     }
 
     /// The largest representable value in minor units: `9,223,372,036,854,775,807`.
-    @inlinable
     public static var max: Money {
         Money(minorUnits: Storage.max)
     }
@@ -151,13 +139,11 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     /// The smallest representable value in minor units: `-9,223,372,036,854,775,807`.
     ///
     /// `Int64.min` is reserved as the NaN sentinel, so `.min` uses `Int64.min + 1`.
-    @inlinable
     public static var min: Money {
         Money(minorUnits: Storage.min + 1)
     }
 
     /// The smallest positive value in minor units: `1`.
-    @inlinable
     public static var leastNonzeroMagnitude: Money {
         Money(minorUnits: 1)
     }
@@ -165,7 +151,6 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     /// The largest finite magnitude in minor units: `9,223,372,036,854,775,807`.
     ///
     /// Equal to ``max`` since all representable values are finite.
-    @inlinable
     public static var greatestFiniteMagnitude: Money {
         Money(minorUnits: Storage.max)
     }
@@ -173,7 +158,6 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     /// The least (most negative) finite magnitude in minor units: `-9,223,372,036,854,775,807`.
     ///
     /// Equal to ``min`` since all representable values are finite.
-    @inlinable
     public static var leastFiniteMagnitude: Money {
         min
     }
