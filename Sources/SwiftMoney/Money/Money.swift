@@ -15,9 +15,6 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
         Currency.self
     }
 
-    /// The minimal quantisation of this currency (number of minor units per major unit).
-    internal static var minimalQuantisation: MinimalQuantisation { Currency.minimalQuantisation }
-
     /// The raw minor units of this money value.
     ///
     /// Represents the value in the currency's smallest denomination.
