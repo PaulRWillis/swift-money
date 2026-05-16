@@ -47,11 +47,11 @@ struct Money_DecimalTests {
         #expect(value2.minorUnits == 100)
     }
 
-    @Test("Money init from Decimal with NaN")
-    func decimalInitWithNaN() {
-        let decimalNaN = Decimal.nan
-        let value = Money<GBP>(decimalNaN)
-        #expect(value.isNaN)
+    @Test("Money init from Decimal traps on NaN")
+    func decimalInitWithNaN() async {
+        await #expect(processExitsWith: .failure) {
+            _ = Money<GBP>(Decimal.nan)
+        }
     }
 
     @Test("Money init from Decimal traps on scaled NaN")
@@ -113,11 +113,9 @@ struct Money_DecimalTests {
         #expect(value.minorUnits == 100)
     }
 
-    @Test("Money init from exact Decimal returns nil on NaN")
-    func decimalExactInitWithNaN() throws {
-        let decimalNaN = Decimal.nan
-        let value = try #require(Money<GBP>(exactly: decimalNaN))
-        #expect(value.isNaN)
+    @Test("Money init from exact Decimal returns nil for NaN")
+    func decimalExactInitWithNaN() {
+        #expect(Money<GBP>(exactly: Decimal.nan) == nil)
     }
 
     @Test("Money init from exact Decimal returns nil on scaled NaN")
