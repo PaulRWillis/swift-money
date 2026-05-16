@@ -47,6 +47,9 @@ extension MinorUnit {
 
     /// The zero value.
     static let zero = MinorUnit(integerLiteral: 0)
+
+    /// The minimum representable value (`Int64.min + 1`).
+    static let min = MinorUnit(integerLiteral: Storage.min + 1)
 }
 
 // MARK: - ExpressibleByIntegerLiteral

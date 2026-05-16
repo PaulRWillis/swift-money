@@ -106,4 +106,9 @@ struct MinorUnitTests {
     func zeroIsZero() {
         #expect(Int64(MinorUnit.zero) == 0)
     }
+
+    @Test("min is Int64.min + 1")
+    func minIsInt64MinPlusOne() {
+        #expect(Int64(MinorUnit.min) == .min + 1)
+    }
 }
