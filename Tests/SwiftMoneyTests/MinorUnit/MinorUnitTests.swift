@@ -334,4 +334,13 @@ struct MinorUnitTests {
             _ = a - MinorUnit.max
         }
     }
+
+    // MARK: - AdditiveArithmetic
+
+    @Test("conforms to AdditiveArithmetic")
+    func conformsToAdditiveArithmetic() {
+        func addGeneric<T: AdditiveArithmetic>(_ a: T, _ b: T) -> T { a + b }
+        let result = addGeneric(MinorUnit(integerLiteral: 3), MinorUnit(integerLiteral: 4))
+        #expect(result == 7)
+    }
 }

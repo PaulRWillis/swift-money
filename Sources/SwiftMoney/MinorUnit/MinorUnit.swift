@@ -102,17 +102,13 @@ extension MinorUnit: Codable {
     }
 }
 
-// MARK: - Addition
+// MARK: - AdditiveArithmetic
 
-extension MinorUnit {
+extension MinorUnit: AdditiveArithmetic {
     static func + (lhs: MinorUnit, rhs: MinorUnit) -> MinorUnit {
         MinorUnit(integerLiteral: lhs._storage + rhs._storage)
     }
-}
 
-// MARK: - Subtraction
-
-extension MinorUnit {
     static func - (lhs: MinorUnit, rhs: MinorUnit) -> MinorUnit {
         MinorUnit(integerLiteral: lhs._storage - rhs._storage)
     }
