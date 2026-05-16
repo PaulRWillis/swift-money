@@ -49,6 +49,9 @@ extension MinorUnit {
 
     /// The minimum representable value (`Int64.min + 1`).
     static let min = MinorUnit(integerLiteral: Storage.min + 1)
+
+    /// The maximum representable value (`Int64.max`).
+    static let max = MinorUnit(integerLiteral: .max)
 }
 
 // MARK: - ExpressibleByIntegerLiteral

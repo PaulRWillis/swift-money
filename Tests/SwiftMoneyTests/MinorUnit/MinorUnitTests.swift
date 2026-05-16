@@ -113,4 +113,9 @@ struct MinorUnitTests {
     func minIsStorageMinPlusOne() {
         #expect(MinorUnit.min._storage == .min + 1)
     }
+
+    @Test("max is Storage.max")
+    func maxIsStorageMax() {
+        #expect(MinorUnit.max._storage == Storage.max)
+    }
 }
