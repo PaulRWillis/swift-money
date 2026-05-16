@@ -41,6 +41,17 @@ struct MinorUnit: Sendable {
     }
 }
 
+// MARK: - ExpressibleByIntegerLiteral
+
+extension MinorUnit: ExpressibleByIntegerLiteral {
+    init(integerLiteral value: Int64) {
+        guard let minorUnit = MinorUnit(exactly: value) else {
+            preconditionFailure("MinorUnit cannot represent Int64.min")
+        }
+        self = minorUnit
+    }
+}
+
 // MARK: - Int64 Conversion
 
 extension Int64 {

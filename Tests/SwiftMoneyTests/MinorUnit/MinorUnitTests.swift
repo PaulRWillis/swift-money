@@ -78,4 +78,25 @@ struct MinorUnitTests {
         let minorUnit = try #require(MinorUnit(exactly: original))
         #expect(Int64(minorUnit) == original)
     }
+
+    // MARK: - ExpressibleByIntegerLiteral
+
+    @Test("Integer literal produces correct value")
+    func integerLiteral() {
+        let minorUnit: MinorUnit = 100
+        #expect(Int64(minorUnit) == 100)
+    }
+
+    @Test("Negative integer literal produces correct value")
+    func negativeIntegerLiteral() {
+        let minorUnit: MinorUnit = -50
+        #expect(Int64(minorUnit) == -50)
+    }
+
+    @Test("Integer literal traps on Int64.min")
+    func integerLiteralTrapsOnInt64Min() async {
+        await #expect(processExitsWith: .failure) {
+            _ = MinorUnit(integerLiteral: .min)
+        }
+    }
 }
