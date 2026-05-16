@@ -99,4 +99,11 @@ struct MinorUnitTests {
             _ = MinorUnit(integerLiteral: .min)
         }
     }
+
+    // MARK: - Static Properties
+
+    @Test("zero is 0")
+    func zeroIsZero() {
+        #expect(Int64(MinorUnit.zero) == 0)
+    }
 }

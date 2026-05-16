@@ -41,6 +41,14 @@ struct MinorUnit: Sendable {
     }
 }
 
+// MARK: - Static Properties
+
+extension MinorUnit {
+
+    /// The zero value.
+    static let zero = MinorUnit(integerLiteral: 0)
+}
+
 // MARK: - ExpressibleByIntegerLiteral
 
 extension MinorUnit: ExpressibleByIntegerLiteral {
