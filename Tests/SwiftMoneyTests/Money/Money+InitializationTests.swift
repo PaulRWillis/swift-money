@@ -97,11 +97,9 @@ struct Money_InitializationTests {
         #expect(int64Max?.minorUnits == Int64.max)
     }
 
-    @Test("Exact integer init success for Int64.min")
+    @Test("Exact integer init returns nil for Int64.min")
     func exactIntegerInitForInt64Min() {
-        let int64Min = Money<TST_100>(exactly: Int64.min)
-        #expect(int64Min != nil)
-        #expect(int64Min?.minorUnits == Int64.min)
+        #expect(Money<TST_100>(exactly: Int64.min) == nil)
     }
 
     // MARK: - Exact integer init for Int32

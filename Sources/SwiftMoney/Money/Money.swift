@@ -49,7 +49,10 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     /// - Parameter source: The integer value to represent.
     /// - Returns: A `Money` if the value fits, otherwise `nil`.
     public init?<T: BinaryInteger>(exactly source: T) {
-        guard let int64 = Int64(exactly: source) else { return nil }
+        guard let int64 = Int64(exactly: source), int64 != .min else {
+            return nil
+        }
+        
         self._minorUnits = int64
     }
 
