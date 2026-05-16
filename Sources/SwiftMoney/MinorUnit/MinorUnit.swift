@@ -70,6 +70,12 @@ extension MinorUnit: Comparable {
     }
 }
 
+// MARK: - CustomStringConvertible
+
+extension MinorUnit: CustomStringConvertible {
+    var description: String { String(_storage) }
+}
+
 // MARK: - ExpressibleByIntegerLiteral
 
 extension MinorUnit: ExpressibleByIntegerLiteral {

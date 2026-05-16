@@ -181,4 +181,18 @@ struct MinorUnitTests {
         let set: Set<MinorUnit> = [1, 2, 3, 1]
         #expect(set.count == 3)
     }
+
+    // MARK: - CustomStringConvertible
+
+    @Test("description is the numeric value")
+    func descriptionIsNumericValue() {
+        let minorUnit: MinorUnit = 150
+        #expect(minorUnit.description == "150")
+    }
+
+    @Test("description of negative value includes minus sign")
+    func descriptionOfNegativeValue() {
+        let minorUnit: MinorUnit = -42
+        #expect(minorUnit.description == "-42")
+    }
 }
