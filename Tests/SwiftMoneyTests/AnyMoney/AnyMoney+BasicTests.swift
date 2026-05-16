@@ -103,10 +103,9 @@ struct AnyMoney_BasicTests {
         #expect(any.asMoney(TST_1.self) == nil)
     }
 
-    @Test("asMoney preserves NaN through round-trip")
-    func asMoneyPreservesNaN() throws {
+    @Test("asMoney returns nil for NaN")
+    func asMoneyReturnsNilForNaN() {
         let original = Money<TST_100>.nan
-        let roundTripped = try #require(original.erased.asMoney(TST_100.self))
-        #expect(roundTripped.isNaN)
+        #expect(original.erased.asMoney(TST_100.self) == nil)
     }
 }

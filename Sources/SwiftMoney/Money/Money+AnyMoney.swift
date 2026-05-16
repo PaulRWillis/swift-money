@@ -32,6 +32,7 @@ extension AnyMoney {
     ///   codes match, otherwise `nil`.
     public func asMoney<C: Currency>(_ currency: C.Type) -> Money<C>? {
         guard currencyCode == C.code else { return nil }
-        return Money<C>(_unchecked: minorUnits)
+        guard minorUnits != .min else { return nil }
+        return Money<C>(minorUnits: minorUnits)
     }
 }
