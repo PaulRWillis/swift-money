@@ -114,6 +114,18 @@ extension MinorUnit: AdditiveArithmetic {
     }
 }
 
+// MARK: - Negation
+
+extension MinorUnit {
+    static prefix func - (operand: MinorUnit) -> MinorUnit {
+        MinorUnit(integerLiteral: -operand._storage)
+    }
+
+    mutating func negate() {
+        self = -self
+    }
+}
+
 // MARK: - Scalar Multiplication
 
 extension MinorUnit {

@@ -391,4 +391,43 @@ struct MinorUnitTests {
             _ = a * Int64(2)
         }
     }
+
+    // MARK: - Negation
+
+    @Test("negating a positive value")
+    func negatePositive() {
+        let result = -(MinorUnit(integerLiteral: 42))
+        #expect(result == -42)
+    }
+
+    @Test("negating a negative value")
+    func negateNegative() {
+        let result = -(MinorUnit(integerLiteral: -42))
+        #expect(result == 42)
+    }
+
+    @Test("negating zero is zero")
+    func negateZero() {
+        let result = -(MinorUnit.zero)
+        #expect(result == .zero)
+    }
+
+    @Test("negating .min produces .max")
+    func negateMinProducesMax() {
+        let result = -(MinorUnit.min)
+        #expect(Int64(result) == Storage.max)
+    }
+
+    @Test("negating .max produces .min")
+    func negateMaxProducesMin() {
+        let result = -(MinorUnit.max)
+        #expect(result == .min)
+    }
+
+    @Test("negate() mutates in place")
+    func negateMutatesInPlace() {
+        var minorUnit: MinorUnit = 100
+        minorUnit.negate()
+        #expect(minorUnit == -100)
+    }
 }
