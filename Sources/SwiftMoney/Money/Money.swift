@@ -8,7 +8,7 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
 
     internal typealias Storage = MinorUnits
 
-    internal var _minorUnits: Storage
+    private var _minorUnits: Storage
 
     /// The currency type
     public var currency: any SwiftMoney.Currency.Type {
