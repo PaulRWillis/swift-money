@@ -69,7 +69,7 @@ extension UnitRate where U: Dimension {
         }
 
         return RateCalculation(
-            amount: Money<C>(_unchecked: minorUnits),
+            amount: Money<C>(minorUnits: minorUnits),
             effectiveRate: effectiveRate
         )
     }
