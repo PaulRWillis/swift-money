@@ -192,7 +192,7 @@ extension Money: Codable {
 
     // MARK: - Shared arithmetic helpers
 
-    /// Converts `_minorUnits` (minor units) to major-unit `Decimal` for encoding.
+    /// Converts minor units to major-unit `Decimal` for encoding.
     private func _majorUnitsDecimal() -> Decimal {
         let quantisation = Decimal(Currency.minimalQuantisation.int64Value)
         return Decimal(minorUnits) / quantisation
