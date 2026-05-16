@@ -9,34 +9,38 @@ struct MinorUnitTests {
 
     // MARK: - Failable Initialisation
 
+    // Assertions use Int64(_:) — not == literal — to avoid false positives.
+    // Literal coercion would call init(exactly:) on both sides of ==, so a
+    // bug that always stores zero would produce MinorUnit(0) == MinorUnit(0).
+
     @Test("init exactly accepts zero")
     func exactlyAcceptsZero() throws {
         let minorUnit = try #require(MinorUnit(exactly: 0))
-        #expect(minorUnit._storage == 0)
+        #expect(Int64(minorUnit) == 0)
     }
 
     @Test("init exactly accepts positive values")
     func exactlyAcceptsPositive() throws {
         let minorUnit = try #require(MinorUnit(exactly: 150))
-        #expect(minorUnit._storage == 150)
+        #expect(Int64(minorUnit) == 150)
     }
 
     @Test("init exactly accepts negative values")
     func exactlyAcceptsNegative() throws {
         let minorUnit = try #require(MinorUnit(exactly: -150))
-        #expect(minorUnit._storage == -150)
+        #expect(Int64(minorUnit) == -150)
     }
 
     @Test("init exactly accepts Storage.max")
     func exactlyAcceptsStorageMax() throws {
         let minorUnit = try #require(MinorUnit(exactly: Storage.max))
-        #expect(minorUnit._storage == .max)
+        #expect(Int64(minorUnit) == Storage.max)
     }
 
     @Test("init exactly accepts Storage.min + 1")
     func exactlyAcceptsStorageMinPlusOne() throws {
         let minorUnit = try #require(MinorUnit(exactly: Storage.min + 1))
-        #expect(minorUnit._storage == .min + 1)
+        #expect(Int64(minorUnit) == Storage.min + 1)
     }
 
     @Test("init exactly rejects Storage.min")
@@ -47,7 +51,7 @@ struct MinorUnitTests {
     @Test("init exactly accepts Int that fits in Storage")
     func exactlyAcceptsInt() throws {
         let minorUnit = try #require(MinorUnit(exactly: 42 as Int))
-        #expect(minorUnit._storage == 42)
+        #expect(Int64(minorUnit) == 42)
     }
 
     @Test("init exactly rejects UInt64 that overflows Storage")
@@ -58,7 +62,7 @@ struct MinorUnitTests {
     @Test("init exactly accepts Int128 that fits")
     func exactlyAcceptsInt128() throws {
         let minorUnit = try #require(MinorUnit(exactly: Int128(1000)))
-        #expect(minorUnit._storage == 1000)
+        #expect(Int64(minorUnit) == 1000)
     }
 
     @Test("init exactly rejects Int128 that overflows Storage")
@@ -83,16 +87,18 @@ struct MinorUnitTests {
 
     // MARK: - ExpressibleByIntegerLiteral
 
+    // Assertions use Int64(_:) for the same false-positive reason as init tests.
+
     @Test("Integer literal produces correct value")
     func integerLiteral() {
         let minorUnit: MinorUnit = 100
-        #expect(minorUnit._storage == 100)
+        #expect(Int64(minorUnit) == 100)
     }
 
     @Test("Negative integer literal produces correct value")
     func negativeIntegerLiteral() {
         let minorUnit: MinorUnit = -50
-        #expect(minorUnit._storage == -50)
+        #expect(Int64(minorUnit) == -50)
     }
 
     @Test("Integer literal traps on Storage.min")
@@ -104,19 +110,22 @@ struct MinorUnitTests {
 
     // MARK: - Static Properties
 
+    // Boundary values (.min, .max) use Int64(_:) for the same false-positive
+    // reason as init tests. .zero uses == literal since zero is unambiguous.
+
     @Test("zero is 0")
     func zeroIsZero() {
-        #expect(MinorUnit.zero._storage == 0)
+        #expect(MinorUnit.zero == 0)
     }
 
     @Test("min is Storage.min + 1")
     func minIsStorageMinPlusOne() {
-        #expect(MinorUnit.min._storage == .min + 1)
+        #expect(Int64(MinorUnit.min) == Storage.min + 1)
     }
 
     @Test("max is Storage.max")
     func maxIsStorageMax() {
-        #expect(MinorUnit.max._storage == Storage.max)
+        #expect(Int64(MinorUnit.max) == Storage.max)
     }
 
     // MARK: - Equatable
