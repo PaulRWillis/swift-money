@@ -111,7 +111,7 @@ extension Money {
 extension Money.FormatStyle {
     /// Builds the `IntegerFormatStyle<Int64>.Currency` that `format(_:)` uses.
     internal func _integerFormatStyle() -> IntegerFormatStyle<Int64>.Currency {
-        let minQScale = 1.0 / Double(Money<Currency>.minimalQuantisation.int64Value)
+        let minQScale = 1.0 / Double(Currency.minimalQuantisation.int64Value)
 
         var style = IntegerFormatStyle<Int64>.Currency(
             code: Currency.code.stringValue,
@@ -165,7 +165,7 @@ extension Money.FormatStyle {
     /// 2. Convert: `minor_units = displayed × minQ`.
     /// 3. Round half-up and convert to `Int64`.
     internal func _parse(_ value: String) throws -> Money<Currency> {
-        let quantisation = Decimal(Money<Currency>.minimalQuantisation.int64Value)
+        let quantisation = Decimal(Currency.minimalQuantisation.int64Value)
 
         let displayed = try _decimalFormatStyle().parseStrategy.parse(value)
 

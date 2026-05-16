@@ -7,7 +7,7 @@ extension Money {
     /// Returns `Decimal.nan` for NaN.
     public var decimalValue: Decimal {
         if isNaN { return Decimal.nan }
-        return Decimal(minorUnits) / Decimal(Self.minimalQuantisation.int64Value)
+        return Decimal(minorUnits) / Decimal(Currency.minimalQuantisation.int64Value)
     }
 }
 
@@ -37,7 +37,7 @@ extension Money {
             return
         }
 
-        let factor = Decimal(Self.minimalQuantisation.int64Value)
+        let factor = Decimal(Currency.minimalQuantisation.int64Value)
 
         precondition(
             factor != .zero,
@@ -84,7 +84,7 @@ extension Money {
             return
         }
 
-        let factor = Decimal(Self.minimalQuantisation.int64Value)
+        let factor = Decimal(Currency.minimalQuantisation.int64Value)
 
         guard factor != .zero else { return nil }
 
