@@ -195,4 +195,18 @@ struct MinorUnitTests {
         let minorUnit: MinorUnit = -42
         #expect(minorUnit.description == "-42")
     }
+
+    // MARK: - CustomDebugStringConvertible
+
+    @Test("debugDescription includes type name")
+    func debugDescriptionIncludesTypeName() {
+        let minorUnit: MinorUnit = 150
+        #expect(minorUnit.debugDescription == "MinorUnit(150)")
+    }
+
+    @Test("debugDescription of negative value")
+    func debugDescriptionOfNegativeValue() {
+        let minorUnit: MinorUnit = -42
+        #expect(minorUnit.debugDescription == "MinorUnit(-42)")
+    }
 }

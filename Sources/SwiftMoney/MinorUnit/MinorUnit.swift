@@ -76,6 +76,12 @@ extension MinorUnit: CustomStringConvertible {
     var description: String { String(_storage) }
 }
 
+// MARK: - CustomDebugStringConvertible
+
+extension MinorUnit: CustomDebugStringConvertible {
+    var debugDescription: String { "\(Self.self)(\(_storage))" }
+}
+
 // MARK: - ExpressibleByIntegerLiteral
 
 extension MinorUnit: ExpressibleByIntegerLiteral {
