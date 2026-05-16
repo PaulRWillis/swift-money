@@ -261,15 +261,16 @@ struct Money_Codable_MinorUnitsStrategyTests {
         #expect(decoded == original)
     }
 
-    @Test("minorUnits: NaN encodes and decodes correctly (sentinel preserved)")
-    func minorUnitsNaNRoundTrip() throws {
+    @Test("minorUnits: decoding Int64.min throws DecodingError")
+    func minorUnitsDecodingInt64MinThrows() throws {
         let encoder = JSONEncoder()
         encoder.moneyEncodingStrategy = .minorUnits
         let decoder = JSONDecoder()
         decoder.moneyDecodingStrategy = .minorUnits
-        let nan = Money<GBP>.nan
-        let decoded = try decoder.decode(Money<GBP>.self, from: encoder.encode(nan))
-        #expect(decoded.isNaN)
+        let encoded = try encoder.encode(Money<GBP>.nan)
+        #expect(throws: DecodingError.self) {
+            try decoder.decode(Money<GBP>.self, from: encoded)
+        }
     }
 
     @Test("minorUnits: decoding known JSON value")

@@ -134,8 +134,13 @@ extension Money: Codable {
     private static func _decodeMinorUnits(from decoder: any Decoder) throws -> Money<Currency> {
         let container = try decoder.singleValueContainer()
         let minorUnits = try container.decode(Int64.self)
-        // Int64.min is the NaN sentinel — preserve it via _unchecked initialiser.
-        return Money(_unchecked: minorUnits)
+        guard let money = Money<Currency>(exactly: minorUnits) else {
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Minor-unit value \(minorUnits) cannot be represented as Money."
+            )
+        }
+        return money
     }
 
     private static func _decodeMajorUnits(from decoder: any Decoder) throws -> Money<Currency> {
@@ -172,7 +177,14 @@ extension Money: Codable {
         switch amountStrategy {
         case .minorUnits:
             let minorUnits = try container.decode(Int64.self, forKey: .amount)
-            return Money(_unchecked: minorUnits)
+            guard let money = Money<Currency>(exactly: minorUnits) else {
+                throw DecodingError.dataCorruptedError(
+                    forKey: .amount,
+                    in: container,
+                    debugDescription: "Minor-unit value \(minorUnits) cannot be represented as Money."
+                )
+            }
+            return money
         case .majorUnits:
             let decimal = try container.decode(Decimal.self, forKey: .amount)
             return try _decimalToMoney(decimal, codingPath: container.codingPath)
@@ -216,14 +228,14 @@ extension Money: Codable {
             )
             throw DecodingError.dataCorrupted(context)
         }
-        guard roundedMinorUnits != .min else {
+        guard let money = Money<Currency>(exactly: roundedMinorUnits) else {
             let context = DecodingError.Context(
                 codingPath: codingPath,
-                debugDescription: "Decoded minor-unit value \(roundedMinorUnits) collides with the NaN sentinel (Int64.min)."
+                debugDescription: "Decoded minor-unit value \(roundedMinorUnits) cannot be represented as Money."
             )
             throw DecodingError.dataCorrupted(context)
         }
-        return Money(_unchecked: roundedMinorUnits)
+        return money
     }
 }
 #endif
