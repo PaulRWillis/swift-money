@@ -54,6 +54,10 @@ extension MinorUnit {
     static let max = MinorUnit(integerLiteral: .max)
 }
 
+// MARK: - Equatable
+
+extension MinorUnit: Equatable {}
+
 // MARK: - ExpressibleByIntegerLiteral
 
 extension MinorUnit: ExpressibleByIntegerLiteral {

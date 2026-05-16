@@ -118,4 +118,20 @@ struct MinorUnitTests {
     func maxIsStorageMax() {
         #expect(MinorUnit.max._storage == Storage.max)
     }
+
+    // MARK: - Equatable
+
+    @Test("equal values are equal")
+    func equalValuesAreEqual() throws {
+        let a = try #require(MinorUnit(exactly: 100))
+        let b = try #require(MinorUnit(exactly: 100))
+        #expect(a == b)
+    }
+
+    @Test("different values are not equal")
+    func differentValuesAreNotEqual() throws {
+        let a = try #require(MinorUnit(exactly: 100))
+        let b = try #require(MinorUnit(exactly: 200))
+        #expect(a != b)
+    }
 }
