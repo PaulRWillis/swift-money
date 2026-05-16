@@ -236,4 +236,52 @@ struct MinorUnitTests {
             try JSONDecoder().decode(MinorUnit.self, from: data)
         }
     }
+
+    // MARK: - Addition
+
+    @Test("adding two positive values")
+    func addPositiveValues() {
+        let result: MinorUnit = 100 + 50
+        #expect(result == 150)
+    }
+
+    @Test("adding positive and negative values")
+    func addPositiveAndNegative() {
+        let result: MinorUnit = 100 + (-30)
+        #expect(result == 70)
+    }
+
+    @Test("adding zero is identity")
+    func addZeroIsIdentity() {
+        let result: MinorUnit = 42 + .zero
+        #expect(result == 42)
+    }
+
+    @Test("adding to produce .max")
+    func addToMax() throws {
+        let a = try #require(MinorUnit(exactly: Storage.max - 1))
+        let result = a + 1
+        #expect(Int64(result) == Storage.max)
+    }
+
+    @Test("adding to produce .min")
+    func addToMin() throws {
+        let a = try #require(MinorUnit(exactly: Storage.min + 2))
+        let result = a + (-1)
+        #expect(Int64(result) == Storage.min + 1)
+    }
+
+    @Test("adding past .max traps")
+    func addPastMaxTraps() async {
+        await #expect(processExitsWith: .failure) {
+            _ = MinorUnit.max + 1
+        }
+    }
+
+    @Test("adding to produce Storage.min traps")
+    func addToStorageMinTraps() async {
+        await #expect(processExitsWith: .failure) {
+            _ = MinorUnit.min + (-1)
+        }
+    }
 }

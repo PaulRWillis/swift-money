@@ -102,6 +102,14 @@ extension MinorUnit: Codable {
     }
 }
 
+// MARK: - Addition
+
+extension MinorUnit {
+    static func + (lhs: MinorUnit, rhs: MinorUnit) -> MinorUnit {
+        MinorUnit(integerLiteral: lhs._storage + rhs._storage)
+    }
+}
+
 // MARK: - ExpressibleByIntegerLiteral
 
 extension MinorUnit: ExpressibleByIntegerLiteral {
