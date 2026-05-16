@@ -143,4 +143,27 @@ struct MinorUnitTests {
         let b = try #require(MinorUnit(exactly: 200))
         #expect(a != b)
     }
+
+    // MARK: - Comparable
+
+    @Test("smaller value is less than larger value")
+    func smallerIsLessThanLarger() {
+        let a: MinorUnit = 100
+        let b: MinorUnit = 200
+        #expect(a < b)
+    }
+
+    @Test("larger value is not less than smaller value")
+    func largerIsNotLessThanSmaller() {
+        let a: MinorUnit = 200
+        let b: MinorUnit = 100
+        #expect(!(a < b))
+    }
+
+    @Test("equal values are not less than each other")
+    func equalValuesAreNotLessThan() {
+        let a: MinorUnit = 100
+        let b: MinorUnit = 100
+        #expect(!(a < b))
+    }
 }

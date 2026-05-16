@@ -58,6 +58,14 @@ extension MinorUnit {
 
 extension MinorUnit: Equatable {}
 
+// MARK: - Comparable
+
+extension MinorUnit: Comparable {
+    static func < (lhs: MinorUnit, rhs: MinorUnit) -> Bool {
+        lhs._storage < rhs._storage
+    }
+}
+
 // MARK: - ExpressibleByIntegerLiteral
 
 extension MinorUnit: ExpressibleByIntegerLiteral {
