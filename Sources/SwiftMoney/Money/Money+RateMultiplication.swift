@@ -56,16 +56,12 @@ extension Money {
             rule: rounding
         )
 
-        // Bounds check: result must fit in Int64 and must not equal the NaN sentinel.
+        // Bounds check: result must fit in Int64.
         guard let minorUnits = Int64(exactly: minorUnits128) else {
             preconditionFailure("Money fractional multiplication result overflows Int64")
         }
-        precondition(
-            minorUnits != .min,
-            "Money fractional multiplication produced NaN sentinel"
-        )
 
-        let resultMoney = Money(_unchecked: minorUnits)
+        let resultMoney = Money(minorUnits: minorUnits)
         let effectiveRate = _effectiveRate(result: minorUnits, input: self.minorUnits)
 
         return RateCalculation(amount: resultMoney, effectiveRate: effectiveRate)

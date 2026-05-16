@@ -116,22 +116,6 @@ struct AnyMoney_CodableTests {
         #expect(decoded.formatted() == original.formatted())
     }
 
-    // MARK: - NaN
-
-    @Test("NaN encodes and decodes correctly")
-    func nanRoundTrip() throws {
-        let original = Money<TST_100>.nan.erased
-        let decoded = try roundTrip(original)
-        #expect(decoded.isNaN)
-    }
-
-    @Test("NaN round-trip preserves currencyCode")
-    func nanRoundTripCurrencyCode() throws {
-        let original = Money<TST_100>.nan.erased
-        let decoded = try roundTrip(original)
-        #expect(decoded.currencyCode == TST_100.code)
-    }
-
     // MARK: - Ratio-1 currency
 
     @Test("Round-trip preserves ratio-1 currency")
@@ -261,16 +245,6 @@ struct AnyMoney_CodableTests_ObjectStrategy {
         #expect(decoded == original)
     }
 
-    @Test(".object(minorUnits): NaN is preserved")
-    func objectMinorUnitsNaNPreserved() throws {
-        let original = Money<TST_100>.nan.erased
-        let decoded = try roundTrip(original,
-            encoding: .object(amount: .minorUnits),
-            decoding: .object(amount: .minorUnits, resolver: resolver))
-        #expect(decoded.isNaN)
-        #expect(decoded.currencyCode == TST_100.code)
-    }
-
     @Test(".object(string): GBP round-trips correctly")
     func objectStringGBPRoundTrip() throws {
         let locale = Locale(identifier: "en_GB")
@@ -279,24 +253,6 @@ struct AnyMoney_CodableTests_ObjectStrategy {
             encoding: .object(amount: .string(locale: locale)),
             decoding: .object(amount: .string(locale: locale), resolver: resolver))
         #expect(decoded == original)
-    }
-
-    // MARK: NaN error handling
-
-    @Test(".object(majorUnits): encoding NaN throws EncodingError")
-    func objectMajorUnitsNaNThrows() throws {
-        let nan = Money<TST_100>.nan.erased
-        #expect(throws: EncodingError.self) {
-            try makeSortedEncoder(strategy: .object(amount: .majorUnits)).encode(nan)
-        }
-    }
-
-    @Test(".object(string): encoding NaN throws EncodingError")
-    func objectStringNaNThrows() throws {
-        let nan = Money<TST_100>.nan.erased
-        #expect(throws: EncodingError.self) {
-            try makeSortedEncoder(strategy: .object(amount: .string(locale: .current))).encode(nan)
-        }
     }
 
     // MARK: Resolver errors

@@ -15,11 +15,6 @@ struct Money_MagnitudeTests {
         #expect(value.magnitude == Money<TST_100>(minorUnits: 201))
     }
 
-    @Test("Numeric magnitude for NaN traps")
-    func magnitudeNaN() async {
-        await #expect(processExitsWith: .failure) { _ = Money<TST_100>.nan.magnitude }
-    }
-
     @Test("Numeric magnitude for zero")
     func magnitudeZero() {
         #expect(Money<TST_100>.zero.magnitude == .zero)

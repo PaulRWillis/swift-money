@@ -42,7 +42,7 @@ extension UnitRate {
             rounding: rounding
         )
 
-        let resultMoney = Money<C>(_unchecked: minorUnits)
+        let resultMoney = Money<C>(minorUnits: minorUnits)
         let effectiveRate = effectiveRate(minorUnits: minorUnits, quantity: quantity)
         return RateCalculation(amount: resultMoney, effectiveRate: effectiveRate)
     }
@@ -85,7 +85,6 @@ extension UnitRate {
         guard let minorUnits = Int64(exactly: minorUnits128) else {
             preconditionFailure("UnitRate price calculation overflows Int64")
         }
-        precondition(minorUnits != .min, "UnitRate price calculation produced NaN sentinel")
         return minorUnits
     }
 

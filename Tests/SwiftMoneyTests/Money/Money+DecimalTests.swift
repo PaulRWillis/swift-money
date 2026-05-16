@@ -7,12 +7,6 @@ struct Money_DecimalTests {
 
     // MARK: - decimalValue
 
-    @Test("decimalValue returns Decimal.nan for Money.nan")
-    func decimalValueForNaN() {
-        let moneyNaN = Money<TST_100>.nan
-        #expect(moneyNaN.decimalValue == .nan)
-    }
-
     @Test("decimalValue returns correct Decimal for Money")
     func decimalValue() {
         let value = Money<TST_100>(minorUnits: 42)
@@ -47,11 +41,11 @@ struct Money_DecimalTests {
         #expect(value2.minorUnits == 100)
     }
 
-    @Test("Money init from Decimal with NaN")
-    func decimalInitWithNaN() {
-        let decimalNaN = Decimal.nan
-        let value = Money<GBP>(decimalNaN)
-        #expect(value.isNaN)
+    @Test("Money init from Decimal traps on NaN")
+    func decimalInitWithNaN() async {
+        await #expect(processExitsWith: .failure) {
+            _ = Money<GBP>(Decimal.nan)
+        }
     }
 
     @Test("Money init from Decimal traps on scaled NaN")
@@ -113,11 +107,9 @@ struct Money_DecimalTests {
         #expect(value.minorUnits == 100)
     }
 
-    @Test("Money init from exact Decimal returns nil on NaN")
-    func decimalExactInitWithNaN() throws {
-        let decimalNaN = Decimal.nan
-        let value = try #require(Money<GBP>(exactly: decimalNaN))
-        #expect(value.isNaN)
+    @Test("Money init from exact Decimal returns nil for NaN")
+    func decimalExactInitWithNaN() {
+        #expect(Money<GBP>(exactly: Decimal.nan) == nil)
     }
 
     @Test("Money init from exact Decimal returns nil on scaled NaN")
@@ -160,19 +152,7 @@ struct Money_DecimalTests {
         #expect(decimal == Decimal(string: "123.45"))
     }
 
-    @Test("Decimal NaN handling")
-    func decimalNaN() {
-        let moneyNaN = Money<TST_100>.nan
-        #expect(Decimal(moneyNaN).isNaN)
-    }
-
     // MARK: - Decimal init from exact Money
-
-    @Test("Decimal exact init returns nil on NaN")
-    func decimalExactInitNaN() {
-        let moneyNaN = Money<TST_100>.nan
-        #expect(Decimal(exactly: moneyNaN) == nil)
-    }
 
     @Test("Decimal exact init returns value on non-NaN")
     func decimalExactInitNonNaN() {

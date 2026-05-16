@@ -32,10 +32,7 @@ extension Money {
     /// - Precondition: The scaled result must fit in `Int64`.
     /// - Precondition: The `scaleFactor` of the currency must not be 0.
     public init(_ decimal: Decimal) {
-        if decimal.isNaN {
-            self = .nan
-            return
-        }
+        precondition(!decimal.isNaN, "Cannot create Money from Decimal.nan")
 
         let factor = Decimal(Currency.minimalQuantisation.int64Value)
 
@@ -79,10 +76,7 @@ extension Money {
     /// - Parameter decimal: The `Foundation.Decimal` value to convert.
     /// - Returns: A `Money` if the value is representable, otherwise `nil`.
     public init?(exactly decimal: Decimal) {
-        if decimal.isNaN {
-            self = .nan
-            return
-        }
+        if decimal.isNaN { return nil }
 
         let factor = Decimal(Currency.minimalQuantisation.int64Value)
 

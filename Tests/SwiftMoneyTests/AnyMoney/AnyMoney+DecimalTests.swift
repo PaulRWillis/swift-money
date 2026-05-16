@@ -33,12 +33,6 @@ struct AnyMoney_DecimalTests {
         #expect(any.decimalValue == expected)
     }
 
-    @Test("decimalValue returns Decimal.nan for an erased NaN")
-    func decimalValueNaN() {
-        let any = Money<TST_100>.nan.erased
-        #expect(any.decimalValue.isNaN)
-    }
-
     @Test("decimalValue matches Money<C>.decimalValue for ratio-100 currency")
     func decimalValueMatchesTyped100() {
         let money = Money<TST_100>(minorUnits: 9999)

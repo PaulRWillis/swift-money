@@ -15,7 +15,7 @@ extension Money {
         let raw = Int64.random(
             in: range.lowerBound.minorUnits...range.upperBound.minorUnits
         )
-        return Money(_unchecked: raw)
+        return Money(minorUnits: raw)
     }
 
     /// Returns a random value within the specified closed range, using the given
@@ -39,7 +39,7 @@ extension Money {
             in: range.lowerBound.minorUnits...range.upperBound.minorUnits,
             using: &generator
         )
-        return Money(_unchecked: raw)
+        return Money(minorUnits: raw)
     }
 
     /// Returns a random value within the specified half-open range.
@@ -57,7 +57,7 @@ extension Money {
         let raw = Int64.random(
             in: range.lowerBound.minorUnits..<range.upperBound.minorUnits
         )
-        return Money(_unchecked: raw)
+        return Money(minorUnits: raw)
     }
 
     /// Returns a random value within the specified half-open range, using the given
@@ -83,6 +83,6 @@ extension Money {
             in: range.lowerBound.minorUnits..<range.upperBound.minorUnits,
             using: &generator
         )
-        return Money(_unchecked: raw)
+        return Money(minorUnits: raw)
     }
 }

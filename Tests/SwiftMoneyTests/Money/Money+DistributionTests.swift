@@ -91,14 +91,5 @@ struct Money_DistributionTests {
         #expect(smallerCount == c.expectedSmallerCount)
     }
 
-    // MARK: - Precondition traps
-
-    @Test("distributed(into:) traps on NaN")
-    func distributedNaNTraps() async {
-        await #expect(processExitsWith: .failure) {
-            _ = Money<TST_100>.nan.distributed(into: 3)
-        }
-    }
-
 }
 
