@@ -114,6 +114,18 @@ extension MinorUnit: AdditiveArithmetic {
     }
 }
 
+// MARK: - Scalar Multiplication
+
+extension MinorUnit {
+    static func * (lhs: MinorUnit, rhs: Storage) -> MinorUnit {
+        MinorUnit(integerLiteral: lhs._storage * rhs)
+    }
+
+    static func * (lhs: Storage, rhs: MinorUnit) -> MinorUnit {
+        rhs * lhs
+    }
+}
+
 // MARK: - ExpressibleByIntegerLiteral
 
 extension MinorUnit: ExpressibleByIntegerLiteral {

@@ -343,4 +343,52 @@ struct MinorUnitTests {
         let result = addGeneric(MinorUnit(integerLiteral: 3), MinorUnit(integerLiteral: 4))
         #expect(result == 7)
     }
+
+    // MARK: - Scalar Multiplication
+
+    @Test("MinorUnit times Int64")
+    func minorUnitTimesInt64() {
+        let result: MinorUnit = 5 * Int64(3)
+        #expect(result == 15)
+    }
+
+    @Test("Int64 times MinorUnit")
+    func int64TimesMinorUnit() {
+        let minorUnit: MinorUnit = 5
+        let result = Int64(3) * minorUnit
+        #expect(result == 15)
+    }
+
+    @Test("multiplying by zero produces zero")
+    func multiplyByZero() {
+        let result: MinorUnit = 42 * Int64(0)
+        #expect(result == .zero)
+    }
+
+    @Test("multiplying by negative scalar")
+    func multiplyByNegativeScalar() {
+        let result: MinorUnit = 10 * Int64(-3)
+        #expect(result == -30)
+    }
+
+    @Test("multiplying to produce .max")
+    func multiplyToMax() {
+        let result: MinorUnit = 1 * Storage.max
+        #expect(result == .max)
+    }
+
+    @Test("multiplying past .max traps")
+    func multiplyPastMaxTraps() async {
+        await #expect(processExitsWith: .failure) {
+            _ = MinorUnit.max * Int64(2)
+        }
+    }
+
+    @Test("multiplying to produce Storage.min traps")
+    func multiplyToStorageMinTraps() async {
+        await #expect(processExitsWith: .failure) {
+            guard let a = MinorUnit(exactly: Storage.min / 2) else { return }
+            _ = a * Int64(2)
+        }
+    }
 }
