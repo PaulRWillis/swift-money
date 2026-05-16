@@ -22,7 +22,7 @@ extension Money {
         let quotient  = amount / parts
         let remainder = amount % parts          // same sign as amount (Swift semantics)
         let remainderCount = Int(abs(remainder))
-        let smaller = Money(_unchecked: quotient)
+        let smaller = Money(minorUnits: quotient)
 
         guard remainderCount > 0 else {
             return .exact(share: smaller, count: n.intValue)
@@ -30,7 +30,7 @@ extension Money {
 
         let sign: Storage = amount >= 0 ? 1 : -1
         return .uneven(
-            larger: Money(_unchecked: quotient + sign),
+            larger: Money(minorUnits: quotient + sign),
             largerCount: remainderCount,
             smaller: smaller,
             smallerCount: n.intValue - remainderCount
