@@ -18,7 +18,7 @@ extension Money {
         precondition(!isNaN, "Cannot distribute NaN")
 
         let amount = minorUnits
-        let parts = Storage(n.intValue)
+        let parts = Int64(n.intValue)
         let quotient  = amount / parts
         let remainder = amount % parts          // same sign as amount (Swift semantics)
         let remainderCount = Int(abs(remainder))
@@ -28,7 +28,7 @@ extension Money {
             return .exact(share: smaller, count: n.intValue)
         }
 
-        let sign: Storage = amount >= 0 ? 1 : -1
+        let sign: Int64 = amount >= 0 ? 1 : -1
         return .uneven(
             larger: Money(minorUnits: quotient + sign),
             largerCount: remainderCount,

@@ -6,7 +6,7 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     /// directly will require only a recompile rather than source edits.
     public typealias MinorUnits = Int64
 
-    internal typealias Storage = MinorUnits
+    internal typealias Storage = MinorUnit
 
     private var _minorUnits: Storage
 
@@ -24,7 +24,7 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     /// let onePound = Money<GBP>(minorUnits: 100) // £1.00
     /// onePound.minorUnits  // 100
     /// ```
-    public var minorUnits: MinorUnits { _minorUnits }
+    public var minorUnits: MinorUnits { Int64(_minorUnits) }
 
     /// Creates a zero value.
     ///
@@ -33,7 +33,14 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     /// zero == .zero  // true
     /// ```
     public init() {
-        self._minorUnits = 0
+        self._minorUnits = .zero
+    }
+
+    /// Creates a `Money` value directly from a `MinorUnit`.
+    ///
+    /// Used internally where a `MinorUnit` is already validated.
+    internal init(_storage: Storage) {
+        self._minorUnits = _storage
     }
 
     /// Creates a new instance from the given integer, if it can be represented
@@ -49,11 +56,11 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     /// - Parameter source: The integer value to represent.
     /// - Returns: A `Money` if the value fits, otherwise `nil`.
     public init?<T: BinaryInteger>(exactly source: T) {
-        guard let int64 = Int64(exactly: source), int64 != .min else {
+        guard let storage = Storage(exactly: source) else {
             return nil
         }
         
-        self._minorUnits = int64
+        self._minorUnits = storage
     }
 
     /// Creates a `Money` value with the given number of minor units.
@@ -61,12 +68,12 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     /// - Precondition: `minorUnits` must not equal `Int.min` on 64-bit platforms
     ///   (equivalently `Int64.min`), which is reserved as an internal sentinel.
     public init(minorUnits: Int) {
-        let value = Storage(minorUnits)
-        precondition(
-            value != Storage.min,
-            "\(Storage.min) is reserved and cannot be used as a minor-unit value"
-        )
-        self._minorUnits = value
+        guard let storage = Storage(exactly: minorUnits) else {
+            preconditionFailure(
+                "\(Int64.min) is reserved and cannot be used as a minor-unit value"
+            )
+        }
+        self._minorUnits = storage
     }
 
     /// Creates a `Money` value with the given number of minor units.
@@ -74,47 +81,45 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     /// - Precondition: `minorUnits` must not equal `MinorUnits.min` (`Int64.min`),
     ///   which is reserved as an internal sentinel.
     public init(minorUnits: MinorUnits) {
-        precondition(
-            minorUnits != Storage.min,
-            "\(Storage.min) is reserved and cannot be used as a minor-unit value"
-        )
-        self._minorUnits = minorUnits
+        guard let storage = Storage(exactly: minorUnits) else {
+            preconditionFailure(
+                "\(Int64.min) is reserved and cannot be used as a minor-unit value"
+            )
+        }
+        self._minorUnits = storage
     }
 
     // MARK: - Special values
 
     /// A Boolean value indicating whether this value is NaN (not-a-number).
-    public var isNaN: Bool {
-        _minorUnits == .min
-    }
+    ///
+    /// Always `false` — `Money` values cannot be NaN. This property exists
+    /// for backward compatibility and will be removed in a future release.
+    public var isNaN: Bool { false }
 
     /// A Boolean value indicating whether this value is finite (not NaN).
     ///
-    /// `Money` has no infinity representation, so all non-NaN
-    /// values are finite.
-    public var isFinite: Bool {
-        !isNaN
-    }
+    /// Always `true` — all `Money` values are finite. This property exists
+    /// for backward compatibility and will be removed in a future release.
+    public var isFinite: Bool { true }
 
     /// The sign of this value.
     ///
-    /// Returns `.minus` for negative values (including negative zero, which
-    /// cannot occur in this type), `.plus` for zero and positive values.
-    /// NaN returns `.plus`.
+    /// Returns `.minus` for negative values, `.plus` for zero and positive values.
     public var sign: FloatingPointSign {
-        _minorUnits < 0 && !isNaN ? .minus : .plus
+        _minorUnits < .zero ? .minus : .plus
     }
 
     /// The largest representable value in minor units: `9,223,372,036,854,775,807`.
     public static var max: Money {
-        Money(minorUnits: Storage.max)
+        Money(_storage: .max)
     }
 
     /// The smallest representable value in minor units: `-9,223,372,036,854,775,807`.
     ///
-    /// `Int64.min` is reserved as the NaN sentinel, so `.min` uses `Int64.min + 1`.
+    /// `Int64.min` is excluded by `MinorUnit`'s invariant, so `.min` is `Int64.min + 1`.
     public static var min: Money {
-        Money(minorUnits: Storage.min + 1)
+        Money(_storage: .min)
     }
 
     /// The smallest positive value in minor units: `1`.
@@ -126,7 +131,7 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     ///
     /// Equal to ``max`` since all representable values are finite.
     public static var greatestFiniteMagnitude: Money {
-        Money(minorUnits: Storage.max)
+        Money(_storage: .max)
     }
 
     /// The least (most negative) finite magnitude in minor units: `-9,223,372,036,854,775,807`.
