@@ -8,8 +8,7 @@ import Foundation
 /// `Int64.min + 1 ... Int64.max`.
 ///
 /// ```swift
-/// let mu = MinorUnit(exactly: 150)
-/// Int64(mu!)  // 150
+/// MinorUnit(exactly: 150) // 150
 /// ```
 ///
 /// ## Parse Boundary
@@ -55,9 +54,9 @@ extension MinorUnit {
 // MARK: - ExpressibleByIntegerLiteral
 
 extension MinorUnit: ExpressibleByIntegerLiteral {
-    init(integerLiteral value: Int64) {
+    init(integerLiteral value: Storage) {
         guard let minorUnit = MinorUnit(exactly: value) else {
-            preconditionFailure("MinorUnit cannot represent Int64.min")
+            preconditionFailure("MinorUnit cannot represent Storage.min")
         }
         self = minorUnit
     }
