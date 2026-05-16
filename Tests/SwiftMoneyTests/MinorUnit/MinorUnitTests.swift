@@ -261,14 +261,14 @@ struct MinorUnitTests {
     func addToMax() throws {
         let a = try #require(MinorUnit(exactly: Storage.max - 1))
         let result = a + 1
-        #expect(Int64(result) == Storage.max)
+        #expect(result == .max)
     }
 
     @Test("adding to produce .min")
     func addToMin() throws {
         let a = try #require(MinorUnit(exactly: Storage.min + 2))
         let result = a + (-1)
-        #expect(Int64(result) == Storage.min + 1)
+        #expect(result == .min)
     }
 
     @Test("adding past .max traps")
@@ -282,6 +282,56 @@ struct MinorUnitTests {
     func addToStorageMinTraps() async {
         await #expect(processExitsWith: .failure) {
             _ = MinorUnit.min + (-1)
+        }
+    }
+
+    // MARK: - Subtraction
+
+    @Test("subtracting two values")
+    func subtractValues() {
+        let result: MinorUnit = 100 - 30
+        #expect(result == 70)
+    }
+
+    @Test("subtracting to produce negative result")
+    func subtractToNegative() {
+        let result: MinorUnit = 30 - 100
+        #expect(result == -70)
+    }
+
+    @Test("subtracting zero is identity")
+    func subtractZeroIsIdentity() {
+        let result: MinorUnit = 42 - .zero
+        #expect(result == 42)
+    }
+
+    @Test("subtracting to produce .min")
+    func subtractToMin() throws {
+        let a = try #require(MinorUnit(exactly: Storage.min + 2))
+        let result = a - 1
+        #expect(result == .min)
+    }
+
+    @Test("subtracting to produce .max")
+    func subtractToMax() throws {
+        let a = try #require(MinorUnit(exactly: Storage.max - 1))
+        let b: MinorUnit = -1
+        let result = a - b
+        #expect(result == .max)
+    }
+
+    @Test("subtracting past .min traps")
+    func subtractPastMinTraps() async {
+        await #expect(processExitsWith: .failure) {
+            _ = MinorUnit.min - 1
+        }
+    }
+
+    @Test("subtracting to produce Storage.min traps")
+    func subtractToStorageMinTraps() async {
+        await #expect(processExitsWith: .failure) {
+            let a: MinorUnit = -1
+            _ = a - MinorUnit.max
         }
     }
 }
