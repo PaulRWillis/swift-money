@@ -209,4 +209,31 @@ struct MinorUnitTests {
         let minorUnit: MinorUnit = -42
         #expect(minorUnit.debugDescription == "MinorUnit(-42)")
     }
+
+    // MARK: - Codable
+
+    @Test("round-trips through JSON")
+    func codableRoundTrip() throws {
+        let original: MinorUnit = 150
+        let data = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(MinorUnit.self, from: data)
+        #expect(decoded == original)
+    }
+
+    @Test("encodes as a bare integer")
+    func encodesAsBareInteger() throws {
+        let minorUnit: MinorUnit = 42
+        let data = try JSONEncoder().encode(minorUnit)
+        let json = String(decoding: data, as: UTF8.self)
+        #expect(json == "42")
+    }
+
+    @Test("decoding Storage.min throws")
+    func decodingStorageMinThrows() {
+        let json = "\(Storage.min)"
+        let data = Data(json.utf8)
+        #expect(throws: DecodingError.self) {
+            try JSONDecoder().decode(MinorUnit.self, from: data)
+        }
+    }
 }

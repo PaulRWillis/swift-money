@@ -82,6 +82,26 @@ extension MinorUnit: CustomDebugStringConvertible {
     var debugDescription: String { "\(Self.self)(\(_storage))" }
 }
 
+// MARK: - Codable
+
+extension MinorUnit: Codable {
+    init(from decoder: any Decoder) throws {
+        let value = try decoder.singleValueContainer().decode(Storage.self)
+        guard let minorUnit = MinorUnit(exactly: value) else {
+            throw DecodingError.dataCorrupted(
+                .init(codingPath: decoder.codingPath,
+                      debugDescription: "MinorUnit cannot represent \(value)")
+            )
+        }
+        self = minorUnit
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(_storage)
+    }
+}
+
 // MARK: - ExpressibleByIntegerLiteral
 
 extension MinorUnit: ExpressibleByIntegerLiteral {
