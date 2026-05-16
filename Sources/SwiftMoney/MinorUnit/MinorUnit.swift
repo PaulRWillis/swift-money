@@ -58,6 +58,10 @@ extension MinorUnit {
 
 extension MinorUnit: Equatable {}
 
+// MARK: - Hashable
+
+extension MinorUnit: Hashable {}
+
 // MARK: - Comparable
 
 extension MinorUnit: Comparable {

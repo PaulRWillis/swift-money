@@ -166,4 +166,19 @@ struct MinorUnitTests {
         let b: MinorUnit = 100
         #expect(!(a < b))
     }
+
+    // MARK: - Hashable
+
+    @Test("equal values produce the same hash")
+    func equalValuesProduceSameHash() throws {
+        let a = try #require(MinorUnit(exactly: 42))
+        let b = try #require(MinorUnit(exactly: 42))
+        #expect(a.hashValue == b.hashValue)
+    }
+
+    @Test("can be used as a Set element")
+    func canBeUsedAsSetElement() {
+        let set: Set<MinorUnit> = [1, 2, 3, 1]
+        #expect(set.count == 3)
+    }
 }
