@@ -13,15 +13,6 @@ struct Money_BasicTests {
         #expect(oneMinorUnit.minorUnits == 100)
     }
 
-    @Test("isFinite returns true for non-NaN")
-    func isFinite() {
-        #expect(Money<TST_100>.zero.isFinite)
-        #expect(Money<TST_100>(minorUnits: 42).isFinite)
-        #expect(Money<TST_100>(minorUnits: -1).isFinite)
-        #expect(Money<TST_100>.max.isFinite)
-        #expect(Money<TST_100>.min.isFinite)
-    }
-
     @Test("Special values")
     func specialValues() {
         #expect(Money<TST_100>.max.minorUnits == Int64.max)

@@ -90,22 +90,4 @@ public struct AnyMoney: Sendable {
     }
 
     // MARK: - Special value queries
-
-    /// A Boolean value indicating whether this value is NaN (not-a-number).
-    ///
-    /// `true` when ``minorUnits`` equals `Int64.min`, matching `Money<C>` NaN
-    /// sentinel semantics.
-    @inlinable
-    public var isNaN: Bool {
-        false
-    }
-
-    /// A Boolean value indicating whether this value is finite (not NaN).
-    ///
-    /// `AnyMoney` has no infinity representation, so all non-NaN values are
-    /// finite.
-    @inlinable
-    public var isFinite: Bool {
-        true
-    }
 }

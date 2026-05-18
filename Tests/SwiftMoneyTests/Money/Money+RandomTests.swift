@@ -27,7 +27,8 @@ struct Money_RandomTests {
     @Test("random(in: .min ... .max) returns a value")
     func closedRangeFullFiniteDomain() {
         let value = Money<TST_100>.random(in: .min ... .max)
-        #expect(value.isFinite)
+        #expect(value >= .min)
+        #expect(value <= .max)
     }
 
     @Test("random(in: ClosedRange, using:) is deterministic with seeded generator")

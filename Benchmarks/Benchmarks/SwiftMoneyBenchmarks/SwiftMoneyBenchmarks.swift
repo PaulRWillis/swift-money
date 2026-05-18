@@ -100,16 +100,6 @@ let benchmarks: @Sendable () -> Void = {
         blackHole(count)
     }
 
-    Benchmark("Money isNaN check", configuration: defaultConfiguration) { benchmark in
-        let value = Money<GBP>(minorUnits: 1250)
-        var count: Int = 0
-
-        for _ in benchmark.scaledIterations {
-            if !value.isNaN { count &+= 1 }
-        }
-        blackHole(count)
-    }
-
     // MARK: - FormatStyle
 
     Benchmark("Money formatted()", configuration: defaultConfiguration) { benchmark in

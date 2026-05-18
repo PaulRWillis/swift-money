@@ -42,20 +42,6 @@ struct AnyMoney_BasicTests {
         #expect(any.currency == TST_1.self)
     }
 
-    // MARK: - isNaN / isFinite
-
-    @Test("isNaN is false for a normal value")
-    func isNaNFalseForNormal() {
-        let any = Money<TST_100>(minorUnits: 100).erased
-        #expect(!any.isNaN)
-    }
-
-    @Test("isFinite is true for a normal value")
-    func isFiniteTrueForNormal() {
-        let any = Money<TST_100>(minorUnits: 100).erased
-        #expect(any.isFinite)
-    }
-
     // MARK: - erased
 
     @Test("erased preserves minorUnits")

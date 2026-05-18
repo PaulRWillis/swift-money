@@ -9,8 +9,6 @@ struct Money_InitializationTests {
         let zero = Money<TST_100>()
         #expect(zero.minorUnits == 0)
         #expect(zero == .zero)
-        #expect(!zero.isNaN)
-        #expect(zero == .zero)
     }
 
     // MARK: - Int init

@@ -4,15 +4,6 @@ import SwiftMoney
 @Suite("Money — Int64 boundary values")
 struct Money_BoundaryTests {
 
-    // MARK: - NaN sentinel boundary
-
-    @Test("Money with Int64.min + 1 is not NaN")
-    func minPlusOneIsNotNaN() {
-        let m = Money<TST_100>(minorUnits: Int64.min + 1)
-        #expect(!m.isNaN)
-        #expect(m.minorUnits == Int64.min + 1)
-    }
-
     // MARK: - Comparison at boundaries
 
     @Test("Max value compares greater than zero")
@@ -116,6 +107,6 @@ struct ExchangeRate_BoundaryTests {
         let r = ExchangeRate<TST_100, TST_1>(from: 1, to: 1)!
         let money = Money<TST_100>(minorUnits: 1)
         let result = r.convert(money)
-        #expect(!result.isNaN)
+        #expect(result.minorUnits == 1)
     }
 }
