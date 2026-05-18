@@ -141,10 +141,8 @@ public struct MoneyBag: Sendable {
     /// ```
     ///
     /// - Parameter money: The value to add.
-    /// - Precondition: `money` must not be NaN.
     /// - Precondition: The accumulated result must not overflow `Int64`.
     public mutating func add<C: Currency>(_ money: Money<C>) {
-        precondition(!money.isNaN, "NaN in MoneyBag.add")
         let existing = _storage[C.code]?.minorUnits ?? 0
         let (result, overflow) = existing.addingReportingOverflow(money.minorUnits)
         precondition(!overflow, "MoneyBag.add overflow")
@@ -172,10 +170,8 @@ public struct MoneyBag: Sendable {
     /// ```
     ///
     /// - Parameter money: The value to subtract.
-    /// - Precondition: `money` must not be NaN.
     /// - Precondition: The accumulated result must not overflow `Int64`.
     public mutating func subtract<C: Currency>(_ money: Money<C>) {
-        precondition(!money.isNaN, "NaN in MoneyBag.subtract")
         let existing = _storage[C.code]?.minorUnits ?? 0
         let (result, overflow) = existing.subtractingReportingOverflow(money.minorUnits)
         precondition(!overflow, "MoneyBag.subtract overflow")
