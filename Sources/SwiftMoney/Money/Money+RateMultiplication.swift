@@ -91,8 +91,6 @@ extension Money {
     /// r.amount      // Money<GBP>(minorUnits: 1)
     /// r.effectiveRate  // Rate(numerator: 1, denominator: 101)
     /// ```
-    ///
-    /// - Precondition: `lhs` must not be NaN.
     public static func * (
         lhs: Money,
         rhs: Rate
@@ -121,7 +119,6 @@ extension Money {
     ///
     /// - Returns: `nil` if `rhs` cannot be converted to a `Rate`
     ///   (e.g. it is NaN, has an exponent ≥ 19, or its significand overflows `Int64`).
-    /// - Precondition: `lhs` must not be NaN.
     public static func * (
         lhs: Money,
         rhs: Decimal

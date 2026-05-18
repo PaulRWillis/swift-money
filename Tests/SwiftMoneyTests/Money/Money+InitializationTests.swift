@@ -31,7 +31,7 @@ struct Money_InitializationTests {
         #expect(intMax.minorUnits == Int.max)
     }
 
-    @Test("Init traps for Int.min (NaN sentinel)")
+    @Test("Init traps for Int.min (rejected by MinorUnit)")
     func intMinInitTraps() async {
         await #expect(processExitsWith: .failure) {
             _ = Money<TST_100>(minorUnits: Int.min)
@@ -58,7 +58,7 @@ struct Money_InitializationTests {
         #expect(int64Max.minorUnits == Int64.max)
     }
 
-    @Test("Init traps for Int64.min (NaN sentinel)")
+    @Test("Init traps for Int64.min (rejected by MinorUnit)")
     func int64MinInitTraps() async {
         await #expect(processExitsWith: .failure) {
             _ = Money<TST_100>(minorUnits: Int64.min)

@@ -695,7 +695,7 @@ struct UnitRate_MeasurementTests {
         #expect(rate.price(for: usage) == nil)
     }
 
-    @Test("fractional path: result equals exactly Int64.min (NaN sentinel) → returns nil")
+    @Test("fractional path: result rejected by MinorUnit → returns nil")
     func fractionalPathExactlyInt64Min() throws {
         // rate = 4611686018427387904/25 (= 2^62 / 25), USD (minQ=100), qty = -0.5.
         // qtyNum=-1, qtyDen=2. rateNum=2^62, rateDen=25 (coprime).

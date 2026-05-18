@@ -190,7 +190,7 @@ extension AnyMoney {
             throw DecodingError.dataCorrupted(
                 DecodingError.Context(
                     codingPath: codingPath,
-                    debugDescription: "Decoded minor-unit value \(roundedMinorUnits) collides with the NaN sentinel (Int64.min)."
+                    debugDescription: "Decoded minor-unit value \(roundedMinorUnits) is not representable as a MinorUnit."
                 )
             )
         }

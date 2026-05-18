@@ -136,7 +136,7 @@ extension UnitRate where U: Dimension {
 
     /// Computes the minor units for a fractional quantity × rate calculation.
     ///
-    /// Returns `nil` if the result overflows `Int64` or equals the NaN sentinel.
+    /// Returns `nil` if the result is not representable as a `MinorUnit`.
     private func computeMinorUnits(
         quantity: Rate,
         rounding: FloatingPointRoundingRule
