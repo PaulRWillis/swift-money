@@ -3,11 +3,8 @@ import Foundation
 
 extension Money {
     /// The value as a `Foundation.Decimal`. Backwards-compatibility convenience for `Decimal(self)`.
-    ///
-    /// Returns `Decimal.nan` for NaN.
     public var decimalValue: Decimal {
-        if isNaN { return Decimal.nan }
-        return Decimal(minorUnits) / Decimal(Currency.minimalQuantisation.int64Value)
+        Decimal(minorUnits) / Decimal(Currency.minimalQuantisation.int64Value)
     }
 }
 
@@ -16,7 +13,7 @@ extension Money {
     /// The `Decimal` value must be a valid representation of a `Money` amount
     /// in its given currency.
     ///
-    /// Creates `.nan` if the input is `Decimal.nan`.
+    /// Traps if the input is `Decimal.nan`.
     ///
     /// ```swift
     /// let pounds = Decimal(123.45)
@@ -63,7 +60,7 @@ extension Money {
     /// or if the `Decimal` value is not a valid representation of a `Money` amount
     /// in its given currency
     ///
-    /// Creates `.nan` if the input is `Decimal.nan`.
+    /// Returns `nil` if the input is `Decimal.nan`.
     ///
     /// ```swift
     /// let pounds = Decimal(123.45)
@@ -108,19 +105,20 @@ extension Decimal {
         self = value.decimalValue
     }
 
-    /// Creates a `Decimal` from a `Money`, returning `nil` for NaN.
+    /// Creates a `Decimal` from a `Money`. Always exact.
+    ///
+    /// Since `Money` cannot be NaN, this initializer always succeeds.
+    /// The failable variant is provided for API symmetry with other
+    /// numeric conversions.
     ///
     /// ```swift
     /// let money = Money<GBP>(99.95)   // £99.95
     /// let decimal = Decimal(exactly: money)   // Optional(Decimal(99.95))
-    ///
-    /// let nan = Decimal(exactly: Money.nan)  // nil
     /// ```
     ///
     /// - Parameter value: The money value to convert.
-    /// - Returns: A `Decimal` if the value is not NaN, otherwise `nil`.
+    /// - Returns: A `Decimal` representation of the value (always non-nil).
     public init?<C: Currency>(exactly value: Money<C>) {
-        if value.isNaN { return nil }
         self = value.decimalValue
     }
 }

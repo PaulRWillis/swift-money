@@ -53,26 +53,8 @@ extension MoneyBag: Codable {
                 case .minorUnits:
                     try dictionaryContainer.encode(entry.minorUnits, forKey: key)
                 case .majorUnits:
-                    guard !entry.isNaN else {
-                        throw EncodingError.invalidValue(
-                            entry,
-                            EncodingError.Context(
-                                codingPath: encoder.codingPath,
-                                debugDescription: "NaN AnyMoney cannot be encoded using .dictionary(amount: .majorUnits). Use .full or .minorUnits to preserve NaN."
-                            )
-                        )
-                    }
                     try dictionaryContainer.encode(entry.decimalValue, forKey: key)
                 case .string(let locale):
-                    guard !entry.isNaN else {
-                        throw EncodingError.invalidValue(
-                            entry,
-                            EncodingError.Context(
-                                codingPath: encoder.codingPath,
-                                debugDescription: "NaN AnyMoney cannot be encoded using .dictionary(amount: .string). Use .full or .minorUnits to preserve NaN."
-                            )
-                        )
-                    }
                     try dictionaryContainer.encode(entry.formatted(AnyMoney.FormatStyle().locale(locale)), forKey: key)
                 }
             }

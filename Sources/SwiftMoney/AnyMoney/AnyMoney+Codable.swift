@@ -88,26 +88,8 @@ extension AnyMoney {
         case .minorUnits:
             try container.encode(minorUnits, forKey: .amount)
         case .majorUnits:
-            guard !isNaN else {
-                throw EncodingError.invalidValue(
-                    self,
-                    EncodingError.Context(
-                        codingPath: encoder.codingPath,
-                        debugDescription: "AnyMoney.nan cannot be encoded using .object(amount: .majorUnits). Use .full or .object(amount: .minorUnits) to preserve NaN."
-                    )
-                )
-            }
             try container.encode(decimalValue, forKey: .amount)
         case .string(let locale):
-            guard !isNaN else {
-                throw EncodingError.invalidValue(
-                    self,
-                    EncodingError.Context(
-                        codingPath: encoder.codingPath,
-                        debugDescription: "AnyMoney.nan cannot be encoded using .object(amount: .string). Use .full or .object(amount: .minorUnits) to preserve NaN."
-                    )
-                )
-            }
             try container.encode(formatted(AnyMoney.FormatStyle().locale(locale)), forKey: .amount)
         }
     }

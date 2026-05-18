@@ -6,21 +6,15 @@ extension Money {
 
     /// The absolute value of this instance.
     ///
-    /// Traps on NaN.
-    ///
     /// ```swift
     /// let v = Money("-5.0")!
     /// v.magnitude  // 5.0
     /// ```
-    /// - Precondition: The value must not be NaN.
     public var magnitude: Magnitude {
-        precondition(!isNaN, "magnitude called on NaN")
-        return Money(minorUnits: abs(minorUnits))
+        Money(minorUnits: abs(minorUnits))
     }
 
     /// Returns the additive inverse of this value.
-    ///
-    /// Traps if the operand is NaN.
     ///
     /// ```swift
     /// let price = Money<GBP>(4250) // £42.50
@@ -29,7 +23,6 @@ extension Money {
     ///
     /// - Parameter operand: The value to negate.
     /// - Returns: The negated value.
-    /// - Precondition: The operand must not be NaN.
     public prefix static func - (operand: Money) -> Money {
         var copy = operand
         copy.negate()
@@ -38,16 +31,12 @@ extension Money {
 
     /// Replaces this value with its additive inverse.
     ///
-    /// Traps if the value is NaN.
-    ///
     /// ```swift
     /// var price = Money<GBP>(4250) // £42.50
     /// price.negate()
     /// // price is now -4250 (-£42.50)
     /// ```
-    /// - Precondition: The value must not be NaN.
     public mutating func negate() {
-        precondition(!isNaN, "NaN in Money negation")
         self = Self(minorUnits: -minorUnits)
     }
 }
