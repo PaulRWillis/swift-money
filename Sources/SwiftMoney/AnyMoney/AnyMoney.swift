@@ -30,10 +30,15 @@ public struct AnyMoney: Sendable {
 
     // MARK: - Stored properties
 
+    internal typealias Storage = MinorUnit
+
+    /// The raw minor units of this money value, stored as a validated `MinorUnit`.
+    private let _minorUnits: Storage
+
     /// The raw minor units of this money value.
     ///
-    /// Uses `Int64.min` as the NaN sentinel, matching `Money<C>` semantics.
-    public let minorUnits: Int64
+    /// Represents the value in the currency's smallest denomination.
+    public var minorUnits: Int64 { Int64(_minorUnits) }
 
     /// The ISO 4217 or custom currency code, e.g. `CurrencyCode("GBP")`.
     public let currencyCode: CurrencyCode
@@ -61,24 +66,24 @@ public struct AnyMoney: Sendable {
     ///
     /// - Parameter money: The typed money value to erase.
     public init<C: Currency>(_ money: Money<C>) {
-        self.minorUnits = money.minorUnits
+        self._minorUnits = money._storage
         self.currencyCode = C.code
         self.minimalQuantisation = C.minimalQuantisation
         self.currency = C.self
     }
 
-    /// Creates an `AnyMoney` from raw scalars, with an optional currency metatype.
+    /// Creates an `AnyMoney` from validated storage, with an optional currency metatype.
     ///
     /// Pass `currency: C.self` when the concrete type is known (e.g. in
     /// `MoneyBag.add`). Omit it (defaulting to `nil`) for `Codable` decoding
     /// where only the scalar fields are available.
     internal init(
-        minorUnits: Int64,
+        storage: Storage,
         currencyCode: CurrencyCode,
         minimalQuantisation: MinimalQuantisation,
         currency: (any Currency.Type)? = nil
     ) {
-        self.minorUnits = minorUnits
+        self._minorUnits = storage
         self.currencyCode = currencyCode
         self.minimalQuantisation = minimalQuantisation
         self.currency = currency
@@ -92,7 +97,7 @@ public struct AnyMoney: Sendable {
     /// sentinel semantics.
     @inlinable
     public var isNaN: Bool {
-        minorUnits == Int64.min
+        false
     }
 
     /// A Boolean value indicating whether this value is finite (not NaN).
@@ -101,6 +106,6 @@ public struct AnyMoney: Sendable {
     /// finite.
     @inlinable
     public var isFinite: Bool {
-        !isNaN
+        true
     }
 }

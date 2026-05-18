@@ -148,8 +148,11 @@ public struct MoneyBag: Sendable {
         let existing = _storage[C.code]?.minorUnits ?? 0
         let (result, overflow) = existing.addingReportingOverflow(money.minorUnits)
         precondition(!overflow, "MoneyBag.add overflow")
+        guard let storage = MinorUnit(exactly: result) else {
+            preconditionFailure("MoneyBag.add: result collides with reserved sentinel")
+        }
         _storage[C.code] = AnyMoney(
-            minorUnits: result,
+            storage: storage,
             currencyCode: C.code,
             minimalQuantisation: C.minimalQuantisation,
             currency: C.self
@@ -176,8 +179,11 @@ public struct MoneyBag: Sendable {
         let existing = _storage[C.code]?.minorUnits ?? 0
         let (result, overflow) = existing.subtractingReportingOverflow(money.minorUnits)
         precondition(!overflow, "MoneyBag.subtract overflow")
+        guard let storage = MinorUnit(exactly: result) else {
+            preconditionFailure("MoneyBag.subtract: result collides with reserved sentinel")
+        }
         _storage[C.code] = AnyMoney(
-            minorUnits: result,
+            storage: storage,
             currencyCode: C.code,
             minimalQuantisation: C.minimalQuantisation,
             currency: C.self
@@ -196,8 +202,11 @@ public struct MoneyBag: Sendable {
             let existing = _storage[entry.currencyCode]?.minorUnits ?? 0
             let (result, overflow) = existing.addingReportingOverflow(entry.minorUnits)
             precondition(!overflow, "MoneyBag.add overflow")
+            guard let storage = MinorUnit(exactly: result) else {
+                preconditionFailure("MoneyBag.add: result collides with reserved sentinel")
+            }
             _storage[entry.currencyCode] = AnyMoney(
-                minorUnits: result,
+                storage: storage,
                 currencyCode: entry.currencyCode,
                 minimalQuantisation: entry.minimalQuantisation,
                 currency: entry.currency
@@ -217,8 +226,11 @@ public struct MoneyBag: Sendable {
             let existing = _storage[entry.currencyCode]?.minorUnits ?? 0
             let (result, overflow) = existing.subtractingReportingOverflow(entry.minorUnits)
             precondition(!overflow, "MoneyBag.subtract overflow")
+            guard let storage = MinorUnit(exactly: result) else {
+                preconditionFailure("MoneyBag.subtract: result collides with reserved sentinel")
+            }
             _storage[entry.currencyCode] = AnyMoney(
-                minorUnits: result,
+                storage: storage,
                 currencyCode: entry.currencyCode,
                 minimalQuantisation: entry.minimalQuantisation,
                 currency: entry.currency

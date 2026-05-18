@@ -43,6 +43,9 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
         self._minorUnits = _storage
     }
 
+    /// The internal storage, exposed for module-level access (e.g. `AnyMoney`).
+    internal var _storage: Storage { _minorUnits }
+
     /// Creates a new instance from the given integer, if it can be represented
     /// exactly within the Int64 range.
     ///

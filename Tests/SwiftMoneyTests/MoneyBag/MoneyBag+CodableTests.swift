@@ -368,6 +368,17 @@ struct MoneyBag_CodableTests_DictionaryStrategy {
         decoder.moneyBagDecodingStrategy = .dictionary(amount: .minorUnits, resolver: resolver)
         #expect(try decoder.decode(MoneyBag.self, from: data).isEmpty)
     }
+
+    @Test(".dictionary(minorUnits): decoding Int64.min throws DecodingError")
+    func dictionaryMinorUnitsRejectsInt64Min() throws {
+        let json = #"{"TST_100":-9223372036854775808}"#
+        let data = try #require(json.data(using: .utf8))
+        let decoder = JSONDecoder()
+        decoder.moneyBagDecodingStrategy = .dictionary(amount: .minorUnits, resolver: resolver)
+        #expect(throws: DecodingError.self) {
+            try decoder.decode(MoneyBag.self, from: data)
+        }
+    }
 }
 
 // MARK: - Strategy property API

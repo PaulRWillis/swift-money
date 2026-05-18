@@ -180,13 +180,13 @@ extension MoneyBag: Codable {
                     )
                 )
             }
-            let minorUnits: Int64
+            let entryStorage: MinorUnit
             switch amountStrategy {
             case .minorUnits:
-                minorUnits = try container.decode(Int64.self, forKey: key)
+                entryStorage = try container.decode(MinorUnit.self, forKey: key)
             case .majorUnits:
                 let decimal = try container.decode(Decimal.self, forKey: key)
-                minorUnits = try AnyMoney._decimalToMinorUnits(
+                entryStorage = try AnyMoney._decimalToMinorUnits(
                     decimal, minimalQuantisation: minimalQuantisation, codingPath: container.codingPath
                 )
             case .string(let locale):
@@ -194,12 +194,12 @@ extension MoneyBag: Codable {
                 let decimal = try AnyMoney._parseFormattedAmount(
                     string, currencyCode: currencyCode, locale: locale, codingPath: container.codingPath
                 )
-                minorUnits = try AnyMoney._decimalToMinorUnits(
+                entryStorage = try AnyMoney._decimalToMinorUnits(
                     decimal, minimalQuantisation: minimalQuantisation, codingPath: container.codingPath
                 )
             }
             storage[currencyCode] = AnyMoney(
-                minorUnits: minorUnits,
+                storage: entryStorage,
                 currencyCode: currencyCode,
                 minimalQuantisation: minimalQuantisation
             )

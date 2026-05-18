@@ -116,7 +116,7 @@ extension AnyMoney {
 
     private static func _decodeFull(from decoder: any Decoder) throws -> AnyMoney {
         let container = try decoder.container(keyedBy: FullKey.self)
-        let minorUnits = try container.decode(Int64.self, forKey: .minorUnits)
+        let storage = try container.decode(MinorUnit.self, forKey: .minorUnits)
         let currencyCodeString = try container.decode(String.self, forKey: .currencyCode)
         let quantisationInt = try container.decode(Int64.self, forKey: .minimalQuantisation)
         guard !currencyCodeString.isEmpty else {
@@ -135,7 +135,7 @@ extension AnyMoney {
             )
         }
         return AnyMoney(
-            minorUnits: minorUnits,
+            storage: storage,
             currencyCode: CurrencyCode(currencyCodeString),
             minimalQuantisation: MinimalQuantisation(quantisationInt)
         )
@@ -164,32 +164,32 @@ extension AnyMoney {
                 )
             )
         }
-        let minorUnits: Int64
+        let storage: MinorUnit
         switch amountStrategy {
         case .minorUnits:
-            minorUnits = try container.decode(Int64.self, forKey: .amount)
+            storage = try container.decode(MinorUnit.self, forKey: .amount)
         case .majorUnits:
             let decimal = try container.decode(Decimal.self, forKey: .amount)
-            minorUnits = try _decimalToMinorUnits(decimal, minimalQuantisation: minimalQuantisation, codingPath: container.codingPath)
+            storage = try _decimalToMinorUnits(decimal, minimalQuantisation: minimalQuantisation, codingPath: container.codingPath)
         case .string(let locale):
             let string = try container.decode(String.self, forKey: .amount)
             let decimal = try _parseFormattedAmount(
                 string, currencyCode: code, locale: locale, codingPath: container.codingPath
             )
-            minorUnits = try _decimalToMinorUnits(decimal, minimalQuantisation: minimalQuantisation, codingPath: container.codingPath)
+            storage = try _decimalToMinorUnits(decimal, minimalQuantisation: minimalQuantisation, codingPath: container.codingPath)
         }
-        return AnyMoney(minorUnits: minorUnits, currencyCode: code, minimalQuantisation: minimalQuantisation)
+        return AnyMoney(storage: storage, currencyCode: code, minimalQuantisation: minimalQuantisation)
     }
 
     // MARK: Shared arithmetic helpers (internal so MoneyBag+Codable.swift can reuse them)
 
     /// Multiplies a major-unit Decimal by `minimalQuantisation`, rounds to nearest minor
-    /// unit (`.plain`), and converts to `Int64`. Throws on overflow or NaN-sentinel collision.
+    /// unit (`.plain`), and parses to `MinorUnit`. Throws on overflow or sentinel collision.
     internal static func _decimalToMinorUnits(
         _ decimal: Decimal,
         minimalQuantisation: MinimalQuantisation,
         codingPath: [any CodingKey]
-    ) throws -> Int64 {
+    ) throws -> MinorUnit {
         let quantisationDecimal = Decimal(minimalQuantisation.int64Value)
         var product = decimal * quantisationDecimal
         var rounded = Decimal()
@@ -204,8 +204,7 @@ extension AnyMoney {
                 )
             )
         }
-        let isNaNSentinel = roundedMinorUnits == .min
-        guard !isNaNSentinel else {
+        guard let storage = MinorUnit(exactly: roundedMinorUnits) else {
             throw DecodingError.dataCorrupted(
                 DecodingError.Context(
                     codingPath: codingPath,
@@ -213,7 +212,7 @@ extension AnyMoney {
                 )
             )
         }
-        return roundedMinorUnits
+        return storage
     }
 
     /// Parses a locale-formatted currency string to a major-unit `Decimal`.
