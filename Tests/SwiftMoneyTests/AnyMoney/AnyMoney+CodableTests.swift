@@ -313,3 +313,29 @@ struct AnyMoney_CodableTests_StrategyAPI {
         #expect(any.currencyCode.stringValue == "TST_100")
     }
 }
+
+// MARK: - Int64.min rejection
+
+@Suite("AnyMoney – Codable – Int64.min rejection")
+struct AnyMoney_CodableTests_SentinelRejection {
+
+    @Test(".full: decoding Int64.min as minorUnits throws DecodingError")
+    func fullStrategyRejectsInt64Min() throws {
+        let json = #"{"minorUnits":-9223372036854775808,"currencyCode":"TST_100","minimalQuantisation":100}"#
+        let data = try #require(json.data(using: .utf8))
+        #expect(throws: DecodingError.self) {
+            try JSONDecoder().decode(AnyMoney.self, from: data)
+        }
+    }
+
+    @Test(".object(minorUnits): decoding Int64.min as amount throws DecodingError")
+    func objectMinorUnitsStrategyRejectsInt64Min() throws {
+        let json = #"{"currencyCode":"TST_100","amount":-9223372036854775808}"#
+        let data = try #require(json.data(using: .utf8))
+        let decoder = JSONDecoder()
+        decoder.anyMoneyDecodingStrategy = .object(amount: .minorUnits, resolver: { _ in MinimalQuantisation(100) })
+        #expect(throws: DecodingError.self) {
+            try decoder.decode(AnyMoney.self, from: data)
+        }
+    }
+}

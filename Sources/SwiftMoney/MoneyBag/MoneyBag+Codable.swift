@@ -183,7 +183,17 @@ extension MoneyBag: Codable {
             let minorUnits: Int64
             switch amountStrategy {
             case .minorUnits:
-                minorUnits = try container.decode(Int64.self, forKey: key)
+                let decoded = try container.decode(Int64.self, forKey: key)
+                let isSentinelValue = decoded == .min
+                guard !isSentinelValue else {
+                    throw DecodingError.dataCorrupted(
+                        DecodingError.Context(
+                            codingPath: container.codingPath,
+                            debugDescription: "AnyMoney cannot decode Int64.min (reserved sentinel value)"
+                        )
+                    )
+                }
+                minorUnits = decoded
             case .majorUnits:
                 let decimal = try container.decode(Decimal.self, forKey: key)
                 minorUnits = try AnyMoney._decimalToMinorUnits(

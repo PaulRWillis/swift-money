@@ -119,6 +119,14 @@ extension AnyMoney {
         let minorUnits = try container.decode(Int64.self, forKey: .minorUnits)
         let currencyCodeString = try container.decode(String.self, forKey: .currencyCode)
         let quantisationInt = try container.decode(Int64.self, forKey: .minimalQuantisation)
+        let isSentinelValue = minorUnits == .min
+        guard !isSentinelValue else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .minorUnits,
+                in: container,
+                debugDescription: "AnyMoney cannot decode Int64.min (reserved sentinel value)"
+            )
+        }
         guard !currencyCodeString.isEmpty else {
             throw DecodingError.dataCorruptedError(
                 forKey: .currencyCode,
@@ -167,7 +175,16 @@ extension AnyMoney {
         let minorUnits: Int64
         switch amountStrategy {
         case .minorUnits:
-            minorUnits = try container.decode(Int64.self, forKey: .amount)
+            let decoded = try container.decode(Int64.self, forKey: .amount)
+            let isSentinelValue = decoded == .min
+            guard !isSentinelValue else {
+                throw DecodingError.dataCorruptedError(
+                    forKey: .amount,
+                    in: container,
+                    debugDescription: "AnyMoney cannot decode Int64.min (reserved sentinel value)"
+                )
+            }
+            minorUnits = decoded
         case .majorUnits:
             let decimal = try container.decode(Decimal.self, forKey: .amount)
             minorUnits = try _decimalToMinorUnits(decimal, minimalQuantisation: minimalQuantisation, codingPath: container.codingPath)
