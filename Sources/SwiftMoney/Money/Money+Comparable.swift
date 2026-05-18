@@ -3,17 +3,10 @@
 extension Money: Equatable {
     /// Returns a Boolean value indicating whether two values are equal.
     ///
-    /// NaN compares equal to itself, using sentinel semantics (not IEEE 754).
-    /// This provides a strict total order, enabling predictable use in
-    /// `Set`, `Dictionary`, and `sort()` without the pitfalls of IEEE 754
-    /// NaN inequality.
-    ///
     /// ```swift
     /// let a = Money<GBP>(minorUnits: 105)
     /// let b = Money<GBP>(minorUnits: 105)
     /// a == b  // true
-    ///
-    /// Money<GBP>.nan == .nan  // true (sentinel semantics)
     /// ```
     ///
     /// - Parameters:
@@ -32,15 +25,10 @@ extension Money: Comparable {
     /// Returns a Boolean value indicating whether the first value is less than
     /// the second.
     ///
-    /// NaN (`Int64.min`) compares less than all non-NaN values, providing
-    /// a strict total order suitable for sorting.
-    ///
     /// ```swift
     /// let a = Money<GBP>(minorUnits: 20)
     /// let b = Money<GBP>(minorUnits: 10)
     /// a < b  // true
-    ///
-    /// Money<GBP>.nan < a  // true (NaN sorts before all values)
     /// ```
     ///
     /// - Parameters:

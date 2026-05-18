@@ -46,10 +46,10 @@ extension Money {
             Decimal(int64Value) == scaled,
             "Decimal value \(decimal) overflows Money range"
         )
-        // Guard against NaN sentinel
+        // Guard: must be representable as Storage
         precondition(
             int64Value != .min,
-            "Decimal value \(decimal) maps to NaN sentinel"
+            "Decimal value \(decimal) is not representable as a minor-unit value"
         )
 
         self = Self(minorUnits: int64Value)
@@ -85,7 +85,7 @@ extension Money {
         // Overflow check: round-trip must match
         guard Decimal(int64Value) == scaled else { return nil }
 
-        // Guard against NaN sentinel
+        // Guard: must be representable as Storage
         guard int64Value != .min else { return nil }
 
         self = Self(minorUnits: int64Value)
@@ -107,7 +107,6 @@ extension Decimal {
 
     /// Creates a `Decimal` from a `Money`. Always exact.
     ///
-    /// Since `Money` cannot be NaN, this initializer always succeeds.
     /// The failable variant is provided for API symmetry with other
     /// numeric conversions.
     ///

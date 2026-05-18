@@ -94,18 +94,6 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
 
     // MARK: - Special values
 
-    /// A Boolean value indicating whether this value is NaN (not-a-number).
-    ///
-    /// Always `false` — `Money` values cannot be NaN. This property exists
-    /// for backward compatibility and will be removed in a future release.
-    public var isNaN: Bool { false }
-
-    /// A Boolean value indicating whether this value is finite (not NaN).
-    ///
-    /// Always `true` — all `Money` values are finite. This property exists
-    /// for backward compatibility and will be removed in a future release.
-    public var isFinite: Bool { true }
-
     /// The sign of this value.
     ///
     /// Returns `.minus` for negative values, `.plus` for zero and positive values.

@@ -77,10 +77,10 @@ private let operationCount: UInt8 = 10
 private let safeRange = Int64.max / 2
 
 /// Clamps a raw Int64 to the safe range for addition/subtraction,
-/// while also excluding the NaN sentinel.
+/// while also excluding values rejected by `MinorUnit`.
 private func safeMoney(_ raw: Int64) -> Money<GBP> {
     var v = raw
-    // Exclude NaN sentinel
+    // Exclude value rejected by MinorUnit
     if v == .min { v = .min + 1 }
     // Clamp to safe range
     if v > safeRange { v = safeRange }
@@ -88,7 +88,7 @@ private func safeMoney(_ raw: Int64) -> Money<GBP> {
     return Money<GBP>(minorUnits: v)
 }
 
-/// Creates a Money value from raw Int64, excluding only the NaN sentinel.
+/// Creates a Money value from raw Int64, excluding values rejected by `MinorUnit`.
 private func money(_ raw: Int64) -> Money<GBP> {
     let v = raw == .min ? raw + 1 : raw
     return Money<GBP>(minorUnits: v)
@@ -126,10 +126,6 @@ public func fuzzTest(_ start: UnsafeRawPointer, _ count: Int) -> CInt {
         precondition(addZero == a,
                      "Additive identity failed: \(a) + 0 = \(addZero)")
 
-        // INVARIANT: Non-NaN inputs never produce NaN
-        precondition(!sum.isNaN,
-                     "Addition of non-NaN inputs produced NaN")
-
     // ── Subtraction ───────────────────────────────────────────────────
     case .subtract:
         guard let rawB = reader.readInt64() else { return 0 }
@@ -151,10 +147,6 @@ public func fuzzTest(_ start: UnsafeRawPointer, _ count: Int) -> CInt {
         let subZero = a - .zero
         precondition(subZero == a,
                      "Subtractive identity failed: \(a) - 0 = \(subZero)")
-
-        // INVARIANT: Non-NaN inputs never produce NaN
-        precondition(!diff.isNaN,
-                     "Subtraction of non-NaN inputs produced NaN")
 
     // ── Integer multiplication ────────────────────────────────────────
     case .multiplyInt:
@@ -185,17 +177,13 @@ public func fuzzTest(_ start: UnsafeRawPointer, _ count: Int) -> CInt {
         precondition(mulZero == .zero,
                      "Zero annihilation failed: \(a) * 0 = \(mulZero)")
 
-        // INVARIANT: Non-NaN inputs never produce NaN
-        precondition(!product.isNaN,
-                     "Integer multiplication of non-NaN inputs produced NaN")
-
     // ── Negation ──────────────────────────────────────────────────────
     case .negate:
         let a = safeMoney(rawA)
 
         // Use wrapping negate to avoid UBSan false positive on the harness side
         let negStorage = 0 &- a.minorUnits
-        guard negStorage != Int64.min else { return 0 }  // skip if negation hits NaN sentinel
+        guard negStorage != Int64.min else { return 0 }  // skip: rejected by MinorUnit
         let neg = Money<GBP>(minorUnits: negStorage)
 
         let doubleNegStorage = 0 &- neg.minorUnits
@@ -328,7 +316,7 @@ public func fuzzTest(_ start: UnsafeRawPointer, _ count: Int) -> CInt {
             return 0
         }
 
-        // Allow the full range of money values (excluding NaN sentinel).
+        // Allow the full range of money values (excluding those rejected by MinorUnit).
         guard let rawC = reader.readInt64() else { return 0 }
         let moneyValue = money(rawC)
 
@@ -341,10 +329,9 @@ public func fuzzTest(_ start: UnsafeRawPointer, _ count: Int) -> CInt {
         guard approx > Int128(Int64.min) + margin,
               approx < Int128(Int64.max) - margin else { return 0 }
 
-        // INVARIANT: Conversion doesn't crash and result is not NaN
+        // INVARIANT: Conversion doesn't crash
         let converted = rate.convert(moneyValue)
-        precondition(!converted.isNaN,
-                     "Exchange rate conversion produced NaN from non-NaN input")
+        _ = converted
 
     // ── Hash consistency ──────────────────────────────────────────────
     case .hash:

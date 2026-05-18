@@ -27,7 +27,6 @@ vat.effectiveRate  // Rate(1/5) — exact, no precision lost
 
 - **Integer minor-unit storage** — `Int64` backing; no `Decimal` overhead on the hot path
 - **Compile-time currency safety** — `Money<GBP> + Money<USD>` is a compile error
-- **NaN sentinel** — `Money<C>.nan` propagates through arithmetic; `isNaN` to check
 - **Exact fractional multiplication** — `Rate` (GCD-reduced rational) with round-trip invariant
 - **Single-rounding exchange** — `MoneyBag.total(in:using:rounding:)` accumulates exact fractions, then rounds once
 - **No `Numeric` conformance** — `Money * Money` is intentionally impossible
@@ -101,8 +100,6 @@ enum BTC: Currency {
 let a = Money<GBP>(minorUnits: 125)      // £1.25
 let b = Money<GBP>(minorUnits: 500)      // £5.00
 let c = Money<GBP>.zero                  // £0.00
-let d = Money<GBP>.nan                   // NaN sentinel
-d.isNaN                                  // true
 ```
 
 ### Arithmetic
@@ -338,7 +335,6 @@ decoder.anyMoneyDecodingStrategy = .object(
 
 ## Safety
 
-- **NaN** — `Money<C>.nan` is a named sentinel (`Int64.min`); `isNaN` to check; NaN propagates through all arithmetic; NaN ≠ NaN
 - **Overflow** — `+`, `-`, `*` trap on overflow, matching Swift `Int` behaviour
 - **Type safety** — `Money<GBP> + Money<USD>` is a compile error; no runtime currency checks needed
 - **Floating-point blocked** — `Money * Double` and `Money * Float` are `@available(*, unavailable)` with descriptive error messages

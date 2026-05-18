@@ -15,7 +15,6 @@ import Foundation
 ///
 /// encoder.anyMoneyEncodingStrategy = .full
 /// // {"currencyCode":"GBP","minimalQuantisation":100,"minorUnits":125}   ← default
-/// // Self-contained. Only strategy that preserves AnyMoney.nan.
 ///
 /// encoder.anyMoneyEncodingStrategy = .object
 /// // {"currencyCode":"GBP","amount":1.25}
@@ -24,22 +23,18 @@ import Foundation
 /// // {"currencyCode":"GBP","amount":1.25}
 ///
 /// encoder.anyMoneyEncodingStrategy = .object(amount: .minorUnits)
-/// // {"currencyCode":"GBP","amount":125}  — also preserves nan
+/// // {"currencyCode":"GBP","amount":125}
 ///
 /// encoder.anyMoneyEncodingStrategy = .object(
 ///     amount: .string(locale: Locale(identifier: "en_GB")))
 /// // {"currencyCode":"GBP","amount":"£1.25"}
 /// ```
-///
-/// - Important: Only ``full`` and `.object(amount: .minorUnits)` preserve ``AnyMoney/isNaN``.
-///   All other `.object` sub-strategies throw `EncodingError.invalidValue` for NaN values.
 public enum AnyMoneyEncodingStrategy: Sendable {
 
     /// Encode as a fully self-contained keyed container with `"currencyCode"`,
     /// `"minimalQuantisation"`, and `"minorUnits"`.
     ///
-    /// This is the **default** strategy. It is the only top-level strategy that
-    /// preserves ``AnyMoney/isNaN`` (encoded as `Int64.min`).
+    /// This is the **default** strategy.
     ///
     /// ```json
     /// {"currencyCode":"GBP","minimalQuantisation":100,"minorUnits":125}
@@ -51,8 +46,6 @@ public enum AnyMoneyEncodingStrategy: Sendable {
     /// `"minimalQuantisation"` is omitted; the amount format is controlled by
     /// ``MoneyAmountEncodingStrategy``. Use the ``object`` static property as
     /// shorthand for `.object(amount: .majorUnits)`.
-    ///
-    /// - Important: NaN throws `EncodingError.invalidValue` unless `amount:` is `.minorUnits`.
     case object(amount: MoneyAmountEncodingStrategy)
 }
 
@@ -173,8 +166,6 @@ extension JSONEncoder {
     ///     amount: .string(locale: Locale(identifier: "en_GB")))
     /// // {"currencyCode":"GBP","amount":"£1.25"}
     /// ```
-    ///
-    /// - Note: Only `.full` and `.object(amount: .minorUnits)` preserve ``AnyMoney/isNaN``.
     public var anyMoneyEncodingStrategy: AnyMoneyEncodingStrategy {
         get { userInfo[.anyMoneyEncodingStrategy] as? AnyMoneyEncodingStrategy ?? .full }
         set { userInfo[.anyMoneyEncodingStrategy] = newValue }

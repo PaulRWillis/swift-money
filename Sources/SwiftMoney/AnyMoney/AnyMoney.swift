@@ -23,9 +23,6 @@
 /// `AnyMoney` is a minimal identity token. Arithmetic should be performed on
 /// typed `Money<C>` values. See ``asMoney(_:)`` to convert back before
 /// computing.
-///
-/// - Note: There is no `AnyMoney.nan` factory. Use `Money<C>.nan.erased` to
-///   obtain a NaN `AnyMoney` for a specific currency.
 public struct AnyMoney: Sendable {
 
     // MARK: - Stored properties
@@ -90,22 +87,4 @@ public struct AnyMoney: Sendable {
     }
 
     // MARK: - Special value queries
-
-    /// A Boolean value indicating whether this value is NaN (not-a-number).
-    ///
-    /// `true` when ``minorUnits`` equals `Int64.min`, matching `Money<C>` NaN
-    /// sentinel semantics.
-    @inlinable
-    public var isNaN: Bool {
-        false
-    }
-
-    /// A Boolean value indicating whether this value is finite (not NaN).
-    ///
-    /// `AnyMoney` has no infinity representation, so all non-NaN values are
-    /// finite.
-    @inlinable
-    public var isFinite: Bool {
-        true
-    }
 }

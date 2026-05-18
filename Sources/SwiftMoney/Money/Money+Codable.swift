@@ -24,9 +24,6 @@ extension Money: Codable {
     /// {"currencyCode":"GBP","amount":1.25}
     /// ```
     ///
-    /// Only ``MoneyEncodingStrategy/minorUnits`` preserves ``Money/nan``;
-    /// all other strategies throw `EncodingError.invalidValue` for NaN values.
-    ///
     /// - SeeAlso: ``JSONEncoder/moneyEncodingStrategy``
     public func encode(to encoder: any Encoder) throws {
         let strategy = encoder.userInfo[.moneyEncodingStrategy] as? MoneyEncodingStrategy ?? .object
@@ -186,8 +183,7 @@ extension Money: Codable {
     /// Converts a major-unit `Decimal` into a `Money` value by multiplying by
     /// `minimalQuantisation` and rounding to the nearest minor unit (`.plain`).
     ///
-    /// - Throws: `DecodingError.dataCorrupted` if the result overflows `Int64`
-    ///   or lands on the NaN sentinel (`Int64.min`).
+    /// - Throws: `DecodingError.dataCorrupted` if the result overflows `Int64`.
     private static func _decimalToMoney(_ decimal: Decimal, codingPath: [any Swift.CodingKey]) throws -> Money<Currency> {
         let quantisation = Decimal(Currency.minimalQuantisation.int64Value)
         var product = decimal * quantisation

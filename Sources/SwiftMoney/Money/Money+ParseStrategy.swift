@@ -64,14 +64,13 @@ extension Money.ParseStrategy {
     /// Errors thrown when a `Money.ParseStrategy` cannot parse an input string.
     public enum ParseError: Error, LocalizedError, Sendable {
 
-        /// The parsed integer value is outside the `Int64` representable range,
-        /// or equals the internal NaN sentinel (`Int64.min`).
+        /// The parsed integer value is outside the representable range.
         case overflow
 
         public var errorDescription: String? {
             switch self {
             case .overflow:
-                return "The parsed value cannot be represented as a Money amount (Int64 overflow or NaN sentinel)."
+                return "The parsed value cannot be represented as a Money amount (Int64 overflow)."
             }
         }
     }
