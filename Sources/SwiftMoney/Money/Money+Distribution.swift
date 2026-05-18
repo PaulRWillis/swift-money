@@ -13,10 +13,7 @@ extension Money {
     /// The sum invariant `distribution.sum == self` always holds.
     ///
     /// - Parameter n: Number of parts; must be ≥ 1.
-    /// - Precondition: `self` must not be NaN.
     public func distributed(into n: DistributionParts) -> Distribution<Currency> {
-        precondition(!isNaN, "Cannot distribute NaN")
-
         let amount = minorUnits
         let parts = Int64(n.intValue)
         let quotient  = amount / parts

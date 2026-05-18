@@ -31,13 +31,10 @@ extension Money {
     ///     number of minor units. Defaults to `.toNearestOrAwayFromZero`.
     /// - Returns: A `RateCalculation` containing the rounded
     ///   result and the actual rate applied.
-    /// - Precondition: `self` must not be NaN.
     public func multiplied(
         by rate: Rate,
         rounding: FloatingPointRoundingRule = .toNearestOrAwayFromZero
     ) -> RateCalculation<Currency> {
-        precondition(!isNaN, "Cannot multiply NaN")
-
         // Zero input: 0 × anything == 0; rate is undefined so return input rate.
         if minorUnits == 0 {
             return RateCalculation(amount: .zero, effectiveRate: rate)

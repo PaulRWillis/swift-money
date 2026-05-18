@@ -72,47 +72,33 @@ extension Money: Hashable {
 extension Money {
     /// Returns the lesser of the two given values.
     ///
-    /// Unlike the stdlib free function `min(_:_:)` which uses `<` comparison
-    /// (where NaN sorts below all values), this method traps if either
-    /// argument is NaN, ensuring both operands are meaningful values.
-    ///
     /// ```swift
     /// Money<GBP>.minimum(3, 5)     // 3
     /// Money<GBP>.minimum(-1, 1)    // -1
-    /// Money<GBP>.minimum(.nan, 5)  // traps
     /// ```
     ///
     /// - Parameters:
     ///   - x: A value to compare.
     ///   - y: Another value to compare.
     /// - Returns: The lesser of `x` and `y`.
-    /// - Precondition: Neither argument may be NaN.
-    /// - Complexity: O(1) -- single integer comparison after NaN checks.
+    /// - Complexity: O(1) -- single integer comparison.
     public static func minimum(_ x: Self, _ y: Self) -> Self {
-        precondition(!x.isNaN && !y.isNaN, "NaN in Money minimum")
-        return x.minorUnits <= y.minorUnits ? x : y
+        x.minorUnits <= y.minorUnits ? x : y
     }
 
     /// Returns the greater of the two given values.
     ///
-    /// Unlike the stdlib free function `max(_:_:)` which uses `<` comparison
-    /// (where NaN sorts below all values), this method traps if either
-    /// argument is NaN, ensuring both operands are meaningful values.
-    ///
     /// ```swift
     /// Money.maximum(3, 5)     // 5
     /// Money.maximum(-1, 1)    // 1
-    /// Money.maximum(.nan, 5)  // traps
     /// ```
     ///
     /// - Parameters:
     ///   - x: A value to compare.
     ///   - y: Another value to compare.
     /// - Returns: The greater of `x` and `y`.
-    /// - Precondition: Neither argument may be NaN.
-    /// - Complexity: O(1) -- single integer comparison after NaN checks.
+    /// - Complexity: O(1) -- single integer comparison.
     public static func maximum(_ x: Self, _ y: Self) -> Self {
-        precondition(!x.isNaN && !y.isNaN, "NaN in Money maximum")
-        return x.minorUnits >= y.minorUnits ? x : y
+        x.minorUnits >= y.minorUnits ? x : y
     }
 }

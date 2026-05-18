@@ -80,43 +80,16 @@ extension Money: Codable {
     }
 
     private func _encodeMajorUnits(to encoder: any Encoder) throws {
-        guard !isNaN else {
-            throw EncodingError.invalidValue(
-                self,
-                EncodingError.Context(
-                    codingPath: encoder.codingPath,
-                    debugDescription: "Money.nan cannot be encoded using the .majorUnits strategy. Use .minorUnits to preserve NaN."
-                )
-            )
-        }
         var container = encoder.singleValueContainer()
         try container.encode(_majorUnitsDecimal())
     }
 
     private func _encodeString(locale: Locale, to encoder: any Encoder) throws {
-        guard !isNaN else {
-            throw EncodingError.invalidValue(
-                self,
-                EncodingError.Context(
-                    codingPath: encoder.codingPath,
-                    debugDescription: "Money.nan cannot be encoded using the .string strategy. Use .minorUnits to preserve NaN."
-                )
-            )
-        }
         var container = encoder.singleValueContainer()
         try container.encode(self.formatted(Money<Currency>.FormatStyle().locale(locale)))
     }
 
     private func _encodeObject(amountStrategy: MoneyAmountEncodingStrategy, to encoder: any Encoder) throws {
-        guard !isNaN else {
-            throw EncodingError.invalidValue(
-                self,
-                EncodingError.Context(
-                    codingPath: encoder.codingPath,
-                    debugDescription: "Money.nan cannot be encoded using the .object strategy. Use .minorUnits to preserve NaN."
-                )
-            )
-        }
         var container = encoder.container(keyedBy: CodingKey.self)
         try container.encode(Currency.code.stringValue, forKey: .currencyCode)
         switch amountStrategy {
