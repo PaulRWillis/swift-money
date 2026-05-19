@@ -6,12 +6,14 @@ extension Money {
 
     /// The absolute value of this instance.
     ///
+    /// Returns the non-negative value. Traps if the value is not representable (e.g. minimum value).
+    ///
     /// ```swift
     /// let v = Money("-5.0")!
     /// v.magnitude  // 5.0
     /// ```
     public var magnitude: Magnitude {
-        Money(minorUnits: abs(minorUnits))
+        _storage < .zero ? Self(_storage: -_storage) : self
     }
 
     /// Returns the additive inverse of this value.
@@ -31,12 +33,14 @@ extension Money {
 
     /// Replaces this value with its additive inverse.
     ///
+    /// Traps if the value is not representable (e.g. minimum value).
+    ///
     /// ```swift
     /// var price = Money<GBP>(4250) // £42.50
     /// price.negate()
     /// // price is now -4250 (-£42.50)
     /// ```
     public mutating func negate() {
-        self = Self(minorUnits: -minorUnits)
+        self = Self(_storage: -_storage)
     }
 }

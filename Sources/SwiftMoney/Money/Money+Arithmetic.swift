@@ -3,29 +3,23 @@
 /// Conformance to `AdditiveArithmetic`, providing `+`, `-`, `+=`, `-=`, `and `.zero`.
 extension Money: AdditiveArithmetic {
     /// The zero value.
+    ///
+    /// Returns a value representing zero in the currency's minor units.
     public static var zero: Money {
-        Money(minorUnits: 0)
+        Money(_storage: .zero)
     }
 
     /// Returns the sum of two values.
     ///
-    /// Traps if the result overflows, matching Swift `Int` behavior.
+    /// Traps on overflow or if the result cannot be represented in the valid range for this type.
     ///
     /// ```swift
     /// let a = Money<GBP>(minorUnits: 105) // £1.05
     /// let b = Money<GBP>(minorUnits: 325) // £3.25
     /// let sum = a + b  // 430 (£4.30)
     /// ```
-    ///
-    /// - Parameters:
-    ///   - lhs: The first addend.
-    ///   - rhs: The second addend.
-    /// - Returns: The sum of `lhs` and `rhs`.
-    /// - Precondition: The result must fit in `Int64`.
     public static func + (lhs: Self, rhs: Self) -> Self {
-        let (result, overflow) = lhs.minorUnits.addingReportingOverflow(rhs.minorUnits)
-        precondition(!overflow, "Money addition overflow")
-        return Self(minorUnits: result)
+        Self(_storage: lhs._storage + rhs._storage)
     }
 
     /// Adds the right-hand value to the left-hand value in place.
@@ -47,23 +41,15 @@ extension Money: AdditiveArithmetic {
 
     /// Returns the difference of two values.
     ///
-    /// Traps if the result overflows, matching Swift `Int` behavior.
+    /// Traps on overflow or if the result cannot be represented in the valid range for this type.
     ///
     /// ```swift
     /// let a = Money<GBP>(minorUnits: 1050) // £10.50
     /// let b = Money<GBP>(minorUnits: 325) // £3.25
     /// let diff = a - b  // 725 (£7.25)
     /// ```
-    ///
-    /// - Parameters:
-    ///   - lhs: The minuend.
-    ///   - rhs: The subtrahend.
-    /// - Returns: The difference of `lhs` and `rhs`.
-    /// - Precondition: The result must fit in `Int64` after scaling.
     public static func - (lhs: Self, rhs: Self) -> Self {
-        let (result, overflow) = lhs.minorUnits.subtractingReportingOverflow(rhs.minorUnits)
-        precondition(!overflow, "Money subtraction overflow")
-        return Self(minorUnits: result)
+        Self(_storage: lhs._storage - rhs._storage)
     }
 
     /// Subtracts the right-hand value from the left-hand value in place.
@@ -87,13 +73,9 @@ extension Money: AdditiveArithmetic {
 public extension Money {
     /// Returns the result of multiplying a `Money` value by an `Int64` scalar.
     ///
-    /// Traps if the result overflows `Int64`.
-    ///
-    /// - Precondition: The result must fit in `Int64`.
+    /// Traps on overflow or if the result cannot be represented in the valid range for this type.
     static func * (lhs: Money, rhs: Int64) -> Money {
-        let (result, overflow) = lhs.minorUnits.multipliedReportingOverflow(by: rhs)
-        precondition(!overflow, "Money multiplication overflow")
-        return Money(minorUnits: result)
+        Money(_storage: lhs._storage * rhs)
     }
 
     /// Returns the result of multiplying an `Int64` scalar by a `Money` value.
