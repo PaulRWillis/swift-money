@@ -5,14 +5,6 @@ import Testing
 @Suite("Money - Decimal Conversions")
 struct Money_DecimalTests {
 
-    // MARK: - decimalValue
-
-    @Test("decimalValue returns correct Decimal for Money")
-    func decimalValue() {
-        let value = Money<TST_100>(minorUnits: 42)
-        #expect(value.decimalValue == Decimal(0.42))
-    }
-
     // MARK: - Money init from Decimal
 
     @Test("Money init from Decimal with exact precision currency allows")
@@ -82,7 +74,7 @@ struct Money_DecimalTests {
     @Test("Money init from Decimal with literal value")
     func decimalInitWithLiteralValue() {
         let value = Money<GBP>(99.95)
-        #expect(value.decimalValue == Decimal(99.95))
+        #expect(Decimal(value) == Decimal(99.95))
     }
 
     // MARK: - Money init from exact Decimal
@@ -140,10 +132,16 @@ struct Money_DecimalTests {
     @Test("Money init from exact Decimal with literal value")
     func decimalExactInitWithLiteralValue() throws {
         let value = try #require(Money<GBP>(exactly: 99.95))
-        #expect(value.decimalValue == Decimal(99.95))
+        #expect(Decimal(value) == Decimal(99.95))
     }
 
     // MARK: - Decimal init from Money
+
+    @Test("Decimal init returns correct value for Money")
+    func decimalInitFromMoney() {
+        let value = Money<TST_100>(minorUnits: 42)
+        #expect(Decimal(value) == Decimal(0.42))
+    }
 
     @Test("Decimal convenience initializer")
     func decimalConvenienceInit() {
@@ -168,7 +166,7 @@ struct Money_DecimalTests {
     func decimalInitFor100MinorUnitCurrency() {
         let decimal = Decimal(10.99) // Analogous to £10.99
         let value = Money<TST_100>(decimal)
-        #expect(value.decimalValue == decimal)
+        #expect(Decimal(value) == decimal)
         #expect(value.minorUnits == 1099)
     }
 
@@ -176,7 +174,7 @@ struct Money_DecimalTests {
     func decimalInitForNoMinorUnitCurrency() {
         let decimal = Decimal(153.0) // Analogous to ¥153 (153 JPY).
         let value = Money<TST_1>(decimal)
-        #expect(value.decimalValue == decimal)
+        #expect(Decimal(value) == decimal)
         #expect(value.minorUnits == 153)
     }
 
@@ -194,7 +192,7 @@ struct Money_DecimalTests {
     func decimalInitForBTCAnalogue() {
         let decimal = Decimal(153.0) // Analogous to 153 BTC.
         let value = Money<TST_100_000_000>(decimal)
-        #expect(value.decimalValue == decimal)
+        #expect(Decimal(value) == decimal)
         #expect(value.minorUnits == 15_300_000_000)
     }
 
@@ -210,7 +208,7 @@ struct Money_DecimalTests {
     func decimalInitForBTCAnalogueMin() throws {
         let decimal = try #require(Decimal(string: "1.00000001")) // Analogous to 1.00_000_001 BTC
         let value = Money<TST_100_000_000>(decimal)
-        #expect(value.decimalValue == decimal)
+        #expect(Decimal(value) == decimal)
         #expect(value.minorUnits == 100_000_001)
     }
 
@@ -219,7 +217,7 @@ struct Money_DecimalTests {
         let scaledInt64Max = Int64.max / TST_100_000_000.minimalQuantisation.int64Value
         let decimal = try #require(Decimal(string: String(scaledInt64Max)))
         let value = Money<TST_100_000_000>(decimal)
-        #expect(value.decimalValue == decimal)
+        #expect(Decimal(value) == decimal)
         #expect(value.minorUnits == 92_233_720_368_00_000_000) // 92,233,720,368.00_000_000 bitcoin
     }
 
