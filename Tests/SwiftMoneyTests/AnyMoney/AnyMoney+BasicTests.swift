@@ -56,19 +56,19 @@ struct AnyMoney_BasicTests {
         #expect(money.erased.currencyCode == TST_100.code)
     }
 
-    // MARK: - asMoney round-trip
+    // MARK: - Money.init from AnyMoney round-trip
 
-    @Test("asMoney returns typed value for matching currency")
-    func asMoneyMatchingCurrency() throws {
+    @Test("Money.init returns typed value for matching currency")
+    func moneyInitMatchingCurrency() throws {
         let money = Money<TST_100>(minorUnits: 500)
-        let roundTripped = try #require(money.erased.asMoney(TST_100.self))
+        let roundTripped = try #require(Money<TST_100>(money.erased))
         #expect(roundTripped == money)
     }
 
-    @Test("asMoney returns nil for mismatched currency")
-    func asMoneyMismatchedCurrency() {
+    @Test("Money.init returns nil for mismatched currency")
+    func moneyInitMismatchedCurrency() {
         let any = Money<TST_100>(minorUnits: 500).erased
-        #expect(any.asMoney(TST_1.self) == nil)
+        #expect(Money<TST_1>(any) == nil)
     }
 
 }

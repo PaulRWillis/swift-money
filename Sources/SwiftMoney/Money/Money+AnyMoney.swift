@@ -11,28 +11,27 @@ extension Money {
     /// ]
     /// ```
     ///
-    /// To recover a typed value, use ``AnyMoney/asMoney(_:)``.
+    /// To recover a typed value, use ``Money/init(_:)-anyMoney``.
     public var erased: AnyMoney {
         AnyMoney(self)
     }
-}
 
-extension AnyMoney {
-    /// Returns a typed `Money` value if this instance's currency matches the
-    /// given currency type, otherwise `nil`.
+    /// Creates a typed `Money` value from a type-erased `AnyMoney`, if the
+    /// currency matches.
+    ///
+    /// Returns `nil` when the currency code of `anyMoney` does not match `C`,
+    /// or when the stored value is the sentinel minimum.
     ///
     /// ```swift
     /// let any = Money<GBP>(minorUnits: 500).erased
-    /// let typed: Money<GBP>? = any.asMoney(GBP.self)  // Money<GBP>(500)
-    /// let wrong: Money<EUR>? = any.asMoney(EUR.self)   // nil
+    /// let typed: Money<GBP>? = Money<GBP>(any)   // Money<GBP>(500)
+    /// let wrong: Money<EUR>? = Money<EUR>(any)   // nil
     /// ```
     ///
-    /// - Parameter currency: The expected currency type.
-    /// - Returns: A `Money<C>` with the same ``minorUnits`` if the currency
-    ///   codes match, otherwise `nil`.
-    public func asMoney<C: Currency>(_ currency: C.Type) -> Money<C>? {
-        guard currencyCode == C.code else { return nil }
-        guard minorUnits != .min else { return nil }
-        return Money<C>(minorUnits: minorUnits)
+    /// - Parameter anyMoney: The type-erased money value to convert.
+    public init?(_ anyMoney: AnyMoney) {
+        guard anyMoney.currencyCode == Currency.code else { return nil }
+        guard anyMoney.minorUnits != .min else { return nil }
+        self.init(minorUnits: anyMoney.minorUnits)
     }
 }
