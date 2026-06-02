@@ -102,11 +102,11 @@ struct AnyMoney_CodableTests {
 
     // MARK: - Derived values still work after decode
 
-    @Test("decimalValue is preserved after round-trip")
-    func decimalValueAfterRoundTrip() throws {
+    @Test("Decimal(anyMoney) is preserved after round-trip")
+    func decimalInitAfterRoundTrip() throws {
         let original = Money<TST_100>(minorUnits: 150).erased
         let decoded = try roundTrip(original)
-        #expect(decoded.decimalValue == original.decimalValue)
+        #expect(Decimal(decoded) == Decimal(original))
     }
 
     @Test("formatted() is preserved after round-trip")

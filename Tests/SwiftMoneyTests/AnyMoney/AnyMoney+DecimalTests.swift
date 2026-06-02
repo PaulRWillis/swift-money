@@ -5,43 +5,43 @@ import SwiftMoney
 @Suite("AnyMoney – Decimal Conversion")
 struct AnyMoney_DecimalTests {
 
-    // MARK: - decimalValue
+    // MARK: - Decimal init from AnyMoney
 
-    @Test("decimalValue is correct for a ratio-100 currency")
-    func decimalValueRatio100() throws {
+    @Test("Decimal init returns correct value for a ratio-100 currency")
+    func decimalInitRatio100() throws {
         let any = Money<TST_100>(minorUnits: 150).erased
         let expected = try #require(Decimal(string: "1.50"))
-        #expect(any.decimalValue == expected)
+        #expect(Decimal(any) == expected)
     }
 
-    @Test("decimalValue is correct for a ratio-1 currency (no minor units)")
-    func decimalValueRatio1() {
+    @Test("Decimal init returns correct value for a ratio-1 currency")
+    func decimalInitRatio1() {
         let any = Money<TST_1>(minorUnits: 500).erased
-        #expect(any.decimalValue == Decimal(500))
+        #expect(Decimal(any) == Decimal(500))
     }
 
-    @Test("decimalValue is correct for zero")
-    func decimalValueZero() {
+    @Test("Decimal init returns correct value for zero")
+    func decimalInitZero() {
         let any = Money<TST_100>.zero.erased
-        #expect(any.decimalValue == Decimal(0))
+        #expect(Decimal(any) == Decimal(0))
     }
 
-    @Test("decimalValue is correct for a negative value")
-    func decimalValueNegative() throws {
+    @Test("Decimal init returns correct value for a negative value")
+    func decimalInitNegative() throws {
         let any = Money<TST_100>(minorUnits: -275).erased
         let expected = try #require(Decimal(string: "-2.75"))
-        #expect(any.decimalValue == expected)
+        #expect(Decimal(any) == expected)
     }
 
-    @Test("decimalValue matches Decimal(money) for ratio-100 currency")
-    func decimalValueMatchesTyped100() {
+    @Test("Decimal(anyMoney) matches Decimal(money) for ratio-100 currency")
+    func decimalInitMatchesTyped100() {
         let money = Money<TST_100>(minorUnits: 9999)
-        #expect(money.erased.decimalValue == Decimal(money))
+        #expect(Decimal(money.erased) == Decimal(money))
     }
 
-    @Test("decimalValue matches Decimal(money) for ratio-1 currency")
-    func decimalValueMatchesTyped1() {
+    @Test("Decimal(anyMoney) matches Decimal(money) for ratio-1 currency")
+    func decimalInitMatchesTyped1() {
         let money = Money<TST_1>(minorUnits: 9999)
-        #expect(money.erased.decimalValue == Decimal(money))
+        #expect(Decimal(money.erased) == Decimal(money))
     }
 }

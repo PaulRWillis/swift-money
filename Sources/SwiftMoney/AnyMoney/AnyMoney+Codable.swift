@@ -88,7 +88,7 @@ extension AnyMoney {
         case .minorUnits:
             try container.encode(minorUnits, forKey: .amount)
         case .majorUnits:
-            try container.encode(decimalValue, forKey: .amount)
+            try container.encode(Decimal(self), forKey: .amount)
         case .string(let locale):
             try container.encode(formatted(AnyMoney.FormatStyle().locale(locale)), forKey: .amount)
         }
