@@ -2,7 +2,7 @@ import Foundation
 import Testing
 import SwiftMoney
 
-@Suite("MoneyBag – Formatting")
+@Suite("MoneyBag – Formatting", .timeLimit(.minutes(1)))
 struct MoneyBag_FormatStyleTests {
 
     // MARK: - Empty bag

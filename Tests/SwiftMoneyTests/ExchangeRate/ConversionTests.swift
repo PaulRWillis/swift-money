@@ -1,7 +1,7 @@
 import Testing
 import SwiftMoney
 
-@Suite("ExchangeRate - conversionResult(of:)")
+@Suite("ExchangeRate - conversionResult(of:)", .timeLimit(.minutes(1)))
 struct ConversionTests {
 
     // EUR→GBP: 100 EUR cents = 85 GBP pence (GCD-reduces to 20:17)

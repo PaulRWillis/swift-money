@@ -1,7 +1,7 @@
 import Testing
 import SwiftMoney
 
-@Suite("UnitRate")
+@Suite("UnitRate", .timeLimit(.minutes(1)))
 struct UnitRateTests {
 
     // MARK: - Construction

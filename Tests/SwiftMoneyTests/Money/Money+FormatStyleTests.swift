@@ -2,7 +2,7 @@ import Foundation
 import SwiftMoney
 import Testing
 
-@Suite("Money - FormatStyle")
+@Suite("Money - FormatStyle", .timeLimit(.minutes(1)))
 struct Money_FormatStyleTests {
     private var localesAndMoneys: [(locale: Locale, stringValue: String)] = [
         (Locale(identifier: "en_GB"), "€1.05"),
@@ -225,7 +225,7 @@ struct Money_FormatStyleTests {
 
 // MARK: - Static factory shorthand
 
-@Suite("Money – FormatStyle – Static Factories")
+@Suite("Money – FormatStyle – Static Factories", .timeLimit(.minutes(1)))
 struct Money_FormatStyle_StaticFactoryTests {
 
     private let enGB = Locale(identifier: "en_GB")

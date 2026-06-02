@@ -1,7 +1,7 @@
 import SwiftMoney
 import Testing
 
-@Suite("Money - Addition")
+@Suite("Money - Addition", .timeLimit(.minutes(1)))
 struct Money_AdditionTests {
 
     // MARK: - Addition (Positives)

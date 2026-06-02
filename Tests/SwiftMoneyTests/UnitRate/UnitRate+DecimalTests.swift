@@ -3,7 +3,7 @@ import Foundation
 import Testing
 import SwiftMoney
 
-@Suite("UnitRate+Decimal")
+@Suite("UnitRate+Decimal", .timeLimit(.minutes(1)))
 struct UnitRate_DecimalTests {
 
     @Test("init from Decimal 0.000023 per kWh")

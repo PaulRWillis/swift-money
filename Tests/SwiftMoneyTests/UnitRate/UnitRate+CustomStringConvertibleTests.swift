@@ -1,7 +1,7 @@
 import Testing
 import SwiftMoney
 
-@Suite("UnitRate - CustomStringConvertible")
+@Suite("UnitRate - CustomStringConvertible", .timeLimit(.minutes(1)))
 struct UnitRateCustomStringConvertibleTests {
 
     // MARK: - description delegates to formatted()

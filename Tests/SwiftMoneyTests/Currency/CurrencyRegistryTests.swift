@@ -4,7 +4,7 @@ import Testing
 
 // MARK: - Initialisation
 
-@Suite("CurrencyRegistry — Initialisation")
+@Suite("CurrencyRegistry — Initialisation", .timeLimit(.minutes(1)))
 struct CurrencyRegistry_InitialisationTests {
 
     @Test("Empty registry has count 0")
@@ -78,7 +78,7 @@ struct CurrencyRegistry_InitialisationTests {
 
 // MARK: - Registration (Generic)
 
-@Suite("CurrencyRegistry — Generic Registration")
+@Suite("CurrencyRegistry — Generic Registration", .timeLimit(.minutes(1)))
 struct CurrencyRegistry_GenericRegistrationTests {
 
     @Test("register adds currency type")
@@ -109,7 +109,7 @@ struct CurrencyRegistry_GenericRegistrationTests {
 
 // MARK: - Registration (Non-Generic)
 
-@Suite("CurrencyRegistry — Non-Generic Registration")
+@Suite("CurrencyRegistry — Non-Generic Registration", .timeLimit(.minutes(1)))
 struct CurrencyRegistry_NonGenericRegistrationTests {
 
     @Test("register with code and minimalQuantisation")
@@ -131,7 +131,7 @@ struct CurrencyRegistry_NonGenericRegistrationTests {
 
 // MARK: - Lookup
 
-@Suite("CurrencyRegistry — Lookup")
+@Suite("CurrencyRegistry — Lookup", .timeLimit(.minutes(1)))
 struct CurrencyRegistry_LookupTests {
 
     @Test("Returns nil for unregistered code")
@@ -148,7 +148,7 @@ struct CurrencyRegistry_LookupTests {
 
 // MARK: - Count
 
-@Suite("CurrencyRegistry — Count")
+@Suite("CurrencyRegistry — Count", .timeLimit(.minutes(1)))
 struct CurrencyRegistry_CountTests {
 
     @Test("Empty registry count is 0")
@@ -178,7 +178,7 @@ struct CurrencyRegistry_CountTests {
 
 // MARK: - asResolver()
 
-@Suite("CurrencyRegistry — Resolver")
+@Suite("CurrencyRegistry — Resolver", .timeLimit(.minutes(1)))
 struct CurrencyRegistry_ResolverTests {
 
     @Test("Resolver returns same value as direct lookup")
@@ -206,7 +206,7 @@ struct CurrencyRegistry_ResolverTests {
 
 // MARK: - Equatable / Hashable
 
-@Suite("CurrencyRegistry — Equatable & Hashable")
+@Suite("CurrencyRegistry — Equatable & Hashable", .timeLimit(.minutes(1)))
 struct CurrencyRegistry_EquatableHashableTests {
 
     @Test("Two empty registries are equal")
@@ -255,7 +255,7 @@ struct CurrencyRegistry_EquatableHashableTests {
 
 // MARK: - Codable Integration
 
-@Suite("CurrencyRegistry — Codable Integration")
+@Suite("CurrencyRegistry — Codable Integration", .timeLimit(.minutes(1)))
 struct CurrencyRegistry_CodableIntegrationTests {
 
     @Test("AnyMoney round-trip with registry resolver")

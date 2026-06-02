@@ -1,7 +1,7 @@
 import Testing
 import SwiftMoney
 
-@Suite("Money - Initialization")
+@Suite("Money - Initialization", .timeLimit(.minutes(1)))
 struct Money_InitializationTests {
 
     @Test("Zero initialization")

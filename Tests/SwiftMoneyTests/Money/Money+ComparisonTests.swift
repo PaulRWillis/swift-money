@@ -2,7 +2,7 @@ import Foundation
 import Testing
 import SwiftMoney
 
-@Suite("Money - Comparison and Ordering")
+@Suite("Money - Comparison and Ordering", .timeLimit(.minutes(1)))
 struct Money_ComparisonTests {
     
     @Test("Equality")

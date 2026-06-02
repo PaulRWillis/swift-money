@@ -2,7 +2,7 @@ import Foundation
 import Testing
 import SwiftMoney
 
-@Suite("Money - Rate Multiplication")
+@Suite("Money - Rate Multiplication", .timeLimit(.minutes(1)))
 struct Money_RateMultiplicationTests {
 
     // MARK: - Canonical blog post examples

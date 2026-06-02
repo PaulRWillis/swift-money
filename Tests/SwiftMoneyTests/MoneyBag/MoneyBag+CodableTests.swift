@@ -2,7 +2,7 @@ import Testing
 import Foundation
 import SwiftMoney
 
-@Suite("MoneyBag – Codable")
+@Suite("MoneyBag – Codable", .timeLimit(.minutes(1)))
 struct MoneyBag_CodableTests {
 
     private let encoder: JSONEncoder = {
@@ -148,7 +148,7 @@ struct MoneyBag_CodableTests {
 
 // MARK: - .array strategy
 
-@Suite("MoneyBag – Codable – .array strategy")
+@Suite("MoneyBag – Codable – .array strategy", .timeLimit(.minutes(1)))
 struct MoneyBag_CodableTests_ArrayStrategy {
 
     private let resolver: @Sendable (CurrencyCode) -> MinimalQuantisation? = { code in
@@ -268,7 +268,7 @@ struct MoneyBag_CodableTests_ArrayStrategy {
 
 // MARK: - .dictionary strategy
 
-@Suite("MoneyBag – Codable – .dictionary strategy")
+@Suite("MoneyBag – Codable – .dictionary strategy", .timeLimit(.minutes(1)))
 struct MoneyBag_CodableTests_DictionaryStrategy {
 
     private let resolver: @Sendable (CurrencyCode) -> MinimalQuantisation? = { code in
@@ -383,7 +383,7 @@ struct MoneyBag_CodableTests_DictionaryStrategy {
 
 // MARK: - Strategy property API
 
-@Suite("MoneyBag – Codable – Strategy property API")
+@Suite("MoneyBag – Codable – Strategy property API", .timeLimit(.minutes(1)))
 struct MoneyBag_CodableTests_StrategyAPI {
 
     @Test("JSONEncoder.moneyBagEncodingStrategy defaults to .full")

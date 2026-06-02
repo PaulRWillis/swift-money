@@ -4,7 +4,7 @@ import SwiftMoney
 
 // MARK: - Rate mode
 
-@Suite("ExchangeRate.FormatStyle – rate mode")
+@Suite("ExchangeRate.FormatStyle – rate mode", .timeLimit(.minutes(1)))
 struct ExchangeRateFormatStyleRateTests {
 
     private let enUS = Locale(identifier: "en_US")
@@ -92,7 +92,7 @@ struct ExchangeRateFormatStyleRateTests {
 
 // MARK: - Fraction mode
 
-@Suite("ExchangeRate.FormatStyle – fraction mode")
+@Suite("ExchangeRate.FormatStyle – fraction mode", .timeLimit(.minutes(1)))
 struct ExchangeRateFormatStyleFractionTests {
 
     // MARK: - Same minimalQuantisation (100:100)
@@ -162,7 +162,7 @@ struct ExchangeRateFormatStyleFractionTests {
 
 // MARK: - Pair mode
 
-@Suite("ExchangeRate.FormatStyle – pair mode")
+@Suite("ExchangeRate.FormatStyle – pair mode", .timeLimit(.minutes(1)))
 struct ExchangeRateFormatStylePairTests {
 
     private let enGB = Locale(identifier: "en_GB")

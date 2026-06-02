@@ -1,7 +1,7 @@
 import Testing
 import SwiftMoney
 
-@Suite("AnyMoney – Comparison and Ordering")
+@Suite("AnyMoney – Comparison and Ordering", .timeLimit(.minutes(1)))
 struct AnyMoney_ComparisonTests {
 
     // MARK: - Equatable

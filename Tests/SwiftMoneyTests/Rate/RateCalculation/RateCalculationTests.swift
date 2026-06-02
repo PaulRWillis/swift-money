@@ -1,7 +1,7 @@
 import Testing
 import SwiftMoney
 
-@Suite("RateCalculation")
+@Suite("RateCalculation", .timeLimit(.minutes(1)))
 struct RateCalculationTests {
 
     // MARK: - Stored properties

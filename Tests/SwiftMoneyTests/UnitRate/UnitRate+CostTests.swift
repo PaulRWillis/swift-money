@@ -1,7 +1,7 @@
 import Testing
 import SwiftMoney
 
-@Suite("UnitRate - price(forQuantity:)")
+@Suite("UnitRate - price(forQuantity:)", .timeLimit(.minutes(1)))
 struct UnitRate_CostTests {
 
     // MARK: - Basic cost calculation

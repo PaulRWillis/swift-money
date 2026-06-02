@@ -1,7 +1,7 @@
 import Testing
 import SwiftMoney
 
-@Suite("Money — Int64 boundary values")
+@Suite("Money — Int64 boundary values", .timeLimit(.minutes(1)))
 struct Money_BoundaryTests {
 
     // MARK: - Comparison at boundaries
@@ -23,7 +23,7 @@ struct Money_BoundaryTests {
     }
 }
 
-@Suite("Rate — Int64 boundary values")
+@Suite("Rate — Int64 boundary values", .timeLimit(.minutes(1)))
 struct Rate_BoundaryTests {
 
     @Test("init returns nil for Int64.min numerator")
@@ -67,7 +67,7 @@ struct Rate_BoundaryTests {
     }
 }
 
-@Suite("ExchangeRate — Int64 boundary values")
+@Suite("ExchangeRate — Int64 boundary values", .timeLimit(.minutes(1)))
 struct ExchangeRate_BoundaryTests {
 
     @Test("init returns nil for Int64.min from value")

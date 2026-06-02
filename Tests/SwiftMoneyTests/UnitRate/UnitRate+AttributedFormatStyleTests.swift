@@ -4,7 +4,7 @@ import SwiftMoney
 #if canImport(Foundation)
 import Foundation
 
-@Suite("UnitRate - AttributedFormatStyle")
+@Suite("UnitRate - AttributedFormatStyle", .timeLimit(.minutes(1)))
 struct UnitRateAttributedFormatStyleTests {
 
     private let enGB = Locale(identifier: "en_GB")

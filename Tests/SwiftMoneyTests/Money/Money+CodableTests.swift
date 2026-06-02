@@ -21,7 +21,7 @@ private func jsonSorted(_ encoder: JSONEncoder, _ value: some Encodable) throws 
 
 // MARK: - Default strategy
 
-@Suite("Money - Codable: default strategy")
+@Suite("Money - Codable: default strategy", .timeLimit(.minutes(1)))
 struct Money_Codable_DefaultStrategyTests {
 
     @Test("Default strategy produces object JSON shape")
@@ -61,7 +61,7 @@ struct Money_Codable_DefaultStrategyTests {
 
 // MARK: - .object strategy
 
-@Suite("Money - Codable: .object strategy")
+@Suite("Money - Codable: .object strategy", .timeLimit(.minutes(1)))
 struct Money_Codable_ObjectStrategyTests {
 
     // MARK: .object(amount: .majorUnits)
@@ -203,7 +203,7 @@ struct Money_Codable_ObjectStrategyTests {
 
 // MARK: - .minorUnits strategy
 
-@Suite("Money - Codable: .minorUnits strategy")
+@Suite("Money - Codable: .minorUnits strategy", .timeLimit(.minutes(1)))
 struct Money_Codable_MinorUnitsStrategyTests {
 
     @Test("minorUnits: GBP encodes to bare integer")
@@ -264,7 +264,7 @@ struct Money_Codable_MinorUnitsStrategyTests {
 
 // MARK: - .majorUnits strategy
 
-@Suite("Money - Codable: .majorUnits strategy")
+@Suite("Money - Codable: .majorUnits strategy", .timeLimit(.minutes(1)))
 struct Money_Codable_MajorUnitsStrategyTests {
 
     @Test("majorUnits: GBP encodes to decimal JSON number")
@@ -381,7 +381,7 @@ struct Money_Codable_MajorUnitsStrategyTests {
 
 // MARK: - .string strategy
 
-@Suite("Money - Codable: .string strategy")
+@Suite("Money - Codable: .string strategy", .timeLimit(.minutes(1)))
 struct Money_Codable_StringStrategyTests {
 
     private let enGB = Locale(identifier: "en_GB")
@@ -431,7 +431,7 @@ struct Money_Codable_StringStrategyTests {
 
 // MARK: - JSONEncoder / JSONDecoder property API
 
-@Suite("Money - Codable: encoder/decoder properties")
+@Suite("Money - Codable: encoder/decoder properties", .timeLimit(.minutes(1)))
 struct Money_Codable_PropertyAPITests {
 
     @Test("moneyEncodingStrategy setter is respected")

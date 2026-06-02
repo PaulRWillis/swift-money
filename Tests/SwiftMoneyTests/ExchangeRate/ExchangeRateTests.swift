@@ -2,7 +2,7 @@ import Foundation
 import Testing
 import SwiftMoney
 
-@Suite("ExchangeRate")
+@Suite("ExchangeRate", .timeLimit(.minutes(1)))
 struct ExchangeRateTests {
 
     // MARK: - Initialisation
@@ -186,7 +186,7 @@ struct ExchangeRateTests {
 
 // MARK: - majorUnitRate initialisers
 
-@Suite("ExchangeRate - majorUnitRate initialisers")
+@Suite("ExchangeRate - majorUnitRate initialisers", .timeLimit(.minutes(1)))
 struct ExchangeRate_MajorUnitRateTests {
 
     // MARK: - init?(majorUnitRate: Rate)

@@ -4,7 +4,7 @@ import Testing
 
 private typealias Storage = MinorUnit.Storage
 
-@Suite("MinorUnit")
+@Suite("MinorUnit", .timeLimit(.minutes(1)))
 struct MinorUnitTests {
 
     // MARK: - Failable Initialisation

@@ -3,7 +3,7 @@ import Foundation
 import Testing
 import SwiftMoney
 
-@Suite("UnitRate - unit conversion")
+@Suite("UnitRate - unit conversion", .timeLimit(.minutes(1)))
 struct UnitRate_UnitConversionTests {
 
     // MARK: - Exact integer factor conversion

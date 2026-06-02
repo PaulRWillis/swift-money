@@ -2,7 +2,7 @@ import Foundation
 import Testing
 import SwiftMoney
 
-@Suite("DistributionParts")
+@Suite("DistributionParts", .timeLimit(.minutes(1)))
 struct DistributionPartsTests {
 
     // MARK: - Initialisation

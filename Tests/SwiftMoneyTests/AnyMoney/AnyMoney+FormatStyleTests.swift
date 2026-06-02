@@ -2,7 +2,7 @@ import Foundation
 import Testing
 import SwiftMoney
 
-@Suite("AnyMoney – Formatting")
+@Suite("AnyMoney – Formatting", .timeLimit(.minutes(1)))
 struct AnyMoney_FormatStyleTests {
 
     private let enUS = Locale(identifier: "en_US")
@@ -76,7 +76,7 @@ struct AnyMoney_FormatStyleTests {
 
 // MARK: - Static factory shorthand
 
-@Suite("AnyMoney – FormatStyle – Static Factories")
+@Suite("AnyMoney – FormatStyle – Static Factories", .timeLimit(.minutes(1)))
 struct AnyMoney_FormatStyle_StaticFactoryTests {
 
     private let enGB = Locale(identifier: "en_GB")

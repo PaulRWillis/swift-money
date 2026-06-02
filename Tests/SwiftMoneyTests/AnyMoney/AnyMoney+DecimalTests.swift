@@ -2,7 +2,7 @@ import Foundation
 import Testing
 import SwiftMoney
 
-@Suite("AnyMoney – Decimal Conversion")
+@Suite("AnyMoney – Decimal Conversion", .timeLimit(.minutes(1)))
 struct AnyMoney_DecimalTests {
 
     // MARK: - decimalValue

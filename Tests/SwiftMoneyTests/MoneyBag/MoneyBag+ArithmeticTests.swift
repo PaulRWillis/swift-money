@@ -1,7 +1,7 @@
 import Testing
 import SwiftMoney
 
-@Suite("MoneyBag – Arithmetic")
+@Suite("MoneyBag – Arithmetic", .timeLimit(.minutes(1)))
 struct MoneyBag_ArithmeticTests {
 
     // MARK: - adding (non-mutating)

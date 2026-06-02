@@ -11,7 +11,7 @@ import Testing
 /// compare `AnyMoney.FormatStyle` output against `Money<C>.FormatStyle` output
 /// (which is independently verified correct by `Money+FormatStyle+LocalisationTests`)
 /// confirming that the two implementations remain in parity across all locales.
-@Suite("AnyMoney – FormatStyle – Localisation")
+@Suite("AnyMoney – FormatStyle – Localisation", .timeLimit(.minutes(1)))
 struct AnyMoney_FormatStyle_LocalisationTests {
 
     // MARK: - Fidelity: GBP (minQ = 100)

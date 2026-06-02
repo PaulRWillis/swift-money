@@ -3,7 +3,7 @@ import Testing
 import SwiftMoney
 import XCTest
 
-@Suite("AnyMoney – Codable")
+@Suite("AnyMoney – Codable", .timeLimit(.minutes(1)))
 struct AnyMoney_CodableTests {
 
     private let encoder = JSONEncoder()
@@ -146,7 +146,7 @@ struct AnyMoney_CodableTests {
 
 // MARK: - .object strategy
 
-@Suite("AnyMoney – Codable – .object strategy")
+@Suite("AnyMoney – Codable – .object strategy", .timeLimit(.minutes(1)))
 struct AnyMoney_CodableTests_ObjectStrategy {
 
     private let resolver: @Sendable (CurrencyCode) -> MinimalQuantisation? = { code in
@@ -271,7 +271,7 @@ struct AnyMoney_CodableTests_ObjectStrategy {
 
 // MARK: - Strategy property API
 
-@Suite("AnyMoney – Codable – Strategy property API")
+@Suite("AnyMoney – Codable – Strategy property API", .timeLimit(.minutes(1)))
 struct AnyMoney_CodableTests_StrategyAPI {
 
     @Test("JSONEncoder.anyMoneyEncodingStrategy defaults to .full")
@@ -316,7 +316,7 @@ struct AnyMoney_CodableTests_StrategyAPI {
 
 // MARK: - Int64.min rejection
 
-@Suite("AnyMoney – Codable – Int64.min rejection")
+@Suite("AnyMoney – Codable – Int64.min rejection", .timeLimit(.minutes(1)))
 struct AnyMoney_CodableTests_SentinelRejection {
 
     @Test(".full: decoding Int64.min as minorUnits throws DecodingError")

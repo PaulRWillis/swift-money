@@ -2,7 +2,7 @@ import Foundation
 import Testing
 import SwiftMoney
 
-@Suite("Rate - FormatStyle")
+@Suite("Rate - FormatStyle", .timeLimit(.minutes(1)))
 struct RateFormatStyleTests {
 
     // MARK: - Fraction formatting

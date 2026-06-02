@@ -20,7 +20,7 @@ private struct MyRates: ExchangeRateProvider {
     }
 }
 
-@Suite("README — Compilation Verification")
+@Suite("README — Compilation Verification", .timeLimit(.minutes(1)))
 struct ReadmeVerificationTests {
 
     @Test func introExample() throws {

@@ -2,7 +2,7 @@ import Foundation
 import SwiftMoney
 import Testing
 
-@Suite("Money - Custom String Convertible")
+@Suite("Money - Custom String Convertible", .timeLimit(.minutes(1)))
 struct Money_CustomStringConvertibleTests {
     @Test("description equals formatted() output")
     func descriptionEqualsFormatted() {

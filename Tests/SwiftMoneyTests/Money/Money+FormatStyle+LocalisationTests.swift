@@ -25,7 +25,7 @@ import Testing
 /// the Foundation reference, it is removed from the general parameter list and
 /// isolated in its own `withKnownIssue { ... }` test so it surfaces
 /// automatically when a future OS version fixes the underlying issue.
-@Suite("Money - FormatStyle - Localisation")
+@Suite("Money - FormatStyle - Localisation", .timeLimit(.minutes(1)))
 struct Money_FormatStyle_LocalisationTests {
 
     // MARK: - Fidelity: GBP (minQ = 100, scale = 0.01)

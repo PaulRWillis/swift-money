@@ -1,7 +1,7 @@
 import Testing
 import SwiftMoney
 
-@Suite("Money - Basic Properties")
+@Suite("Money - Basic Properties", .timeLimit(.minutes(1)))
 struct Money_BasicTests {
 
     @Test("Currency is correct")

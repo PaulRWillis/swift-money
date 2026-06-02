@@ -4,7 +4,7 @@ import SwiftMoney
 #if canImport(Foundation)
 import Foundation
 
-@Suite("UnitRate - FormatStyle")
+@Suite("UnitRate - FormatStyle", .timeLimit(.minutes(1)))
 struct UnitRateFormatStyleTests {
 
     private let enGB = Locale(identifier: "en_GB")
@@ -150,7 +150,7 @@ struct UnitRateFormatStyleTests {
 // MARK: - Dimension-specific formatting
 
 #if canImport(Darwin)
-@Suite("UnitRate - FormatStyle (Dimension)")
+@Suite("UnitRate - FormatStyle (Dimension)", .timeLimit(.minutes(1)))
 struct UnitRateFormatStyleDimensionTests {
 
     private let enUS = Locale(identifier: "en_US")

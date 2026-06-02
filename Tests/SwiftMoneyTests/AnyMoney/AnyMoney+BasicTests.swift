@@ -1,7 +1,7 @@
 import Testing
 import SwiftMoney
 
-@Suite("AnyMoney – Basic Properties")
+@Suite("AnyMoney – Basic Properties", .timeLimit(.minutes(1)))
 struct AnyMoney_BasicTests {
 
     // MARK: - Properties preserved on init

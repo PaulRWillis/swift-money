@@ -2,7 +2,7 @@ import Foundation
 import SwiftMoney
 import Testing
 
-@Suite("Money - Safety Hardening")
+@Suite("Money - Safety Hardening", .timeLimit(.minutes(1)))
 struct Money_SafetyTests {
 
     private let enGB = Locale(identifier: "en_GB")

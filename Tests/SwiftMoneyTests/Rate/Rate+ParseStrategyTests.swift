@@ -2,7 +2,7 @@ import Foundation
 import Testing
 import SwiftMoney
 
-@Suite("Rate - ParseStrategy")
+@Suite("Rate - ParseStrategy", .timeLimit(.minutes(1)))
 struct RateParseStrategyTests {
 
     // MARK: - Fraction parse round-trips

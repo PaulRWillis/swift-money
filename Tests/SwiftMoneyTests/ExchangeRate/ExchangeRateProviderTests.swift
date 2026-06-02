@@ -25,7 +25,7 @@ private struct MockExchangeRateProvider: ExchangeRateProvider {
 
 // MARK: - ExchangeRateProvider protocol tests
 
-@Suite("ExchangeRateProvider")
+@Suite("ExchangeRateProvider", .timeLimit(.minutes(1)))
 struct ExchangeRateProviderTests {
 
     @Test("Mock provider returns configured rate")
@@ -58,7 +58,7 @@ struct ExchangeRateProviderTests {
 
 // MARK: - MoneyBag.total(in:using:) tests
 
-@Suite("MoneyBag - total(in:using:)")
+@Suite("MoneyBag - total(in:using:)", .timeLimit(.minutes(1)))
 struct MoneyBag_TotalTests {
 
     // Provider: GBP→GBP identity, EUR→GBP at 85/100, USD→GBP at 74/100

@@ -2,7 +2,7 @@ import Foundation
 import Testing
 import SwiftMoney
 
-@Suite("CurrencyCode")
+@Suite("CurrencyCode", .timeLimit(.minutes(1)))
 struct CurrencyCodeTests {
 
     // MARK: - Initialisation

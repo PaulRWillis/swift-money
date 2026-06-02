@@ -11,7 +11,7 @@ import Testing
 /// verify that the `locale` parameter is correctly threaded through for each
 /// entry across all locales, by independently reconstructing the expected string
 /// from `MoneyBag.balances` and comparing.
-@Suite("MoneyBag – FormatStyle – Localisation")
+@Suite("MoneyBag – FormatStyle – Localisation", .timeLimit(.minutes(1)))
 struct MoneyBag_FormatStyle_LocalisationTests {
 
     // MARK: - Helpers

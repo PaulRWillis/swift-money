@@ -1,7 +1,7 @@
 import SwiftMoney
 import Testing
 
-@Suite("Money - Integer Type Conversions")
+@Suite("Money - Integer Type Conversions", .timeLimit(.minutes(1)))
 struct Money_IntegerTests {
 
     // MARK: - Int Conversions

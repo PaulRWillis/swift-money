@@ -1,7 +1,7 @@
 import Testing
 import SwiftMoney
 
-@Suite("MoneyBag – Equatable & Hashable")
+@Suite("MoneyBag – Equatable & Hashable", .timeLimit(.minutes(1)))
 struct MoneyBag_EquatableTests {
 
     // MARK: - Equatable: empty

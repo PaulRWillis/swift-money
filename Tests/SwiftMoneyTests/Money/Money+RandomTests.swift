@@ -1,7 +1,7 @@
 import SwiftMoney
 import Testing
 
-@Suite("Money - Random")
+@Suite("Money - Random", .timeLimit(.minutes(1)))
 struct Money_RandomTests {
 
     // MARK: - ClosedRange

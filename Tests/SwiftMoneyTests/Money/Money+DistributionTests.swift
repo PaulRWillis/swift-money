@@ -1,7 +1,7 @@
 import SwiftMoney
 import Testing
 
-@Suite("Money - Distribution")
+@Suite("Money - Distribution", .timeLimit(.minutes(1)))
 struct Money_DistributionTests {
 
     // MARK: - Sum invariant (parameterized)

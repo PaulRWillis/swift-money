@@ -3,7 +3,7 @@ import Foundation
 import Testing
 import SwiftMoney
 
-@Suite("UnitRate - price(for: Measurement)")
+@Suite("UnitRate - price(for: Measurement)", .timeLimit(.minutes(1)))
 struct UnitRate_MeasurementTests {
 
     // MARK: - Basic conversion

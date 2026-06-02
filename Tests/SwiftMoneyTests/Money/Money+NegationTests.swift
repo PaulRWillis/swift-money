@@ -1,7 +1,7 @@
 import SwiftMoney
 import Testing
 
-@Suite("Money - Negation")
+@Suite("Money - Negation", .timeLimit(.minutes(1)))
 struct Money_NegationTests {
 
     // MARK: - Negation with `negate()`

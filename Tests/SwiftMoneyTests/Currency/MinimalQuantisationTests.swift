@@ -2,7 +2,7 @@ import Foundation
 import Testing
 import SwiftMoney
 
-@Suite("MinimalQuantisation")
+@Suite("MinimalQuantisation", .timeLimit(.minutes(1)))
 struct MinimalQuantisationTests {
 
     // MARK: - Initialisation

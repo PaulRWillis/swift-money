@@ -1,7 +1,7 @@
 import Testing
 import SwiftMoney
 
-@Suite("Rate+LosslessStringConvertible")
+@Suite("Rate+LosslessStringConvertible", .timeLimit(.minutes(1)))
 struct RateLosslessStringConvertibleTests {
 
     @Test("init parses '11/100'")

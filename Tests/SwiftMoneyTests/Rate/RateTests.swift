@@ -2,7 +2,7 @@ import Foundation
 import Testing
 import SwiftMoney
 
-@Suite("Rate")
+@Suite("Rate", .timeLimit(.minutes(1)))
 struct RateTests {
 
     // MARK: - init?(numerator:denominator:)

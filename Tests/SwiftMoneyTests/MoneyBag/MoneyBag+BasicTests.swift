@@ -1,7 +1,7 @@
 import Testing
 import SwiftMoney
 
-@Suite("MoneyBag – Basic Properties")
+@Suite("MoneyBag – Basic Properties", .timeLimit(.minutes(1)))
 struct MoneyBag_BasicTests {
 
     // MARK: - Empty bag

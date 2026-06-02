@@ -1,7 +1,7 @@
 import SwiftMoney
 import Testing
 
-@Suite("Money - Magnitude")
+@Suite("Money - Magnitude", .timeLimit(.minutes(1)))
 struct Money_MagnitudeTests {
     @Test("Numeric magnitude for positive")
     func magnitudePositive() {
