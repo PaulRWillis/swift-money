@@ -53,7 +53,7 @@ extension MoneyBag: Codable {
                 case .minorUnits:
                     try dictionaryContainer.encode(entry.minorUnits, forKey: key)
                 case .majorUnits:
-                    try dictionaryContainer.encode(entry.decimalValue, forKey: key)
+                    try dictionaryContainer.encode(Decimal(entry), forKey: key)
                 case .string(let locale):
                     try dictionaryContainer.encode(entry.formatted(AnyMoney.FormatStyle().locale(locale)), forKey: key)
                 }

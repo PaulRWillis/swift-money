@@ -1,16 +1,18 @@
 #if canImport(Foundation)
 import Foundation
 
-extension AnyMoney {
-    /// The value as a `Foundation.Decimal`.
+extension Decimal {
+    /// Creates a `Decimal` from an `AnyMoney`. Always exact.
     ///
     /// ```swift
-    /// Money<GBP>(minorUnits: 150).erased.decimalValue  // Decimal("1.50")
-    /// Money<JPY>(minorUnits: 500).erased.decimalValue  // Decimal(500)
+    /// let any = Money<GBP>(minorUnits: 150).erased
+    /// let decimal = Decimal(any) // Decimal("1.50")
     /// ```
+    ///
+    /// - Parameter value: The money value to convert.
     @inlinable
-    public var decimalValue: Decimal {
-        Decimal(minorUnits) / Decimal(minimalQuantisation.int64Value)
+    public init(_ value: AnyMoney) {
+        self = Decimal(value.minorUnits) / Decimal(value.minimalQuantisation.int64Value)
     }
 }
 #endif
