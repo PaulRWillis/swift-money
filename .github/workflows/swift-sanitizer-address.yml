@@ -20,14 +20,75 @@ jobs:
     - name: Swift version
       run: swift --version
 
+    - name: Runner diagnostics
+      run: |
+        set -euo pipefail
+        echo "timestamp: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+        echo "xcode-select: $(xcode-select -p)"
+        echo "developer dir: ${DEVELOPER_DIR}"
+        xcodebuild -version
+        sw_vers
+        uname -a
+
     - name: Clean before debug build
       run: swift package clean
 
-    - name: Run address sanitizer
-      run: swift test --sanitize=address
+    - name: Run address sanitizer (debug, verbose, heartbeat)
+      run: |
+        set -euo pipefail
+
+        run_with_heartbeat() {
+          local label="$1"
+          shift
+
+          # Run the command in a background shell so we can emit periodic diagnostics.
+          bash -lc "$* 2>&1 | tee ${label}.log" &
+          local runner_pid=$!
+
+          while kill -0 "$runner_pid" 2>/dev/null; do
+            echo "[$label] heartbeat: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            ps -Ao pid,ppid,etime,%cpu,%mem,command | grep -E "swift test|swiftpm-xctest-helper|SwiftMoneyPackageTests|xctest|swift-frontend|swiftc|clang|ld" | grep -v grep || true
+            sleep 30
+          done
+
+          wait "$runner_pid"
+        }
+
+        run_with_heartbeat asan-debug "swift test -v --sanitize=address"
 
     - name: Clean before release build
       run: swift package clean
 
-    - name: Run address sanitizer on release build
-      run: swift test --sanitize=address -c release -Xswiftc -enable-testing
+    - name: Run address sanitizer on release build (verbose, heartbeat)
+      run: |
+        set -euo pipefail
+
+        run_with_heartbeat() {
+          local label="$1"
+          shift
+
+          # Run the command in a background shell so we can emit periodic diagnostics.
+          bash -lc "$* 2>&1 | tee ${label}.log" &
+          local runner_pid=$!
+
+          while kill -0 "$runner_pid" 2>/dev/null; do
+            echo "[$label] heartbeat: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            ps -Ao pid,ppid,etime,%cpu,%mem,command | grep -E "swift test|swiftpm-xctest-helper|SwiftMoneyPackageTests|xctest|swift-frontend|swiftc|clang|ld" | grep -v grep || true
+            sleep 30
+          done
+
+          wait "$runner_pid"
+        }
+
+        run_with_heartbeat asan-release "swift test -v --sanitize=address -c release -Xswiftc -enable-testing"
+
+    - name: Print sanitizer log tails
+      if: always()
+      run: |
+        set -euo pipefail
+        for log in asan-debug.log asan-release.log; do
+          if [[ -f "$log" ]]; then
+            echo "--- tail: $log ---"
+            tail -n 200 "$log"
+          fi
+        done
