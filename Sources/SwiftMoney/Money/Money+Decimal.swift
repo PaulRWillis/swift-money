@@ -2,13 +2,6 @@
 import Foundation
 
 extension Money {
-    /// The value as a `Foundation.Decimal`. Backwards-compatibility convenience for `Decimal(self)`.
-    public var decimalValue: Decimal {
-        Decimal(minorUnits) / Decimal(Currency.minimalQuantisation.int64Value)
-    }
-}
-
-extension Money {
     /// Creates a value from a `Foundation.Decimal`.
     /// The `Decimal` value must be a valid representation of a `Money` amount
     /// in its given currency.
@@ -102,7 +95,7 @@ extension Decimal {
     ///
     /// - Parameter value: The money value to convert.
     public init<C: Currency>(_ value: Money<C>) {
-        self = value.decimalValue
+        self = Decimal(value.minorUnits) / Decimal(C.minimalQuantisation.int64Value)
     }
 
     /// Creates a `Decimal` from a `Money`. Always exact.
@@ -118,7 +111,7 @@ extension Decimal {
     /// - Parameter value: The money value to convert.
     /// - Returns: A `Decimal` representation of the value (always non-nil).
     public init?<C: Currency>(exactly value: Money<C>) {
-        self = value.decimalValue
+        self.init(value)
     }
 }
 #endif

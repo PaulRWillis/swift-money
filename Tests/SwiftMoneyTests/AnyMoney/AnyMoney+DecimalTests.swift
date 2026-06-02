@@ -33,15 +33,15 @@ struct AnyMoney_DecimalTests {
         #expect(any.decimalValue == expected)
     }
 
-    @Test("decimalValue matches Money<C>.decimalValue for ratio-100 currency")
+    @Test("decimalValue matches Decimal(money) for ratio-100 currency")
     func decimalValueMatchesTyped100() {
         let money = Money<TST_100>(minorUnits: 9999)
-        #expect(money.erased.decimalValue == money.decimalValue)
+        #expect(money.erased.decimalValue == Decimal(money))
     }
 
-    @Test("decimalValue matches Money<C>.decimalValue for ratio-1 currency")
+    @Test("decimalValue matches Decimal(money) for ratio-1 currency")
     func decimalValueMatchesTyped1() {
         let money = Money<TST_1>(minorUnits: 9999)
-        #expect(money.erased.decimalValue == money.decimalValue)
+        #expect(money.erased.decimalValue == Decimal(money))
     }
 }
