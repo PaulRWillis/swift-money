@@ -94,7 +94,7 @@ public struct MoneyBag: Sendable {
     /// - Parameter currency: The currency type to query.
     /// - Returns: A typed `Money<C>` if the currency is present, else `nil`.
     public func balance<C: Currency>(of currency: C.Type) -> Money<C>? {
-        _storage[C.code].flatMap { $0.asMoney(C.self) }
+        _storage[C.code].flatMap(Money<C>.init)
     }
 
     /// A snapshot of all accumulated balances, sorted by currency code.

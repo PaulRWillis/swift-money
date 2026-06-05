@@ -126,21 +126,21 @@ struct AnyMoney_CodableTests {
         #expect(decoded.minimalQuantisation.int64Value == 1)
     }
 
-    // MARK: - asMoney still works after decode
+    // MARK: - Money.init from AnyMoney still works after decode
 
-    @Test("asMoney returns typed value after round-trip for matching currency")
-    func asMoneyAfterRoundTrip() throws {
+    @Test("Money.init returns typed value after round-trip for matching currency")
+    func moneyInitAfterRoundTrip() throws {
         let original = Money<TST_100>(minorUnits: 500).erased
         let decoded = try roundTrip(original)
-        let typed = try #require(decoded.asMoney(TST_100.self))
+        let typed = try #require(Money<TST_100>(decoded))
         #expect(typed == Money<TST_100>(minorUnits: 500))
     }
 
-    @Test("asMoney returns nil after round-trip for mismatched currency")
-    func asMoneyCurrencyMismatchAfterRoundTrip() throws {
+    @Test("Money.init returns nil after round-trip for mismatched currency")
+    func moneyInitCurrencyMismatchAfterRoundTrip() throws {
         let original = Money<TST_100>(minorUnits: 500).erased
         let decoded = try roundTrip(original)
-        #expect(decoded.asMoney(TST_1.self) == nil)
+        #expect(Money<TST_1>(decoded) == nil)
     }
 }
 

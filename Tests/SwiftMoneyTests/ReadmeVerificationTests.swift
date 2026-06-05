@@ -84,7 +84,7 @@ struct ReadmeVerificationTests {
     @Test func typeErasure() {
         let gbp = Money<GBP>(minorUnits: 500)
         let erased: AnyMoney = gbp.erased
-        let recovered: Money<GBP>? = erased.asMoney(GBP.self)
+        let recovered: Money<GBP>? = Money<GBP>(erased)
         #expect(recovered == gbp)
     }
 

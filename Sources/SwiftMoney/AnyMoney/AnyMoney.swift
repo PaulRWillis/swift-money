@@ -13,16 +13,16 @@
 /// ]
 /// ```
 ///
-/// Use ``asMoney(_:)`` to recover a typed value when the currency is known:
+/// Use ``Money/init(_:)-anyMoney`` to recover a typed value when the currency is known:
 ///
 /// ```swift
-/// let gbpAmounts = arr.compactMap { $0.asMoney(GBP.self) }
+/// let gbpAmounts = arr.compactMap { Money<GBP>.init($0) }
 /// let total: Money<GBP> = gbpAmounts.reduce(.zero, +)
 /// ```
 ///
 /// `AnyMoney` is a minimal identity token. Arithmetic should be performed on
-/// typed `Money<C>` values. See ``asMoney(_:)`` to convert back before
-/// computing.
+/// typed `Money<C>` values. See ``Money/init(_:)-anyMoney`` to convert back
+/// before computing.
 public struct AnyMoney: Sendable {
 
     // MARK: - Stored properties
