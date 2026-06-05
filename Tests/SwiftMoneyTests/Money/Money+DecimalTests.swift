@@ -146,17 +146,17 @@ struct Money_DecimalTests {
     @Test("Decimal convenience initializer")
     func decimalConvenienceInit() {
         let fixed = Money<TST_100>(minorUnits: 12345)
-        let decimal = Decimal(exactly: fixed)
+        let decimal = Decimal(fixed)
         #expect(decimal == Decimal(string: "123.45"))
     }
 
-    // MARK: - Decimal init from exact Money
+    // MARK: - Decimal init round-trip
 
-    @Test("Decimal exact init returns value on non-NaN")
-    func decimalExactInitNonNaN() {
+    @Test("Decimal init round-trips through Money")
+    func decimalInitRoundTrip() {
         let decimal = Decimal(42)
         let money = Money<TST_100>(decimal)
-        let roundTrip = Decimal(exactly: money)
+        let roundTrip = Decimal(money)
         #expect(roundTrip == decimal)
     }
 
