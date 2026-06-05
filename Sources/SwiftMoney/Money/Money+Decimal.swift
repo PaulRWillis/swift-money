@@ -97,21 +97,5 @@ extension Decimal {
     public init<C: Currency>(_ value: Money<C>) {
         self = Decimal(value.minorUnits) / Decimal(C.minimalQuantisation.int64Value)
     }
-
-    /// Creates a `Decimal` from a `Money`. Always exact.
-    ///
-    /// The failable variant is provided for API symmetry with other
-    /// numeric conversions.
-    ///
-    /// ```swift
-    /// let money = Money<GBP>(99.95)   // £99.95
-    /// let decimal = Decimal(exactly: money)   // Optional(Decimal(99.95))
-    /// ```
-    ///
-    /// - Parameter value: The money value to convert.
-    /// - Returns: A `Decimal` representation of the value (always non-nil).
-    public init?<C: Currency>(exactly value: Money<C>) {
-        self.init(value)
-    }
 }
 #endif
