@@ -118,7 +118,7 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
         Money(minorUnits: 1)
     }
 
-    // TODO: Remove
+    #warning("Remove")
     /// The largest finite magnitude in minor units: `9,223,372,036,854,775,807`.
     ///
     /// Equal to ``max`` since all representable values are finite.
@@ -126,7 +126,7 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
         Money(_storage: .max)
     }
 
-    // TODO: Remove
+    #warning("Remove")
     /// The least (most negative) finite magnitude in minor units: `-9,223,372,036,854,775,807`.
     ///
     /// Equal to ``min`` since all representable values are finite.
@@ -271,5 +271,99 @@ public extension Money {
     /// Traps on overflow.
     static func *= (lhs: inout Money, rhs: Int64) {
         lhs = lhs * rhs
+    }
+}
+
+// MARK: - Equatable
+
+extension Money: Equatable {
+    /// Returns a Boolean value indicating whether two values are equal.
+    ///
+    /// ```swift
+    /// let a = Money<GBP>(minorUnits: 105)
+    /// let b = Money<GBP>(minorUnits: 105)
+    /// a == b  // true
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - lhs: A value to compare.
+    ///   - rhs: Another value to compare.
+    /// - Returns: `true` if the two values have the same raw storage.
+    /// - Complexity: O(1) -- single integer comparison.
+    public static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.minorUnits == rhs.minorUnits
+    }
+}
+
+// MARK: - Comparable
+
+extension Money: Comparable {
+    /// Returns a Boolean value indicating whether the first value is less than
+    /// the second.
+    ///
+    /// ```swift
+    /// let a = Money<GBP>(minorUnits: 20)
+    /// let b = Money<GBP>(minorUnits: 10)
+    /// a < b  // true
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - lhs: A value to compare.
+    ///   - rhs: Another value to compare.
+    /// - Returns: `true` if `lhs` is strictly less than `rhs`.
+    /// - Complexity: O(1) -- single integer comparison.
+    public static func < (lhs: Self, rhs: Self) -> Bool {
+        lhs.minorUnits < rhs.minorUnits
+    }
+}
+
+// MARK: - Hashable
+
+extension Money: Hashable {
+    /// Hashes the raw storage value into the given hasher.
+    ///
+    /// Two values that compare equal with `==` always produce the same hash,
+    /// satisfying the `Hashable` contract.
+    ///
+    /// - Parameter hasher: The hasher to use when combining the components of this instance.
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(minorUnits)
+    }
+}
+
+#warning("Remove minimum/maximum")
+// MARK: - minimum / maximum
+
+extension Money {
+    /// Returns the lesser of the two given values.
+    ///
+    /// ```swift
+    /// Money<GBP>.minimum(3, 5)     // 3
+    /// Money<GBP>.minimum(-1, 1)    // -1
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - x: A value to compare.
+    ///   - y: Another value to compare.
+    /// - Returns: The lesser of `x` and `y`.
+    /// - Complexity: O(1) -- single integer comparison.
+    public static func minimum(_ x: Self, _ y: Self) -> Self {
+        x.minorUnits <= y.minorUnits ? x : y
+    }
+
+    /// Returns the greater of the two given values.
+    ///
+    /// ```swift
+    /// Money.maximum(3, 5)     // 5
+    /// Money.maximum(-1, 1)    // 1
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - x: A value to compare.
+    ///   - y: Another value to compare.
+    /// - Returns: The greater of `x` and `y`.
+    /// - Complexity: O(1) -- single integer comparison.
+    public static func maximum(_ x: Self, _ y: Self) -> Self {
+        x.minorUnits >= y.minorUnits ? x : y
     }
 }
