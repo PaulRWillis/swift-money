@@ -132,23 +132,3 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
         min
     }
 }
-
-/*
-    - formatting
-        > Attributed as a FormatStyle
-        > Custom currency symbols that are used to replace attributed symbol in AttributedString?
-
-    - additional type-safe values
-        > `PositiveMoney` typealias `Credit`?
-        > `NegativeMoney` typealias `Debit`?
-        > `ZeroMoney`
-        > `NonPositiveMoney`
-        > `NonNegativeMoney`
-
-    - handling non-decimalised currencies (which ones exist?)
-
-    - poison addition, subtraction, and multiplication operators for Double and Float.
-    - additionally poison division operators for all number types: Int, Decimal, Double, Float (Int128? UInts? Binary ...?)
-
-    - String intepolation? (Test separately to `.description`!)
- */
