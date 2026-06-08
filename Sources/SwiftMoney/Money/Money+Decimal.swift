@@ -22,6 +22,8 @@ extension Money {
     /// - Precondition: The scaled result must fit in `Int64`.
     /// - Precondition: The `scaleFactor` of the currency must not be 0.
     public init(_ decimal: Decimal) {
+        #warning("This whole function replicates `init(exactly:)` -- call that and throw precondition if nil")
+
         precondition(!decimal.isNaN, "Cannot create Money from Decimal.nan")
 
         let factor = Decimal(Currency.minimalQuantisation.int64Value)
@@ -39,6 +41,8 @@ extension Money {
             Decimal(int64Value) == scaled,
             "Decimal value \(decimal) overflows Money range"
         )
+
+        #warning("Can we use a `MinorUnits` here instead of the precondition?")
         // Guard: must be representable as Storage
         precondition(
             int64Value != .min,

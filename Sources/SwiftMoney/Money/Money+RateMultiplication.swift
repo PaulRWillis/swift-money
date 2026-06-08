@@ -1,6 +1,7 @@
 #if canImport(Foundation)
 import Foundation
 
+#warning("Why does this require `Foundation`? If because of `FloatingPointRoundingRule`, perhaps this should be replaced by a framework-specific variant")
 extension Money {
 
     // MARK: - Rate Multiplication
