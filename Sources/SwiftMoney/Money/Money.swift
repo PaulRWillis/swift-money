@@ -1540,6 +1540,7 @@ extension Money {
 
 // MARK: - Internal style builders
 
+#warning("Should these be private? Are they really needed?")
 extension Money.FormatStyle {
     /// Builds the `IntegerFormatStyle<Int64>.Currency` that `format(_:)` uses.
     internal func _integerFormatStyle() -> IntegerFormatStyle<Int64>.Currency {
