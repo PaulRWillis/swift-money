@@ -35,22 +35,33 @@
 /// static var minimalQuantisation: MinimalQuantisation { 100 }
 /// ```
 public struct MinimalQuantisation: Sendable {
+    private typealias Storage = Int64
 
-    #warning("Make this private. Rename to `_rawValue`")
     /// The underlying integer value. Internal so the representation
     /// can evolve without a public-API break.
-    private let _storage: Int64
+    private let _storage: Storage
 
-    // MARK: - Initialiser
+    // MARK: - Initializer
 
     /// Creates a `MinimalQuantisation` from the given integer.
     ///
     /// - Parameter value: A strictly positive integer (> 0).
     /// - Precondition: `value` must be greater than zero.
-    public init(_ value: Int64) {
-        #warning("Use some private `validate` function that returns nil if invalid. Can then use both here and in other instantiators like decoding init and `ExpressiblyByStringLiteral`")
-        precondition(value > 0, "MinimalQuantisation must be > 0 (got \(value))")
-        self._storage = value
+    public init(_ int64: Int64) {
+        guard let s = Self.parse(int64) else {
+            preconditionFailure("MinimalQuantisation must be > 0 (got \(int64))")
+        }
+        self = s
+    }
+
+    private init(unsafeValue: Storage) {
+        self._storage = unsafeValue
+    }
+
+    private static func parse(_ value: Storage) -> Self? {
+        guard value > 0 else { return nil }
+
+        return Self(unsafeValue: value)
     }
 
     // MARK: - Public access to underlying value
@@ -90,13 +101,14 @@ extension MinimalQuantisation: Codable {
     public init(from decoder: any Decoder) throws {
         let container = try decoder.singleValueContainer()
         let value = try container.decode(Int64.self)
-        guard value > 0 else {
+
+        guard let s = Self.parse(value) else {
             throw DecodingError.dataCorruptedError(
                 in: container,
                 debugDescription: "MinimalQuantisation must be > 0 (decoded \(value))"
             )
         }
-        self._storage = value
+        self = s
     }
 
     public func encode(to encoder: any Encoder) throws {
@@ -116,7 +128,7 @@ extension MinimalQuantisation: ExpressibleByIntegerLiteral {
 // MARK: - CustomStringConvertible
 
 extension MinimalQuantisation: CustomStringConvertible {
-    /// The quantisation as a decimal string, e.g. `"100"`.
+    /// The quantisation as a string integer, e.g. `"100"`.
     public var description: String { String(_storage) }
 }
 
