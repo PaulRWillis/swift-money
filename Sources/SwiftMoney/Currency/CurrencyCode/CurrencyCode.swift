@@ -37,16 +37,18 @@ public struct CurrencyCode: Sendable {
 
     /// Creates a `CurrencyCode` from the given string.
     ///
-    /// - Parameter string: A non-empty currency code string.
+    /// - Parameter string: A non-empty currency-code string.
     /// - Precondition: `string` must not be empty.
     public init(_ string: String) {
-        #warning("Use some private `validate` function that returns nil if invalid. Can then use both here and in other instantiators like decoding init and `ExpressiblyByStringLiteral`")
-        precondition(!string.isEmpty, "CurrencyCode cannot be empty")
+        guard string.isValidCurrencyCode else {
+            preconditionFailure("CurrencyCode cannot be empty")
+        }
         self._storage = string
     }
 
     // MARK: - Public access to underlying value
 
+    #warning("Remove `CurrencyCode.stringValue`")
     /// The currency code as a plain `String`.
     ///
     /// Use this when a raw `String` is required, for example when calling
@@ -57,6 +59,12 @@ public struct CurrencyCode: Sendable {
     /// amount.formatted(.currency(code: code.stringValue))
     /// ```
     public var stringValue: String { _storage }
+}
+
+private extension String {
+    var isValidCurrencyCode: Bool {
+        !self.isEmpty
+    }
 }
 
 // MARK: - Equatable
@@ -90,7 +98,8 @@ extension CurrencyCode: Codable {
     public init(from decoder: any Decoder) throws {
         let container = try decoder.singleValueContainer()
         let string = try container.decode(String.self)
-        guard !string.isEmpty else {
+
+        guard string.isValidCurrencyCode else {
             throw DecodingError.dataCorruptedError(
                 in: container,
                 debugDescription: "CurrencyCode cannot be empty"
