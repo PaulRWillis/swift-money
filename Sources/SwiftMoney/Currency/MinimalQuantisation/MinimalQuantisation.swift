@@ -36,12 +36,10 @@
 /// ```
 public struct MinimalQuantisation: Sendable {
 
-    // MARK: - Storage (internal — not part of the public API)
-
     #warning("Make this private. Rename to `_rawValue`")
     /// The underlying integer value. Internal so the representation
     /// can evolve without a public-API break.
-    internal let _value: Int64
+    private let _value: Int64
 
     // MARK: - Initialiser
 
