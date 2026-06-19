@@ -214,7 +214,7 @@ struct Money_DecimalTests {
 
     @Test("Money init from decimal for BTC analogue - max satoshi edge case")
     func decimalInitForBTCAnalogueMax() throws {
-        let scaledInt64Max = Int64.max / TST_100_000_000.minimalQuantisation.int64Value
+        let scaledInt64Max = Int64.max / Int64(TST_100_000_000.minimalQuantisation)
         let decimal = try #require(Decimal(string: String(scaledInt64Max)))
         let value = Money<TST_100_000_000>(decimal)
         #expect(Decimal(value) == decimal)
@@ -224,7 +224,7 @@ struct Money_DecimalTests {
     @Test("Money init from decimal for BTC analogue - overflow")
     func decimalInitForBTCAnalogueOverflow() async throws {
         await #expect(processExitsWith: .failure) {
-            let overflowByOne = (Int64.max / TST_100_000_000.minimalQuantisation.int64Value) + 1
+            let overflowByOne = (Int64.max / Int64(TST_100_000_000.minimalQuantisation)) + 1
             let decimal = try #require(Decimal(string: String(overflowByOne)))
             _ = Money<TST_100_000_000>(decimal)
         }

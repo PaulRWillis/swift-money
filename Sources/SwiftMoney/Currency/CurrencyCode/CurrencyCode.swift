@@ -50,7 +50,7 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
     }
 
     private static func parse(_ string: String) -> Self? {
-        guard string.isValidCurrencyCode else { return nil }
+        if string.isEmpty { return nil }
 
         return Self(unsafeString: string)
     }
@@ -68,12 +68,6 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
     public var stringValue: String { _storage }
 }
 
-private extension String {
-    var isValidCurrencyCode: Bool {
-        !self.isEmpty
-    }
-}
-
 // MARK: - Comparable
 
 extension CurrencyCode: Comparable {
@@ -88,9 +82,9 @@ extension CurrencyCode: Comparable {
 extension CurrencyCode: Codable {
     public init(from decoder: any Decoder) throws {
         let container = try decoder.singleValueContainer()
-        let string = try container.decode(String.self)
+        let value = try container.decode(String.self)
 
-        guard let s = Self.parse(string) else {
+        guard let s = Self.parse(value) else {
             throw DecodingError.dataCorruptedError(
                 in: container,
                 debugDescription: "CurrencyCode cannot be empty"

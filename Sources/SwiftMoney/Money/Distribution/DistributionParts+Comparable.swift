@@ -1,5 +1,6 @@
 // MARK: - Equatable
 
+#warning("Synthesise conformances")
 extension DistributionParts: Equatable {
     public static func == (lhs: DistributionParts, rhs: DistributionParts) -> Bool {
         lhs._value == rhs._value

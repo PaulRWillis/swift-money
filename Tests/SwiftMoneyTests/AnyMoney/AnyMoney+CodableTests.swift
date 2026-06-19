@@ -123,7 +123,7 @@ struct AnyMoney_CodableTests {
         let original = Money<TST_1>(minorUnits: 500).erased
         let decoded = try roundTrip(original)
         #expect(decoded == original)
-        #expect(decoded.minimalQuantisation.int64Value == 1)
+        #expect(Int64(decoded.minimalQuantisation) == 1)
     }
 
     // MARK: - Money.init from AnyMoney still works after decode

@@ -34,55 +34,38 @@
 /// ```swift
 /// static var minimalQuantisation: MinimalQuantisation { 100 }
 /// ```
-public struct MinimalQuantisation: Sendable {
+public struct MinimalQuantisation: Equatable, Hashable, Sendable {
+    private typealias Storage = Int64
 
-    // MARK: - Storage (internal — not part of the public API)
-
-    #warning("Make this private. Rename to `_rawValue`")
     /// The underlying integer value. Internal so the representation
     /// can evolve without a public-API break.
-    internal let _value: Int64
+    private let _storage: Storage
 
-    // MARK: - Initialiser
+    var int64Value: Int64 {
+        _storage
+    }
+
+    // MARK: - Initializer
 
     /// Creates a `MinimalQuantisation` from the given integer.
     ///
     /// - Parameter value: A strictly positive integer (> 0).
     /// - Precondition: `value` must be greater than zero.
-    public init(_ value: Int64) {
-        #warning("Use some private `validate` function that returns nil if invalid. Can then use both here and in other instantiators like decoding init and `ExpressiblyByStringLiteral`")
-        precondition(value > 0, "MinimalQuantisation must be > 0 (got \(value))")
-        self._value = value
+    public init(_ int64: Int64) {
+        guard let s = Self.parse(int64) else {
+            preconditionFailure("MinimalQuantisation must be > 0 (got \(int64))")
+        }
+        self = s
     }
 
-    // MARK: - Public access to underlying value
-
-    #warning("Can this be removed?")
-    /// The quantisation as a plain `Int64`.
-    ///
-    /// Use this when a raw integer is required, for example for
-    /// arithmetic scaling:
-    ///
-    /// ```swift
-    /// let q = MinimalQuantisation(100)
-    /// let scaled = Decimal(minorUnits) / Decimal(q.int64Value)
-    /// ```
-    public var int64Value: Int64 { _value }
-}
-
-// MARK: - Equatable
-
-extension MinimalQuantisation: Equatable {
-    public static func == (lhs: MinimalQuantisation, rhs: MinimalQuantisation) -> Bool {
-        lhs._value == rhs._value
+    private init(unsafeValue: Storage) {
+        self._storage = unsafeValue
     }
-}
 
-// MARK: - Hashable
+    private static func parse(_ value: Storage) -> Self? {
+        guard value > 0 else { return nil }
 
-extension MinimalQuantisation: Hashable {
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(_value)
+        return Self(unsafeValue: value)
     }
 }
 
@@ -92,18 +75,19 @@ extension MinimalQuantisation: Codable {
     public init(from decoder: any Decoder) throws {
         let container = try decoder.singleValueContainer()
         let value = try container.decode(Int64.self)
-        guard value > 0 else {
+
+        guard let s = Self.parse(value) else {
             throw DecodingError.dataCorruptedError(
                 in: container,
                 debugDescription: "MinimalQuantisation must be > 0 (decoded \(value))"
             )
         }
-        self._value = value
+        self = s
     }
 
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.singleValueContainer()
-        try container.encode(_value)
+        try container.encode(_storage)
     }
 }
 
@@ -113,6 +97,13 @@ extension MinimalQuantisation: ExpressibleByIntegerLiteral {
     public init(integerLiteral value: Int64) {
         self.init(value)
     }
+}
+
+// MARK: - CustomStringConvertible
+
+extension MinimalQuantisation: CustomStringConvertible {
+    /// The quantisation as a string integer, e.g. `"100"`.
+    public var description: String { String(_storage) }
 }
 
 // MARK: - Int64 conversion
