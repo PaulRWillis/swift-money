@@ -33,6 +33,7 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
 
     // MARK: - Initializer
 
+    #warning("Update init to eventually return optional on parse failure")
     /// Creates a `CurrencyCode` from the given string.
     ///
     /// - Parameter string: A non-empty currency-code string.
