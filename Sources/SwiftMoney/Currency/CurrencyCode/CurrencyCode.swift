@@ -1,10 +1,8 @@
-/// A validated currency code string.
+/// A validated currency code.
 ///
-/// `CurrencyCode` wraps a `String` to guarantee it is never empty. The
-/// underlying storage is intentionally `internal` so it can be changed
-/// in a future version without a public-API break. Callers access the
+/// Wraps a `String` to guarantee it is never empty. Callers access the
 /// primitive value exclusively through ``stringValue`` or the `String`
-/// conversion initialiser:
+/// conversion initializer:
 ///
 /// ```swift
 /// let code = CurrencyCode("GBP")
@@ -16,7 +14,7 @@
 ///
 /// Any non-empty string is a valid currency code, enabling ISO 4217 codes
 /// (`GBP`, `EUR`, `USD`), crypto codes (`BTC`, `SAT`), and in-app
-/// currencies (`GEMS`, `TOKENS`, `TST_100`).
+/// currencies (`GEMS`, `TOKENS`, `LOYALTY_PTS`).
 ///
 /// ## String literals
 ///
