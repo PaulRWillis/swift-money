@@ -25,6 +25,7 @@
 /// before computing.
 public struct AnyMoney: Sendable {
 
+    #warning("Allow `AnyMoney` to have addition, subtraction, distribution, integral multiplication, and fractional multiplication for systems where the currency is not known at runtime")
     // MARK: - Stored properties
 
     internal typealias Storage = MinorUnit
@@ -85,6 +86,4 @@ public struct AnyMoney: Sendable {
         self.minimalQuantisation = minimalQuantisation
         self.currency = currency
     }
-
-    // MARK: - Special value queries
 }

@@ -1,5 +1,6 @@
 // MARK: - Codable
 
+#warning("Why does `DistributionParts` need to conform to `Codable`?`")
 extension DistributionParts: Codable {
     public init(from decoder: any Decoder) throws {
         let container = try decoder.singleValueContainer()

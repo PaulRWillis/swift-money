@@ -35,6 +35,7 @@
 /// }
 /// ```
 public enum Distribution<C: Currency>: Sendable, Equatable {
+    #warning("Have as `equal` and `unequal`, `even` and `uneven`, etc. Not `exact` and `uneven` as these aren't opposites")
     /// Every recipient receives an identical share.
     ///
     /// Produced when the amount is exactly divisible by `n`.
@@ -49,6 +50,7 @@ public enum Distribution<C: Currency>: Sendable, Equatable {
 }
 
 extension Distribution {
+    #warning("Rename to `count`")
     /// The total number of recipients (`n` passed to `distributed(into:)`).
     public var totalCount: Int {
         switch self {

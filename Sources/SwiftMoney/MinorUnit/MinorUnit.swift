@@ -1,5 +1,6 @@
 import Foundation
 
+#warning("Remove? We can safely make this the storage type of `Money` and it doesn't need its own tests. We don't need to care if we have `.min` as we can throw a precondition for this if needed.")
 /// A discrete count of the smallest indivisible monetary unit.
 ///
 /// `MinorUnit` wraps an `Int64`, rejecting `Int64.min` at construction

@@ -1,5 +1,6 @@
 // MARK: - CustomStringConvertible
 
+#warning("Is `Rate` conformance to `CustomStringConvertible` required?")
 extension Rate: CustomStringConvertible {
     /// The rate as a string in the form `"numerator/denominator"`.
     ///
@@ -15,6 +16,7 @@ extension Rate: CustomStringConvertible {
 
 // MARK: - LosslessStringConvertible
 
+#warning("Is `Rate` conformance to `LosslessStringConvertible` required?")
 extension Rate: LosslessStringConvertible {
     /// Creates a `Rate` from its string representation.
     ///

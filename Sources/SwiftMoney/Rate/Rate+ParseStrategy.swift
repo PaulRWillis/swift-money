@@ -3,6 +3,7 @@ import Foundation
 
 // MARK: - ParseStrategy
 
+#warning("Remove `Rate.ParseStrategy`")
 extension Rate {
 
     /// A parse strategy that reconstructs a `Rate` from a formatted string.

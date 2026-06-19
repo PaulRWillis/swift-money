@@ -1,5 +1,6 @@
 // MARK: - Codable
 
+#warning("Does `Rate` need to conform to `Codable`?")
 extension Rate: Codable {
     private enum CodingKeys: String, CodingKey {
         case numerator

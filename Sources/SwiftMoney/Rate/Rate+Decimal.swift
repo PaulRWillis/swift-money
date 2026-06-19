@@ -3,6 +3,7 @@ import Foundation
 
 // MARK: - Decimal initialiser
 
+#warning("Remove use of `Decimal` in `Rate`")
 extension Rate {
 
     /// Creates a `Rate` from a `Foundation.Decimal` value.
