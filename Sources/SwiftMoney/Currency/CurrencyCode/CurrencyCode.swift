@@ -1,10 +1,8 @@
-/// A validated currency code string.
+/// A validated currency code.
 ///
-/// `CurrencyCode` wraps a `String` to guarantee it is never empty. The
-/// underlying storage is intentionally `internal` so it can be changed
-/// in a future version without a public-API break. Callers access the
+/// Wraps a `String` to guarantee it is never empty. Callers access the
 /// primitive value exclusively through ``stringValue`` or the `String`
-/// conversion initialiser:
+/// conversion initializer:
 ///
 /// ```swift
 /// let code = CurrencyCode("GBP")
@@ -16,7 +14,7 @@
 ///
 /// Any non-empty string is a valid currency code, enabling ISO 4217 codes
 /// (`GBP`, `EUR`, `USD`), crypto codes (`BTC`, `SAT`), and in-app
-/// currencies (`GEMS`, `TOKENS`, `TST_100`).
+/// currencies (`GEMS`, `TOKENS`, `LOYALTY_PTS`).
 ///
 /// ## String literals
 ///
@@ -30,29 +28,34 @@
 /// The same empty-string precondition applies when literals are used at
 /// runtime; an empty literal is caught at compile time by the Swift type
 /// checker.
-public struct CurrencyCode: Sendable {
+public struct CurrencyCode: Equatable, Hashable, Sendable {
+    private let _storage: String
 
-    // MARK: - Storage (internal — not part of the public API)
+    // MARK: - Initializer
 
-    #warning("Make this private. Rename to `_rawValue`")
-    /// The underlying string value. Internal so the representation
-    /// can evolve without a public-API break.
-    internal let _value: String
-
-    // MARK: - Initialiser
-
+    #warning("Update init to eventually return optional on parse failure")
     /// Creates a `CurrencyCode` from the given string.
     ///
-    /// - Parameter string: A non-empty currency code string.
+    /// - Parameter string: A non-empty currency-code string.
     /// - Precondition: `string` must not be empty.
     public init(_ string: String) {
-        #warning("Use some private `validate` function that returns nil if invalid. Can then use both here and in other instantiators like decoding init and `ExpressiblyByStringLiteral`")
-        precondition(!string.isEmpty, "CurrencyCode cannot be empty")
-        self._value = string
+        guard let s = Self.parse(string) else {
+            preconditionFailure("CurrencyCode cannot be empty")
+        }
+        self = s
     }
 
-    // MARK: - Public access to underlying value
+    private init(unsafeString: String) {
+        self._storage = unsafeString
+    }
 
+    private static func parse(_ string: String) -> Self? {
+        guard string.isValidCurrencyCode else { return nil }
+
+        return Self(unsafeString: string)
+    }
+
+    #warning("Remove `CurrencyCode.stringValue`")
     /// The currency code as a plain `String`.
     ///
     /// Use this when a raw `String` is required, for example when calling
@@ -62,22 +65,12 @@ public struct CurrencyCode: Sendable {
     /// let code = CurrencyCode("GBP")
     /// amount.formatted(.currency(code: code.stringValue))
     /// ```
-    public var stringValue: String { _value }
+    public var stringValue: String { _storage }
 }
 
-// MARK: - Equatable
-
-extension CurrencyCode: Equatable {
-    public static func == (lhs: CurrencyCode, rhs: CurrencyCode) -> Bool {
-        lhs._value == rhs._value
-    }
-}
-
-// MARK: - Hashable
-
-extension CurrencyCode: Hashable {
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(_value)
+private extension String {
+    var isValidCurrencyCode: Bool {
+        !self.isEmpty
     }
 }
 
@@ -86,7 +79,7 @@ extension CurrencyCode: Hashable {
 extension CurrencyCode: Comparable {
     /// Compares two currency codes lexicographically by their string values.
     public static func < (lhs: CurrencyCode, rhs: CurrencyCode) -> Bool {
-        lhs._value < rhs._value
+        lhs._storage < rhs._storage
     }
 }
 
@@ -96,18 +89,19 @@ extension CurrencyCode: Codable {
     public init(from decoder: any Decoder) throws {
         let container = try decoder.singleValueContainer()
         let string = try container.decode(String.self)
-        guard !string.isEmpty else {
+
+        guard let s = Self.parse(string) else {
             throw DecodingError.dataCorruptedError(
                 in: container,
                 debugDescription: "CurrencyCode cannot be empty"
             )
         }
-        self._value = string
+        self = s
     }
 
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.singleValueContainer()
-        try container.encode(_value)
+        try container.encode(_storage)
     }
 }
 
@@ -117,6 +111,13 @@ extension CurrencyCode: ExpressibleByStringLiteral {
     public init(stringLiteral value: String) {
         self.init(value)
     }
+}
+
+// MARK: - CustomStringConvertible
+
+extension CurrencyCode: CustomStringConvertible {
+    /// The currency code string, e.g. `"GBP"`.
+    public var description: String { _storage }
 }
 
 // MARK: - String conversion
