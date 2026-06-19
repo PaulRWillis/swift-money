@@ -30,7 +30,7 @@
 /// The same empty-string precondition applies when literals are used at
 /// runtime; an empty literal is caught at compile time by the Swift type
 /// checker.
-public struct CurrencyCode: Sendable {
+public struct CurrencyCode: Equatable, Hashable, Sendable {
     private let _storage: String
 
     // MARK: - Initializer
@@ -64,22 +64,6 @@ public struct CurrencyCode: Sendable {
 private extension String {
     var isValidCurrencyCode: Bool {
         !self.isEmpty
-    }
-}
-
-// MARK: - Equatable
-
-extension CurrencyCode: Equatable {
-    public static func == (lhs: CurrencyCode, rhs: CurrencyCode) -> Bool {
-        lhs._storage == rhs._storage
-    }
-}
-
-// MARK: - Hashable
-
-extension CurrencyCode: Hashable {
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(_storage)
     }
 }
 
