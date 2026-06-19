@@ -37,7 +37,7 @@ public struct CurrencyCode: Sendable {
     #warning("Make this private. Rename to `_rawValue`")
     /// The underlying string value. Internal so the representation
     /// can evolve without a public-API break.
-    private let _value: String
+    private let _storage: String
 
     // MARK: - Initialiser
 
@@ -48,7 +48,7 @@ public struct CurrencyCode: Sendable {
     public init(_ string: String) {
         #warning("Use some private `validate` function that returns nil if invalid. Can then use both here and in other instantiators like decoding init and `ExpressiblyByStringLiteral`")
         precondition(!string.isEmpty, "CurrencyCode cannot be empty")
-        self._value = string
+        self._storage = string
     }
 
     // MARK: - Public access to underlying value
@@ -62,14 +62,14 @@ public struct CurrencyCode: Sendable {
     /// let code = CurrencyCode("GBP")
     /// amount.formatted(.currency(code: code.stringValue))
     /// ```
-    public var stringValue: String { _value }
+    public var stringValue: String { _storage }
 }
 
 // MARK: - Equatable
 
 extension CurrencyCode: Equatable {
     public static func == (lhs: CurrencyCode, rhs: CurrencyCode) -> Bool {
-        lhs._value == rhs._value
+        lhs._storage == rhs._storage
     }
 }
 
@@ -77,7 +77,7 @@ extension CurrencyCode: Equatable {
 
 extension CurrencyCode: Hashable {
     public func hash(into hasher: inout Hasher) {
-        hasher.combine(_value)
+        hasher.combine(_storage)
     }
 }
 
@@ -86,7 +86,7 @@ extension CurrencyCode: Hashable {
 extension CurrencyCode: Comparable {
     /// Compares two currency codes lexicographically by their string values.
     public static func < (lhs: CurrencyCode, rhs: CurrencyCode) -> Bool {
-        lhs._value < rhs._value
+        lhs._storage < rhs._storage
     }
 }
 
@@ -102,12 +102,12 @@ extension CurrencyCode: Codable {
                 debugDescription: "CurrencyCode cannot be empty"
             )
         }
-        self._value = string
+        self._storage = string
     }
 
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.singleValueContainer()
-        try container.encode(_value)
+        try container.encode(_storage)
     }
 }
 
@@ -137,5 +137,5 @@ extension String {
 
 extension CurrencyCode: CustomStringConvertible {
     /// The currency code string, e.g. `"GBP"`.
-    public var description: String { _value }
+    public var description: String { _storage }
 }
