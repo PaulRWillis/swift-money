@@ -39,7 +39,7 @@ public struct MinimalQuantisation: Sendable {
     #warning("Make this private. Rename to `_rawValue`")
     /// The underlying integer value. Internal so the representation
     /// can evolve without a public-API break.
-    private let _value: Int64
+    private let _storage: Int64
 
     // MARK: - Initialiser
 
@@ -50,7 +50,7 @@ public struct MinimalQuantisation: Sendable {
     public init(_ value: Int64) {
         #warning("Use some private `validate` function that returns nil if invalid. Can then use both here and in other instantiators like decoding init and `ExpressiblyByStringLiteral`")
         precondition(value > 0, "MinimalQuantisation must be > 0 (got \(value))")
-        self._value = value
+        self._storage = value
     }
 
     // MARK: - Public access to underlying value
@@ -65,14 +65,14 @@ public struct MinimalQuantisation: Sendable {
     /// let q = MinimalQuantisation(100)
     /// let scaled = Decimal(minorUnits) / Decimal(q.int64Value)
     /// ```
-    public var int64Value: Int64 { _value }
+    public var int64Value: Int64 { _storage }
 }
 
 // MARK: - Equatable
 
 extension MinimalQuantisation: Equatable {
     public static func == (lhs: MinimalQuantisation, rhs: MinimalQuantisation) -> Bool {
-        lhs._value == rhs._value
+        lhs._storage == rhs._storage
     }
 }
 
@@ -80,7 +80,7 @@ extension MinimalQuantisation: Equatable {
 
 extension MinimalQuantisation: Hashable {
     public func hash(into hasher: inout Hasher) {
-        hasher.combine(_value)
+        hasher.combine(_storage)
     }
 }
 
@@ -96,12 +96,12 @@ extension MinimalQuantisation: Codable {
                 debugDescription: "MinimalQuantisation must be > 0 (decoded \(value))"
             )
         }
-        self._value = value
+        self._storage = value
     }
 
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.singleValueContainer()
-        try container.encode(_value)
+        try container.encode(_storage)
     }
 }
 
@@ -117,7 +117,7 @@ extension MinimalQuantisation: ExpressibleByIntegerLiteral {
 
 extension MinimalQuantisation: CustomStringConvertible {
     /// The quantisation as a decimal string, e.g. `"100"`.
-    public var description: String { String(_value) }
+    public var description: String { String(_storage) }
 }
 
 // MARK: - Int64 conversion
