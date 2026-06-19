@@ -50,7 +50,7 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
     }
 
     private static func parse(_ string: String) -> Self? {
-        guard string.isValidCurrencyCode else { return nil }
+        if string.isEmpty { return nil }
 
         return Self(unsafeString: string)
     }
@@ -66,12 +66,6 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
     /// amount.formatted(.currency(code: code.stringValue))
     /// ```
     public var stringValue: String { _storage }
-}
-
-private extension String {
-    var isValidCurrencyCode: Bool {
-        !self.isEmpty
-    }
 }
 
 // MARK: - Comparable
