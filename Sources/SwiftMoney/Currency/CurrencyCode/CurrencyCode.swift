@@ -93,7 +93,6 @@ extension CurrencyCode: Codable {
         let container = try decoder.singleValueContainer()
         let string = try container.decode(String.self)
 
-        self.init(string)
         guard let s = Self.parse(string) else {
             throw DecodingError.dataCorruptedError(
                 in: container,
