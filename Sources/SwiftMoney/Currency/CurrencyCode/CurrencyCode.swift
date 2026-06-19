@@ -117,6 +117,13 @@ extension CurrencyCode: ExpressibleByStringLiteral {
     }
 }
 
+// MARK: - CustomStringConvertible
+
+extension CurrencyCode: CustomStringConvertible {
+    /// The currency code string, e.g. `"GBP"`.
+    public var description: String { _storage }
+}
+
 // MARK: - String conversion
 
 extension String {
@@ -129,11 +136,4 @@ extension String {
     public init(_ code: CurrencyCode) {
         self = code.stringValue
     }
-}
-
-// MARK: - CustomStringConvertible
-
-extension CurrencyCode: CustomStringConvertible {
-    /// The currency code string, e.g. `"GBP"`.
-    public var description: String { _storage }
 }
