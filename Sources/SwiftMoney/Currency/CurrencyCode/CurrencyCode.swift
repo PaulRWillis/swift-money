@@ -31,15 +31,9 @@
 /// runtime; an empty literal is caught at compile time by the Swift type
 /// checker.
 public struct CurrencyCode: Sendable {
-
-    // MARK: - Storage (internal — not part of the public API)
-
-    #warning("Make this private. Rename to `_rawValue`")
-    /// The underlying string value. Internal so the representation
-    /// can evolve without a public-API break.
     private let _storage: String
 
-    // MARK: - Initialiser
+    // MARK: - Initializer
 
     /// Creates a `CurrencyCode` from the given string.
     ///
