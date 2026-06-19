@@ -40,10 +40,20 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
     /// - Parameter string: A non-empty currency-code string.
     /// - Precondition: `string` must not be empty.
     public init(_ string: String) {
-        guard string.isValidCurrencyCode else {
+        guard let s = Self.parse(string) else {
             preconditionFailure("CurrencyCode cannot be empty")
         }
-        self._storage = string
+        self = s
+    }
+
+    private static func parse(_ string: String) -> Self? {
+        guard string.isValidCurrencyCode else { return nil }
+
+        return Self(unsafeString: string)
+    }
+
+    private init(unsafeString: String) {
+        self._storage = unsafeString
     }
 
     // MARK: - Public access to underlying value
@@ -83,13 +93,14 @@ extension CurrencyCode: Codable {
         let container = try decoder.singleValueContainer()
         let string = try container.decode(String.self)
 
-        guard string.isValidCurrencyCode else {
+        self.init(string)
+        guard let s = Self.parse(string) else {
             throw DecodingError.dataCorruptedError(
                 in: container,
                 debugDescription: "CurrencyCode cannot be empty"
             )
         }
-        self._storage = string
+        self = s
     }
 
     public func encode(to encoder: any Encoder) throws {
