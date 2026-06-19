@@ -37,7 +37,7 @@ public struct CurrencyCode: Sendable {
     #warning("Make this private. Rename to `_rawValue`")
     /// The underlying string value. Internal so the representation
     /// can evolve without a public-API break.
-    internal let _value: String
+    private let _value: String
 
     // MARK: - Initialiser
 
