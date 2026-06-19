@@ -10,25 +10,25 @@ struct MinimalQuantisationTests {
     @Test("init accepts 1 (no minor units, e.g. JPY)")
     func initAcceptsOne() {
         let q = MinimalQuantisation(1)
-        #expect(q.int64Value == 1)
+        #expect(Int64(q) == 1)
     }
 
     @Test("init accepts 100 (e.g. GBP, USD, EUR)")
     func initAcceptsOneHundred() {
         let q = MinimalQuantisation(100)
-        #expect(q.int64Value == 100)
+        #expect(Int64(q) == 100)
     }
 
     @Test("init accepts 100_000_000 (e.g. BTC satoshis)")
     func initAcceptsBitcoinSatoshis() {
         let q = MinimalQuantisation(100_000_000)
-        #expect(q.int64Value == 100_000_000)
+        #expect(Int64(q) == 100_000_000)
     }
 
     @Test("init accepts Int64.max")
     func initAcceptsInt64Max() {
         let q = MinimalQuantisation(.max)
-        #expect(q.int64Value == .max)
+        #expect(Int64(q) == .max)
     }
 
     @Test("init traps on 0")
@@ -57,7 +57,7 @@ struct MinimalQuantisationTests {
     @Test("Integer literal produces correct value")
     func integerLiteral() {
         let q: MinimalQuantisation = 100
-        #expect(q.int64Value == 100)
+        #expect(Int64(q) == 100)
     }
 
     // MARK: - Int64 conversion
@@ -66,12 +66,6 @@ struct MinimalQuantisationTests {
     func int64InitFromQuantisation() {
         let q = MinimalQuantisation(100)
         #expect(Int64(q) == 100)
-    }
-
-    @Test("Int64(q) equals q.int64Value")
-    func int64InitEqualsInt64Value() {
-        let q = MinimalQuantisation(1_000)
-        #expect(Int64(q) == q.int64Value)
     }
 
     // MARK: - Equatable

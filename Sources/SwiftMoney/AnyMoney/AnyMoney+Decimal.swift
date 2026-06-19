@@ -10,7 +10,6 @@ extension Decimal {
     /// ```
     ///
     /// - Parameter value: The money value to convert.
-    @inlinable
     public init(_ value: AnyMoney) {
         self = Decimal(value.minorUnits) / Decimal(value.minimalQuantisation.int64Value)
     }

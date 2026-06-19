@@ -41,6 +41,10 @@ public struct MinimalQuantisation: Equatable, Hashable, Sendable {
     /// can evolve without a public-API break.
     private let _storage: Storage
 
+    var int64Value: Int64 {
+        _storage
+    }
+
     // MARK: - Initializer
 
     /// Creates a `MinimalQuantisation` from the given integer.
@@ -63,20 +67,6 @@ public struct MinimalQuantisation: Equatable, Hashable, Sendable {
 
         return Self(unsafeValue: value)
     }
-
-    // MARK: - Public access to underlying value
-
-    #warning("Can this be removed?")
-    /// The quantisation as a plain `Int64`.
-    ///
-    /// Use this when a raw integer is required, for example for
-    /// arithmetic scaling:
-    ///
-    /// ```swift
-    /// let q = MinimalQuantisation(100)
-    /// let scaled = Decimal(minorUnits) / Decimal(q.int64Value)
-    /// ```
-    public var int64Value: Int64 { _storage }
 }
 
 // MARK: - Codable
