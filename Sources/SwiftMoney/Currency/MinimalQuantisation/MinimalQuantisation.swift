@@ -34,7 +34,7 @@
 /// ```swift
 /// static var minimalQuantisation: MinimalQuantisation { 100 }
 /// ```
-public struct MinimalQuantisation: Sendable {
+public struct MinimalQuantisation: Equatable, Hashable, Sendable {
     private typealias Storage = Int64
 
     /// The underlying integer value. Internal so the representation
@@ -77,22 +77,6 @@ public struct MinimalQuantisation: Sendable {
     /// let scaled = Decimal(minorUnits) / Decimal(q.int64Value)
     /// ```
     public var int64Value: Int64 { _storage }
-}
-
-// MARK: - Equatable
-
-extension MinimalQuantisation: Equatable {
-    public static func == (lhs: MinimalQuantisation, rhs: MinimalQuantisation) -> Bool {
-        lhs._storage == rhs._storage
-    }
-}
-
-// MARK: - Hashable
-
-extension MinimalQuantisation: Hashable {
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(_storage)
-    }
 }
 
 // MARK: - Codable
