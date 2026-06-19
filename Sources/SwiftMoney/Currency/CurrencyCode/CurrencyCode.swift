@@ -46,17 +46,15 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
         self = s
     }
 
+    private init(unsafeString: String) {
+        self._storage = unsafeString
+    }
+
     private static func parse(_ string: String) -> Self? {
         guard string.isValidCurrencyCode else { return nil }
 
         return Self(unsafeString: string)
     }
-
-    private init(unsafeString: String) {
-        self._storage = unsafeString
-    }
-
-    // MARK: - Public access to underlying value
 
     #warning("Remove `CurrencyCode.stringValue`")
     /// The currency code as a plain `String`.
