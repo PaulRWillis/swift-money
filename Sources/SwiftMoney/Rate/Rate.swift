@@ -80,6 +80,7 @@ public struct Rate: Sendable {
 
 // MARK: - Private helpers
 
+#warning("This is being used by `MoneyBag`, `Rate`, `UnitRate`, etc. Move to util file")
 /// Euclidean GCD. `a` must be ≥ 0; `b` must be > 0.
 /// Returns 1 when `a` is 0 so callers can always divide safely.
 @inlinable

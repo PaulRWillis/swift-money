@@ -1,5 +1,6 @@
 import Foundation
 
+#warning("Remove `ExchangeRate.FormatStyle` for now -- not needed for pre-release")
 extension ExchangeRate {
 
     /// A `FormatStyle` that converts an `ExchangeRate` to a human-readable string.

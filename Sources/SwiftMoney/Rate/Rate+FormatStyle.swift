@@ -1,6 +1,7 @@
 #if canImport(Foundation)
 import Foundation
 
+#warning("Remove `Rate.FormatStyle` for now")
 extension Rate {
 
     // MARK: - FormatStyle

@@ -1,3 +1,4 @@
+#warning("Consider removing `UnitRate` as an object")
 /// A rate expressing the price of a `Currency` per unit of `U`.
 ///
 /// `UnitRate` pairs a ``Rate`` (an exact GCD-reduced rational number) with

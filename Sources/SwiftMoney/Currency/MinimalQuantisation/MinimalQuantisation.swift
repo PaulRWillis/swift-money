@@ -38,6 +38,7 @@ public struct MinimalQuantisation: Sendable {
 
     // MARK: - Storage (internal — not part of the public API)
 
+    #warning("Make this private. Rename to `_rawValue`")
     /// The underlying integer value. Internal so the representation
     /// can evolve without a public-API break.
     internal let _value: Int64
@@ -49,12 +50,14 @@ public struct MinimalQuantisation: Sendable {
     /// - Parameter value: A strictly positive integer (> 0).
     /// - Precondition: `value` must be greater than zero.
     public init(_ value: Int64) {
+        #warning("Use some private `validate` function that returns nil if invalid. Can then use both here and in other instantiators like decoding init and `ExpressiblyByStringLiteral`")
         precondition(value > 0, "MinimalQuantisation must be > 0 (got \(value))")
         self._value = value
     }
 
     // MARK: - Public access to underlying value
 
+    #warning("Can this be removed?")
     /// The quantisation as a plain `Int64`.
     ///
     /// Use this when a raw integer is required, for example for

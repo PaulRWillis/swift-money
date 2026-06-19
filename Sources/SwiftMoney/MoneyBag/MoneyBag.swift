@@ -39,6 +39,7 @@ public struct MoneyBag: Sendable {
 
     // MARK: - Storage
 
+    #warning("Should this be `Currency` instead of `CurrencyCode`?")
     /// Currency code → accumulated `AnyMoney` for that currency.
     internal var _storage: [CurrencyCode: AnyMoney]
 

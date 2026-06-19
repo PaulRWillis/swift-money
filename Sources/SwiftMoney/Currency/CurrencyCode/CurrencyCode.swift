@@ -34,6 +34,7 @@ public struct CurrencyCode: Sendable {
 
     // MARK: - Storage (internal — not part of the public API)
 
+    #warning("Make this private. Rename to `_rawValue`")
     /// The underlying string value. Internal so the representation
     /// can evolve without a public-API break.
     internal let _value: String
@@ -45,6 +46,7 @@ public struct CurrencyCode: Sendable {
     /// - Parameter string: A non-empty currency code string.
     /// - Precondition: `string` must not be empty.
     public init(_ string: String) {
+        #warning("Use some private `validate` function that returns nil if invalid. Can then use both here and in other instantiators like decoding init and `ExpressiblyByStringLiteral`")
         precondition(!string.isEmpty, "CurrencyCode cannot be empty")
         self._value = string
     }
