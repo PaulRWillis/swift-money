@@ -123,14 +123,14 @@ extension MinorUnit: ExpressibleByIntegerLiteral {
     }
 }
 
-// MARK: - Int64 Conversion
+// MARK: - Int Conversion
 
 extension Int {
-    /// Creates an `Int64` from a `MinorUnit`.
+    /// Creates an `Int` from a `MinorUnit`.
     ///
     /// ```swift
     /// let minorUnit = MinorUnit(exactly: 150)!
-    /// Int64(minorUnit)  // 150
+    /// Int(minorUnit)  // 150
     /// ```
     init(_ minorUnit: MinorUnit) {
         self = minorUnit._storage
