@@ -114,6 +114,7 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
         Money(_storage: .min)
     }
 
+    #warning("Remove")
     /// The smallest positive value in minor units: `1`.
     public static var leastNonzeroMagnitude: Money {
         Money(minorUnits: 1)
