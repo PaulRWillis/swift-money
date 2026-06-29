@@ -1,7 +1,7 @@
 import Foundation
 
 /// A discrete count of the smallest indivisible monetary unit.
-struct MinorUnit: Sendable {
+struct MinorUnit: Equatable, Hashable, Sendable {
 
     // MARK: - Storage
 
@@ -26,7 +26,6 @@ struct MinorUnit: Sendable {
 // MARK: - Static Properties
 
 extension MinorUnit {
-
     /// The zero value.
     static let zero = MinorUnit(integerLiteral: 0)
 
@@ -36,14 +35,6 @@ extension MinorUnit {
     /// The maximum representable value (`Int64.max`).
     static let max = MinorUnit(integerLiteral: .max)
 }
-
-// MARK: - Equatable
-
-extension MinorUnit: Equatable {}
-
-// MARK: - Hashable
-
-extension MinorUnit: Hashable {}
 
 // MARK: - Comparable
 
