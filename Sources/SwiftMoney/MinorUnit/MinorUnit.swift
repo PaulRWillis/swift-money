@@ -2,14 +2,9 @@ import Foundation
 
 /// A discrete count of the smallest indivisible monetary unit.
 struct MinorUnit: Equatable, Hashable, Sendable {
+    fileprivate let _storage: Int
 
-    // MARK: - Storage
-
-    typealias Storage = Int
-
-    fileprivate let _storage: Storage
-
-    // MARK: - Initialisers
+    // MARK: - Initializers
 
     /// Creates a `MinorUnit` from a `BinaryInteger`.
     ///
@@ -18,7 +13,7 @@ struct MinorUnit: Equatable, Hashable, Sendable {
     /// MinorUnit(exactly: Int128.max)   // nil
     /// ```
     init?<T: BinaryInteger>(exactly value: T) {
-        guard let storage = Storage(exactly: value), storage != .min else { return nil }
+        guard let storage = Int(exactly: value), storage != .min else { return nil }
         self._storage = storage
     }
 }
@@ -30,7 +25,7 @@ extension MinorUnit {
     static let zero = MinorUnit(integerLiteral: 0)
 
     /// The minimum representable value (`Int64.min + 1`).
-    static let min = MinorUnit(integerLiteral: Storage.min + 1)
+    static let min = MinorUnit(integerLiteral: Int.min + 1)
 
     /// The maximum representable value (`Int64.max`).
     static let max = MinorUnit(integerLiteral: .max)
@@ -60,7 +55,7 @@ extension MinorUnit: CustomDebugStringConvertible {
 
 extension MinorUnit: Codable {
     init(from decoder: any Decoder) throws {
-        let value = try decoder.singleValueContainer().decode(Storage.self)
+        let value = try decoder.singleValueContainer().decode(Int.self)
         guard let minorUnit = MinorUnit(exactly: value) else {
             throw DecodingError.dataCorrupted(
                 .init(codingPath: decoder.codingPath,
@@ -103,11 +98,11 @@ extension MinorUnit {
 // MARK: - Scalar Multiplication
 
 extension MinorUnit {
-    static func * (lhs: MinorUnit, rhs: Storage) -> MinorUnit {
+    static func * (lhs: MinorUnit, rhs: Int) -> MinorUnit {
         MinorUnit(integerLiteral: lhs._storage * rhs)
     }
 
-    static func * (lhs: Storage, rhs: MinorUnit) -> MinorUnit {
+    static func * (lhs: Int, rhs: MinorUnit) -> MinorUnit {
         rhs * lhs
     }
 }
@@ -115,9 +110,9 @@ extension MinorUnit {
 // MARK: - ExpressibleByIntegerLiteral
 
 extension MinorUnit: ExpressibleByIntegerLiteral {
-    init(integerLiteral value: Storage) {
+    init(integerLiteral value: Int) {
         guard let minorUnit = MinorUnit(exactly: value) else {
-            preconditionFailure("MinorUnit cannot represent Storage.min")
+            preconditionFailure("MinorUnit cannot represent Int.min")
         }
         self = minorUnit
     }

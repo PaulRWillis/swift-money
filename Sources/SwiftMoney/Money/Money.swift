@@ -27,6 +27,7 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     /// ```
     public var minorUnits: MinorUnits { Int64(_minorUnits) }
 
+    #warning("Remove zero as default init")
     /// Creates a zero value.
     ///
     /// ```swift
