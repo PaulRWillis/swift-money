@@ -25,7 +25,7 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     /// let onePound = Money<GBP>(minorUnits: 100) // £1.00
     /// onePound.minorUnits  // 100
     /// ```
-    public var minorUnits: MinorUnits { Int64(_minorUnits) }
+    public var minorUnits: MinorUnits { Int64(Int(_minorUnits)) }
 
     /// Creates a zero value.
     ///
@@ -234,7 +234,7 @@ public extension Money {
     ///
     /// Traps on overflow or if the result cannot be represented in the valid range for this type.
     static func * (lhs: Money, rhs: Int64) -> Money {
-        Money(_storage: lhs._storage * rhs)
+        Money(_storage: lhs._storage * Int(rhs))
     }
 
     /// Returns the result of multiplying an `Int64` scalar by a `Money` value.

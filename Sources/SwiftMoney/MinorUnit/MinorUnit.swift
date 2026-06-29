@@ -21,7 +21,7 @@ struct MinorUnit: Sendable {
 
     // MARK: - Storage
 
-    typealias Storage = Int64
+    typealias Storage = Int
 
     let _storage: Storage
 
@@ -152,7 +152,7 @@ extension MinorUnit: ExpressibleByIntegerLiteral {
 
 // MARK: - Int64 Conversion
 
-extension Int64 {
+extension Int {
     /// Creates an `Int64` from a `MinorUnit`.
     ///
     /// ```swift
