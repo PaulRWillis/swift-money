@@ -7,7 +7,7 @@ struct MinorUnit: Equatable, Hashable, Sendable {
 
     typealias Storage = Int
 
-    let _storage: Storage
+    fileprivate let _storage: Storage
 
     // MARK: - Initialisers
 
@@ -134,5 +134,17 @@ extension Int {
     /// ```
     init(_ minorUnit: MinorUnit) {
         self = minorUnit._storage
+    }
+}
+
+extension Int64 {
+    /// Creates an `Int64` from a `MinorUnit`.
+    ///
+    /// ```swift
+    /// let minorUnit = MinorUnit(exactly: 150)!
+    /// Int64(minorUnit)  // 150
+    /// ```
+    init(_ minorUnit: MinorUnit) {
+        self = Int64(minorUnit._storage)
     }
 }

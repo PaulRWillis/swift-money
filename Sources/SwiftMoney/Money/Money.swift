@@ -25,7 +25,7 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     /// let onePound = Money<GBP>(minorUnits: 100) // £1.00
     /// onePound.minorUnits  // 100
     /// ```
-    public var minorUnits: MinorUnits { Int64(Int(_minorUnits)) }
+    public var minorUnits: MinorUnits { Int64(_minorUnits) }
 
     /// Creates a zero value.
     ///

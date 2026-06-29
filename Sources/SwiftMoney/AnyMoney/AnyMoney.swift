@@ -36,7 +36,7 @@ public struct AnyMoney: Sendable {
     /// The raw minor units of this money value.
     ///
     /// Represents the value in the currency's smallest denomination.
-    public var minorUnits: Int64 { Int64(Int(_minorUnits)) }
+    public var minorUnits: Int64 { Int64(_minorUnits) }
 
     /// The ISO 4217 or custom currency code, e.g. `CurrencyCode("GBP")`.
     public let currencyCode: CurrencyCode
