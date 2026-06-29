@@ -1,42 +1,19 @@
 import Foundation
 
-#warning("Remove? We can safely make this the storage type of `Money` and it doesn't need its own tests. We don't need to care if we have `.min` as we can throw a precondition for this if needed.")
 /// A discrete count of the smallest indivisible monetary unit.
-///
-/// `MinorUnit` wraps an `Int64`, rejecting `Int64.min` at construction
-/// because its negation overflows — an invariant required by magnitude,
-/// negate, and effective-rate computations. Valid range:
-/// `Int64.min + 1 ... Int64.max`.
-///
-/// ```swift
-/// MinorUnit(exactly: 150) // 150
-/// ```
-///
-/// ## Parse Boundary
-///
-/// `MinorUnit` acts as a parse boundary: untrusted input (decoded JSON,
-/// user entry, cross-module calls) is validated once at construction.
-/// Downstream code can assume negation is safe without further checks.
-struct MinorUnit: Sendable {
+struct MinorUnit: Equatable, Hashable, Sendable {
+    fileprivate let _storage: Int
 
-    // MARK: - Storage
+    // MARK: - Initializers
 
-    typealias Storage = Int64
-
-    let _storage: Storage
-
-    // MARK: - Initialisers
-
-    /// Creates a `MinorUnit` from a `BinaryInteger`, returning `nil` if
-    /// the value does not fit in `Int64` or equals `Int64.min`.
+    /// Creates a `MinorUnit` from a `BinaryInteger`.
     ///
     /// ```swift
     /// MinorUnit(exactly: 42)           // MinorUnit(42)
     /// MinorUnit(exactly: Int128.max)   // nil
-    /// MinorUnit(exactly: Int64.min)    // nil
     /// ```
     init?<T: BinaryInteger>(exactly value: T) {
-        guard let storage = Storage(exactly: value), storage != .min else { return nil }
+        guard let storage = Int(exactly: value), storage != .min else { return nil }
         self._storage = storage
     }
 }
@@ -44,24 +21,15 @@ struct MinorUnit: Sendable {
 // MARK: - Static Properties
 
 extension MinorUnit {
-
     /// The zero value.
     static let zero = MinorUnit(integerLiteral: 0)
 
     /// The minimum representable value (`Int64.min + 1`).
-    static let min = MinorUnit(integerLiteral: Storage.min + 1)
+    static let min = MinorUnit(integerLiteral: Int.min + 1)
 
     /// The maximum representable value (`Int64.max`).
     static let max = MinorUnit(integerLiteral: .max)
 }
-
-// MARK: - Equatable
-
-extension MinorUnit: Equatable {}
-
-// MARK: - Hashable
-
-extension MinorUnit: Hashable {}
 
 // MARK: - Comparable
 
@@ -87,7 +55,7 @@ extension MinorUnit: CustomDebugStringConvertible {
 
 extension MinorUnit: Codable {
     init(from decoder: any Decoder) throws {
-        let value = try decoder.singleValueContainer().decode(Storage.self)
+        let value = try decoder.singleValueContainer().decode(Int.self)
         guard let minorUnit = MinorUnit(exactly: value) else {
             throw DecodingError.dataCorrupted(
                 .init(codingPath: decoder.codingPath,
@@ -130,11 +98,11 @@ extension MinorUnit {
 // MARK: - Scalar Multiplication
 
 extension MinorUnit {
-    static func * (lhs: MinorUnit, rhs: Storage) -> MinorUnit {
+    static func * (lhs: MinorUnit, rhs: Int) -> MinorUnit {
         MinorUnit(integerLiteral: lhs._storage * rhs)
     }
 
-    static func * (lhs: Storage, rhs: MinorUnit) -> MinorUnit {
+    static func * (lhs: Int, rhs: MinorUnit) -> MinorUnit {
         rhs * lhs
     }
 }
@@ -142,15 +110,27 @@ extension MinorUnit {
 // MARK: - ExpressibleByIntegerLiteral
 
 extension MinorUnit: ExpressibleByIntegerLiteral {
-    init(integerLiteral value: Storage) {
+    init(integerLiteral value: Int) {
         guard let minorUnit = MinorUnit(exactly: value) else {
-            preconditionFailure("MinorUnit cannot represent Storage.min")
+            preconditionFailure("MinorUnit cannot represent Int.min")
         }
         self = minorUnit
     }
 }
 
-// MARK: - Int64 Conversion
+// MARK: - Int Conversion
+
+extension Int {
+    /// Creates an `Int` from a `MinorUnit`.
+    ///
+    /// ```swift
+    /// let minorUnit = MinorUnit(exactly: 150)!
+    /// Int(minorUnit)  // 150
+    /// ```
+    init(_ minorUnit: MinorUnit) {
+        self = minorUnit._storage
+    }
+}
 
 extension Int64 {
     /// Creates an `Int64` from a `MinorUnit`.
@@ -160,6 +140,6 @@ extension Int64 {
     /// Int64(minorUnit)  // 150
     /// ```
     init(_ minorUnit: MinorUnit) {
-        self = minorUnit._storage
+        self = Int64(minorUnit._storage)
     }
 }
