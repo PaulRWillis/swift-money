@@ -113,28 +113,6 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     public static var min: Money {
         Money(_storage: .min)
     }
-
-    #warning("Remove")
-    /// The smallest positive value in minor units: `1`.
-    public static var leastNonzeroMagnitude: Money {
-        Money(minorUnits: 1)
-    }
-
-    #warning("Remove")
-    /// The largest finite magnitude in minor units: `9,223,372,036,854,775,807`.
-    ///
-    /// Equal to ``max`` since all representable values are finite.
-    public static var greatestFiniteMagnitude: Money {
-        Money(_storage: .max)
-    }
-
-    #warning("Remove")
-    /// The least (most negative) finite magnitude in minor units: `-9,223,372,036,854,775,807`.
-    ///
-    /// Equal to ``min`` since all representable values are finite.
-    public static var leastFiniteMagnitude: Money {
-        min
-    }
 }
 
 // MARK: - AnyMoney conversion
