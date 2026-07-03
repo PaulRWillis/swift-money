@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import SwiftMoney
 
-private typealias Storage = MinorUnit.Storage
+private typealias Storage = Int
 
 #warning("Remove this entire test suite. Tests should have no knowledge of `MinorUnit` internal type")
 @Suite("MinorUnit")
@@ -320,26 +320,26 @@ struct MinorUnitTests {
 
     @Test("MinorUnit times Int64")
     func minorUnitTimesInt64() {
-        let result: MinorUnit = 5 * Int64(3)
+        let result: MinorUnit = 5 * Int(3)
         #expect(result == 15)
     }
 
     @Test("Int64 times MinorUnit")
     func int64TimesMinorUnit() {
         let minorUnit: MinorUnit = 5
-        let result = Int64(3) * minorUnit
+        let result = Int(3) * minorUnit
         #expect(result == 15)
     }
 
     @Test("multiplying by zero produces zero")
     func multiplyByZero() {
-        let result: MinorUnit = 42 * Int64(0)
+        let result: MinorUnit = 42 * Int(0)
         #expect(result == .zero)
     }
 
     @Test("multiplying by negative scalar")
     func multiplyByNegativeScalar() {
-        let result: MinorUnit = 10 * Int64(-3)
+        let result: MinorUnit = 10 * Int(-3)
         #expect(result == -30)
     }
 
@@ -352,7 +352,7 @@ struct MinorUnitTests {
     @Test("multiplying past .max traps")
     func multiplyPastMaxTraps() async {
         await #expect(processExitsWith: .failure) {
-            _ = MinorUnit.max * Int64(2)
+            _ = MinorUnit.max * Int(2)
         }
     }
 
