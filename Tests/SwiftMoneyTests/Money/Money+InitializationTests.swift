@@ -31,11 +31,10 @@ struct Money_InitializationTests {
         #expect(intMax.minorUnits == Int.max)
     }
 
-    @Test("Init traps for Int.min (rejected by MinorUnit)")
-    func intMinInitTraps() async {
-        await #expect(processExitsWith: .failure) {
-            _ = Money<TST_100>(minorUnits: Int.min)
-        }
+    @Test("Init success for Int.min")
+    func intMinInit() {
+        let intMin = Money<TST_100>(minorUnits: Int.min)
+        #expect(intMin.minorUnits == Int.min)
     }
 
     // MARK: - Int64 init
@@ -58,11 +57,10 @@ struct Money_InitializationTests {
         #expect(int64Max.minorUnits == Int64.max)
     }
 
-    @Test("Init traps for Int64.min (rejected by MinorUnit)")
-    func int64MinInitTraps() async {
-        await #expect(processExitsWith: .failure) {
-            _ = Money<TST_100>(minorUnits: Int64.min)
-        }
+    @Test("Init success for Int64.min")
+    func int64MinInit() {
+        let int64Min = Money<TST_100>(minorUnits: Int64.min)
+        #expect(int64Min.minorUnits == Int64.min)
     }
 
     // MARK: - Exact integer init for Int128
@@ -95,9 +93,11 @@ struct Money_InitializationTests {
         #expect(int64Max?.minorUnits == Int64.max)
     }
 
-    @Test("Exact integer init returns nil for Int64.min")
+    @Test("Exact integer init success for Int64.min")
     func exactIntegerInitForInt64Min() {
-        #expect(Money<TST_100>(exactly: Int64.min) == nil)
+        let int64Min = Money<TST_100>(exactly: Int64.min)
+        #expect(int64Min != nil)
+        #expect(int64Min?.minorUnits == Int64.min)
     }
 
     // MARK: - Exact integer init for Int32

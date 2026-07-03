@@ -27,34 +27,37 @@ struct Money_NegationTests {
         #expect(zero == .zero)
     }
 
-    @Test("Negative of min with `negate()`")
-    func negativeOfMin() {
-        var min = Money<TST_100>.min
-        min.negate()
-        #expect(min == .max)
+    @Test("Negative of min with `negate()` traps as overflow")
+    func negativeOfMin() async {
+        await #expect(processExitsWith: .failure) {
+            var min = Money<TST_100>.min
+            min.negate()
+        }
     }
 
     // MARK: - Negation with `-` prefix operator
 
-    @Test("Negating positive with `negate()`")
+    @Test("Negating positive with `-` prefix operator")
     func negatePositiveWithPrefixOperator() {
         let pos = Money<TST_100>(minorUnits: 425)
         #expect(-pos == Money<TST_100>(minorUnits: -425))
     }
 
-    @Test("Negating negative with `negate()`")
+    @Test("Negating negative with `-` prefix operator")
     func negateNegativeWithPrefixOperator() {
         let neg = Money<TST_100>(minorUnits: -201)
         #expect(-neg == Money<TST_100>(minorUnits: 201))
     }
 
-    @Test("Negating zero with `negate()`")
+    @Test("Negating zero with `-` prefix operator")
     func negateZeroWithPrefixOperator() {
         #expect(-Money<TST_100>.zero == .zero)
     }
 
-    @Test("Negative of min with `negate()`")
-    func negativeOfMinWithPrefixOperator() {
-        #expect(-Money<TST_100>.min == .max)
+    @Test("Negative of min with `-` prefix operator")
+    func negativeOfMinWithPrefixOperator() async {
+        await #expect(processExitsWith: .failure) {
+            _ = -Money<TST_100>.min
+        }
     }
 }

@@ -397,15 +397,24 @@ extension Money {
 // MARK: - Negation
 
 extension Money {
-    /// Returns the additive inverse of this value.
+    /// Returns the additive inverse of the specified value.
+    ///
+    /// The negation operator (prefix `-`) returns the additive inverse of its
+    /// argument.
     ///
     /// ```swift
     /// let price = Money<GBP>(4250) // £42.50
     /// let neg = -price  // -£42.50
     /// ```
     ///
-    /// - Parameter operand: The value to negate.
-    /// - Returns: The negated value.
+    /// The resulting value must be representable in the same type as the
+    /// argument. Negating `Money.min` results in a value that cannot
+    /// be represented.
+    ///
+    ///     let z = -Money<GBP>.min
+    ///     // Overflow error
+    ///
+    /// - Returns: The additive inverse of this value.
     public prefix static func - (operand: Money) -> Money {
         var copy = operand
         copy.negate()
@@ -414,13 +423,22 @@ extension Money {
 
     /// Replaces this value with its additive inverse.
     ///
-    /// Traps if the value is not representable (e.g. minimum value).
+    /// The following example uses the `negate()` method to negate the value of
+    /// a `Money`, `x`:
     ///
     /// ```swift
     /// var price = Money<GBP>(4250) // £42.50
     /// price.negate()
     /// // price is now -4250 (-£42.50)
     /// ```
+    ///
+    /// The resulting value must be representable within the value's type.
+    /// Negating a `Money.min` results in a value that cannot be
+    /// represented.
+    ///
+    ///     var y = Money<GBP>.min
+    ///     y.negate()
+    ///     // Overflow error
     public mutating func negate() {
         self = Self(_storage: -_storage)
     }

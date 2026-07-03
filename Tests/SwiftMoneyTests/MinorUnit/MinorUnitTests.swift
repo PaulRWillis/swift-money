@@ -4,6 +4,7 @@ import Testing
 
 private typealias Storage = MinorUnit.Storage
 
+#warning("Remove this entire test suite. Tests should have no knowledge of `MinorUnit` internal type")
 @Suite("MinorUnit")
 struct MinorUnitTests {
 
@@ -37,15 +38,10 @@ struct MinorUnitTests {
         #expect(Int64(minorUnit) == Storage.max)
     }
 
-    @Test("init exactly accepts Storage.min + 1")
-    func exactlyAcceptsStorageMinPlusOne() throws {
-        let minorUnit = try #require(MinorUnit(exactly: Storage.min + 1))
-        #expect(Int64(minorUnit) == Storage.min + 1)
-    }
-
-    @Test("init exactly rejects Storage.min")
-    func exactlyRejectsStorageMin() {
-        #expect(MinorUnit(exactly: Storage.min) == nil)
+    @Test("init exactly accepts Storage.min")
+    func exactlyAcceptsStorageMin() throws {
+        let minorUnit = try #require(MinorUnit(exactly: Storage.min))
+        #expect(Int64(minorUnit) == Storage.min)
     }
 
     @Test("init exactly accepts Int that fits in Storage")
@@ -101,13 +97,6 @@ struct MinorUnitTests {
         #expect(Int64(minorUnit) == -50)
     }
 
-    @Test("Integer literal traps on Storage.min")
-    func integerLiteralTrapsOnStorageMin() async {
-        await #expect(processExitsWith: .failure) {
-            _ = MinorUnit(integerLiteral: .min)
-        }
-    }
-
     // MARK: - Static Properties
 
     // Boundary values (.min, .max) use Int64(_:) for the same false-positive
@@ -118,9 +107,9 @@ struct MinorUnitTests {
         #expect(MinorUnit.zero == 0)
     }
 
-    @Test("min is Storage.min + 1")
-    func minIsStorageMinPlusOne() {
-        #expect(Int64(MinorUnit.min) == Storage.min + 1)
+    @Test("min is Storage.min")
+    func minIsStorageMin() {
+        #expect(Int64(MinorUnit.min) == Storage.min)
     }
 
     @Test("max is Storage.max")
@@ -228,15 +217,6 @@ struct MinorUnitTests {
         #expect(json == "42")
     }
 
-    @Test("decoding Storage.min throws")
-    func decodingStorageMinThrows() {
-        let json = "\(Storage.min)"
-        let data = Data(json.utf8)
-        #expect(throws: DecodingError.self) {
-            try JSONDecoder().decode(MinorUnit.self, from: data)
-        }
-    }
-
     // MARK: - Addition
 
     @Test("adding two positive values")
@@ -266,7 +246,7 @@ struct MinorUnitTests {
 
     @Test("adding to produce .min")
     func addToMin() throws {
-        let a = try #require(MinorUnit(exactly: Storage.min + 2))
+        let a = try #require(MinorUnit(exactly: Storage.min + 1))
         let result = a + (-1)
         #expect(result == .min)
     }
@@ -307,7 +287,7 @@ struct MinorUnitTests {
 
     @Test("subtracting to produce .min")
     func subtractToMin() throws {
-        let a = try #require(MinorUnit(exactly: Storage.min + 2))
+        let a = try #require(MinorUnit(exactly: Storage.min + 1))
         let result = a - 1
         #expect(result == .min)
     }
@@ -324,14 +304,6 @@ struct MinorUnitTests {
     func subtractPastMinTraps() async {
         await #expect(processExitsWith: .failure) {
             _ = MinorUnit.min - 1
-        }
-    }
-
-    @Test("subtracting to produce Storage.min traps")
-    func subtractToStorageMinTraps() async {
-        await #expect(processExitsWith: .failure) {
-            let a: MinorUnit = -1
-            _ = a - MinorUnit.max
         }
     }
 
@@ -384,14 +356,6 @@ struct MinorUnitTests {
         }
     }
 
-    @Test("multiplying to produce Storage.min traps")
-    func multiplyToStorageMinTraps() async {
-        await #expect(processExitsWith: .failure) {
-            guard let a = MinorUnit(exactly: Storage.min / 2) else { return }
-            _ = a * Int64(2)
-        }
-    }
-
     // MARK: - Negation
 
     @Test("negating a positive value")
@@ -412,16 +376,19 @@ struct MinorUnitTests {
         #expect(result == .zero)
     }
 
-    @Test("negating .min produces .max")
-    func negateMinProducesMax() {
-        let result = -(MinorUnit.min)
-        #expect(Int64(result) == Storage.max)
+    @Test("negating .min traps with overflow error")
+    func negateMinProducesMax() async {
+        await #expect(processExitsWith: .failure) {
+            guard let pos = MinorUnit(exactly: Storage.min ) else { return }
+            _ = -pos
+        }
     }
 
-    @Test("negating .max produces .min")
-    func negateMaxProducesMin() {
-        let result = -(MinorUnit.max)
-        #expect(result == .min)
+    @Test("negating .max succeeds")
+    func negateMaxProducesMin() async {
+        await #expect(processExitsWith: .success) {
+            _ = -(MinorUnit.max)
+        }
     }
 
     @Test("negate() mutates in place")

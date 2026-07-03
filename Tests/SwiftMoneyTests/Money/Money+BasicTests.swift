@@ -16,7 +16,7 @@ struct Money_BasicTests {
     @Test("Special values")
     func specialValues() {
         #expect(Money<TST_100>.max.minorUnits == Int64.max)
-        #expect(Money<TST_100>.min.minorUnits == Int64.min + 1)
+        #expect(Money<TST_100>.min.minorUnits == Int64.min)
     }
 
     @Test("sign returns .plus for positive/zero, .minus for negative")

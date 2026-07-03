@@ -27,9 +27,11 @@ struct Money_MagnitudeTests {
         #expect(magnitude == Money<TST_100>(minorUnits: 42))
     }
 
-    @Test("Magnitude of min")
-    func magnitudeOfMin() {
-        let min = Money<TST_100>.min
-        #expect(min.magnitude == Money<TST_100>.max)
+    @Test("Magnitude of min traps as overflow error")
+    func magnitudeOfMin() async {
+        await #expect(processExitsWith: .failure) {
+            let min = Money<TST_100>.min
+            let magnitude = min.magnitude
+        }
     }
 }

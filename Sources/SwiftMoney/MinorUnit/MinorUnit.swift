@@ -36,7 +36,7 @@ struct MinorUnit: Sendable {
     /// MinorUnit(exactly: Int64.min)    // nil
     /// ```
     init?<T: BinaryInteger>(exactly value: T) {
-        guard let storage = Storage(exactly: value), storage != .min else { return nil }
+        guard let storage = Storage(exactly: value) else { return nil }
         self._storage = storage
     }
 }
@@ -48,11 +48,11 @@ extension MinorUnit {
     /// The zero value.
     static let zero = MinorUnit(integerLiteral: 0)
 
-    /// The minimum representable value (`Int64.min + 1`).
-    static let min = MinorUnit(integerLiteral: Storage.min + 1)
+    /// The minimum representable value).
+    static let min = MinorUnit(integerLiteral: Storage.min)
 
-    /// The maximum representable value (`Int64.max`).
-    static let max = MinorUnit(integerLiteral: .max)
+    /// The maximum representable value).
+    static let max = MinorUnit(integerLiteral: Storage.max)
 }
 
 // MARK: - Equatable
@@ -118,10 +118,43 @@ extension MinorUnit: AdditiveArithmetic {
 // MARK: - Negation
 
 extension MinorUnit {
+    /// Returns the additive inverse of the specified value.
+    ///
+    /// The negation operator (prefix `-`) returns the additive inverse of its
+    /// argument.
+    ///
+    ///     let x: MinorUnit = 21
+    ///     let y: MinorUnit = -x
+    ///     // y == MinorUnit(-21)
+    ///
+    /// The resulting value must be representable in the same type as the
+    /// argument. Negating `MinorUnit.min` results in a value that cannot
+    /// be represented.
+    ///
+    ///     let z = -MinorUnit.min
+    ///     // Overflow error
+    ///
+    /// - Returns: The additive inverse of this value.
     static prefix func - (operand: MinorUnit) -> MinorUnit {
         MinorUnit(integerLiteral: -operand._storage)
     }
 
+    /// Replaces this value with its additive inverse.
+    ///
+    /// The following example uses the `negate()` method to negate the value of
+    /// a `MinorUnit`, `x`:
+    ///
+    ///     var x: MinorUnit = 21
+    ///     x.negate()
+    ///     // x == MinorUnit(-21)
+    ///
+    /// The resulting value must be representable within the value's type.
+    /// Negating a `MinorUnit.min` results in a value that cannot be
+    /// represented.
+    ///
+    ///     var y = MinorUnit.min
+    ///     y.negate()
+    ///     // Overflow error
     mutating func negate() {
         self = -self
     }
