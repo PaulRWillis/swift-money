@@ -1,12 +1,6 @@
 public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     #warning("Remove `MinorUnits`")
     /// The storage type for money's minor-unit count.
-    ///
-    /// Currently `Int64`. A future version may widen this to `Int128`;
-    /// code that refers to `Money<C>.MinorUnits` rather than `Int64`
-    /// directly will require only a recompile rather than source edits.
-    public typealias MinorUnits = Int64
-
     internal typealias Storage = MinorUnit
 
     private var _minorUnits: Storage
@@ -25,7 +19,7 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     /// let onePound = Money<GBP>(minorUnits: 100) // £1.00
     /// onePound.minorUnits  // 100
     /// ```
-    public var minorUnits: MinorUnits { Int64(_minorUnits) }
+    public var minorUnits: Int64 { Int64(_minorUnits) }
 
     #warning("Remove zero as default init")
     /// Creates a zero value.
@@ -85,11 +79,9 @@ public struct Money<Currency: SwiftMoney.Currency>: Sendable {
     ///
     /// - Precondition: `minorUnits` must not equal `MinorUnits.min` (`Int64.min`),
     ///   which is reserved as an internal sentinel.
-    public init(minorUnits: MinorUnits) {
+    public init(minorUnits: Int64) {
         guard let storage = Storage(exactly: minorUnits) else {
-            preconditionFailure(
-                "\(Int64.min) is reserved and cannot be used as a minor-unit value"
-            )
+            preconditionFailure("Passed value, \(minorUnits), is out of bounds")
         }
         self._minorUnits = storage
     }
