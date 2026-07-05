@@ -7,40 +7,6 @@ struct Money_SafetyTests {
 
     private let enGB = Locale(identifier: "en_GB")
 
-    // MARK: - Codable
-
-    @Test("Money<GBP> encodes and decodes correctly (positive)")
-    func codableRoundTripPositive() throws {
-        let original = Money<GBP>(minorUnits: 12_345)
-        let data     = try JSONEncoder().encode(original)
-        let decoded  = try JSONDecoder().decode(Money<GBP>.self, from: data)
-        #expect(decoded == original)
-    }
-
-    @Test("Money<GBP> encodes and decodes correctly (negative)")
-    func codableRoundTripNegative() throws {
-        let original = Money<GBP>(minorUnits: -9_876)
-        let data     = try JSONEncoder().encode(original)
-        let decoded  = try JSONDecoder().decode(Money<GBP>.self, from: data)
-        #expect(decoded == original)
-    }
-
-    @Test("Money<GBP> encodes and decodes correctly (zero)")
-    func codableRoundTripZero() throws {
-        let original = Money<GBP>.zero
-        let data     = try JSONEncoder().encode(original)
-        let decoded  = try JSONDecoder().decode(Money<GBP>.self, from: data)
-        #expect(decoded == original)
-    }
-
-    @Test("Money<JPY> encodes and decodes correctly (minQ = 1)")
-    func codableJPY() throws {
-        let original = Money<JPY>(minorUnits: 99_999)
-        let data     = try JSONEncoder().encode(original)
-        let decoded  = try JSONDecoder().decode(Money<JPY>.self, from: data)
-        #expect(decoded == original)
-    }
-
     // MARK: - Sendable (compile-time verification)
     //
     // There is no runtime assertion for Sendable — if Money were not Sendable

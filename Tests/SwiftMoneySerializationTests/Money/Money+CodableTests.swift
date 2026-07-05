@@ -1,28 +1,27 @@
 import Foundation
 import SwiftMoney
+import SwiftMoneySerialization
 import Testing
 
-// MARK: - Helper
-
-private func json(_ value: some Encodable) throws -> String {
-    try #require(String(data: JSONEncoder().encode(value), encoding: .utf8))
+/// A test currency backed by the real ISO 4217 code "KWD"
+/// (Kuwaiti Dinar), which has 1000 fils to the dinar.
+///
+/// Used in localisation tests to exercise 3-decimal-place currencies.
+/// Using the real ISO code ensures Foundation's formatter renders a
+/// recognisable symbol and the fidelity comparison is meaningful.
+enum TestKWD: Currency {
+    static let code: CurrencyCode = "KWD"
+    static let minimalQuantisation: MinimalQuantisation = 1000
 }
 
-private func json(_ encoder: JSONEncoder, _ value: some Encodable) throws -> String {
-    try #require(String(data: encoder.encode(value), encoding: .utf8))
-}
-
-/// Encodes `value` with `.sortedKeys` for deterministic key ordering in exact-match assertions.
-private func jsonSorted(_ encoder: JSONEncoder, _ value: some Encodable) throws -> String {
-    let e = encoder
-    e.outputFormatting = .sortedKeys
-    return try #require(String(data: e.encode(value), encoding: .utf8))
-}
 
 // MARK: - Default strategy
 
 @Suite("Money - Codable: default strategy")
 struct Money_Codable_DefaultStrategyTests {
+
+    private let encoder = JSONEncoder()
+    private let decoder = JSONDecoder()
 
     @Test("Default strategy produces object JSON shape")
     func defaultIsObject() throws {
@@ -37,14 +36,13 @@ struct Money_Codable_DefaultStrategyTests {
     @Test("Default strategy round-trips correctly")
     func defaultRoundTrip() throws {
         let original = Money<GBP>(minorUnits: 125)
-        let data = try JSONEncoder().encode(original)
-        let decoded = try JSONDecoder().decode(Money<GBP>.self, from: data)
+        let data = try encoder.encode(original)
+        let decoded = try decoder.decode(Money<GBP>.self, from: data)
         #expect(decoded == original)
     }
 
     @Test("JSONEncoder.moneyEncodingStrategy property returns .object when unset")
     func encoderDefaultProperty() {
-        let encoder = JSONEncoder()
         // Can't compare enums directly without Equatable, but we can verify the
         // property accessor doesn't crash and the output is the object shape.
         let money = Money<GBP>(minorUnits: 100)
@@ -53,9 +51,40 @@ struct Money_Codable_DefaultStrategyTests {
 
     @Test("JSONDecoder.moneyDecodingStrategy property returns .object when unset")
     func decoderDefaultProperty() throws {
-        let decoder = JSONDecoder()
-        let data = try JSONEncoder().encode(Money<GBP>(minorUnits: 100))
+        let data = try encoder.encode(Money<GBP>(minorUnits: 100))
         #expect(throws: Never.self) { _ = try decoder.decode(Money<GBP>.self, from: data) }
+    }
+
+    @Test("Money<GBP> encodes and decodes correctly (positive)")
+    func codableRoundTripPositive() throws {
+        let original = Money<GBP>(minorUnits: 12_345)
+        let data     = try encoder.encode(original)
+        let decoded  = try decoder.decode(Money<GBP>.self, from: data)
+        #expect(decoded == original)
+    }
+
+    @Test("Money<GBP> encodes and decodes correctly (negative)")
+    func codableRoundTripNegative() throws {
+        let original = Money<GBP>(minorUnits: -9_876)
+        let data     = try encoder.encode(original)
+        let decoded  = try decoder.decode(Money<GBP>.self, from: data)
+        #expect(decoded == original)
+    }
+
+    @Test("Money<GBP> encodes and decodes correctly (zero)")
+    func codableRoundTripZero() throws {
+        let original = Money<GBP>.zero
+        let data     = try encoder.encode(original)
+        let decoded  = try decoder.decode(Money<GBP>.self, from: data)
+        #expect(decoded == original)
+    }
+
+    @Test("Money<JPY> encodes and decodes correctly (minQ = 1)")
+    func codableJPY() throws {
+        let original = Money<JPY>(minorUnits: 99_999)
+        let data     = try encoder.encode(original)
+        let decoded  = try decoder.decode(Money<JPY>.self, from: data)
+        #expect(decoded == original)
     }
 }
 
@@ -458,4 +487,21 @@ struct Money_Codable_PropertyAPITests {
         let output = try json(encoder, Money<GBP>(minorUnits: 99))
         #expect(output == "99")
     }
+}
+
+// MARK: - Helper
+
+private func json(_ value: some Encodable) throws -> String {
+    try #require(String(data: JSONEncoder().encode(value), encoding: .utf8))
+}
+
+private func json(_ encoder: JSONEncoder, _ value: some Encodable) throws -> String {
+    try #require(String(data: encoder.encode(value), encoding: .utf8))
+}
+
+/// Encodes `value` with `.sortedKeys` for deterministic key ordering in exact-match assertions.
+private func jsonSorted(_ encoder: JSONEncoder, _ value: some Encodable) throws -> String {
+    let e = encoder
+    e.outputFormatting = .sortedKeys
+    return try #require(String(data: e.encode(value), encoding: .utf8))
 }

@@ -16,7 +16,10 @@ let package = Package(
         // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
             name: "SwiftMoney",
-            targets: ["SwiftMoney"],
+            targets: [
+                "SwiftMoney",
+                "SwiftMoneySerialization",
+            ],
         ),
     ],
     targets: [
@@ -25,12 +28,22 @@ let package = Package(
         .target(
             name: "SwiftMoney",
         ),
-        .target(
-            name: "SwiftMoneySerialization",
-        ),
         .testTarget(
             name: "SwiftMoneyTests",
             dependencies: ["SwiftMoney"],
+        ),
+        .target(
+            name: "SwiftMoneySerialization",
+            dependencies: [
+                "SwiftMoney",
+            ],
+        ),
+        .testTarget(
+            name: "SwiftMoneySerializationTests",
+            dependencies: [
+                "SwiftMoney",
+                "SwiftMoneySerialization",
+            ],
         ),
     ]
 )

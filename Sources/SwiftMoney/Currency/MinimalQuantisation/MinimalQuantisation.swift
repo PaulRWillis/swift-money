@@ -41,7 +41,7 @@ public struct MinimalQuantisation: Equatable, Hashable, Sendable {
     /// can evolve without a public-API break.
     private let _storage: Storage
 
-    var int64Value: Int64 {
+    package var int64Value: Int64 {
         _storage
     }
 
