@@ -8,19 +8,19 @@ struct Money_Codable_Object_MajorUnits_StrategyTests {
 
     private var encoder: JSONEncoder {
         let e = JSONEncoder()
-        e.moneyEncodingStrategy = .object(amount: .majorUnits)
+        e.moneyEncodingStrategy = .object(.majorUnits)
         return e
     }
 
     private var decoder: JSONDecoder {
         let d = JSONDecoder()
-        d.moneyDecodingStrategy = .object(amount: .majorUnits)
+        d.moneyDecodingStrategy = .object(.majorUnits)
         return d
     }
 
     @Test("object(majorUnits): GBP encodes to expected JSON")
     func objectMajorUnitsGBPEncoding() throws {
-        encoder.moneyEncodingStrategy = .object(amount: .majorUnits)
+        encoder.moneyEncodingStrategy = .object(.majorUnits)
         let output = try jsonSorted(encoder, Money<GBP>(minorUnits: 125))
         #expect(output == #"{"amount":1.25,"currencyCode":"GBP"}"#)
     }

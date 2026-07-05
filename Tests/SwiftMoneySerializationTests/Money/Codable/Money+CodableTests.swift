@@ -20,7 +20,7 @@ struct Money_Codable_Object_String_StrategyTests {
     @Test("object(string): GBP encodes amount as formatted string")
     func objectStringGBPEncoding() throws {
         let encoder = JSONEncoder()
-        encoder.moneyEncodingStrategy = .object(amount: .string(locale: Locale(identifier: "en_GB")))
+        encoder.moneyEncodingStrategy = .object(.string(locale: Locale(identifier: "en_GB")))
         let output = try json(encoder, Money<GBP>(minorUnits: 150))
         #expect(output.contains("\"currencyCode\""))
         #expect(output.contains("\"GBP\""))
@@ -31,9 +31,9 @@ struct Money_Codable_Object_String_StrategyTests {
     func objectStringGBPRoundTrip() throws {
         let locale = Locale(identifier: "en_GB")
         let encoder = JSONEncoder()
-        encoder.moneyEncodingStrategy = .object(amount: .string(locale: locale))
+        encoder.moneyEncodingStrategy = .object(.string(locale: locale))
         let decoder = JSONDecoder()
-        decoder.moneyDecodingStrategy = .object(amount: .string(locale: locale))
+        decoder.moneyDecodingStrategy = .object(.string(locale: locale))
         let original = Money<GBP>(minorUnits: 12_345)
         let decoded = try decoder.decode(Money<GBP>.self, from: encoder.encode(original))
         #expect(decoded == original)
@@ -45,7 +45,7 @@ struct Money_Codable_Object_String_StrategyTests {
     func objectCurrencyMismatch() throws {
         let json = try #require(#"{"currencyCode":"USD","amount":1.25}"#.data(using: .utf8))
         let decoder = JSONDecoder()
-        decoder.moneyDecodingStrategy = .object(amount: .majorUnits)
+        decoder.moneyDecodingStrategy = .object(.majorUnits)
         #expect(throws: DecodingError.self) {
             try decoder.decode(Money<GBP>.self, from: json)
         }
@@ -55,7 +55,7 @@ struct Money_Codable_Object_String_StrategyTests {
     func objectDecoding() throws {
         let json = try #require(#"{"currencyCode":"GBP","amount":1.25}"#.data(using: .utf8))
         let decoder = JSONDecoder()
-        decoder.moneyDecodingStrategy = .object(amount: .majorUnits)
+        decoder.moneyDecodingStrategy = .object(.majorUnits)
         let decoded = try decoder.decode(Money<GBP>.self, from: json)
         #expect(decoded.minorUnits == 125)
     }

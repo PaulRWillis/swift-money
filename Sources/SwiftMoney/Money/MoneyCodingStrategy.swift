@@ -86,7 +86,6 @@ extension MoneyAmountEncodingStrategy {
 /// ```
 public enum MoneyEncodingStrategy: Sendable {
 
-    #warning("Remove `amount` as external name")
     /// Encode as a JSON object with separate `"currencyCode"` and `"amount"` fields.
     ///
     /// ```json
@@ -94,7 +93,7 @@ public enum MoneyEncodingStrategy: Sendable {
     /// ```
     ///
     /// The `amount` sub-field uses the given ``MoneyAmountEncodingStrategy``.
-    case object(amount: MoneyAmountEncodingStrategy)
+    case object(_ amount: MoneyAmountEncodingStrategy)
 
     /// Encode as a bare integer number of minor units.
     ///
@@ -130,7 +129,7 @@ extension MoneyEncodingStrategy {
     /// ```json
     /// {"currencyCode":"GBP","amount":1.25}
     /// ```
-    public static var object: Self { .object(amount: .majorUnits) }
+    public static var object: Self { .object(.majorUnits) }
 
     /// Encode as a formatted currency string using ``Locale/autoupdatingCurrent``.
     public static var string: Self { .string(locale: .autoupdatingCurrent) }
@@ -238,7 +237,7 @@ public enum MoneyDecodingStrategy: Sendable {
     /// throws ``DecodingError/typeMismatch(_:_:)``.
     ///
     /// The `amount` sub-field uses the given ``MoneyAmountDecodingStrategy``.
-    case object(amount: MoneyAmountDecodingStrategy)
+    case object(_ amount: MoneyAmountDecodingStrategy)
 
     /// Decode from a bare integer number of minor units.
     case minorUnits
@@ -257,7 +256,7 @@ extension MoneyDecodingStrategy {
     /// Decode from a JSON object with `amount` as a decimal major-unit value.
     ///
     /// Equivalent to `.object(amount: .majorUnits)`. This is the **default** strategy.
-    public static var object: Self { .object(amount: .majorUnits) }
+    public static var object: Self { .object(.majorUnits) }
 
     /// Decode from a formatted currency string using ``Locale/autoupdatingCurrent``.
     public static var string: Self { .string(locale: .autoupdatingCurrent) }
