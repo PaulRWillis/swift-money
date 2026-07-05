@@ -86,6 +86,7 @@ extension MoneyAmountEncodingStrategy {
 /// ```
 public enum MoneyEncodingStrategy: Sendable {
 
+    #warning("Remove `amount` as external name")
     /// Encode as a JSON object with separate `"currencyCode"` and `"amount"` fields.
     ///
     /// ```json
@@ -148,6 +149,9 @@ extension MoneyEncodingStrategy {
 ///
 /// Each case must match the ``MoneyAmountEncodingStrategy`` that produced the data.
 public enum MoneyAmountDecodingStrategy: Sendable {
+
+    #warning("Should we not also have a JSON object decoder?")
+
 
     /// Decode from an integer number of minor units.
     ///
