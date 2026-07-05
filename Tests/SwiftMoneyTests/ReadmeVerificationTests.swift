@@ -124,7 +124,6 @@ struct ReadmeVerificationTests {
         let encoder = JSONEncoder()
         encoder.moneyEncodingStrategy = .minorUnits
         encoder.moneyEncodingStrategy = .majorUnits
-        encoder.moneyEncodingStrategy = .string
         encoder.anyMoneyEncodingStrategy = .object(amount: .majorUnits)
         encoder.moneyBagEncodingStrategy = .dictionary(amount: .majorUnits)
 

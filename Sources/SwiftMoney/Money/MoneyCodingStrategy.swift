@@ -10,7 +10,6 @@ import Foundation
 /// |------|----------------|
 /// | ``minorUnits`` | `125` |
 /// | ``majorUnits`` | `1.25` |
-/// | ``string(locale:)`` with `en_GB` | `"£1.25"` |
 ///
 /// Each case must match the ``MoneyAmountDecodingStrategy`` used on the receiving end.
 public enum MoneyAmountEncodingStrategy: Sendable {
@@ -27,19 +26,8 @@ public enum MoneyAmountEncodingStrategy: Sendable {
     /// - Note: Encoding is exact (pure base-10 arithmetic). Decoding rounds to the
     ///   nearest minor unit, correcting any floating-point representation artefacts
     ///   present in older JSON parsers. For bit-perfect fidelity, prefer
-    ///   ``minorUnits`` or ``string(locale:)``.
+    ///   ``minorUnits``.
     case majorUnits
-
-    /// Encode as a formatted currency string using the given locale.
-    ///
-    /// For example, £1.25 encodes as `"£1.25"` with the `en_GB` locale.
-    case string(locale: Locale)
-}
-
-extension MoneyAmountEncodingStrategy {
-
-    /// Encode as a formatted currency string using ``Locale/autoupdatingCurrent``.
-    public static var string: Self { .string(locale: .autoupdatingCurrent) }
 }
 
 // MARK: - MoneyEncodingStrategy
@@ -66,10 +54,6 @@ extension MoneyAmountEncodingStrategy {
 /// encoder.moneyEncodingStrategy = .object(amount: .minorUnits)
 /// // {"currencyCode":"GBP","amount":125}
 ///
-/// encoder.moneyEncodingStrategy = .object(
-///     amount: .string(locale: Locale(identifier: "en_GB")))
-/// // {"currencyCode":"GBP","amount":"£1.25"}
-///
 /// // ── Bare values (no currency code in the output) ─────────────────────────
 ///
 /// encoder.moneyEncodingStrategy = .majorUnits
@@ -77,12 +61,6 @@ extension MoneyAmountEncodingStrategy {
 ///
 /// encoder.moneyEncodingStrategy = .minorUnits
 /// // 125
-///
-/// encoder.moneyEncodingStrategy = .string(locale: Locale(identifier: "en_GB"))
-/// // "£1.25"
-///
-/// encoder.moneyEncodingStrategy = .string  // uses Locale.autoupdatingCurrent
-/// // "£1.25"  (locale-dependent)
 /// ```
 public enum MoneyEncodingStrategy: Sendable {
 
@@ -111,13 +89,6 @@ public enum MoneyEncodingStrategy: Sendable {
     /// - Note: Encoding is exact. See ``MoneyAmountEncodingStrategy/majorUnits``
     ///   for precision notes.
     case majorUnits
-
-    /// Encode as a formatted currency string using the given locale.
-    ///
-    /// ```json
-    /// "£1.25"
-    /// ```
-    case string(locale: Locale)
 }
 
 extension MoneyEncodingStrategy {
@@ -130,9 +101,6 @@ extension MoneyEncodingStrategy {
     /// {"currencyCode":"GBP","amount":1.25}
     /// ```
     public static var object: Self { .object(.majorUnits) }
-
-    /// Encode as a formatted currency string using ``Locale/autoupdatingCurrent``.
-    public static var string: Self { .string(locale: .autoupdatingCurrent) }
 }
 
 // MARK: - MoneyAmountDecodingStrategy
@@ -151,7 +119,6 @@ public enum MoneyAmountDecodingStrategy: Sendable {
 
     #warning("Should we not also have a JSON object decoder?")
 
-
     /// Decode from an integer number of minor units.
     ///
     /// Expects a JSON integer. For example, `125` decodes to £1.25.
@@ -168,18 +135,6 @@ public enum MoneyAmountDecodingStrategy: Sendable {
     ///   precision loss (SR-7054). The rounding step provides an additional safety
     ///   net for older platforms.
     case majorUnits
-
-    /// Decode from a formatted currency string using the given locale.
-    ///
-    /// Expects a JSON string in the format produced by
-    /// ``MoneyAmountEncodingStrategy/string(locale:)``.
-    case string(locale: Locale)
-}
-
-extension MoneyAmountDecodingStrategy {
-
-    /// Decode from a formatted currency string using ``Locale/autoupdatingCurrent``.
-    public static var string: Self { .string(locale: .autoupdatingCurrent) }
 }
 
 // MARK: - MoneyDecodingStrategy
@@ -219,12 +174,6 @@ extension MoneyAmountDecodingStrategy {
 ///
 /// decoder.moneyDecodingStrategy = .minorUnits
 /// // 125   →  Money<GBP>(minorUnits: 125)
-///
-/// decoder.moneyDecodingStrategy = .string(locale: Locale(identifier: "en_GB"))
-/// // "£1.25"  →  Money<GBP>(minorUnits: 125)
-///
-/// decoder.moneyDecodingStrategy = .string  // uses Locale.autoupdatingCurrent
-/// // "£1.25"  →  Money<GBP>(minorUnits: 125)  (locale-dependent)
 /// ```
 ///
 /// - Note: For `.object`, `"currencyCode"` must equal `Currency.code`; a mismatch throws
@@ -246,9 +195,6 @@ public enum MoneyDecodingStrategy: Sendable {
     ///
     /// See ``MoneyAmountDecodingStrategy/majorUnits`` for precision notes.
     case majorUnits
-
-    /// Decode from a formatted currency string using the given locale.
-    case string(locale: Locale)
 }
 
 extension MoneyDecodingStrategy {
@@ -257,9 +203,6 @@ extension MoneyDecodingStrategy {
     ///
     /// Equivalent to `.object(amount: .majorUnits)`. This is the **default** strategy.
     public static var object: Self { .object(.majorUnits) }
-
-    /// Decode from a formatted currency string using ``Locale/autoupdatingCurrent``.
-    public static var string: Self { .string(locale: .autoupdatingCurrent) }
 }
 
 // MARK: - CodingUserInfoKey constants
@@ -311,22 +254,11 @@ extension JSONEncoder {
     /// encoder.moneyEncodingStrategy = .object(amount: .minorUnits)
     /// // {"currencyCode":"GBP","amount":125}
     ///
-    /// encoder.moneyEncodingStrategy = .object(
-    ///     amount: .string(locale: Locale(identifier: "en_GB")))
-    /// // {"currencyCode":"GBP","amount":"£1.25"}
-    ///
     /// encoder.moneyEncodingStrategy = .majorUnits
     /// // 1.25
     ///
     /// encoder.moneyEncodingStrategy = .minorUnits
     /// // 125
-    ///
-    /// encoder.moneyEncodingStrategy = .string(locale: Locale(identifier: "en_GB"))
-    /// // "£1.25"
-    ///
-    /// encoder.moneyEncodingStrategy = .string  // uses Locale.autoupdatingCurrent
-    /// // "£1.25"  (locale-dependent)
-    /// ```
     public var moneyEncodingStrategy: MoneyEncodingStrategy {
         get { userInfo[.moneyEncodingStrategy] as? MoneyEncodingStrategy ?? .object }
         set { userInfo[.moneyEncodingStrategy] = newValue }
@@ -354,21 +286,11 @@ extension JSONDecoder {
     /// decoder.moneyDecodingStrategy = .object(amount: .minorUnits)
     /// // {"currencyCode":"GBP","amount":125}
     ///
-    /// decoder.moneyDecodingStrategy = .object(
-    ///     amount: .string(locale: Locale(identifier: "en_GB")))
-    /// // {"currencyCode":"GBP","amount":"£1.25"}
-    ///
     /// decoder.moneyDecodingStrategy = .majorUnits
     /// // 1.25
     ///
     /// decoder.moneyDecodingStrategy = .minorUnits
     /// // 125
-    ///
-    /// decoder.moneyDecodingStrategy = .string(locale: Locale(identifier: "en_GB"))
-    /// // "£1.25"
-    ///
-    /// decoder.moneyDecodingStrategy = .string  // uses Locale.autoupdatingCurrent
-    /// // "£1.25"  (locale-dependent)
     /// ```
     ///
     /// - Note: For `.object`, `"currencyCode"` must equal `Currency.code`; a mismatch throws

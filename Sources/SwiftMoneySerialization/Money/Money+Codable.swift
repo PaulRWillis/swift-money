@@ -30,8 +30,6 @@ extension Money: Codable {
             try _encodeMinorUnits(to: encoder)
         case .majorUnits:
             try _encodeMajorUnits(to: encoder)
-        case .string(let locale):
-            try _encodeString(locale: locale, to: encoder)
         case .object(let amountStrategy):
             try _encodeObject(amountStrategy: amountStrategy, to: encoder)
         }
@@ -60,8 +58,6 @@ extension Money: Codable {
             self = try Money._decodeMinorUnits(from: decoder)
         case .majorUnits:
             self = try Money._decodeMajorUnits(from: decoder)
-        case .string(let locale):
-            self = try Money._decodeString(locale: locale, from: decoder)
         case .object(let amountStrategy):
             self = try Money._decodeObject(amountStrategy: amountStrategy, from: decoder)
         }
@@ -92,8 +88,6 @@ extension Money: Codable {
             try container.encode(minorUnits, forKey: .amount)
         case .majorUnits:
             try container.encode(_majorUnitsDecimal(), forKey: .amount)
-        case .string(let locale):
-            try container.encode(self.formatted(Money<Currency>.FormatStyle().locale(locale)), forKey: .amount)
         }
     }
 
@@ -156,17 +150,6 @@ extension Money: Codable {
         case .majorUnits:
             let decimal = try container.decode(Decimal.self, forKey: .amount)
             return try _decimalToMoney(decimal, codingPath: container.codingPath)
-        case .string(let locale):
-            let formattedAmount = try container.decode(String.self, forKey: .amount)
-            do {
-                return try Money<Currency>(formattedAmount, format: Money<Currency>.FormatStyle().locale(locale))
-            } catch {
-                throw DecodingError.dataCorruptedError(
-                    forKey: .amount,
-                    in: container,
-                    debugDescription: "Could not parse '\(formattedAmount)' as \(Currency.code) using the configured locale."
-                )
-            }
         }
     }
 

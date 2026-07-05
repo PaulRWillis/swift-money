@@ -89,8 +89,6 @@ extension AnyMoney {
             try container.encode(minorUnits, forKey: .amount)
         case .majorUnits:
             try container.encode(Decimal(self), forKey: .amount)
-        case .string(let locale):
-            try container.encode(formatted(AnyMoney.FormatStyle().locale(locale)), forKey: .amount)
         }
     }
 
@@ -152,12 +150,6 @@ extension AnyMoney {
             storage = try container.decode(MinorUnit.self, forKey: .amount)
         case .majorUnits:
             let decimal = try container.decode(Decimal.self, forKey: .amount)
-            storage = try _decimalToMinorUnits(decimal, minimalQuantisation: minimalQuantisation, codingPath: container.codingPath)
-        case .string(let locale):
-            let string = try container.decode(String.self, forKey: .amount)
-            let decimal = try _parseFormattedAmount(
-                string, currencyCode: code, locale: locale, codingPath: container.codingPath
-            )
             storage = try _decimalToMinorUnits(decimal, minimalQuantisation: minimalQuantisation, codingPath: container.codingPath)
         }
         return AnyMoney(storage: storage, currencyCode: code, minimalQuantisation: minimalQuantisation)

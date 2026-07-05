@@ -245,16 +245,6 @@ struct AnyMoney_CodableTests_ObjectStrategy {
         #expect(decoded == original)
     }
 
-    @Test(".object(string): GBP round-trips correctly")
-    func objectStringGBPRoundTrip() throws {
-        let locale = Locale(identifier: "en_GB")
-        let original = Money<GBP>(minorUnits: 12_345).erased
-        let decoded = try roundTrip(original,
-            encoding: .object(amount: .string(locale: locale)),
-            decoding: .object(amount: .string(locale: locale), resolver: resolver))
-        #expect(decoded == original)
-    }
-
     // MARK: Resolver errors
 
     @Test(".object: resolver returning nil throws DecodingError")

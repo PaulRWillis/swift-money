@@ -54,8 +54,6 @@ extension MoneyBag: Codable {
                     try dictionaryContainer.encode(entry.minorUnits, forKey: key)
                 case .majorUnits:
                     try dictionaryContainer.encode(Decimal(entry), forKey: key)
-                case .string(let locale):
-                    try dictionaryContainer.encode(entry.formatted(AnyMoney.FormatStyle().locale(locale)), forKey: key)
                 }
             }
         }
@@ -168,14 +166,6 @@ extension MoneyBag: Codable {
                 entryStorage = try container.decode(MinorUnit.self, forKey: key)
             case .majorUnits:
                 let decimal = try container.decode(Decimal.self, forKey: key)
-                entryStorage = try AnyMoney._decimalToMinorUnits(
-                    decimal, minimalQuantisation: minimalQuantisation, codingPath: container.codingPath
-                )
-            case .string(let locale):
-                let string = try container.decode(String.self, forKey: key)
-                let decimal = try AnyMoney._parseFormattedAmount(
-                    string, currencyCode: currencyCode, locale: locale, codingPath: container.codingPath
-                )
                 entryStorage = try AnyMoney._decimalToMinorUnits(
                     decimal, minimalQuantisation: minimalQuantisation, codingPath: container.codingPath
                 )
