@@ -145,7 +145,7 @@ extension MinorUnit {
 extension MinorUnit: ExpressibleByIntegerLiteral {
     init(integerLiteral value: Int) {
         guard let minorUnit = MinorUnit(exactly: value) else {
-            preconditionFailure("MinorUnit cannot represent Int.min")
+            preconditionFailure("MinorUnit cannot represent the value \(value)")
         }
         self = minorUnit
     }
