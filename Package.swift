@@ -29,5 +29,8 @@ let package = Package(
             name: "SwiftMoneyTests",
             dependencies: ["SwiftMoney"]
         ),
+        .target(
+            name: "POCMoney"
+        ),
     ]
 )
