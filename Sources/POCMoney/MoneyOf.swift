@@ -132,6 +132,17 @@ extension MoneyOf {
 
 #warning("TODO")
 
+// MARK: Distribution
+
+extension MoneyOf {
+    public func distributed(
+        into count: DistributionParts
+    ) -> Distribution<Self> {
+        POCMoney.distributed(minorUnits, into: count)
+            .map { Self($0) }
+    }
+}
+
 // MARK: - Comparable
 
 extension MoneyOf: Comparable {
