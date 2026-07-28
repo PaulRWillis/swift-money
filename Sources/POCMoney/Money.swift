@@ -175,6 +175,17 @@ extension Optional where Wrapped == Money {
 
 #warning("TODO")
 
+// MARK: - Distribution
+
+extension Money {
+    public func distributed(
+        into count: DistributionParts
+    ) -> Distribution<Self> {
+        POCMoney.distributed(minorUnits, into: count)
+            .map { Money($0, currency: currency) }
+    }
+}
+
 #warning("TODO: Subunit pricing")
 #warning("TODO: Currency conversion")
 #warning("TODO: Minor units as MinorUnit")

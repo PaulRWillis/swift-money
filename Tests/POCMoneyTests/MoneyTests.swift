@@ -265,6 +265,29 @@ struct MoneyTests {
     // MARK: - Fractional Multiplication
 
     #warning("TODO")
+
+    // MARK: - Distribution
+
+    // The algorithm itself is covered by DistributionTests. These two check the step that
+    // is unique to Money: re-attaching the currency to every share.
+
+    @Test("Distributed equal shares keep the currency")
+    func distributedEqualSharesKeepCurrency() {
+        let sut = Money(2, currency: "GBP")
+
+        let result = sut.distributed(into: 2)
+
+        #expect(result.values == [Money(1, currency: "GBP"), Money(1, currency: "GBP"),])
+    }
+
+    @Test("Distributed unequal shares keep the currency")
+    func distributedUnequalSharesKeepCurrency() {
+        let sut = Money(3, currency: "GBP")
+
+        let result = sut.distributed(into: 2)
+
+        #expect(result.values == [Money(2, currency: "GBP"), Money(1, currency: "GBP"),])
+    }
 }
 
 // TODO: Round out maths functions on `MoneyOf` and `Money`: fractional multiplication and distributions
