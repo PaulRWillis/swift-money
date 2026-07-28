@@ -32,5 +32,9 @@ let package = Package(
         .target(
             name: "POCMoney"
         ),
+        .testTarget(
+            name: "POCMoneyTests",
+            dependencies: ["POCMoney"]
+        ),
     ]
 )
