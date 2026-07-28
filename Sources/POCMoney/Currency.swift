@@ -22,3 +22,6 @@ public enum Currencies {
         public static let minimalQuantisation: Int = 100
     }
 }
+
+public typealias GBP = MoneyOf<Currencies.GBP>
+public typealias EUR = MoneyOf<Currencies.EUR>
