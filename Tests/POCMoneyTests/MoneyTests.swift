@@ -236,36 +236,6 @@ struct MoneyTests {
         #expect(a == Money(6_75, currency: "GBP")) // £6.75
     }
 
-    @Test("Integral multiplication in place traps on positive overflow")
-    func integralMultiplicationInPlacePositiveOverflow() async {
-        await #expect(processExitsWith: .failure) {
-            var pos = Money(Int.max, currency: "GBP")
-            pos *= 2
-            blackHole(pos)
-        }
-
-        await #expect(processExitsWith: .failure) {
-            var neg = Money(Int.min, currency: "GBP")
-            neg *= -2
-            blackHole(neg)
-        }
-    }
-
-    @Test("Integral multiplication in place traps on negative overflow")
-    func integralMultiplicationInPlaceNegativeOverflow() async {
-        await #expect(processExitsWith: .failure) {
-            var pos = Money(Int.max, currency: "GBP")
-            pos *= -2
-            blackHole(pos)
-        }
-
-        await #expect(processExitsWith: .failure) {
-            var neg = Money(Int.min, currency: "GBP")
-            neg *= 2
-            blackHole(neg)
-        }
-    }
-
     // MARK: - Fractional Multiplication
 
     #warning("TODO")

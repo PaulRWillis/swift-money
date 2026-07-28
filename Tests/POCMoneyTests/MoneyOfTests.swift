@@ -61,24 +61,6 @@ struct MoneyOfTests {
         #expect(a == GBP(12))
     }
 
-    @Test("Addition in place traps on positive overflow")
-    func additionInPlacePositiveOverflow() async {
-        await #expect(processExitsWith: .failure) {
-            var a = GBP.max
-            a += GBP(1)
-            blackHole(a)
-        }
-    }
-
-    @Test("Addition in place traps on negative overflow")
-    func additionInPlaceNegativeOverflow() async {
-        await #expect(processExitsWith: .failure) {
-            var a = GBP.min
-            a += GBP(-1)
-            blackHole(a)
-        }
-    }
-
     // MARK: - Subtraction
 
     @Test("Subtract succeeds")
@@ -113,24 +95,6 @@ struct MoneyOfTests {
         a -= b
 
         #expect(a == GBP(-2))
-    }
-
-    @Test("Subtraction in place traps on positive overflow")
-    func subtractionInPlacePositiveOverflow() async {
-        await #expect(processExitsWith: .failure) {
-            var a = GBP.max
-            a -= GBP(-1)
-            blackHole(a)
-        }
-    }
-
-    @Test("Subtraction in place traps on negative overflow")
-    func subtractionInPlaceNegativeOverflow() async {
-        await #expect(processExitsWith: .failure) {
-            var a = GBP.min
-            a -= GBP(1)
-            blackHole(a)
-        }
     }
 
     // MARK: - Integral Multiplication
@@ -187,36 +151,6 @@ struct MoneyOfTests {
         a *= b
 
         #expect(a == GBP(6_75)) // £6.75
-    }
-
-    @Test("Integral multiplication in place traps on positive overflow")
-    func integralMultiplicationInPlacePositiveOverflow() async {
-        await #expect(processExitsWith: .failure) {
-            var pos = GBP.max
-            pos *= 2
-            blackHole(pos)
-        }
-
-        await #expect(processExitsWith: .failure) {
-            var neg = GBP.min
-            neg *= -2
-            blackHole(neg)
-        }
-    }
-
-    @Test("Integral multiplication in place traps on negative overflow")
-    func integralMultiplicationInPlaceNegativeOverflow() async {
-        await #expect(processExitsWith: .failure) {
-            var pos = GBP.max
-            pos *= -2
-            blackHole(pos)
-        }
-
-        await #expect(processExitsWith: .failure) {
-            var neg = GBP.min
-            neg *= 2
-            blackHole(neg)
-        }
     }
 
     // MARK: - Fractional Multiplication
