@@ -38,14 +38,14 @@ struct MoneyOfTests {
     @Test("Add traps on positive overflow")
     func addPositiveOverflow() async {
         await #expect(processExitsWith: .failure) {
-            _ = GBP.max + GBP(1)
+            blackHole(GBP.max + GBP(1))
         }
     }
 
     @Test("Add traps on negative overflow")
     func addNegativeOverflow() async {
         await #expect(processExitsWith: .failure) {
-            _ = GBP.min + GBP(-1)
+            blackHole(GBP.min + GBP(-1))
         }
     }
 
@@ -66,6 +66,7 @@ struct MoneyOfTests {
         await #expect(processExitsWith: .failure) {
             var a = GBP.max
             a += GBP(1)
+            blackHole(a)
         }
     }
 
@@ -74,6 +75,7 @@ struct MoneyOfTests {
         await #expect(processExitsWith: .failure) {
             var a = GBP.min
             a += GBP(-1)
+            blackHole(a)
         }
     }
 
@@ -90,14 +92,14 @@ struct MoneyOfTests {
     @Test("Subtract traps on positive overflow")
     func subtractPositiveOverflow() async {
         await #expect(processExitsWith: .failure) {
-            _ = GBP.max - GBP(-1)
+            blackHole(GBP.max - GBP(-1))
         }
     }
 
     @Test("Subtract traps on negative overflow")
     func subtractNegativeOverflow() async {
         await #expect(processExitsWith: .failure) {
-            _ = GBP.min - GBP(1)
+            blackHole(GBP.min - GBP(1))
         }
     }
 
@@ -118,6 +120,7 @@ struct MoneyOfTests {
         await #expect(processExitsWith: .failure) {
             var a = GBP.max
             a -= GBP(-1)
+            blackHole(a)
         }
     }
 
@@ -126,6 +129,7 @@ struct MoneyOfTests {
         await #expect(processExitsWith: .failure) {
             var a = GBP.min
             a -= GBP(1)
+            blackHole(a)
         }
     }
 
@@ -154,22 +158,22 @@ struct MoneyOfTests {
     @Test("Integral multiplication traps on positive overflow")
     func integralMultiplicationPositiveOverflow() async {
         await #expect(processExitsWith: .failure) {
-            _ = GBP.max * 2
+            blackHole(GBP.max * 2)
         }
 
         await #expect(processExitsWith: .failure) {
-            _ = 2 * GBP.max
+            blackHole(2 * GBP.max)
         }
     }
 
     @Test("Integral multiplication traps on negative overflow")
     func integralMultiplicationNegativeOverflow() async {
         await #expect(processExitsWith: .failure) {
-            _ = GBP.min * 2
+            blackHole(GBP.min * 2)
         }
 
         await #expect(processExitsWith: .failure) {
-            _ = 2 * GBP.min
+            blackHole(2 * GBP.min)
         }
     }
 
@@ -190,11 +194,13 @@ struct MoneyOfTests {
         await #expect(processExitsWith: .failure) {
             var pos = GBP.max
             pos *= 2
+            blackHole(pos)
         }
 
         await #expect(processExitsWith: .failure) {
             var neg = GBP.min
             neg *= -2
+            blackHole(neg)
         }
     }
 
@@ -203,11 +209,13 @@ struct MoneyOfTests {
         await #expect(processExitsWith: .failure) {
             var pos = GBP.max
             pos *= -2
+            blackHole(pos)
         }
 
         await #expect(processExitsWith: .failure) {
             var neg = GBP.min
             neg *= 2
+            blackHole(neg)
         }
     }
 

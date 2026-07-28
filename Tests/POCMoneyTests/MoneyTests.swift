@@ -205,22 +205,22 @@ struct MoneyTests {
     @Test("Integral multiplication traps on positive overflow")
     func integralMultiplicationPositiveOverflow() async {
         await #expect(processExitsWith: .failure) {
-            _ = Money(Int.max, currency: "GBP") * 2
+            blackHole(Money(Int.max, currency: "GBP") * 2)
         }
 
         await #expect(processExitsWith: .failure) {
-            _ = 2 * Money(Int.max, currency: "GBP")
+            blackHole(2 * Money(Int.max, currency: "GBP"))
         }
     }
 
     @Test("Integral multiplication traps on negative overflow")
     func integralMultiplicationNegativeOverflow() async {
         await #expect(processExitsWith: .failure) {
-            _ = Money(Int.min, currency: "GBP") * 2
+            blackHole(Money(Int.min, currency: "GBP") * 2)
         }
 
         await #expect(processExitsWith: .failure) {
-            _ = 2 * Money(Int.min, currency: "GBP")
+            blackHole(2 * Money(Int.min, currency: "GBP"))
         }
     }
 
@@ -241,11 +241,13 @@ struct MoneyTests {
         await #expect(processExitsWith: .failure) {
             var pos = Money(Int.max, currency: "GBP")
             pos *= 2
+            blackHole(pos)
         }
 
         await #expect(processExitsWith: .failure) {
             var neg = Money(Int.min, currency: "GBP")
             neg *= -2
+            blackHole(neg)
         }
     }
 
@@ -254,11 +256,13 @@ struct MoneyTests {
         await #expect(processExitsWith: .failure) {
             var pos = Money(Int.max, currency: "GBP")
             pos *= -2
+            blackHole(pos)
         }
 
         await #expect(processExitsWith: .failure) {
             var neg = Money(Int.min, currency: "GBP")
             neg *= 2
+            blackHole(neg)
         }
     }
 
