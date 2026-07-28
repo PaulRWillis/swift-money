@@ -215,6 +215,29 @@ struct MoneyOfTests {
 
     #warning("TODO")
 
+    // MARK: - Distribution
+
+    // The algorithm itself is covered by DistributionTests, which drives it through GBP.
+    // These two check only that `distributed(into:)` returns shares as the same money type.
+
+    @Test("Distributed equal shares come back as the same money type")
+    func distributedEqualSharesKeepMoneyType() {
+        let sut = GBP(2)
+
+        let result = sut.distributed(into: 2)
+
+        #expect(result.values == [GBP(1), GBP(1),])
+    }
+
+    @Test("Distributed unequal shares come back as the same money type")
+    func distributedUnequalSharesKeepMoneyType() {
+        let sut = GBP(3)
+
+        let result = sut.distributed(into: 2)
+
+        #expect(result.values == [GBP(2), GBP(1),])
+    }
+
     // MARK: - Comparable
 
     @Test("Lower value is less than higher value")
