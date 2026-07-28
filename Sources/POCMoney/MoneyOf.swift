@@ -102,3 +102,76 @@ extension MoneyOf: AdditiveArithmetic {
         lhs = lhs - rhs
     }
 }
+
+// MARK: - Integral Multiplication
+
+extension MoneyOf {
+    /// Returns the result of multiplying a `MoneyOf` value by an `Int` scalar.
+    ///
+    /// Traps on overflow.
+    public static func * (lhs: Self, rhs: Int) -> Self {
+        Self(lhs.minorUnits * rhs)
+    }
+
+    /// Returns the result of multiplying an `Int` scalar by a `MoneyOf` value.
+    ///
+    /// Traps on overflow.
+    public static func * (lhs: Int, rhs: Self) -> Self {
+        rhs * lhs
+    }
+
+    /// Multiplies a `Money` value by an `Int` scalar in place.
+    ///
+    /// Traps on overflow.
+    public static func *= (lhs: inout Self, rhs: Int) {
+        lhs = lhs * rhs
+    }
+}
+
+// MARK: - Fractional Multiplication
+
+#warning("TODO")
+
+// MARK: - Comparable
+
+extension MoneyOf: Comparable {
+    public static func < (lhs: MoneyOf<C>, rhs: MoneyOf<C>) -> Bool {
+        lhs.minorUnits < rhs.minorUnits
+    }
+}
+
+// MARK: - isMultipleOf(other:)
+
+extension MoneyOf {
+    /// Returns `true` if this value is a multiple of the given value, and `false`
+    /// otherwise.
+    ///
+    /// For two integers *a* and *b*, *a* is a multiple of *b* if there exists a
+    /// third integer *q* such that _a = q*b_. For example, *6* is a multiple of
+    /// *3* because _6 = 2*3_. Zero is a multiple of everything because _0 = 0*x_
+    /// for any integer *x*.
+    ///
+    /// Two edge cases are worth particular attention:
+    /// - `x.isMultiple(of: 0)` is `true` if `x` is zero and `false` otherwise.
+    /// - `T.min.isMultiple(of: -1)` is `true` for signed integer `T`, even
+    ///   though the quotient `T.min / -1` isn't representable in type `T`.
+    ///
+    /// - Parameter other: The value to test.
+    public func isMultiple(of other: Self) -> Bool {
+        self.minorUnits.isMultiple(of: other.minorUnits)
+    }
+}
+
+// MARK: - Strideable
+
+extension MoneyOf: Strideable {
+    public typealias Stride = Int
+
+    public func distance(to other: MoneyOf<C>) -> Int {
+        other.minorUnits - self.minorUnits
+    }
+
+    public func advanced(by n: Stride) -> MoneyOf<C> {
+        Self(self.minorUnits + n)
+    }
+}
