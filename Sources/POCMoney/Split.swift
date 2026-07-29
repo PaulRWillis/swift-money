@@ -136,6 +136,12 @@ extension Split {
 
 extension Split: Equatable {}
 
+// MARK: - Sendable
+
+extension Split: Sendable where Amount: Sendable {}
+
+extension Split.Group: Sendable where Amount: Sendable {}
+
 extension Split {
     func map<NewAmount>(
         _ transform: (Amount) -> NewAmount
