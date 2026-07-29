@@ -1,17 +1,17 @@
-public enum Distribution<Value: Equatable> {
-    case equal(Portion<Value>)
-    case unequal(
-        larger: Portion<Value>,
-        smaller: Portion<Value>
+public enum Split<Value: Equatable> {
+    case even(Group<Value>)
+    case uneven(
+        larger: Group<Value>,
+        smaller: Group<Value>
     )
 }
 
-extension Distribution {
+extension Split {
     public var values: [Value] {
         switch self {
-        case let .equal(portion):
-            return Array.init(repeating: portion.value, count: Int(portion.count))
-        case let .unequal(larger, smaller):
+        case let .even(group):
+            return Array.init(repeating: group.value, count: Int(group.count))
+        case let .uneven(larger, smaller):
             return [
                 Array.init(repeating: larger.value, count: Int(larger.count)),
                 Array.init(repeating: smaller.value, count: Int(smaller.count))
@@ -20,26 +20,26 @@ extension Distribution {
     }
 }
 
-extension Distribution {
-    static func equal(count: PartCount, value: Value) -> Self {
-        self.equal(
-            Portion(
+extension Split {
+    static func even(count: PartCount, value: Value) -> Self {
+        self.even(
+            Group(
                 count: count,
                 value: value
             )
         )
     }
 
-    static func unequal(
+    static func uneven(
         larger: (count: PartCount, value: Value),
         smaller: (count: PartCount, value: Value),
     ) -> Self {
-        self.unequal(
-            larger: Portion(
+        self.uneven(
+            larger: Group(
                 count: larger.count,
                 value: larger.value
             ),
-            smaller: Portion(
+            smaller: Group(
                 count: smaller.count,
                 value: smaller.value
             )
@@ -47,8 +47,8 @@ extension Distribution {
     }
 }
 
-extension Distribution {
-    public struct Portion<T: Equatable>: Equatable {
+extension Split {
+    public struct Group<T: Equatable>: Equatable {
         public let count: PartCount
         public let value: T
 
@@ -64,20 +64,20 @@ extension Distribution {
 
 // MARK: - Equatable
 
-extension Distribution: Equatable {}
+extension Split: Equatable {}
 
-extension Distribution {
+extension Split {
     func map<NewValue>(
         _ transform: (Value) -> NewValue
-    ) -> Distribution<NewValue> {
+    ) -> Split<NewValue> {
         switch self {
-        case let .equal(distribution):
-            return .equal(
-                count: distribution.count,
-                value: transform(distribution.value)
+        case let .even(group):
+            return .even(
+                count: group.count,
+                value: transform(group.value)
             )
-        case let .unequal(larger, smaller):
-            return .unequal(
+        case let .uneven(larger, smaller):
+            return .uneven(
                 larger: (
                     count: larger.count,
                     value: transform(larger.value)
@@ -94,20 +94,20 @@ extension Distribution {
 func distributed(
     _ amount: Int,
     into count: PartCount
-) -> Distribution<Int> {
+) -> Split<Int> {
     guard let amount = NonZeroInt(amount) else {
-        return .equal(count: count, value: 0)
+        return .even(count: count, value: 0)
     }
 
     let (quotient, remainder) = amount.quotientAndRemainder(dividingBy: count)
 
     switch remainder {
     case .zero:
-        return .equal(count: count, value: quotient)
+        return .even(count: count, value: quotient)
     case .nonZero(let nonZeroRemainder):
         let largerCount = abs(nonZeroRemainder)
 
-        return .unequal(
+        return .uneven(
             larger: (
                 count: largerCount,
                 value: quotient + amount.signum

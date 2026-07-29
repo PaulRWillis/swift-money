@@ -132,12 +132,12 @@ extension MoneyOf {
 
 #warning("TODO")
 
-// MARK: Distribution
+// MARK: Split
 
 extension MoneyOf {
     public func distributed(
         into count: PartCount
-    ) -> Distribution<Self> {
+    ) -> Split<Self> {
         POCMoney.distributed(minorUnits, into: count)
             .map { Self($0) }
     }

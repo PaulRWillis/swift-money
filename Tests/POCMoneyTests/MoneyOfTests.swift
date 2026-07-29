@@ -157,9 +157,9 @@ struct MoneyOfTests {
 
     #warning("TODO")
 
-    // MARK: - Distribution
+    // MARK: - Split
 
-    // The algorithm itself is covered by DistributionTests, which drives it through GBP.
+    // The algorithm itself is covered by SplitTests, which drives it through GBP.
     // These two check only that `distributed(into:)` returns shares as the same money type.
 
     @Test("Distributed equal shares come back as the same money type")

@@ -240,9 +240,9 @@ struct MoneyTests {
 
     #warning("TODO")
 
-    // MARK: - Distribution
+    // MARK: - Split
 
-    // The algorithm itself is covered by DistributionTests. These two check the step that
+    // The algorithm itself is covered by SplitTests. These two check the step that
     // is unique to Money: re-attaching the currency to every share.
 
     @Test("Distributed equal shares keep the currency")
