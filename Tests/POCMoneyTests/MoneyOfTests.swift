@@ -168,7 +168,7 @@ struct MoneyOfTests {
 
         let result = sut.split(into: 2)
 
-        #expect(result.values == [GBP(1), GBP(1),])
+        #expect(Array(result.amounts) == [GBP(1), GBP(1),])
     }
 
     @Test("Split unevenly, shares come back as the same money type")
@@ -177,7 +177,7 @@ struct MoneyOfTests {
 
         let result = sut.split(into: 2)
 
-        #expect(result.values == [GBP(2), GBP(1),])
+        #expect(Array(result.amounts) == [GBP(2), GBP(1),])
     }
 
     // MARK: - Comparable

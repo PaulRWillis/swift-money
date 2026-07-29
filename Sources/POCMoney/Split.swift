@@ -1,64 +1,134 @@
-public enum Split<Value: Equatable> {
-    case even(Group<Value>)
+public enum Split<Amount: Equatable> {
+    case even(Group)
+
+    /// Some parts receive one more minor unit than the others.
+    ///
+    /// `larger` and `smaller` compare by *magnitude*, not numerically: splitting a refund of
+    /// `-10` into three gives `larger` of one part at `-4` and `smaller` of two parts at `-3`,
+    /// because a refund of 4 is larger than a refund of 3.
     case uneven(
-        larger: Group<Value>,
-        smaller: Group<Value>
+        larger: Group,
+        smaller: Group
     )
 }
 
 extension Split {
-    public var values: [Value] {
-        switch self {
-        case let .even(group):
-            return Array.init(repeating: group.value, count: Int(group.count))
-        case let .uneven(larger, smaller):
-            return [
-                Array.init(repeating: larger.value, count: Int(larger.count)),
-                Array.init(repeating: smaller.value, count: Int(smaller.count))
-            ].flatMap { $0 }
+    public struct Group: Equatable {
+        public let count: PartCount
+        public let amount: Amount
+
+        fileprivate init(
+            count: PartCount,
+            amount: Amount
+        ) {
+            self.count = count
+            self.amount = amount
         }
     }
 }
 
 extension Split {
-    static func even(count: PartCount, value: Value) -> Self {
+    /// The number of parts the amount was split into.
+    public var count: PartCount {
+        switch self {
+        case let .even(group):
+            return group.count
+        case let .uneven(larger, smaller):
+            return PartCount(unchecked: Int(larger.count) + Int(smaller.count))
+        }
+    }
+
+    /// Every part's amount, one element per part, larger amounts first.
+    ///
+    /// A `Split` stores each group of equal parts as a single ``Split/Group``, so splitting into a
+    /// million parts holds two counts and two amounts. Iterating expands that on demand and
+    /// allocates nothing.
+    ///
+    /// ```swift
+    /// let split = GBP(100_00).split(into: 3)
+    /// for amount in split.amounts { … }        // £33.34, £33.33, £33.33
+    /// let all = Array(split.amounts)           // materialises, one element per part
+    /// ```
+    ///
+    /// - Note: This is a `Sequence` rather than a `Collection`, deliberately. `Collection` would
+    ///   require `count` to be an `Int`, which cannot coexist with ``Split/count`` returning
+    ///   ``PartCount``; it would require a subscript whose valid range depends on the instance and
+    ///   so cannot be expressed in any index type, leaving a trap as the only option; and it would
+    ///   make `first`, `last`, `max()` and `min()` optional for a value that always has at least one
+    ///   part. Implementing `underestimatedCount` also makes `Array(split.amounts)` roughly twice as
+    ///   fast as the equivalent `RandomAccessCollection`, because capacity is reserved exactly.
+    ///
+    /// - Note: Iterating does not consume the sequence — it can be traversed repeatedly — though
+    ///   `Sequence` does not promise that to generic code.
+    public var amounts: some Sequence<Amount> {
+        Amounts(self)
+    }
+
+    fileprivate struct Amounts: Sequence {
+        private let split: Split
+
+        fileprivate init(_ split: Split) {
+            self.split = split
+        }
+
+        var underestimatedCount: Int {
+            Int(split.count)
+        }
+
+        func makeIterator() -> Iterator {
+            Iterator(split)
+        }
+
+        struct Iterator: IteratorProtocol {
+            private let split: Split
+            private var position = 0
+
+            fileprivate init(_ split: Split) {
+                self.split = split
+            }
+
+            mutating func next() -> Amount? {
+                guard position < Int(split.count) else {
+                    return nil
+                }
+
+                defer { position += 1 }
+
+                switch split {
+                case let .even(group):
+                    return group.amount
+                case let .uneven(larger, smaller):
+                    return position < Int(larger.count) ? larger.amount : smaller.amount
+                }
+            }
+        }
+    }
+}
+
+extension Split {
+    static func even(count: PartCount, amount: Amount) -> Self {
         self.even(
             Group(
                 count: count,
-                value: value
+                amount: amount
             )
         )
     }
 
     static func uneven(
-        larger: (count: PartCount, value: Value),
-        smaller: (count: PartCount, value: Value),
+        larger: (count: PartCount, amount: Amount),
+        smaller: (count: PartCount, amount: Amount),
     ) -> Self {
         self.uneven(
             larger: Group(
                 count: larger.count,
-                value: larger.value
+                amount: larger.amount
             ),
             smaller: Group(
                 count: smaller.count,
-                value: smaller.value
+                amount: smaller.amount
             )
         )
-    }
-}
-
-extension Split {
-    public struct Group<T: Equatable>: Equatable {
-        public let count: PartCount
-        public let value: T
-
-        fileprivate init(
-            count: PartCount,
-            value: T
-        ) {
-            self.count = count
-            self.value = value
-        }
     }
 }
 
@@ -67,24 +137,24 @@ extension Split {
 extension Split: Equatable {}
 
 extension Split {
-    func map<NewValue>(
-        _ transform: (Value) -> NewValue
-    ) -> Split<NewValue> {
+    func map<NewAmount>(
+        _ transform: (Amount) -> NewAmount
+    ) -> Split<NewAmount> {
         switch self {
         case let .even(group):
             return .even(
                 count: group.count,
-                value: transform(group.value)
+                amount: transform(group.amount)
             )
         case let .uneven(larger, smaller):
             return .uneven(
                 larger: (
                     count: larger.count,
-                    value: transform(larger.value)
+                    amount: transform(larger.amount)
                 ),
                 smaller: (
                     count: smaller.count,
-                    value: transform(smaller.value)
+                    amount: transform(smaller.amount)
                 ),
             )
         }
@@ -96,25 +166,25 @@ func split(
     into parts: PartCount
 ) -> Split<Int> {
     guard let amount = NonZeroInt(amount) else {
-        return .even(count: parts, value: 0)
+        return .even(count: parts, amount: 0)
     }
 
     let (quotient, remainder) = amount.quotientAndRemainder(dividingBy: parts)
 
     switch remainder {
     case .zero:
-        return .even(count: parts, value: quotient)
+        return .even(count: parts, amount: quotient)
     case .nonZero(let nonZeroRemainder):
         let largerCount = abs(nonZeroRemainder)
 
         return .uneven(
             larger: (
                 count: largerCount,
-                value: quotient + amount.signum
+                amount: quotient + amount.signum
             ),
             smaller: (
                 count: parts.subtracting(largerCount),
-                value: quotient
+                amount: quotient
             )
         )
     }

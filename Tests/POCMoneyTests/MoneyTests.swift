@@ -251,7 +251,7 @@ struct MoneyTests {
 
         let result = sut.split(into: 2)
 
-        #expect(result.values == [Money(1, currency: "GBP"), Money(1, currency: "GBP"),])
+        #expect(Array(result.amounts) == [Money(1, currency: "GBP"), Money(1, currency: "GBP"),])
     }
 
     @Test("Split unevenly, shares keep the currency")
@@ -260,7 +260,7 @@ struct MoneyTests {
 
         let result = sut.split(into: 2)
 
-        #expect(result.values == [Money(2, currency: "GBP"), Money(1, currency: "GBP"),])
+        #expect(Array(result.amounts) == [Money(2, currency: "GBP"), Money(1, currency: "GBP"),])
     }
 }
 

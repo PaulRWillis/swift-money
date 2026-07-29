@@ -79,52 +79,54 @@ struct SplitTests {
         #expect(even != uneven)
     }
 
-    // MARK: - `values`
+    // MARK: - `amounts`
 
-    @Test("Zero amount produces one zero share per part in `values`")
-    func values_zeroAmountProducesOneZeroSharePerPart() {
+    @Test("Zero amount produces one zero amount per part")
+    func amounts_zeroAmountProducesOneZeroAmountPerPart() {
         let split = GBP(0).split(into: 5)
 
-        #expect(split.values == [GBP(0), GBP(0), GBP(0), GBP(0), GBP(0),])
+        #expect(Array(split.amounts) == [GBP(0), GBP(0), GBP(0), GBP(0), GBP(0),])
     }
 
-    @Test("Larger shares come before smaller shares in `values`")
-    func values_largerSharesComeFirst() {
+    @Test("Larger amounts come before smaller amounts")
+    func amounts_largerAmountsComeFirst() {
         let split = GBP(11).split(into: 3)
 
-        #expect(split.values == [GBP(4), GBP(4), GBP(3),])
+        #expect(Array(split.amounts) == [GBP(4), GBP(4), GBP(3),])
     }
 
     // MARK: - Invariants
 
-    @Test("Share count always matches the part count", arguments: amounts, partCounts)
-    func shareCountMatchesPartCount(amount: Int, parts: PartCount) {
+    @Test("Amount count always matches the part count", arguments: amounts, partCounts)
+    func amountCountMatchesPartCount(amount: Int, parts: PartCount) {
         let split = GBP(amount).split(into: parts)
 
-        #expect(split.values.count == Int(parts))
+        #expect(split.count == parts)
+        #expect(Array(split.amounts).count == Int(parts))
     }
 
-    @Test("Shares always sum to the original amount", arguments: amounts, partCounts)
-    func sharesSumToOriginalAmount(amount: Int, parts: PartCount) {
+    @Test("Amounts always sum to the original amount", arguments: amounts, partCounts)
+    func amountsSumToOriginalAmount(amount: Int, parts: PartCount) {
         let money = GBP(amount)
 
         let split = money.split(into: parts)
 
-        #expect(split.values.reduce(.zero, +) == money)
+        #expect(split.amounts.reduce(GBP.zero, +) == money)
     }
 
-    @Test("Shares never differ by more than one minor unit", arguments: amounts, partCounts)
-    func sharesDifferByAtMostOneMinorUnit(amount: Int, parts: PartCount) {
-        let values = GBP(amount).split(into: parts).values
+    @Test("Amounts never differ by more than one minor unit", arguments: amounts, partCounts)
+    func amountsDifferByAtMostOneMinorUnit(amount: Int, parts: PartCount) {
+        let split = GBP(amount).split(into: parts)
 
-        guard let largest = values.max(), let smallest = values.min() else {
-            Issue.record("Split produced no shares")
-            return
+        switch split {
+        case .even:
+            // One amount for every part, so there is no spread to check.
+            break
+        case let .uneven(larger, smaller):
+            let spread = larger.amount - smaller.amount
+
+            #expect(spread == GBP(1) || spread == GBP(-1))
         }
-
-        let spread = largest - smallest
-
-        #expect(spread == GBP(0) || spread == GBP(1))
     }
 
     // MARK: - Negatives
@@ -133,14 +135,14 @@ struct SplitTests {
     func negativeEvenSplit() {
         let split = GBP(-9).split(into: 3)
 
-        #expect(split.values == [GBP(-3), GBP(-3), GBP(-3),])
+        #expect(Array(split.amounts) == [GBP(-3), GBP(-3), GBP(-3),])
     }
 
     @Test("Negative uneven split keeps negativity")
     func negativeUnevenSplit() {
         let split = GBP(-10).split(into: 3)
 
-        #expect(split.values == [GBP(-4), GBP(-3), GBP(-3),])
+        #expect(Array(split.amounts) == [GBP(-4), GBP(-3), GBP(-3),])
     }
 
 }
