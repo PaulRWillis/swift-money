@@ -91,19 +91,19 @@ extension Split {
     }
 }
 
-func distributed(
+func split(
     _ amount: Int,
-    into count: PartCount
+    into parts: PartCount
 ) -> Split<Int> {
     guard let amount = NonZeroInt(amount) else {
-        return .even(count: count, value: 0)
+        return .even(count: parts, value: 0)
     }
 
-    let (quotient, remainder) = amount.quotientAndRemainder(dividingBy: count)
+    let (quotient, remainder) = amount.quotientAndRemainder(dividingBy: parts)
 
     switch remainder {
     case .zero:
-        return .even(count: count, value: quotient)
+        return .even(count: parts, value: quotient)
     case .nonZero(let nonZeroRemainder):
         let largerCount = abs(nonZeroRemainder)
 
@@ -113,7 +113,7 @@ func distributed(
                 value: quotient + amount.signum
             ),
             smaller: (
-                count: count.subtracting(largerCount),
+                count: parts.subtracting(largerCount),
                 value: quotient
             )
         )

@@ -178,10 +178,10 @@ extension Optional where Wrapped == Money {
 // MARK: - Split
 
 extension Money {
-    public func distributed(
-        into count: PartCount
+    public func split(
+        into parts: PartCount
     ) -> Split<Self> {
-        POCMoney.distributed(minorUnits, into: count)
+        POCMoney.split(minorUnits, into: parts)
             .map { Money($0, currency: currency) }
     }
 }

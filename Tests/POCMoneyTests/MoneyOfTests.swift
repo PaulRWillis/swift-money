@@ -160,22 +160,22 @@ struct MoneyOfTests {
     // MARK: - Split
 
     // The algorithm itself is covered by SplitTests, which drives it through GBP.
-    // These two check only that `distributed(into:)` returns shares as the same money type.
+    // These two check only that `split(into:)` returns shares as the same money type.
 
-    @Test("Distributed equal shares come back as the same money type")
-    func distributedEqualSharesKeepMoneyType() {
+    @Test("Split evenly, shares come back as the same money type")
+    func splitEvenlyKeepsMoneyType() {
         let sut = GBP(2)
 
-        let result = sut.distributed(into: 2)
+        let result = sut.split(into: 2)
 
         #expect(result.values == [GBP(1), GBP(1),])
     }
 
-    @Test("Distributed unequal shares come back as the same money type")
-    func distributedUnequalSharesKeepMoneyType() {
+    @Test("Split unevenly, shares come back as the same money type")
+    func splitUnevenlyKeepsMoneyType() {
         let sut = GBP(3)
 
-        let result = sut.distributed(into: 2)
+        let result = sut.split(into: 2)
 
         #expect(result.values == [GBP(2), GBP(1),])
     }
