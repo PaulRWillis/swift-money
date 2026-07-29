@@ -1,11 +1,15 @@
+/// The result of splitting a monetary amount into a number of parts.
+///
+/// The parts always sum to the original amount, and no two parts differ by more than one minor
+/// unit — a split does not lose or invent money.
 public enum Split<Amount: Equatable> {
+    /// Every part receives the same amount.
     case even(Group)
 
     /// Some parts receive one more minor unit than the others.
     ///
     /// `larger` and `smaller` compare by *magnitude*, not numerically: splitting a refund of
-    /// `-10` into three gives `larger` of one part at `-4` and `smaller` of two parts at `-3`,
-    /// because a refund of 4 is larger than a refund of 3.
+    /// `-10` into three gives `larger` of one part at `-4` and `smaller` of two parts at `-3`.
     case uneven(
         larger: Group,
         smaller: Group
@@ -13,10 +17,17 @@ public enum Split<Amount: Equatable> {
 }
 
 extension Split {
+    /// A number of parts that each receive the same amount.
     public struct Group: Equatable {
+        /// The number of parts in this group, which for an uneven split is fewer than the number
+        /// of parts the amount was split into.
         public let count: PartCount
+
+        /// The amount each part in this group receives, not the group's total.
         public let amount: Amount
 
+        // fileprivate so a `Split` can only come from `split(_:into:)`, which is what guarantees
+        // the invariants that the type documents.
         fileprivate init(
             count: PartCount,
             amount: Amount
@@ -181,6 +192,8 @@ func split(
     case .zero:
         return .even(count: parts, amount: quotient)
     case .nonZero(let nonZeroRemainder):
+        // The remainder's magnitude is always less than the divisor, so `largerCount` is fewer than
+        // `parts` and the subtraction below leaves at least one smaller part.
         let largerCount = abs(nonZeroRemainder)
 
         return .uneven(
@@ -196,6 +209,7 @@ func split(
     }
 }
 
+// Unchecked because a non-zero value has a magnitude of at least one.
 func abs(_ value: NonZeroInt) -> PartCount {
     PartCount(unchecked: abs(value.rawValue))
 }
