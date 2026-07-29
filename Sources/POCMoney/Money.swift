@@ -1,3 +1,14 @@
+/// A monetary amount in a currency that is only known at runtime.
+///
+/// Two amounts can only be combined when their currencies match, which cannot be checked at compile
+/// time, so arithmetic produces an `Optional` and yields `nil` when they differ. The same operators
+/// are provided on `Money?` so results still chain:
+///
+/// ```swift
+/// let total = a + b + c   // Money?
+/// ```
+///
+/// Prefer ``MoneyOf`` when the currency is known statically.
 public struct Money: Equatable, Hashable, Sendable {
 
     // MARK: - Private Properties
@@ -7,6 +18,15 @@ public struct Money: Equatable, Hashable, Sendable {
 
     // MARK: - Initializers
 
+    /// Creates a monetary amount from a whole number of the currency's smallest
+    /// (minor) units.
+    ///
+    /// ```swift
+    /// let price = Money(4_99, currency: "GBP")   // £4.99
+    /// ```
+    ///
+    /// - Parameter currency: A currency code. Not validated, and matched exactly, so `"GBP"` and
+    ///   `"gbp"` are different currencies.
     public init(
         _ minorUnits: Int,
         currency: String,
@@ -36,7 +56,7 @@ extension Money {
 
     /// Returns the sum of two values.
     ///
-    /// Returns nil on overflow or if the currencies do not match.
+    /// Returns `nil` on overflow or if the currencies do not match.
     ///
     /// ```swift
     /// let a = Money(105, currency: "GBP") // £1.05
@@ -49,7 +69,8 @@ extension Money {
 
     /// Adds the right-hand value to the left-hand value in place.
     ///
-    /// Returns nil on overflow or if the currencies do not match.
+    /// Sets `lhs` to `nil` if it is already `nil`, the currencies do not match, or the result
+    /// overflows.
     ///
     /// ```swift
     /// var total = Money(1_00, currency: "GBP") // £1.00
@@ -66,10 +87,14 @@ extension Money {
 }
 
 extension Optional where Wrapped == Money {
+    /// Returns the sum, or `nil` if `lhs` is `nil`, the currencies do not match, or the result
+    /// overflows.
     public static func + (lhs: Self, rhs: Money) -> Money? {
         lhs.flatMap { $0.adding(rhs) }
     }
 
+    /// Returns the sum, or `nil` if `rhs` is `nil`, the currencies do not match, or the result
+    /// overflows.
     public static func + (lhs: Money, rhs: Self) -> Money? {
         rhs.flatMap { lhs.adding($0) }
     }
@@ -93,7 +118,7 @@ extension Money {
 
     /// Returns the difference of two values.
     ///
-    /// Returns nil on overflow or if the currencies do not match.
+    /// Returns `nil` on overflow or if the currencies do not match.
     ///
     /// ```swift
     /// let a = Money(10_50, currency: "GBP") // £10.50
@@ -106,7 +131,8 @@ extension Money {
 
     /// Subtracts the right-hand value from the left-hand value in place.
     ///
-    /// Returns nil on overflow or if the currencies do not match.
+    /// Sets `lhs` to `nil` if it is already `nil`, the currencies do not match, or the result
+    /// overflows.
     ///
     /// ```swift
     /// var balance = Money(100_00, currency: "GBP") // £100.00
@@ -123,10 +149,14 @@ extension Money {
 }
 
 extension Optional where Wrapped == Money {
+    /// Returns the difference, or `nil` if `lhs` is `nil`, the currencies do not match, or the
+    /// result overflows.
     public static func - (lhs: Self, rhs: Money) -> Money? {
         lhs.flatMap { $0.subtracting(rhs) }
     }
 
+    /// Returns the difference, or `nil` if `rhs` is `nil`, the currencies do not match, or the
+    /// result overflows.
     public static func - (lhs: Money, rhs: Self) -> Money? {
         rhs.flatMap { lhs.subtracting($0) }
     }
@@ -162,10 +192,16 @@ extension Money {
 }
 
 extension Optional where Wrapped == Money {
+    /// Returns the product, or `nil` if `lhs` is `nil`.
+    ///
+    /// Traps on overflow, unlike `+` and `-`, which return `nil`.
     public static func * (lhs: Self, rhs: Int) -> Money? {
         lhs.flatMap { $0.multiplied(by: rhs) }
     }
 
+    /// Returns the product, or `nil` if `rhs` is `nil`.
+    ///
+    /// Traps on overflow, unlike `+` and `-`, which return `nil`.
     public static func * (lhs: Int, rhs: Self) -> Money? {
         rhs.flatMap { $0.multiplied(by: lhs) }
     }
@@ -178,6 +214,11 @@ extension Optional where Wrapped == Money {
 // MARK: - Split
 
 extension Money {
+    /// Returns this monetary amount split into `parts`, as evenly as possible.
+    ///
+    /// ```swift
+    /// Money(100_00, currency: "GBP").split(into: 3)   // one part of £33.34, two of £33.33
+    /// ```
     public func split(
         into parts: PartCount
     ) -> Split<Self> {
