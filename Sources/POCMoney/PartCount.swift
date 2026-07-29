@@ -1,7 +1,7 @@
 public struct PartCount: Equatable, Hashable, Sendable {
     fileprivate let rawValue: Int
 
-    public init?(_ value: Int) {
+    public init?(exactly value: Int) {
         guard value >= 1 else {
             return nil
         }

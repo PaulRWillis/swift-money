@@ -2,7 +2,7 @@ import POCMoney
 import Testing
 
 private let amounts = [-1000, -101, -12, -3, -1, 0, 1, 3, 12, 101, 1000,]
-private let partCounts = (1...12).compactMap(PartCount.init)
+private let partCounts = (1...12).compactMap(PartCount.init(exactly:))
 
 @Suite("Split Tests")
 struct SplitTests {
@@ -133,7 +133,7 @@ struct SplitTests {
 
     @Test("A part count too large to materialise still reports its count")
     func largePartCountReportsItsCount() throws {
-        let parts = try #require(PartCount(Int.max))
+        let parts = try #require(PartCount(exactly: Int.max))
 
         let split = GBP(1).split(into: parts)
 
@@ -142,7 +142,7 @@ struct SplitTests {
 
     @Test("A part count too large to materialise can still be iterated")
     func largePartCountCanBeIterated() throws {
-        let parts = try #require(PartCount(Int.max))
+        let parts = try #require(PartCount(exactly: Int.max))
 
         let split = GBP(1).split(into: parts)
 
