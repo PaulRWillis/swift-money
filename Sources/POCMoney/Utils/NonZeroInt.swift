@@ -15,67 +15,28 @@ struct NonZeroInt: Equatable, Hashable, Sendable {
     }
 }
 
-extension NonZeroInt: ExpressibleByIntegerLiteral {
-    init(integerLiteral value: Int) {
-        precondition(value != 0, "Value must not be 0")
-
-        self.rawValue = value
-    }
-}
-
-extension NonZeroInt: Comparable {
-    static func < (lhs: NonZeroInt, rhs: NonZeroInt) -> Bool {
-        lhs.rawValue < rhs.rawValue
-    }
-}
-
 extension NonZeroInt {
     /// Returns the quotient and remainder of this value divided by the given
-    /// value.
+    /// number of parts.
     ///
-    /// Use this method to calculate the quotient and remainder of a division at
-    /// the same time.
+    /// The remainder comes back as a `Remainder` rather than an `Int`, so a
+    /// caller has to decide what to do when it is non-zero instead of being
+    /// able to ignore it.
     ///
-    ///     let x: NonZeroInt = 1_000_000
+    ///     let x = NonZeroInt(1_000_000)!
     ///     let (q, r) = x.quotientAndRemainder(dividingBy: 933)
     ///     // q == 1071
-    ///     // r == 757
+    ///     // r == .nonZero(757)
     ///
-    /// - Parameter rhs: The value to divide this value by.
-    /// - Returns: A tuple containing the quotient and remainder of this value
-    ///   divided by `rhs`. The remainder has the same sign as `lhs`.
-    func quotientAndRemainder(
-        dividingBy rhs: NonZeroInt
-    ) -> (quotient: Int, remainder: Int) {
-        rawValue.quotientAndRemainder(dividingBy: rhs.rawValue)
-    }
-
-    /// Returns the quotient and remainder of this value divided by the given
-    /// value.
-    ///
-    /// Use this method to calculate the quotient and remainder of a division at
-    /// the same time.
-    ///
-    ///     let x: NonZeroInt = 1_000_000
-    ///     let (q, r) = x.quotientAndRemainder(dividingBy: 933)
-    ///     // q == 1071
-    ///     // r == 757
-    ///
-    /// - Parameter rhs: The value to divide this value by.
-    /// - Returns: A tuple containing the quotient and remainder of this value
-    ///   divided by `rhs`. The remainder has the same sign as `lhs`.
+    /// - Parameter dividingBy: The number of parts to divide this value by.
+    /// - Returns: A tuple containing the quotient, and the remainder as a
+    ///   `Remainder`. A non-zero remainder has the same sign as this value.
     func quotientAndRemainder(
         dividingBy rhs: PartCount
     ) -> (quotient: Int, remainder: Remainder) {
         let (quotient, remainder) = rawValue.quotientAndRemainder(dividingBy: Int(rhs))
 
         return (quotient, Remainder(remainder))
-    }
-}
-
-extension Int {
-    init(_ nonZeroInt: NonZeroInt) {
-        self = nonZeroInt.rawValue
     }
 }
 
