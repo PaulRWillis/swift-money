@@ -1,4 +1,4 @@
-public struct DistributionParts: Equatable, Hashable, Sendable {
+public struct PartCount: Equatable, Hashable, Sendable {
     fileprivate let rawValue: Int
 
     public init?(_ value: Int) {
@@ -14,23 +14,23 @@ public struct DistributionParts: Equatable, Hashable, Sendable {
     }
 }
 
-extension DistributionParts: Comparable {
-    public static func < (lhs: DistributionParts, rhs: DistributionParts) -> Bool {
+extension PartCount: Comparable {
+    public static func < (lhs: PartCount, rhs: PartCount) -> Bool {
         lhs.rawValue < rhs.rawValue
     }
 }
 
-extension DistributionParts {
+extension PartCount {
     func subtracting(
-        _ other: DistributionParts
-    ) -> DistributionParts {
+        _ other: PartCount
+    ) -> PartCount {
         precondition(other < self, "Result must remain at least one part")
 
-        return DistributionParts(unchecked: rawValue - other.rawValue)
+        return PartCount(unchecked: rawValue - other.rawValue)
     }
 }
 
-extension DistributionParts: ExpressibleByIntegerLiteral {
+extension PartCount: ExpressibleByIntegerLiteral {
     public init(integerLiteral value: Int) {
         precondition(value >= 1, "Value must be at least 1. Value: \(value)")
 
@@ -39,7 +39,7 @@ extension DistributionParts: ExpressibleByIntegerLiteral {
 }
 
 public extension Int {
-    init(_ parts: DistributionParts) {
+    init(_ parts: PartCount) {
         self = parts.rawValue
     }
 }

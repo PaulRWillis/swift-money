@@ -2,7 +2,7 @@ import POCMoney
 import Testing
 
 private let amounts = [-1000, -101, -12, -3, -1, 0, 1, 3, 12, 101, 1000,]
-private let partCounts = (1...12).compactMap(DistributionParts.init)
+private let partCounts = (1...12).compactMap(PartCount.init)
 
 @Suite("Distribution Tests")
 struct DistributionTests {
@@ -98,14 +98,14 @@ struct DistributionTests {
     // MARK: - Invariants
 
     @Test("Share count always matches the part count", arguments: amounts, partCounts)
-    func shareCountMatchesPartCount(amount: Int, parts: DistributionParts) {
+    func shareCountMatchesPartCount(amount: Int, parts: PartCount) {
         let distribution = GBP(amount).distributed(into: parts)
 
         #expect(distribution.values.count == Int(parts))
     }
 
     @Test("Shares always sum to the original amount", arguments: amounts, partCounts)
-    func sharesSumToOriginalAmount(amount: Int, parts: DistributionParts) {
+    func sharesSumToOriginalAmount(amount: Int, parts: PartCount) {
         let money = GBP(amount)
 
         let distribution = money.distributed(into: parts)
@@ -114,7 +114,7 @@ struct DistributionTests {
     }
 
     @Test("Shares never differ by more than one minor unit", arguments: amounts, partCounts)
-    func sharesDifferByAtMostOneMinorUnit(amount: Int, parts: DistributionParts) {
+    func sharesDifferByAtMostOneMinorUnit(amount: Int, parts: PartCount) {
         let values = GBP(amount).distributed(into: parts).values
 
         guard let largest = values.max(), let smallest = values.min() else {

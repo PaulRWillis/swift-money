@@ -21,7 +21,7 @@ extension Distribution {
 }
 
 extension Distribution {
-    static func equal(count: DistributionParts, value: Value) -> Self {
+    static func equal(count: PartCount, value: Value) -> Self {
         self.equal(
             Portion(
                 count: count,
@@ -31,8 +31,8 @@ extension Distribution {
     }
 
     static func unequal(
-        larger: (count: DistributionParts, value: Value),
-        smaller: (count: DistributionParts, value: Value),
+        larger: (count: PartCount, value: Value),
+        smaller: (count: PartCount, value: Value),
     ) -> Self {
         self.unequal(
             larger: Portion(
@@ -49,11 +49,11 @@ extension Distribution {
 
 extension Distribution {
     public struct Portion<T: Equatable>: Equatable {
-        public let count: DistributionParts
+        public let count: PartCount
         public let value: T
 
         fileprivate init(
-            count: DistributionParts,
+            count: PartCount,
             value: T
         ) {
             self.count = count
@@ -93,7 +93,7 @@ extension Distribution {
 
 func distributed(
     _ amount: Int,
-    into count: DistributionParts
+    into count: PartCount
 ) -> Distribution<Int> {
     guard let amount = NonZeroInt(amount) else {
         return .equal(count: count, value: 0)
@@ -120,6 +120,6 @@ func distributed(
     }
 }
 
-func abs(_ value: NonZeroInt) -> DistributionParts {
-    DistributionParts(unchecked: abs(value.rawValue))
+func abs(_ value: NonZeroInt) -> PartCount {
+    PartCount(unchecked: abs(value.rawValue))
 }

@@ -136,7 +136,7 @@ extension MoneyOf {
 
 extension MoneyOf {
     public func distributed(
-        into count: DistributionParts
+        into count: PartCount
     ) -> Distribution<Self> {
         POCMoney.distributed(minorUnits, into: count)
             .map { Self($0) }
