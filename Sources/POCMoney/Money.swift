@@ -175,13 +175,13 @@ extension Optional where Wrapped == Money {
 
 #warning("TODO")
 
-// MARK: - Distribution
+// MARK: - Split
 
 extension Money {
-    public func distributed(
-        into count: DistributionParts
-    ) -> Distribution<Self> {
-        POCMoney.distributed(minorUnits, into: count)
+    public func split(
+        into parts: PartCount
+    ) -> Split<Self> {
+        POCMoney.split(minorUnits, into: parts)
             .map { Money($0, currency: currency) }
     }
 }

@@ -65,7 +65,7 @@ extension NonZeroInt {
     /// - Returns: A tuple containing the quotient and remainder of this value
     ///   divided by `rhs`. The remainder has the same sign as `lhs`.
     func quotientAndRemainder(
-        dividingBy rhs: DistributionParts
+        dividingBy rhs: PartCount
     ) -> (quotient: Int, remainder: Remainder) {
         let (quotient, remainder) = rawValue.quotientAndRemainder(dividingBy: Int(rhs))
 

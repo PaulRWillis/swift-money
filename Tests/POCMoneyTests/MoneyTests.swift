@@ -240,28 +240,28 @@ struct MoneyTests {
 
     #warning("TODO")
 
-    // MARK: - Distribution
+    // MARK: - Split
 
-    // The algorithm itself is covered by DistributionTests. These two check the step that
+    // The algorithm itself is covered by SplitTests. These two check the step that
     // is unique to Money: re-attaching the currency to every share.
 
-    @Test("Distributed equal shares keep the currency")
-    func distributedEqualSharesKeepCurrency() {
+    @Test("Split evenly, shares keep the currency")
+    func splitEvenlyKeepsCurrency() {
         let sut = Money(2, currency: "GBP")
 
-        let result = sut.distributed(into: 2)
+        let result = sut.split(into: 2)
 
-        #expect(result.values == [Money(1, currency: "GBP"), Money(1, currency: "GBP"),])
+        #expect(Array(result.amounts) == [Money(1, currency: "GBP"), Money(1, currency: "GBP"),])
     }
 
-    @Test("Distributed unequal shares keep the currency")
-    func distributedUnequalSharesKeepCurrency() {
+    @Test("Split unevenly, shares keep the currency")
+    func splitUnevenlyKeepsCurrency() {
         let sut = Money(3, currency: "GBP")
 
-        let result = sut.distributed(into: 2)
+        let result = sut.split(into: 2)
 
-        #expect(result.values == [Money(2, currency: "GBP"), Money(1, currency: "GBP"),])
+        #expect(Array(result.amounts) == [Money(2, currency: "GBP"), Money(1, currency: "GBP"),])
     }
 }
 
-// TODO: Round out maths functions on `MoneyOf` and `Money`: fractional multiplication and distributions
+// TODO: Round out maths functions on `MoneyOf` and `Money`: fractional multiplication and splits

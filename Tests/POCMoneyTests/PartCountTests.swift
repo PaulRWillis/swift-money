@@ -1,39 +1,39 @@
 import POCMoney
 import Testing
 
-@Suite("DistributionParts Tests")
-struct DistributionPartsTests {
+@Suite("PartCount Tests")
+struct PartCountTests {
 
     // MARK: - Initialization
 
     @Test("Init from smallest valid value succeeds")
     func initFromSmallestValid() {
         let int: Int = 1
-        #expect(DistributionParts(int) != nil)
+        #expect(PartCount(int) != nil)
     }
 
     @Test("Init from biggest positive succeeds")
     func initFromBiggestPositive() {
         let int: Int = .max
-        #expect(DistributionParts(int) != nil)
+        #expect(PartCount(int) != nil)
     }
 
     @Test("Init from zero returns nil")
     func initFromZero() {
         let int: Int = .zero
-        #expect(DistributionParts(int) == nil)
+        #expect(PartCount(int) == nil)
     }
 
     @Test("Init from smallest negative returns nil")
     func initFromSmallestNegative() {
         let int: Int = -1
-        #expect(DistributionParts(int) == nil)
+        #expect(PartCount(int) == nil)
     }
 
     @Test("Init from biggest negative returns nil")
     func initFromBiggestNegative() {
         let int: Int = .min
-        #expect(DistributionParts(int) == nil)
+        #expect(PartCount(int) == nil)
     }
 
     // MARK: - ExpressibleByIntegerLiteral Initialization
@@ -41,35 +41,35 @@ struct DistributionPartsTests {
     @Test("Literal: Init from smallest valid value succeeds")
     func initFromSmallestValidLiteral() async {
         await #expect(processExitsWith: .success) {
-            _ = DistributionParts(1)
+            _ = PartCount(1)
         }
     }
 
     @Test("Literal: Init from biggest positive succeeds")
     func initFromBiggestPositiveLiteral() async {
         await #expect(processExitsWith: .success) {
-            _ = DistributionParts(9223372036854775807)
+            _ = PartCount(9223372036854775807)
         }
     }
 
     @Test("Literal: Init from zero traps")
     func initFromZeroLiteral() async {
         await #expect(processExitsWith: .failure) {
-            _ = DistributionParts(0)
+            _ = PartCount(0)
         }
     }
 
     @Test("Literal: Init from smallest negative traps")
     func initFromSmallestNegativeLiteral() async {
         await #expect(processExitsWith: .failure) {
-            _ = DistributionParts(-1)
+            _ = PartCount(-1)
         }
     }
 
     @Test("Literal: Init from biggest negative traps")
     func initFromBiggestNegativeLiteral() async {
         await #expect(processExitsWith: .failure) {
-            _ = DistributionParts(-9223372036854775808)
+            _ = PartCount(-9223372036854775808)
         }
     }
 
@@ -77,7 +77,7 @@ struct DistributionPartsTests {
 
     @Test("Int conversion returns the underlying value")
     func intConversion() {
-        let parts: DistributionParts = 3
+        let parts: PartCount = 3
 
         #expect(Int(parts) == 3)
     }
@@ -86,8 +86,8 @@ struct DistributionPartsTests {
 
     @Test("Fewer parts compare as less than more parts")
     func comparableOrdersByPartCount() {
-        let fewer: DistributionParts = 2
-        let more: DistributionParts = 5
+        let fewer: PartCount = 2
+        let more: PartCount = 5
 
         #expect(fewer < more)
         #expect(more > fewer)
@@ -95,8 +95,8 @@ struct DistributionPartsTests {
 
     @Test("Equal part counts are equatable")
     func equalPartCountsAreEquatable() {
-        let a: DistributionParts = 4
-        let b: DistributionParts = 4
+        let a: PartCount = 4
+        let b: PartCount = 4
 
         #expect(a == b)
     }
