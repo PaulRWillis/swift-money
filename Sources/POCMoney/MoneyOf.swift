@@ -1,3 +1,7 @@
+/// A monetary amount in a single currency, fixed at compile time.
+///
+/// The currency is part of the type, so adding pounds to euros is a compile error rather than a
+/// runtime failure. Use ``Money`` when the currency is not known until runtime.
 public struct MoneyOf<C: Currency>: Equatable, Hashable, Sendable {
 
     // MARK: - Private Properties
@@ -6,6 +10,13 @@ public struct MoneyOf<C: Currency>: Equatable, Hashable, Sendable {
 
     // MARK: - Initializers
 
+    /// Creates a monetary amount from a whole number of the currency's smallest
+    /// (minor) units.
+    ///
+    /// ```swift
+    /// let gbp = GBP(4_99)  // £4.99
+    /// let jpy = JPY(4_99)     // ¥499
+    /// ```
     public init(
         _ minorUnits: Int
     ) {
@@ -16,12 +27,12 @@ public struct MoneyOf<C: Currency>: Equatable, Hashable, Sendable {
 // MARK: - Min/Max
 
 public extension MoneyOf {
-    /// The minimum representable money amount in its currency's minor units.
+    /// The smallest representable monetary amount.
     static var min: Self {
         Self(Int.min)
     }
 
-    /// The maximum representable money amount in its currency's minor units.
+    /// The largest representable monetary amount.
     static var max: Self {
         Self(Int.max)
     }
@@ -29,11 +40,7 @@ public extension MoneyOf {
 
 // MARK: - AdditiveArithmetic
 
-/// Conformance to `AdditiveArithmetic`, providing `+`, `-`, `+=`, `-=`, `and `.zero`.
 extension MoneyOf: AdditiveArithmetic {
-    /// The zero value.
-    ///
-    /// Returns a value representing zero in the currency's minor units.
     public static var zero: Self {
         Self(.zero)
     }
@@ -135,6 +142,11 @@ extension MoneyOf {
 // MARK: - Split
 
 extension MoneyOf {
+    /// Returns this monetary amount split into `parts`, as evenly as possible.
+    ///
+    /// ```swift
+    /// GBP(100_00).split(into: 3)   // one part of £33.34, two of £33.33
+    /// ```
     public func split(
         into parts: PartCount
     ) -> Split<Self> {
@@ -176,12 +188,27 @@ extension MoneyOf {
 // MARK: - Strideable
 
 extension MoneyOf: Strideable {
+    /// A count of the currency's smallest (minor) unit.
     public typealias Stride = Int
 
+    /// Returns the distance from this monetary amount to `other`.
+    ///
+    /// - Precondition: The distance is representable as a ``Stride``. Amounts further apart than
+    ///   that trap.
     public func distance(to other: MoneyOf<C>) -> Int {
         other.minorUnits - self.minorUnits
     }
 
+    /// Returns the monetary amount `n` steps from this one.
+    ///
+    /// Advances in the currency's smallest (minor) unit.
+    ///
+    /// ```swift
+    /// let price = GBP(4_99)   // £4.99
+    /// let incr = price.advanced(by: 1)    // £5.00
+    /// ```
+    ///
+    /// - Precondition: The result is representable. Advancing beyond ``min`` or ``max`` traps.
     public func advanced(by n: Stride) -> MoneyOf<C> {
         Self(self.minorUnits + n)
     }
