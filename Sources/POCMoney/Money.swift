@@ -110,7 +110,7 @@ extension Money {
     ///
     /// ```swift
     /// var balance = Money(100_00, currency: "GBP") // £100.00
-    /// balance -= GBP(25_50 currency: "GBP") // £25.50
+    /// balance -= Money(25_50, currency: "GBP") // £25.50
     /// // balance is now 7450 // £74.50
     /// ```
     ///
@@ -139,14 +139,14 @@ extension Money {
         Self(self.minorUnits * factor, currency: self.currency)
     }
 
-    /// Returns the result of multiplying a `MoneyOf` value by an `Int` scalar.
+    /// Returns the result of multiplying a `Money` value by an `Int` scalar.
     ///
     /// Traps on overflow.
     public static func * (lhs: Self, rhs: Int) -> Self {
         lhs.multiplied(by: rhs)
     }
 
-    /// Returns the result of multiplying an `Int` scalar by a `MoneyOf` value.
+    /// Returns the result of multiplying an `Int` scalar by a `Money` value.
     ///
     /// Traps on overflow.
     public static func * (lhs: Int, rhs: Self) -> Self {

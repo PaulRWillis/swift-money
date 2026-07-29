@@ -120,7 +120,7 @@ extension MoneyOf {
         rhs * lhs
     }
 
-    /// Multiplies a `Money` value by an `Int` scalar in place.
+    /// Multiplies a `MoneyOf` value by an `Int` scalar in place.
     ///
     /// Traps on overflow.
     public static func *= (lhs: inout Self, rhs: Int) {
