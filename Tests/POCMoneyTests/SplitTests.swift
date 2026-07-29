@@ -129,6 +129,29 @@ struct SplitTests {
         }
     }
 
+    // MARK: - Large Part Counts
+
+    @Test("A part count too large to materialise still reports its count")
+    func largePartCountReportsItsCount() throws {
+        let parts = try #require(PartCount(Int.max))
+
+        let split = GBP(1).split(into: parts)
+
+        #expect(split.count == parts)
+    }
+
+    @Test("A part count too large to materialise can still be iterated")
+    func largePartCountCanBeIterated() throws {
+        let parts = try #require(PartCount(Int.max))
+
+        let split = GBP(1).split(into: parts)
+
+        var iterator = split.amounts.makeIterator()
+
+        #expect(iterator.next() == GBP(1))
+        #expect(iterator.next() == GBP(0))
+    }
+
     // MARK: - Negatives
 
     @Test("Negative even split keeps negativity")
@@ -136,6 +159,21 @@ struct SplitTests {
         let split = GBP(-9).split(into: 3)
 
         #expect(Array(split.amounts) == [GBP(-3), GBP(-3), GBP(-3),])
+    }
+
+    @Test("For a refund, the larger group holds the larger refund")
+    func negativeSplitComparesByMagnitude() {
+        let split = GBP(-10).split(into: 3)
+
+        switch split {
+        case .even:
+            Issue.record("Expected an uneven split")
+        case let .uneven(larger, smaller):
+            #expect(larger.count == 1)
+            #expect(larger.amount == GBP(-4))
+            #expect(smaller.count == 2)
+            #expect(smaller.amount == GBP(-3))
+        }
     }
 
     @Test("Negative uneven split keeps negativity")
