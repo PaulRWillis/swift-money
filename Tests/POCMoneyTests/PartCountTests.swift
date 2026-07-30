@@ -9,31 +9,31 @@ struct PartCountTests {
     @Test("Init from smallest valid value succeeds")
     func initFromSmallestValid() {
         let int: Int = 1
-        #expect(PartCount(int) != nil)
+        #expect(PartCount(exactly: int) != nil)
     }
 
     @Test("Init from biggest positive succeeds")
     func initFromBiggestPositive() {
         let int: Int = .max
-        #expect(PartCount(int) != nil)
+        #expect(PartCount(exactly: int) != nil)
     }
 
     @Test("Init from zero returns nil")
     func initFromZero() {
         let int: Int = .zero
-        #expect(PartCount(int) == nil)
+        #expect(PartCount(exactly: int) == nil)
     }
 
     @Test("Init from smallest negative returns nil")
     func initFromSmallestNegative() {
         let int: Int = -1
-        #expect(PartCount(int) == nil)
+        #expect(PartCount(exactly: int) == nil)
     }
 
     @Test("Init from biggest negative returns nil")
     func initFromBiggestNegative() {
         let int: Int = .min
-        #expect(PartCount(int) == nil)
+        #expect(PartCount(exactly: int) == nil)
     }
 
     // MARK: - ExpressibleByIntegerLiteral Initialization

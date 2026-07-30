@@ -263,5 +263,3 @@ struct MoneyTests {
         #expect(Array(result.amounts) == [Money(2, currency: "GBP"), Money(1, currency: "GBP"),])
     }
 }
-
-// TODO: Round out maths functions on `MoneyOf` and `Money`: fractional multiplication and splits
