@@ -1,11 +1,10 @@
 /// A monetary amount in a currency that is only known at runtime.
 ///
 /// Two amounts can only be combined when their currencies match, which cannot be checked at compile
-/// time, so arithmetic produces an `Optional` and yields `nil` when they differ. The same operators
-/// are provided on `Money?` so results still chain:
+/// time, so arithmetic throws ``MoneyError`` instead. One `try` covers a whole expression:
 ///
 /// ```swift
-/// let total = a + b + c   // Money?
+/// let total = try (price * 3) + delivery - discount
 /// ```
 ///
 /// Prefer ``MoneyOf`` when the currency is known statically.
@@ -38,171 +37,121 @@ public struct Money: Equatable, Hashable, Sendable {
 // MARK: - Addition
 
 extension Money {
-    func adding(_ rhs: Self) -> Self? {
-        guard self.currency == rhs.currency else { return nil }
+    private func adding(_ rhs: Self) throws(MoneyError) -> Self {
+        guard self.currency == rhs.currency else {
+            throw .currencyMismatch(lhs: self.currency, rhs: rhs.currency)
+        }
 
         let (result, didOverflow) = self.minorUnits.addingReportingOverflow(rhs.minorUnits)
 
-        guard !didOverflow else { return nil }
+        guard !didOverflow else {
+            throw .overflow
+        }
 
-        return Money(
-            result,
-            currency: self.currency,
-        )
+        return Money(result, currency: self.currency)
     }
-
-    // MARK: - Addition
 
     /// Returns the sum of two values.
     ///
-    /// Returns `nil` on overflow or if the currencies do not match.
-    ///
     /// ```swift
-    /// let a = Money(105, currency: .gbp) // £1.05
-    /// let b = Money(325, currency: .gbp) // £3.25
-    /// let sum = a + b  // 430 (£4.30)
+    /// let a = Money(1_05, currency: .gbp) // £1.05
+    /// let b = Money(3_25, currency: .gbp) // £3.25
+    /// let sum = try a + b  // 430 (£4.30)
     /// ```
-    public static func + (lhs: Self, rhs: Self) -> Self? {
-        lhs.adding(rhs)
+    ///
+    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if the currencies differ, or
+    ///   ``MoneyError/overflow`` if the sum is not representable.
+    public static func + (lhs: Self, rhs: Self) throws(MoneyError) -> Self {
+        try lhs.adding(rhs)
     }
 
     /// Adds the right-hand value to the left-hand value in place.
     ///
-    /// Sets `lhs` to `nil` if it is already `nil`, the currencies do not match, or the result
-    /// overflows.
+    /// `lhs` is left untouched when this throws.
     ///
-    /// ```swift
-    /// var total = Money(1_00, currency: .gbp) // £1.00
-    /// total += Money(5, currency: .gbp)
-    /// // total is now 105 (£1.05)
-    /// ```
-    ///
-    /// - Parameters:
-    ///   - lhs: The value to modify.
-    ///   - rhs: The value to add.
-    public static func += (lhs: inout Self?, rhs: Self) {
-        lhs = lhs?.adding(rhs)
-    }
-}
-
-extension Optional where Wrapped == Money {
-    /// Returns the sum, or `nil` if `lhs` is `nil`, the currencies do not match, or the result
-    /// overflows.
-    public static func + (lhs: Self, rhs: Money) -> Money? {
-        lhs.flatMap { $0.adding(rhs) }
-    }
-
-    /// Returns the sum, or `nil` if `rhs` is `nil`, the currencies do not match, or the result
-    /// overflows.
-    public static func + (lhs: Money, rhs: Self) -> Money? {
-        rhs.flatMap { lhs.adding($0) }
+    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if the currencies differ, or
+    ///   ``MoneyError/overflow`` if the sum is not representable.
+    public static func += (lhs: inout Self, rhs: Self) throws(MoneyError) {
+        lhs = try lhs + rhs
     }
 }
 
 // MARK: - Subtraction
 
 extension Money {
-    func subtracting(_ rhs: Self) -> Self? {
-        guard self.currency == rhs.currency else { return nil }
+    private func subtracting(_ rhs: Self) throws(MoneyError) -> Self {
+        guard self.currency == rhs.currency else {
+            throw .currencyMismatch(lhs: self.currency, rhs: rhs.currency)
+        }
 
         let (result, didOverflow) = self.minorUnits.subtractingReportingOverflow(rhs.minorUnits)
 
-        guard !didOverflow else { return nil }
+        guard !didOverflow else {
+            throw .overflow
+        }
 
-        return Money(
-            result,
-            currency: self.currency,
-        )
+        return Money(result, currency: self.currency)
     }
 
     /// Returns the difference of two values.
     ///
-    /// Returns `nil` on overflow or if the currencies do not match.
-    ///
     /// ```swift
     /// let a = Money(10_50, currency: .gbp) // £10.50
     /// let b = Money(3_25, currency: .gbp) // £3.25
-    /// let diff = a - b  // 725 (£7.25)
+    /// let diff = try a - b  // 725 (£7.25)
     /// ```
-    public static func - (lhs: Self, rhs: Self) -> Self? {
-        lhs.subtracting(rhs)
+    ///
+    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if the currencies differ, or
+    ///   ``MoneyError/overflow`` if the difference is not representable.
+    public static func - (lhs: Self, rhs: Self) throws(MoneyError) -> Self {
+        try lhs.subtracting(rhs)
     }
 
     /// Subtracts the right-hand value from the left-hand value in place.
     ///
-    /// Sets `lhs` to `nil` if it is already `nil`, the currencies do not match, or the result
-    /// overflows.
+    /// `lhs` is left untouched when this throws.
     ///
-    /// ```swift
-    /// var balance = Money(100_00, currency: .gbp) // £100.00
-    /// balance -= Money(25_50, currency: .gbp) // £25.50
-    /// // balance is now 7450 // £74.50
-    /// ```
-    ///
-    /// - Parameters:
-    ///   - lhs: The value to modify.
-    ///   - rhs: The value to subtract.
-    public static func -= (lhs: inout Self?, rhs: Self) {
-        lhs = lhs?.subtracting(rhs)
-    }
-}
-
-extension Optional where Wrapped == Money {
-    /// Returns the difference, or `nil` if `lhs` is `nil`, the currencies do not match, or the
-    /// result overflows.
-    public static func - (lhs: Self, rhs: Money) -> Money? {
-        lhs.flatMap { $0.subtracting(rhs) }
-    }
-
-    /// Returns the difference, or `nil` if `rhs` is `nil`, the currencies do not match, or the
-    /// result overflows.
-    public static func - (lhs: Money, rhs: Self) -> Money? {
-        rhs.flatMap { lhs.subtracting($0) }
+    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if the currencies differ, or
+    ///   ``MoneyError/overflow`` if the difference is not representable.
+    public static func -= (lhs: inout Self, rhs: Self) throws(MoneyError) {
+        lhs = try lhs - rhs
     }
 }
 
 // MARK: - Integral Multiplication
 
 extension Money {
-    func multiplied(by factor: Int) -> Self {
-        Self(self.minorUnits * factor, currency: self.currency)
+    private func multiplied(by factor: Int) throws(MoneyError) -> Self {
+        let (result, didOverflow) = self.minorUnits.multipliedReportingOverflow(by: factor)
+
+        guard !didOverflow else {
+            throw .overflow
+        }
+
+        return Money(result, currency: self.currency)
     }
 
-    /// Returns the result of multiplying a `Money` value by an `Int` scalar.
+    /// Returns this amount scaled by a whole number.
     ///
-    /// Traps on overflow.
-    public static func * (lhs: Self, rhs: Int) -> Self {
-        lhs.multiplied(by: rhs)
+    /// - Throws: ``MoneyError/overflow`` if the product is not representable.
+    public static func * (lhs: Self, rhs: Int) throws(MoneyError) -> Self {
+        try lhs.multiplied(by: rhs)
     }
 
-    /// Returns the result of multiplying an `Int` scalar by a `Money` value.
+    /// Returns this amount scaled by a whole number.
     ///
-    /// Traps on overflow.
-    public static func * (lhs: Int, rhs: Self) -> Self {
-        rhs.multiplied(by: lhs)
+    /// - Throws: ``MoneyError/overflow`` if the product is not representable.
+    public static func * (lhs: Int, rhs: Self) throws(MoneyError) -> Self {
+        try rhs.multiplied(by: lhs)
     }
 
-    /// Multiplies a `Money` value by an `Int` scalar in place.
+    /// Scales this amount by a whole number in place.
     ///
-    /// Traps on overflow.
-    public static func *= (lhs: inout Self, rhs: Int) {
-        lhs = lhs * rhs
-    }
-}
-
-extension Optional where Wrapped == Money {
-    /// Returns the product, or `nil` if `lhs` is `nil`.
+    /// `lhs` is left untouched when this throws.
     ///
-    /// Traps on overflow, unlike `+` and `-`, which return `nil`.
-    public static func * (lhs: Self, rhs: Int) -> Money? {
-        lhs.flatMap { $0.multiplied(by: rhs) }
-    }
-
-    /// Returns the product, or `nil` if `rhs` is `nil`.
-    ///
-    /// Traps on overflow, unlike `+` and `-`, which return `nil`.
-    public static func * (lhs: Int, rhs: Self) -> Money? {
-        rhs.flatMap { $0.multiplied(by: lhs) }
+    /// - Throws: ``MoneyError/overflow`` if the product is not representable.
+    public static func *= (lhs: inout Self, rhs: Int) throws(MoneyError) {
+        lhs = try lhs * rhs
     }
 }
 
