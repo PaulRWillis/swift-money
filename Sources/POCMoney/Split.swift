@@ -202,7 +202,7 @@ func split(
                 amount: quotient + amount.signum
             ),
             smaller: (
-                count: parts.subtracting(largerCount),
+                count: parts - largerCount,
                 amount: quotient
             )
         )

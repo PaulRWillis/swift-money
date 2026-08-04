@@ -30,13 +30,14 @@ extension PartCount: Comparable {
 }
 
 extension PartCount {
-    // Precondition: `other` is smaller than `self`, so at least one part remains.
-    func subtracting(
-        _ other: PartCount
+    // Precondition: `rhs` is smaller than `lhs`, so at least one part remains.
+    static func - (
+        lhs: PartCount,
+        rhs: PartCount
     ) -> PartCount {
-        precondition(other < self, "Result must remain at least one part")
+        precondition(rhs < lhs, "Result must remain at least one part")
 
-        return PartCount(unchecked: rawValue - other.rawValue)
+        return PartCount(unchecked: lhs.rawValue - rhs.rawValue)
     }
 }
 
