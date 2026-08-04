@@ -209,7 +209,7 @@ extension Optional where Wrapped == Money {
 
 // MARK: - Fractional Multiplication
 
-#warning("TODO")
+#warning("TODO: scaled(by: Ratio) returning an exact/inexact result. Money never holds a fraction of a minor unit, so the caller resolves the remainder.")
 
 // MARK: - Split
 
