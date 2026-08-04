@@ -2,7 +2,7 @@
 ///
 /// The currency is part of the type, so adding pounds to euros is a compile error rather than a
 /// runtime failure. Use ``Money`` when the currency is not known until runtime.
-public struct MoneyOf<C: Currency>: Equatable, Hashable, Sendable {
+public struct MoneyOf<C: CurrencyType>: Equatable, Hashable, Sendable {
 
     // MARK: - Private Properties
 
@@ -21,6 +21,17 @@ public struct MoneyOf<C: Currency>: Equatable, Hashable, Sendable {
         _ minorUnits: Int
     ) {
         self.minorUnits = minorUnits
+    }
+}
+
+// MARK: - Currency
+
+public extension MoneyOf {
+    /// The currency this amount is denominated in.
+    ///
+    /// Every `MoneyOf` of a given currency reports the same value.
+    var currency: Currency {
+        C.currency
     }
 }
 
