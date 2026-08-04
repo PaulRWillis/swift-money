@@ -238,7 +238,7 @@ struct MoneyTests {
 
     // MARK: - Fractional Multiplication
 
-    #warning("TODO")
+    #warning("TODO: cover scaled(by: Ratio) once it exists — exact and inexact results, and that the remainder is never lost.")
 
     // MARK: - Split
 
