@@ -253,6 +253,44 @@ struct MoneyTests {
         #expect(succeeded == Money(12_50, currency: .gbp))
     }
 
+    // MARK: - isMultiple(of:)
+
+    @Test("Is multiple of money where euclidean remainder is zero")
+    func isMultipleOnZeroRemainder() throws {
+        let a = Money(3_33, currency: .gbp)
+        let b = Money(9_99, currency: .gbp)
+
+        #expect(try b.isMultiple(of: a))
+        #expect(try !a.isMultiple(of: b))
+    }
+
+    @Test("Is not a multiple where the euclidean remainder is not zero")
+    func isNotMultipleForRemainder() throws {
+        let a = Money(2_00, currency: .gbp) // £2.00
+        let b = Money(6_01, currency: .gbp) // Results in £0.01 remainder
+
+        #expect(try !b.isMultiple(of: a))
+    }
+
+    @Test("Zero is a multiple of any value")
+    func zeroIsMultipleOfAnyValue() throws {
+        let zero = Money(0, currency: .gbp)
+
+        for value in [Money(0, currency: .gbp), Money(10, currency: .gbp), Money(999_99, currency: .gbp)] {
+            #expect(try zero.isMultiple(of: value))
+        }
+    }
+
+    @Test("Testing against a different currency throws, naming both")
+    func isMultipleOfDifferentCurrencyThrows() {
+        let a = Money(9_99, currency: .gbp)
+        let b = Money(3_33, currency: .eur)
+
+        #expect(throws: MoneyError.currencyMismatch(lhs: .gbp, rhs: .eur)) {
+            try a.isMultiple(of: b)
+        }
+    }
+
     // MARK: - Fractional Multiplication
 
     #warning("TODO: cover scaled(by: Ratio) once it exists — exact and inexact results, and that the remainder is never lost.")

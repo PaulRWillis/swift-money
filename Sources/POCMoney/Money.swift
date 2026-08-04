@@ -155,6 +155,33 @@ extension Money {
     }
 }
 
+// MARK: - isMultiple(of:)
+
+extension Money {
+    /// Returns `true` if this value is a multiple of the given value, and `false`
+    /// otherwise.
+    ///
+    /// For two integers *a* and *b*, *a* is a multiple of *b* if there exists a
+    /// third integer *q* such that _a = q*b_. For example, *6* is a multiple of
+    /// *3* because _6 = 2*3_. Zero is a multiple of everything because _0 = 0*x_
+    /// for any integer *x*.
+    ///
+    /// Two edge cases are worth particular attention:
+    /// - `x.isMultiple(of: 0)` is `true` if `x` is zero and `false` otherwise.
+    /// - `T.min.isMultiple(of: -1)` is `true` for signed integer `T`, even
+    ///   though the quotient `T.min / -1` isn't representable in type `T`.
+    ///
+    /// - Parameter other: The value to test.
+    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if the currencies differ.
+    public func isMultiple(of other: Self) throws(MoneyError) -> Bool {
+        guard self.currency == other.currency else {
+            throw .currencyMismatch(lhs: self.currency, rhs: other.currency)
+        }
+
+        return self.minorUnits.isMultiple(of: other.minorUnits)
+    }
+}
+
 // MARK: - Fractional Multiplication
 
 #warning("TODO: scaled(by: Ratio) returning an exact/inexact result. Money never holds a fraction of a minor unit, so the caller resolves the remainder.")
