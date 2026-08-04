@@ -7,233 +7,296 @@ struct MoneyTests {
     // MARK: - Addition
 
     @Test("Add same currency succeeds")
-    func addSameCurrency() {
+    func addSameCurrency() throws {
         let a = Money(5, currency: .eur)
         let b = Money(7, currency: .eur)
 
-        #expect(a + b == Money(12, currency: .eur))
+        #expect(try a + b == Money(12, currency: .eur))
     }
 
-    @Test("Adding same currency to optional money succeeds")
-    func addSameCurrencyToOptional() {
-        let a = Money(3, currency: .gbp)
-        let b = Money(2, currency: .gbp)
-        let c = Money(6, currency: .gbp)
-
-        #expect((a + b) + c == Money(11, currency: .gbp))
-        #expect(c + (a + b) == Money(11, currency: .gbp))
-    }
-
-    @Test("Add returns nil on positive overflow")
+    @Test("Add throws on positive overflow")
     func addPositiveOverflow() {
         let a = Money(Int.max, currency: .gbp)
         let b = Money(1, currency: .gbp)
 
-        #expect(a + b == nil)
+        #expect(throws: MoneyError.overflow) {
+            try a + b
+        }
     }
 
-    @Test("Add returns nil on negative overflow")
+    @Test("Add throws on negative overflow")
     func addNegativeOverflow() {
         let a = Money(Int.min, currency: .gbp)
         let b = Money(-1, currency: .gbp)
 
-        #expect(a + b == nil)
+        #expect(throws: MoneyError.overflow) {
+            try a + b
+        }
     }
 
-    @Test("Add different currencies returns nil")
+    @Test("Add different currencies throws, naming both")
     func addDifferentCurrencies() {
         let a = Money(5, currency: .gbp)
         let b = Money(7, currency: .eur)
 
-        #expect(a + b == nil)
+        #expect(throws: MoneyError.currencyMismatch(lhs: .gbp, rhs: .eur)) {
+            try a + b
+        }
     }
 
     // MARK: - Addition In Place
 
     @Test("Addition in place succeeds for same currency")
-    func additionInPlaceSameCurrency() {
-        var a: Money? = Money(5, currency: .gbp)
+    func additionInPlaceSameCurrency() throws {
+        var a = Money(5, currency: .gbp)
         let b = Money(7, currency: .gbp)
 
-        a += b
+        try a += b
 
         #expect(a == Money(12, currency: .gbp))
     }
 
-    @Test("Addition in place returns nil for different currency")
+    @Test("Addition in place throws for different currency, leaving the value untouched")
     func additionInPlaceDifferentCurrency() {
-        var a: Money? = Money(5, currency: .gbp)
-        let b = Money(7, currency: .eur)
+        var a = Money(5, currency: .gbp)
 
-        a += b
+        #expect(throws: MoneyError.currencyMismatch(lhs: .gbp, rhs: .eur)) {
+            try a += Money(7, currency: .eur)
+        }
 
-        #expect(a == nil)
+        #expect(a == Money(5, currency: .gbp))
     }
 
-    @Test("Addition in place returns nil on positive overflow")
-    func additionInPlacePositiveOverflow() {
-        var a: Money? = Money(Int.max, currency: .gbp)
+    @Test("Addition in place throws on overflow")
+    func additionInPlaceOverflow() {
+        var a = Money(Int.max, currency: .gbp)
 
-        a += Money(1, currency: .gbp)
-
-        #expect(a == nil)
-    }
-
-    @Test("Addition in place returns nil on negative overflow")
-    func additionInPlaceNegativeOverflow() {
-        var a: Money? = Money(Int.min, currency: .gbp)
-
-        a += Money(-1, currency: .gbp)
-
-        #expect(a == nil)
+        #expect(throws: MoneyError.overflow) {
+            try a += Money(1, currency: .gbp)
+        }
     }
 
     // MARK: - Subtraction
 
     @Test("Subtract same currency succeeds")
-    func subtractSameCurrency() {
+    func subtractSameCurrency() throws {
         let a = Money(5, currency: .eur)
         let b = Money(7, currency: .eur)
 
-        #expect(a - b == Money(-2, currency: .eur))
+        #expect(try a - b == Money(-2, currency: .eur))
     }
 
-    @Test("Subtracting same currency from optional money succeeds")
-    func subtractSameCurrencyFromOptional() {
-        let a = Money(9, currency: .gbp)
-        let b = Money(5, currency: .gbp)
-        let c = Money(3, currency: .gbp)
-
-        #expect((a - b) - c == Money(+1, currency: .gbp))
-        #expect(c - (a - b) == Money(-1, currency: .gbp))
-    }
-
-    @Test("Subtract returns nil on positive overflow")
+    @Test("Subtract throws on positive overflow")
     func subtractPositiveOverflow() {
         let a = Money(Int.max, currency: .gbp)
         let b = Money(-1, currency: .gbp)
 
-        #expect(a - b == nil)
+        #expect(throws: MoneyError.overflow) {
+            try a - b
+        }
     }
 
-    @Test("Subtract returns nil on negative overflow")
+    @Test("Subtract throws on negative overflow")
     func subtractNegativeOverflow() {
         let a = Money(Int.min, currency: .gbp)
         let b = Money(1, currency: .gbp)
 
-        #expect(a - b == nil)
+        #expect(throws: MoneyError.overflow) {
+            try a - b
+        }
     }
 
-    @Test("Subtract different currencies returns nil")
+    @Test("Subtract different currencies throws, naming both")
     func subtractDifferentCurrencies() {
         let a = Money(5, currency: .gbp)
         let b = Money(7, currency: .eur)
 
-        #expect(a - b == nil)
+        #expect(throws: MoneyError.currencyMismatch(lhs: .gbp, rhs: .eur)) {
+            try a - b
+        }
     }
 
     // MARK: - Subtraction In Place
 
     @Test("Subtraction in place succeeds for same currency")
-    func subtractionInPlaceSameCurrency() {
-        var a: Money? = Money(5, currency: .gbp)
+    func subtractionInPlaceSameCurrency() throws {
+        var a = Money(5, currency: .gbp)
         let b = Money(7, currency: .gbp)
 
-        a -= b
+        try a -= b
 
         #expect(a == Money(-2, currency: .gbp))
     }
 
-    @Test("Subtraction in place returns nil for different currency")
+    @Test("Subtraction in place throws for different currency, leaving the value untouched")
     func subtractionInPlaceDifferentCurrency() {
-        var a: Money? = Money(5, currency: .gbp)
-        let b = Money(7, currency: .eur)
+        var a = Money(5, currency: .gbp)
 
-        a -= b
+        #expect(throws: MoneyError.currencyMismatch(lhs: .gbp, rhs: .eur)) {
+            try a -= Money(7, currency: .eur)
+        }
 
-        #expect(a == nil)
+        #expect(a == Money(5, currency: .gbp))
     }
 
-    @Test("Subtraction in place returns nil on positive overflow")
-    func subtractionInPlacePositiveOverflow() {
-        var a: Money? = Money(Int.max, currency: .gbp)
+    @Test("Subtraction in place throws on overflow")
+    func subtractionInPlaceOverflow() {
+        var a = Money(Int.min, currency: .gbp)
 
-        a -= Money(-1, currency: .gbp)
-
-        #expect(a == nil)
-    }
-
-    @Test("Subtraction in place returns nil on negative overflow")
-    func subtractionInPlaceNegativeOverflow() {
-        var a: Money? = Money(Int.min, currency: .gbp)
-
-        a -= Money(1, currency: .gbp)
-
-        #expect(a == nil)
+        #expect(throws: MoneyError.overflow) {
+            try a -= Money(1, currency: .gbp)
+        }
     }
 
     // MARK: - Integral Multiplication
 
     @Test("Integral multiplication succeeds")
-    func integralMultiplication() {
+    func integralMultiplication() throws {
         let a = Money(6, currency: .gbp)
 
-        #expect(a * 4 == Money(24, currency: .gbp))
-        #expect(4 * a == Money(24, currency: .gbp))
-    }
-
-    @Test("Integral multiplication on optional money succeeds")
-    func integralMultiplicationOnOptional() {
-        let sut: Money? = Money(3, currency: .gbp)
-
-        #expect(sut * 5 == Money(15, currency: .gbp))
-        #expect(5 * sut == Money(15, currency: .gbp))
+        #expect(try a * 4 == Money(24, currency: .gbp))
+        #expect(try 4 * a == Money(24, currency: .gbp))
     }
 
     @Test("Integral multiplication returns correct sign")
-    func integralMultiplicationSign() {
+    func integralMultiplicationSign() throws {
         let pos = Money(+12, currency: .gbp) // 12p; £0.12
         let neg = Money(-12, currency: .gbp)
 
-        #expect(pos * 2 == Money(+24, currency: .gbp))
-        #expect(neg * 2 == Money(-24, currency: .gbp))
+        #expect(try pos * 2 == Money(+24, currency: .gbp))
+        #expect(try neg * 2 == Money(-24, currency: .gbp))
 
-        #expect(pos * -3 == Money(-36, currency: .gbp)) // -36p; -£0.36
-        #expect(neg * -3 == Money(+36, currency: .gbp))
+        #expect(try pos * -3 == Money(-36, currency: .gbp)) // -36p; -£0.36
+        #expect(try neg * -3 == Money(+36, currency: .gbp))
     }
 
-    @Test("Integral multiplication traps on positive overflow")
-    func integralMultiplicationPositiveOverflow() async {
-        await #expect(processExitsWith: .failure) {
-            blackHole(Money(Int.max, currency: .gbp) * 2)
+    @Test("Integral multiplication throws on positive overflow")
+    func integralMultiplicationPositiveOverflow() {
+        #expect(throws: MoneyError.overflow) {
+            try Money(Int.max, currency: .gbp) * 2
         }
 
-        await #expect(processExitsWith: .failure) {
-            blackHole(2 * Money(Int.max, currency: .gbp))
+        #expect(throws: MoneyError.overflow) {
+            try 2 * Money(Int.max, currency: .gbp)
         }
     }
 
-    @Test("Integral multiplication traps on negative overflow")
-    func integralMultiplicationNegativeOverflow() async {
-        await #expect(processExitsWith: .failure) {
-            blackHole(Money(Int.min, currency: .gbp) * 2)
+    @Test("Integral multiplication throws on negative overflow")
+    func integralMultiplicationNegativeOverflow() {
+        #expect(throws: MoneyError.overflow) {
+            try Money(Int.min, currency: .gbp) * 2
         }
 
-        await #expect(processExitsWith: .failure) {
-            blackHole(2 * Money(Int.min, currency: .gbp))
+        #expect(throws: MoneyError.overflow) {
+            try 2 * Money(Int.min, currency: .gbp)
         }
     }
 
     // MARK: - Integral Multiplication In Place
 
-    @Test("Integral multiplication in place func succeeds")
-    func integralMultiplicationInPlace() {
+    @Test("Integral multiplication in place succeeds")
+    func integralMultiplicationInPlace() throws {
         var a = Money(2_25, currency: .gbp) // £2.25
         let b: Int = 3
 
-        a *= b
+        try a *= b
 
         #expect(a == Money(6_75, currency: .gbp)) // £6.75
+    }
+
+    // MARK: - Chaining
+
+    @Test("One try covers a whole chain")
+    func oneTryCoversAWholeChain() throws {
+        let result = try (Money(10_00, currency: .gbp) * 3)
+            + Money(2_50, currency: .gbp)
+            - Money(1_00, currency: .gbp)
+
+        #expect(result == Money(31_50, currency: .gbp))
+    }
+
+    // A typed throw means the catch is exhaustive over MoneyError without a `default`, so a new case
+    // would be a compile error at every call site rather than silently falling through.
+    @Test("A catch over MoneyError needs no default clause")
+    func catchIsExhaustive() {
+        func describe(_ work: () throws(MoneyError) -> Money) -> String {
+            do {
+                _ = try work()
+                return "ok"
+            } catch {
+                switch error {
+                case let .currencyMismatch(lhs, rhs): return "mismatch \(lhs)/\(rhs)"
+                case .overflow: return "overflow"
+                }
+            }
+        }
+
+        let mismatch = describe { () throws(MoneyError) in
+            try Money(1, currency: .gbp) + Money(1, currency: .eur)
+        }
+        let overflow = describe { () throws(MoneyError) in
+            try Money(.max, currency: .gbp) * 2
+        }
+
+        #expect(mismatch == "mismatch GBP/EUR")
+        #expect(overflow == "overflow")
+    }
+
+    // A caller who wants an Optional still gets one, and gets a single Optional for the whole chain
+    // rather than one per step.
+    @Test("try? yields one Optional for a whole chain")
+    func tryQuestionMarkYieldsOneOptional() {
+        let failed: Money? = try? (Money(10_00, currency: .gbp) * 3) + Money(1, currency: .eur)
+        let succeeded: Money? = try? Money(10_00, currency: .gbp) + Money(2_50, currency: .gbp)
+
+        #expect(failed == nil)
+        #expect(succeeded == Money(12_50, currency: .gbp))
+    }
+
+    // MARK: - isMultiple(of:)
+
+    @Test("Is multiple of money where euclidean remainder is zero")
+    func isMultipleOnZeroRemainder() throws {
+        let a = Money(3_33, currency: .gbp)
+        let b = Money(9_99, currency: .gbp)
+
+        #expect(try b.isMultiple(of: a))
+        #expect(try !a.isMultiple(of: b))
+    }
+
+    @Test("Is not a multiple where the euclidean remainder is not zero")
+    func isNotMultipleForRemainder() throws {
+        let a = Money(2_00, currency: .gbp) // £2.00
+        let b = Money(6_01, currency: .gbp) // Results in £0.01 remainder
+
+        #expect(try !b.isMultiple(of: a))
+    }
+
+    @Test("Zero is a multiple of any value")
+    func zeroIsMultipleOfAnyValue() throws {
+        let zero = Money(0, currency: .gbp)
+
+        for value in [Money(0, currency: .gbp), Money(10, currency: .gbp), Money(999_99, currency: .gbp)] {
+            #expect(try zero.isMultiple(of: value))
+        }
+    }
+
+    @Test("No amount other than zero is a multiple of zero")
+    func onlyZeroIsMultipleOfZero() throws {
+        let zero = Money(0, currency: .gbp)
+
+        #expect(try zero.isMultiple(of: zero))
+        #expect(try !Money(1, currency: .gbp).isMultiple(of: zero))
+    }
+
+    @Test("Testing against a different currency throws, naming both")
+    func isMultipleOfDifferentCurrencyThrows() {
+        let a = Money(9_99, currency: .gbp)
+        let b = Money(3_33, currency: .eur)
+
+        #expect(throws: MoneyError.currencyMismatch(lhs: .gbp, rhs: .eur)) {
+            try a.isMultiple(of: b)
+        }
     }
 
     // MARK: - Fractional Multiplication

@@ -283,6 +283,12 @@ struct MoneyOfTests {
         }
     }
 
+    @Test("No amount other than zero is a multiple of zero")
+    func onlyZeroIsMultipleOfZero() {
+        #expect(GBP.zero.isMultiple(of: GBP.zero))
+        #expect(!GBP(1).isMultiple(of: GBP.zero))
+    }
+
     // MARK: - Strideable
 
     @Test("Strideable advancing by zero returns self")
