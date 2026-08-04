@@ -116,33 +116,6 @@ extension Split {
     }
 }
 
-extension Split {
-    static func even(count: PartCount, amount: Amount) -> Self {
-        self.even(
-            Group(
-                count: count,
-                amount: amount
-            )
-        )
-    }
-
-    static func uneven(
-        larger: (count: PartCount, amount: Amount),
-        smaller: (count: PartCount, amount: Amount),
-    ) -> Self {
-        self.uneven(
-            larger: Group(
-                count: larger.count,
-                amount: larger.amount
-            ),
-            smaller: Group(
-                count: smaller.count,
-                amount: smaller.amount
-            )
-        )
-    }
-}
-
 // MARK: - Equatable
 
 extension Split: Equatable {}
@@ -160,19 +133,21 @@ extension Split {
         switch self {
         case let .even(group):
             return .even(
-                count: group.count,
-                amount: transform(group.amount)
+                .init(
+                    count: group.count,
+                    amount: transform(group.amount)
+                )
             )
         case let .uneven(larger, smaller):
             return .uneven(
-                larger: (
+                larger: .init(
                     count: larger.count,
                     amount: transform(larger.amount)
                 ),
-                smaller: (
+                smaller: .init(
                     count: smaller.count,
                     amount: transform(smaller.amount)
-                ),
+                )
             )
         }
     }
@@ -183,25 +158,25 @@ func split(
     into parts: PartCount
 ) -> Split<Int> {
     guard let amount = NonZeroInt(amount) else {
-        return .even(count: parts, amount: 0)
+        return .even(.init(count: parts, amount: 0))
     }
 
     let (quotient, remainder) = amount.quotientAndRemainder(dividingBy: parts)
 
     switch remainder {
     case .zero:
-        return .even(count: parts, amount: quotient)
+        return .even(.init(count: parts, amount: quotient))
     case .nonZero(let nonZeroRemainder):
         // The remainder's magnitude is always less than the divisor, so `largerCount` is fewer than
         // `parts` and the subtraction below leaves at least one smaller part.
         let largerCount = abs(nonZeroRemainder)
 
         return .uneven(
-            larger: (
+            larger: .init(
                 count: largerCount,
                 amount: quotient + amount.signum
             ),
-            smaller: (
+            smaller: .init(
                 count: parts - largerCount,
                 amount: quotient
             )
