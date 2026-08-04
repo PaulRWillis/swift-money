@@ -77,6 +77,25 @@ struct CurrencyTests {
         #expect(Currency.eur == Currencies.EUR.currency)
     }
 
+    // MARK: - MoneyOf exposes its currency
+
+    @Test("A typed amount reports the currency from its type parameter")
+    func typedAmountReportsItsCurrency() {
+        #expect(GBP(4_99).currency == .gbp)
+        #expect(EUR(4_99).currency == .eur)
+    }
+
+    @Test("The currency is a property of the type, so every amount reports the same one")
+    func currencyIsTheSameForEveryAmount() {
+        #expect(GBP(0).currency == GBP(999_99).currency)
+        #expect(GBP.min.currency == GBP.max.currency)
+    }
+
+    @Test("A typed amount reaches its quantization through its currency")
+    func typedAmountReachesItsQuantization() {
+        #expect(GBP(1).currency.minimalQuantization == 100)
+    }
+
     // MARK: - Caller-defined currencies
 
     @Test("A currency defined outside the library works with MoneyOf")
@@ -87,6 +106,8 @@ struct CurrencyTests {
         let spent = Points(100)
 
         #expect(earned - spent == Points(150))
+        #expect(earned.currency.code == "LTY")
+        #expect(earned.currency.minimalQuantization == 1)
     }
 
     @Test("A caller-defined currency is distinct from the library's")

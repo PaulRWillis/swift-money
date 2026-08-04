@@ -24,6 +24,17 @@ public struct MoneyOf<C: CurrencyType>: Equatable, Hashable, Sendable {
     }
 }
 
+// MARK: - Currency
+
+public extension MoneyOf {
+    /// The currency this amount is denominated in.
+    ///
+    /// Every `MoneyOf` of a given currency reports the same value.
+    var currency: Currency {
+        C.currency
+    }
+}
+
 // MARK: - Min/Max
 
 public extension MoneyOf {
