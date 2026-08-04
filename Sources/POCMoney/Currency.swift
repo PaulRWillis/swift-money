@@ -45,8 +45,9 @@ public extension Currency {
 
 /// A type that names a currency at compile time.
 ///
-/// Conforming types are never instantiated. They exist only as the type parameter of ``MoneyOf``,
-/// which is what makes adding pounds to euros a compile error rather than a runtime failure.
+/// Conforming types carry no state and are never instantiated. They exist to be used as a generic
+/// parameter, so that a currency is part of a type rather than a value it holds — which is what lets
+/// the compiler reject mixing two currencies. A caseless `enum` is the natural shape.
 ///
 /// ```swift
 /// enum LoyaltyPoints: CurrencyType {
@@ -55,8 +56,6 @@ public extension Currency {
 ///
 /// typealias Points = MoneyOf<LoyaltyPoints>
 /// ```
-///
-/// Use ``Money`` instead of ``MoneyOf`` when the currency is not known until runtime.
 public protocol CurrencyType: Sendable {
     /// The currency this type names.
     static var currency: Currency { get }
