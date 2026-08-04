@@ -13,6 +13,14 @@ protocol MonetaryAmount: Hashable, Sendable {
 
     func split(into parts: PartCount) -> Split<Self>
 
+    func isMultiple(of other: Self) throws(ArithmeticError) -> Bool
+
+    static func + (lhs: Self, rhs: Self) throws(ArithmeticError) -> Self
+    static func += (lhs: inout Self, rhs: Self) throws(ArithmeticError)
+
+    static func - (lhs: Self, rhs: Self) throws(ArithmeticError) -> Self
+    static func -= (lhs: inout Self, rhs: Self) throws(ArithmeticError)
+
     static func * (lhs: Self, rhs: Int) throws(ArithmeticError) -> Self
     static func * (lhs: Int, rhs: Self) throws(ArithmeticError) -> Self
     static func *= (lhs: inout Self, rhs: Int) throws(ArithmeticError)
