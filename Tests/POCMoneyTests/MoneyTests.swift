@@ -281,6 +281,14 @@ struct MoneyTests {
         }
     }
 
+    @Test("No amount other than zero is a multiple of zero")
+    func onlyZeroIsMultipleOfZero() throws {
+        let zero = Money(0, currency: .gbp)
+
+        #expect(try zero.isMultiple(of: zero))
+        #expect(try !Money(1, currency: .gbp).isMultiple(of: zero))
+    }
+
     @Test("Testing against a different currency throws, naming both")
     func isMultipleOfDifferentCurrencyThrows() {
         let a = Money(9_99, currency: .gbp)
