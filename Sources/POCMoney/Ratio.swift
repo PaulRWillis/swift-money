@@ -58,58 +58,25 @@ internal extension Ratio {
     //
     // `nil` when the whole part is not representable as an `Int`.
     func applied(to amount: Int) -> Scaled<Int>? {
-        // The product is taken at double width because it overflows long before the quotient does:
-        // two thirds of `Int.max` fits, while `Int.max` doubled does not.
-        let product = Int64(amount).magnitude.multipliedFullWidth(by: numerator.rawValue.magnitude)
-        let divisor = denominator.rawValue.magnitude
+        // `Int128` is wide enough to hold the product of any two 64-bit values, so the multiplication
+        // cannot overflow even where the answer would not fit on its own: `Int.max` doubled is too
+        // large for an `Int`, while two thirds of `Int.max` is not.
+        let product = Int128(amount) * Int128(numerator.rawValue)
 
-        // `dividingFullWidth` traps unless its quotient fits, which is exactly when the high half of
-        // the product is below the divisor.
-        guard product.high < divisor else {
+        let (wholePart, leftOver) = product.quotientAndRemainder(
+            dividingBy: Int128(denominator.rawValue)
+        )
+
+        guard let whole = Int(exactly: wholePart) else {
             return nil
         }
 
-        let (magnitude, remainder) = divisor.dividingFullWidth(product)
-        let isNegative = (amount < 0) != self.isNegative
-
-        guard let whole = Int(magnitude: magnitude, isNegative: isNegative) else {
-            return nil
-        }
-
-        guard remainder != 0 else {
+        guard leftOver != 0 else {
             return .exact(whole)
         }
 
-        // The remainder is below the divisor, so it fits an `Int64` and negating it cannot overflow.
-        let signedRemainder = isNegative ? -Int64(remainder) : Int64(remainder)
-
-        return .inexact(whole, remainder: Ratio(Numerator(signedRemainder), denominator))
-    }
-
-    var isNegative: Bool {
-        numerator.rawValue < 0
-    }
-}
-
-private extension Int {
-    // Rebuilds a signed value from its magnitude. `nil` when the magnitude is too large for this
-    // platform's `Int`, which is narrower than an `Int64` on arm64_32.
-    init?(
-        magnitude: UInt64,
-        isNegative: Bool
-    ) {
-        // The smallest `Int` is the one value with no positive counterpart, so negating it as an `Int`
-        // would overflow.
-        if isNegative, magnitude == UInt64(Int.min.magnitude) {
-            self = .min
-            return
-        }
-
-        guard let positive = Int(exactly: magnitude) else {
-            return nil
-        }
-
-        self = isNegative ? -positive : positive
+        // A remainder is always smaller than its divisor, which came from an `Int64`.
+        return .inexact(whole, remainder: Ratio(Numerator(Int64(leftOver)), denominator))
     }
 }
 

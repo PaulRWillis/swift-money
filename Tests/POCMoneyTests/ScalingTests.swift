@@ -33,9 +33,10 @@ struct ScalingTests {
         #expect(GBP(10_00).scaled(by: Ratio(1, 3)) == .inexact(GBP(3_33), remainder: Ratio(1, 3)))
     }
 
-    @Test("The remainder is reduced to lowest terms")
-    func remainderIsReduced() {
-        // A quarter of 10 is 2 with 2/4 left over, reported as 1/2.
+    // The remainder is a fraction of the ratio's own denominator, not of anything else: a quarter of 10
+    // is 2 with 2 of 4 left over, which as a ratio is a half.
+    @Test("The remainder is the part of one unit left over")
+    func remainderIsThePartOfOneUnitLeftOver() {
         #expect(GBP(10).scaled(by: Ratio(1, 4)) == .inexact(GBP(2), remainder: Ratio(1, 2)))
     }
 
