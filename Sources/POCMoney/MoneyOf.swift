@@ -136,9 +136,31 @@ extension MoneyOf {
     }
 }
 
-// MARK: - Fractional Multiplication
+// MARK: - Fractional Scaling
 
-#warning("TODO: scaled(by: Ratio) returning an exact/inexact result. MoneyOf never holds a fraction of a minor unit, so the caller resolves the remainder.")
+extension MoneyOf {
+    /// Returns this monetary amount scaled by a fraction.
+    ///
+    /// A monetary amount is always a whole number of the currency's smallest unit, so a fraction that
+    /// does not divide exactly leaves part of a unit for the caller to resolve.
+    ///
+    /// ```swift
+    /// GBP(9_99).scaled(by: Ratio(1, 3))    // .exact(£3.33)
+    /// GBP(10_00).scaled(by: Ratio(1, 3))   // .inexact(£3.33, remainder: 1/3)
+    /// ```
+    ///
+    /// - Parameter ratio: The fraction to scale by.
+    /// - Precondition: The result is representable. Scaling past ``min`` or ``max`` traps.
+    public func scaled(
+        by ratio: Ratio
+    ) -> Scaled<Self> {
+        guard let scaled = ratio.applied(to: minorUnits) else {
+            preconditionFailure("Scaling by \(ratio) is not representable")
+        }
+
+        return scaled.map { Self($0) }
+    }
+}
 
 // MARK: - Split
 

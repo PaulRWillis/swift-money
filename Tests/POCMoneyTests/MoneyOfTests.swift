@@ -153,9 +153,9 @@ struct MoneyOfTests {
         #expect(a == GBP(6_75)) // £6.75
     }
 
-    // MARK: - Fractional Multiplication
+    // MARK: - Fractional Scaling
 
-    #warning("TODO: cover scaled(by: Ratio) once it exists — exact and inexact results, and that the remainder is never lost.")
+    // Covered by ScalingTests, which drives the algorithm through GBP.
 
     // MARK: - Split
 
