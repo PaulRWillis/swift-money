@@ -243,4 +243,90 @@ let benchmarks: @Sendable () -> Void = {
         }
         blackHole(count)
     }
+
+    // MARK: - What the library's own choices cost
+
+    // `Money` throws where `MoneyOf` traps, so this is the price of typed throws — a currency check and
+    // an error return path that never fires. `BenchmarkClosure` cannot throw, hence the surrounding
+    // `do`; the `catch` is unreachable with matching currencies.
+    Benchmark("Money addition, throwing", configuration: defaultConfiguration) { benchmark in
+        var accumulated = Money(0, currency: .gbp)
+        let delta = Money(1, currency: .gbp)
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(accumulated)
+                accumulated = try accumulated + delta
+            }
+        } catch {
+            fatalError("these amounts share a currency, so this cannot happen: \(error)")
+        }
+    }
+
+    // Reporting a remainder means constructing a `Ratio`, which reduces to lowest terms. Against
+    // `scaled(by:rounding:)`, the difference is what the report itself costs.
+    Benchmark("MoneyOf scaled, reporting a remainder", configuration: defaultConfiguration) { benchmark in
+        let vat = Ratio(7, 40)
+        var amount = 1
+
+        for _ in benchmark.scaledIterations {
+            blackHole(GBP(amount).scaled(by: vat))
+            amount &+= 1
+        }
+    }
+
+    // Construction reduces, so this measures the greatest common divisor. Denominators with many
+    // factors are the expensive case, and the ones money actually uses.
+    Benchmark("Ratio construction", configuration: defaultConfiguration) { benchmark in
+        var numerator: Int64 = 1
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Ratio(Ratio.Numerator(numerator % 40), 40))
+            numerator &+= 1
+        }
+    }
+
+    Benchmark("MoneyOf split into 3", configuration: defaultConfiguration) { benchmark in
+        var amount = 1
+
+        for _ in benchmark.scaledIterations {
+            blackHole(GBP(amount).split(into: 3))
+            amount &+= 1
+        }
+    }
+
+    // A `Split` holds two groups rather than one amount per part, so iterating expands it on demand.
+    // Against the split itself, this is what that expansion costs.
+    Benchmark("MoneyOf split, iterating the parts", configuration: defaultConfiguration) { benchmark in
+        let split = GBP(100_00).split(into: 3)
+        var total = 0
+
+        for _ in benchmark.scaledIterations {
+            for part in split.amounts {
+                blackHole(part)
+                total &+= 1
+            }
+        }
+        blackHole(total)
+    }
+
+    Benchmark("MoneyOf total of 10", configuration: defaultConfiguration) { benchmark in
+        let amounts = (1...10).map { GBP($0 * 100) }
+
+        for _ in benchmark.scaledIterations {
+            blackHole(amounts.total())
+        }
+    }
+
+    // Validation walks the string's bytes and normalizes case, so this is the boundary cost of
+    // accepting a currency code from outside.
+    Benchmark("CurrencyCode validation", configuration: defaultConfiguration) { benchmark in
+        let codes = ["GBP", "eur", "usd", "JPY", "XBT", "LTY1"]
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(CurrencyCode(string: codes[index % codes.count]))
+            index &+= 1
+        }
+    }
 }
