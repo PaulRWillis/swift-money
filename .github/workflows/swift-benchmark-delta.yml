@@ -65,8 +65,16 @@ jobs:
       continue-on-error: true
       run: |
         echo "$(date)" >> $GITHUB_STEP_SUMMARY
+
+        # `baseline check` reports its verdict through the exit status — 2 for a regression, 4 for an
+        # improvement — so a non-zero status is the normal case, not a failure. Actions runs this block
+        # as `bash -e`, which would abort here before the status could be read, taking every line below
+        # with it and leaving `exitStatus` unset.
+        set +e
         swift package ${BENCHMARK_PACKAGE_PATH} benchmark baseline check main pull_request --format markdown >> $GITHUB_STEP_SUMMARY 2>benchmark_stderr
         rawExitStatus=$?
+        set -e
+
         cat benchmark_stderr >&2
         if [ "$rawExitStatus" -eq 0 ]; then
           echo "exitStatus=0" >> $GITHUB_ENV
