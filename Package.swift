@@ -18,6 +18,10 @@ let package = Package(
             name: "SwiftMoney",
             targets: ["SwiftMoney"]
         ),
+        .library(
+            name: "POCMoney",
+            targets: ["POCMoney"]
+        ),
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
