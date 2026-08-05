@@ -16,7 +16,7 @@ struct MoneyTests {
 
     @Test("Add throws on positive overflow")
     func addPositiveOverflow() {
-        let a = Money(Int.max, currency: .gbp)
+        let a = Money(Int64.max, currency: .gbp)
         let b = Money(1, currency: .gbp)
 
         #expect(throws: MoneyError.overflow) {
@@ -26,7 +26,7 @@ struct MoneyTests {
 
     @Test("Add throws on negative overflow")
     func addNegativeOverflow() {
-        let a = Money(Int.min, currency: .gbp)
+        let a = Money(Int64.min, currency: .gbp)
         let b = Money(-1, currency: .gbp)
 
         #expect(throws: MoneyError.overflow) {
@@ -69,7 +69,7 @@ struct MoneyTests {
 
     @Test("Addition in place throws on overflow")
     func additionInPlaceOverflow() {
-        var a = Money(Int.max, currency: .gbp)
+        var a = Money(Int64.max, currency: .gbp)
 
         #expect(throws: MoneyError.overflow) {
             try a += Money(1, currency: .gbp)
@@ -88,7 +88,7 @@ struct MoneyTests {
 
     @Test("Subtract throws on positive overflow")
     func subtractPositiveOverflow() {
-        let a = Money(Int.max, currency: .gbp)
+        let a = Money(Int64.max, currency: .gbp)
         let b = Money(-1, currency: .gbp)
 
         #expect(throws: MoneyError.overflow) {
@@ -98,7 +98,7 @@ struct MoneyTests {
 
     @Test("Subtract throws on negative overflow")
     func subtractNegativeOverflow() {
-        let a = Money(Int.min, currency: .gbp)
+        let a = Money(Int64.min, currency: .gbp)
         let b = Money(1, currency: .gbp)
 
         #expect(throws: MoneyError.overflow) {
@@ -141,7 +141,7 @@ struct MoneyTests {
 
     @Test("Subtraction in place throws on overflow")
     func subtractionInPlaceOverflow() {
-        var a = Money(Int.min, currency: .gbp)
+        var a = Money(Int64.min, currency: .gbp)
 
         #expect(throws: MoneyError.overflow) {
             try a -= Money(1, currency: .gbp)
@@ -173,22 +173,22 @@ struct MoneyTests {
     @Test("Integral multiplication throws on positive overflow")
     func integralMultiplicationPositiveOverflow() {
         #expect(throws: MoneyError.overflow) {
-            try Money(Int.max, currency: .gbp) * 2
+            try Money(Int64.max, currency: .gbp) * 2
         }
 
         #expect(throws: MoneyError.overflow) {
-            try 2 * Money(Int.max, currency: .gbp)
+            try 2 * Money(Int64.max, currency: .gbp)
         }
     }
 
     @Test("Integral multiplication throws on negative overflow")
     func integralMultiplicationNegativeOverflow() {
         #expect(throws: MoneyError.overflow) {
-            try Money(Int.min, currency: .gbp) * 2
+            try Money(Int64.min, currency: .gbp) * 2
         }
 
         #expect(throws: MoneyError.overflow) {
-            try 2 * Money(Int.min, currency: .gbp)
+            try 2 * Money(Int64.min, currency: .gbp)
         }
     }
 
@@ -235,7 +235,7 @@ struct MoneyTests {
             try Money(1, currency: .gbp) + Money(1, currency: .eur)
         }
         let overflow = describe { () throws(MoneyError) in
-            try Money(.max, currency: .gbp) * 2
+            try Money(Int64.max, currency: .gbp) * 2
         }
 
         #expect(mismatch == "mismatch GBP/EUR")
@@ -327,7 +327,7 @@ struct MoneyTests {
 
     @Test("Scaling past the largest amount throws, where MoneyOf traps")
     func scalingPastTheLargestAmountThrows() {
-        let sut = Money(.max, currency: .gbp)
+        let sut = Money(Int64.max, currency: .gbp)
 
         #expect(throws: MoneyError.overflow) {
             try sut.scaled(by: Ratio(2, 1))
@@ -342,9 +342,9 @@ struct MoneyTests {
     // only the rounding step passes the maximum.
     @Test("Rounding past the largest amount throws, where truncating would not")
     func roundingPastTheLargestAmountThrows() throws {
-        let sut = Money(Int.max / 3 * 2 + 1, currency: .gbp)
+        let sut = Money(Int64.max / 3 * 2 + 1, currency: .gbp)
 
-        #expect(try sut.scaled(by: Ratio(3, 2), rounding: .towardZero) == Money(.max, currency: .gbp))
+        #expect(try sut.scaled(by: Ratio(3, 2), rounding: .towardZero) == Money(Int64.max, currency: .gbp))
 
         #expect(throws: MoneyError.overflow) {
             try sut.scaled(by: Ratio(3, 2), rounding: .awayFromZero)

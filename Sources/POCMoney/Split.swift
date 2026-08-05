@@ -166,9 +166,9 @@ extension Split {
 }
 
 func split(
-    _ amount: Int,
+    _ amount: Int64,
     into parts: PartCount
-) -> Split<Int> {
+) -> Split<Int64> {
     guard let amount = NonZeroInt(amount) else {
         return .even(.init(count: parts, amount: 0))
     }
@@ -197,6 +197,9 @@ func split(
 }
 
 // Unchecked because a non-zero value has a magnitude of at least one.
+//
+// Narrowing to `Int` is safe here even though the value is an `Int64`: every caller passes a remainder,
+// whose magnitude is always below the divisor — itself a `PartCount`, and so already within `Int`.
 func abs(_ value: NonZeroInt) -> PartCount {
-    PartCount(unchecked: abs(value.rawValue))
+    PartCount(unchecked: Int(abs(value.rawValue)))
 }

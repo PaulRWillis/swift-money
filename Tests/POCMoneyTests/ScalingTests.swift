@@ -86,13 +86,13 @@ struct ScalingTests {
     // Doubling the largest amount does not fit, but two thirds of it does. Scaling multiplies at double
     // width, so this is exact rather than a reported overflow.
     //
-    // The largest amount leaves 1 over when divided by three, so two thirds of it is `Int.max / 3 * 2`
+    // The largest amount leaves 1 over when divided by three, so two thirds of it is `Int64.max / 3 * 2`
     // with 2/3 to spare.
     @Test("An amount whose doubled product would not fit still scales")
     func amountWhoseProductWouldNotFit() throws {
         let (amount, remainder) = try #require(inexactParts(GBP.max.scaled(by: Ratio(2, 3))))
 
-        #expect(amount == GBP(Int.max / 3 * 2))
+        #expect(amount == GBP(Int64.max / 3 * 2))
         #expect(remainder == Ratio(2, 3))
     }
 
@@ -101,7 +101,7 @@ struct ScalingTests {
     @Test("The smallest amount scales")
     func smallestAmountScales() {
         #expect(GBP.min.scaled(by: Ratio(1, 1)) == .exact(GBP.min))
-        #expect(GBP.min.scaled(by: Ratio(1, 2)) == .exact(GBP(Int.min / 2)))
+        #expect(GBP.min.scaled(by: Ratio(1, 2)) == .exact(GBP(Int64.min / 2)))
     }
 
     // MARK: - Rounding
@@ -228,7 +228,7 @@ private let threeHalves = Ratio(3, 2)
 // Three halves of this amount is exactly the largest amount, with a half left over — so truncating fits
 // and only the rounding step passes the maximum. At file scope because an exit test runs in a child
 // process, so its closure cannot capture a local.
-private let threeHalvesOfThisIsTheLargestAmount = GBP(Int.max / 3 * 2 + 1)
+private let threeHalvesOfThisIsTheLargestAmount = GBP(Int64.max / 3 * 2 + 1)
 
 // An inexact result cannot be built from outside the module — that is what stops one claiming a
 // remainder it does not have — so these tests read the parts back out rather than comparing against a

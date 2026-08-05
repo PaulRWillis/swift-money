@@ -5,7 +5,7 @@ extension NonZeroInt {
         case zero
         case nonZero(NonZeroInt)
 
-        init(_ value: Int) {
+        init(_ value: Int64) {
             if let nonZero = NonZeroInt(value) {
                 self = .nonZero(nonZero)
             } else {

@@ -13,7 +13,7 @@ public struct Money: Equatable, Hashable, Sendable {
     /// The currency this amount is denominated in.
     public let currency: Currency
 
-    private let minorUnits: Int
+    private let minorUnits: Int64
 
     /// Creates a monetary amount from a whole number of the currency's smallest
     /// (minor) units.
@@ -27,6 +27,22 @@ public struct Money: Equatable, Hashable, Sendable {
     ///   are different currencies.
     public init(
         _ minorUnits: Int,
+        currency: Currency,
+    ) {
+        self.minorUnits = Int64(minorUnits)
+        self.currency = currency
+    }
+
+    /// Creates a monetary amount from a whole number of the currency's smallest
+    /// (minor) units.
+    ///
+    /// Amounts are held as an `Int64` on every platform, so the range does not vary with the word size.
+    ///
+    /// - Parameter currency: The currency to denominate the amount in. Two amounts combine only when
+    ///   their currencies are equal, and that includes the quantization — `XYZ` at 100 and `XYZ` at 1
+    ///   are different currencies.
+    public init(
+        _ minorUnits: Int64,
         currency: Currency,
     ) {
         self.minorUnits = minorUnits
@@ -122,7 +138,7 @@ extension Money {
 
 extension Money {
     private func multiplied(by factor: Int) throws(MoneyError) -> Self {
-        let (result, didOverflow) = self.minorUnits.multipliedReportingOverflow(by: factor)
+        let (result, didOverflow) = self.minorUnits.multipliedReportingOverflow(by: Int64(factor))
 
         guard !didOverflow else {
             throw .overflow
