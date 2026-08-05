@@ -9,3 +9,4 @@ DerivedData/
 .netrc
 release-plan.md
 settings.json
+__pycache__/
