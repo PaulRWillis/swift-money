@@ -6,6 +6,7 @@
 #   bash Coverage/run.sh                       # summary
 #   bash Coverage/run.sh --diff origin/main    # + coverage of the lines this branch adds
 #   bash Coverage/run.sh --skip-tests          # reuse the last run's profile
+#   bash Coverage/run.sh --badge               # + write .github/badges/coverage.svg
 #   bash Coverage/run.sh --diff origin/main --markdown summary.md
 #
 # Requirements: Swift 6.2+, python3, and llvm-cov — via xcrun on macOS, on PATH on Linux.
@@ -24,11 +25,14 @@ TARGET_SOURCES="$REPO_DIR/Sources/POCMoney"
 SKIP_TESTS=false
 DIFF_BASE=""
 MARKDOWN=""
+BADGE=false
+BADGE_PATH="$REPO_DIR/.github/badges/coverage.svg"
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --skip-tests) SKIP_TESTS=true; shift ;;
         --diff) DIFF_BASE="${2:?--diff needs a ref}"; shift 2 ;;
         --markdown) MARKDOWN="${2:?--markdown needs a file}"; shift 2 ;;
+        --badge) BADGE=true; shift ;;
         *) echo "Error: unknown option '$1'" >&2; exit 1 ;;
     esac
 done
@@ -87,6 +91,12 @@ echo
 SUMMARY="$(llvm_cov report "$TEST_BINARY" -instr-profile "$PROFDATA" "${SOURCES[@]}")"
 echo "$SUMMARY"
 
+# `llvm-cov report`'s TOTAL row, in column order: regions, missed, cover, functions, missed, cover,
+# lines, missed, cover.
+read -r REGIONS FUNCTIONS LINES <<< "$(
+    echo "$SUMMARY" | awk '$1 == "TOTAL" { print $4, $7, $10 }'
+)"
+
 if [[ -n "$DIFF_BASE" ]]; then
     LCOV="$(mktemp)"
     trap 'rm -f "$LCOV"' EXIT
@@ -98,13 +108,15 @@ if [[ -n "$DIFF_BASE" ]]; then
     python3 "$SCRIPT_DIR/diff-coverage.py" "$DIFF_BASE" "$LCOV"
 fi
 
-if [[ -n "$MARKDOWN" ]]; then
-    # `llvm-cov report`'s TOTAL row, in column order: regions, missed, cover, functions, missed, cover,
-    # lines, missed, cover.
-    read -r REGIONS FUNCTIONS LINES <<< "$(
-        echo "$SUMMARY" | awk '$1 == "TOTAL" { print $4, $7, $10 }'
-    )"
+if $BADGE; then
+    mkdir -p "$(dirname "$BADGE_PATH")"
+    python3 "$SCRIPT_DIR/badge.py" "${LINES%\%}" > "$BADGE_PATH"
 
+    echo
+    echo "Wrote $BADGE_PATH at $LINES"
+fi
+
+if [[ -n "$MARKDOWN" ]]; then
     {
         echo "### Coverage"
         echo
