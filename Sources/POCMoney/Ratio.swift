@@ -9,8 +9,8 @@
 ///
 /// Exact, unlike a decimal or floating-point rate — one third is `Ratio(1, 3)` and stays one third.
 public struct Ratio: Equatable, Hashable, Sendable {
-    private let numerator: Int64
-    private let denominator: Int64
+    private let numerator: Numerator
+    private let denominator: Denominator
 
     /// Creates a ratio, reduced to lowest terms.
     ///
@@ -30,8 +30,8 @@ public struct Ratio: Equatable, Hashable, Sendable {
         // arise.
         let divisor = Int64(greatestCommonDivisor(rawNumerator.magnitude, rawDenominator.magnitude))
 
-        self.numerator = rawNumerator / divisor
-        self.denominator = rawDenominator / divisor
+        self.numerator = Numerator(rawNumerator / divisor)
+        self.denominator = Denominator(unchecked: rawDenominator / divisor)
     }
 }
 
@@ -39,7 +39,7 @@ public struct Ratio: Equatable, Hashable, Sendable {
 
 extension Ratio: CustomStringConvertible {
     public var description: String {
-        "\(numerator)/\(denominator)"
+        "\(Int64(numerator))/\(Int64(denominator))"
     }
 }
 
