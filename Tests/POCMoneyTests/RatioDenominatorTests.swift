@@ -27,6 +27,13 @@ struct RatioDenominatorTests {
         #expect(Set([forty, alsoForty, hundred]).count == 2)
     }
 
+    @Test("A denominator describes itself as its value", arguments: [1, 40, Int64.max])
+    func description(_ raw: Int64) throws {
+        let denominator = try #require(Ratio.Denominator(exactly: raw))
+
+        #expect(String(describing: denominator) == "\(raw)")
+    }
+
     @Test("A valid integer literal creates a denominator")
     func validLiteral() throws {
         let denominator: Ratio.Denominator = 40

@@ -39,7 +39,7 @@ public struct Ratio: Equatable, Hashable, Sendable {
 
 extension Ratio: CustomStringConvertible {
     public var description: String {
-        "\(Int64(numerator))/\(Int64(denominator))"
+        "\(numerator)/\(denominator)"
     }
 }
 
@@ -50,8 +50,12 @@ public extension Ratio {
     ///
     /// Every integer is a valid numerator, so this cannot fail to be created — including from a
     /// literal, unlike ``Ratio/Denominator``.
-    struct Numerator: Equatable, Hashable, Sendable {
+    struct Numerator: Equatable, Hashable, Sendable, CustomStringConvertible {
         fileprivate let rawValue: Int64
+
+        public var description: String {
+            "\(rawValue)"
+        }
 
         /// Creates a numerator.
         public init(_ value: Int64) {
@@ -63,8 +67,12 @@ public extension Ratio {
     ///
     /// A ratio's sign is carried entirely by its numerator, so a denominator is never zero or
     /// negative. Those values cannot be constructed.
-    struct Denominator: Equatable, Hashable, Sendable {
+    struct Denominator: Equatable, Hashable, Sendable, CustomStringConvertible {
         fileprivate let rawValue: Int64
+
+        public var description: String {
+            "\(rawValue)"
+        }
 
         /// Creates a denominator from a value that may not be valid.
         ///
