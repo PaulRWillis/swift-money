@@ -29,19 +29,56 @@ SECTION = re.compile(r"### (.+?)\n\n((?:\|[^\n]*\n?)+)")
 RAW_MARKERS = ("<!-- BENCHMARK-START -->", "<!-- BENCHMARK-END -->")
 SUMMARY_MARKERS = ("<!-- BENCHMARK-SUMMARY-START -->", "<!-- BENCHMARK-SUMMARY-END -->")
 
-# Each row is one line of the summary: a label, the benchmark measuring our implementation, and the
-# benchmark it is measured against. A `None` comparison means there is nothing to compare it with.
-COMPARISONS = [
-    ("Addition", "Money addition", "Foundation Decimal addition"),
-    ("Subtraction", "Money subtraction", "Foundation Decimal subtraction"),
-    ("Multiplication", "Money multiplication (Int64)", "Foundation Decimal multiplication"),
-    ("Comparison", "Money comparison", "Foundation Decimal comparison"),
-    ("JSON encode", "Money JSON encode (.minorUnits)", "Foundation Decimal JSON encode"),
-    ("JSON decode", "Money JSON decode (.minorUnits)", "Foundation Decimal JSON decode"),
-    ("Formatting", "Money formatted()", "Foundation Decimal formatted(.currency)"),
-    ("Distribution", "Money distributed(into: 3)", None),
-    ("Exchange rate", "ExchangeRate convert", None),
-    ("MoneyBag (10 adds)", "MoneyBag add 10 entries", None),
+# Each table names its baseline columns once, then lists rows of (label, our benchmark, the benchmarks
+# it is measured against — one per column). A table with no columns is a plain list of measurements.
+TABLES = [
+    {
+        "heading": "POCMoney against the alternatives",
+        "columns": ["Int", "Double", "Decimal"],
+        "rows": [
+            ("Addition", "MoneyOf addition",
+             ["Int addition", "Double addition", "Decimal addition"]),
+            ("Subtraction", "MoneyOf subtraction",
+             ["Int subtraction", "Double subtraction", "Decimal subtraction"]),
+            ("Scalar multiplication", "MoneyOf scalar multiplication",
+             ["Int scalar multiplication", "Double scalar multiplication",
+              "Decimal scalar multiplication"]),
+            ("Scale and round", "MoneyOf scaled and rounded",
+             ["Int scaled, truncating", "Double scaled and rounded", "Decimal scaled and rounded"]),
+            ("Comparison", "MoneyOf comparison",
+             ["Int comparison", "Double comparison", "Decimal comparison"]),
+        ],
+    },
+    {
+        "heading": "POCMoney's own operations",
+        "columns": [],
+        "rows": [
+            ("Addition, throwing", "Money addition, throwing", []),
+            ("Scale, reporting a remainder", "MoneyOf scaled, reporting a remainder", []),
+            ("Ratio construction", "Ratio construction", []),
+            ("Split into 3", "MoneyOf split into 3", []),
+            ("Split, iterating the parts", "MoneyOf split, iterating the parts", []),
+            ("Total of 10", "MoneyOf total of 10", []),
+            ("Currency code validation", "CurrencyCode validation", []),
+        ],
+    },
+    {
+        "heading": "SwiftMoney against Foundation.Decimal",
+        "columns": ["Decimal"],
+        "rows": [
+            ("Addition", "Money addition", ["Foundation Decimal addition"]),
+            ("Subtraction", "Money subtraction", ["Foundation Decimal subtraction"]),
+            ("Multiplication", "Money multiplication (Int64)",
+             ["Foundation Decimal multiplication"]),
+            ("Comparison", "Money comparison", ["Foundation Decimal comparison"]),
+            ("JSON encode", "Money JSON encode (.minorUnits)", ["Foundation Decimal JSON encode"]),
+            ("JSON decode", "Money JSON decode (.minorUnits)", ["Foundation Decimal JSON decode"]),
+            ("Formatting", "Money formatted()", ["Foundation Decimal formatted(.currency)"]),
+            ("Distribution", "Money distributed(into: 3)", []),
+            ("Exchange rate", "ExchangeRate convert", []),
+            ("MoneyBag (10 adds)", "MoneyBag add 10 entries", []),
+        ],
+    },
 ]
 
 
@@ -87,34 +124,63 @@ def speedup(ours, theirs):
     return f"**{ratio:.0f}×**" if ratio >= 1 else f"{ratio:.1f}×"
 
 
-def summarise(results, warn):
-    """A markdown summary, and a warning for every benchmark named here but missing from the run."""
-    named = {name for _, ours, theirs in COMPARISONS for name in (ours, theirs) if name}
-    for name in sorted(named - results.keys()):
-        warn(f"no benchmark named {name!r} in this run — the summary will omit it")
+def cell(measurement):
+    """A time, with the allocation count alongside it when there is one to report."""
+    if not measurement:
+        return "—"
+    allocations = measurement["mallocs"]
+    if allocations:
+        noun = "alloc" if allocations == 1 else "allocs"
+        return f"{duration(measurement['time_ns'])} ({allocations} {noun})"
+    return duration(measurement["time_ns"])
 
-    lines = ["| Operation | Ours | Compared with | Speedup | Our allocs | Their allocs |",
-             "|:----------|-----:|--------------:|--------:|-----------:|-------------:|"]
 
-    for label, ours_name, theirs_name in COMPARISONS:
+def table(spec, results):
+    columns = spec["columns"]
+    headings = ["Operation", "Ours", *columns]
+
+    # A speedup only means something against a single baseline.
+    if len(columns) == 1:
+        headings.append("Speedup")
+
+    lines = [
+        f"### {spec['heading']}",
+        "",
+        "| " + " | ".join(headings) + " |",
+        "|:" + "----------|" + "".join("----------:|" for _ in headings[1:]),
+    ]
+
+    for label, ours_name, baseline_names in spec["rows"]:
         ours = results.get(ours_name)
         if not ours:
             continue
 
-        theirs = results.get(theirs_name) if theirs_name else None
+        baselines = [results.get(name) for name in baseline_names]
+        cells = [label, cell(ours)]
+        cells += [cell(b) for b in baselines]
+        cells += [""] * (len(columns) - len(baselines))
 
-        if theirs:
-            lines.append(
-                f"| {label} | {duration(ours['time_ns'])} | {duration(theirs['time_ns'])} "
-                f"| {speedup(ours['time_ns'], theirs['time_ns'])} "
-                f"| {ours['mallocs']} | {theirs['mallocs']} |"
-            )
-        else:
-            lines.append(
-                f"| {label} | {duration(ours['time_ns'])} | — | — | {ours['mallocs']} | — |"
-            )
+        if len(columns) == 1:
+            only = baselines[0] if baselines else None
+            cells.append(speedup(ours["time_ns"], only["time_ns"]) if only else "—")
+
+        lines.append("| " + " | ".join(c or "—" for c in cells) + " |")
 
     return "\n".join(lines)
+
+
+def summarise(results, warn):
+    """A markdown summary, and a warning for every benchmark named here but missing from the run."""
+    named = {
+        name
+        for spec in TABLES
+        for _, ours, baselines in spec["rows"]
+        for name in [ours, *baselines]
+    }
+    for name in sorted(named - results.keys()):
+        warn(f"no benchmark named {name!r} in this run — the summary will omit it")
+
+    return "\n\n".join(table(spec, results) for spec in TABLES)
 
 
 def inject(document, markers, content, warn):
