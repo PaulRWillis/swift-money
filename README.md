@@ -4,7 +4,7 @@
 [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2FPaulRWillis%2Fswift-money%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/PaulRWillis/swift-money)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![CI](https://github.com/PaulRWillis/swift-money/actions/workflows/swift-macos-build.yml/badge.svg)](https://github.com/PaulRWillis/swift-money/actions/workflows/swift-macos-build.yml)
-[![codecov](https://codecov.io/gh/PaulRWillis/swift-money/branch/main/graph/badge.svg)](https://codecov.io/gh/PaulRWillis/swift-money)
+[![coverage](.github/badges/coverage.svg)](https://github.com/PaulRWillis/swift-money/actions/workflows/swift-code-coverage.yml)
 
 Type-safe money for Swift. `SwiftMoney` stores monetary values as integer minor units (`Int64`)
 with the currency locked at compile time, eliminating floating-point rounding errors entirely.
