@@ -1,4 +1,4 @@
-struct NonZeroInt: Equatable, Hashable, Sendable {
+struct NonZeroInt64: Equatable, Hashable, Sendable {
     let rawValue: Int64
 
     init?(_ value: Int64) {
@@ -15,7 +15,7 @@ struct NonZeroInt: Equatable, Hashable, Sendable {
     }
 }
 
-extension NonZeroInt {
+extension NonZeroInt64 {
     /// Returns the quotient and remainder of this value divided by the given
     /// number of parts.
     ///
@@ -23,7 +23,7 @@ extension NonZeroInt {
     /// caller has to decide what to do when it is non-zero instead of being
     /// able to ignore it.
     ///
-    ///     let x = NonZeroInt(1_000_000)!
+    ///     let x = NonZeroInt64(1_000_000)!
     ///     let (q, r) = x.quotientAndRemainder(dividingBy: 933)
     ///     // q == 1071
     ///     // r == .nonZero(757)
