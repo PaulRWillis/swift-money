@@ -45,15 +45,3 @@ extension Scaled where Amount == Int {
     }
 }
 
-extension Scaled {
-    func map<NewAmount>(
-        _ transform: (Amount) -> NewAmount
-    ) -> Scaled<NewAmount> {
-        switch self {
-        case let .exact(amount):
-            return .exact(transform(amount))
-        case let .inexact(amount, remainder):
-            return .inexact(transform(amount), remainder: remainder)
-        }
-    }
-}

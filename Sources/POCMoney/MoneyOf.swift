@@ -158,7 +158,15 @@ extension MoneyOf {
             preconditionFailure("Scaling by \(ratio) is not representable")
         }
 
-        return scaled.map { Self($0) }
+        // Switched here rather than through a shared `map`, which cost fifteen times as much: a
+        // closure taken by a generic method, called from a generic type that is not inlinable, cannot
+        // be specialized away.
+        switch scaled {
+        case let .exact(whole):
+            return .exact(Self(whole))
+        case let .inexact(whole, remainder):
+            return .inexact(Self(whole), remainder: remainder)
+        }
     }
 
     /// Returns this monetary amount scaled by a fraction and resolved to a whole unit.
