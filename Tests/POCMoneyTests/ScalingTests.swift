@@ -104,7 +104,109 @@ struct ScalingTests {
         #expect(GBP.min.scaled(by: Ratio(1, 2)) == .exact(GBP(Int.min / 2)))
     }
 
+    // MARK: - Rounding
+
+    // A quarter of 10 is 2.5 — exactly between two whole units, which is where the modes differ most.
+    @Test(
+        "Every mode resolves an exact half",
+        arguments: [
+            (RoundingMode.towardZero, GBP(2)),
+            (.awayFromZero, GBP(3)),
+            (.floor, GBP(2)),
+            (.ceiling, GBP(3)),
+            (.toNearestOrEven, GBP(2)),
+            (.toNearestOrAwayFromZero, GBP(3)),
+        ]
+    )
+    func modesAtAnExactHalf(mode: RoundingMode, expected: GBP) {
+        #expect(GBP(10).scaled(by: Ratio(1, 4), rounding: mode) == expected)
+    }
+
+    // A quarter of 9 is 2.25, so the nearest whole unit is the one it was truncated to.
+    @Test(
+        "Every mode resolves a fraction below a half",
+        arguments: [
+            (RoundingMode.towardZero, GBP(2)),
+            (.awayFromZero, GBP(3)),
+            (.floor, GBP(2)),
+            (.ceiling, GBP(3)),
+            (.toNearestOrEven, GBP(2)),
+            (.toNearestOrAwayFromZero, GBP(2)),
+        ]
+    )
+    func modesBelowAHalf(mode: RoundingMode, expected: GBP) {
+        #expect(GBP(9).scaled(by: Ratio(1, 4), rounding: mode) == expected)
+    }
+
+    // A quarter of 11 is 2.75, so both nearest modes step where they did not at 2.25.
+    @Test(
+        "Every mode resolves a fraction above a half",
+        arguments: [
+            (RoundingMode.towardZero, GBP(2)),
+            (.awayFromZero, GBP(3)),
+            (.floor, GBP(2)),
+            (.ceiling, GBP(3)),
+            (.toNearestOrEven, GBP(3)),
+            (.toNearestOrAwayFromZero, GBP(3)),
+        ]
+    )
+    func modesAboveAHalf(mode: RoundingMode, expected: GBP) {
+        #expect(GBP(11).scaled(by: Ratio(1, 4), rounding: mode) == expected)
+    }
+
+    // A quarter of -10 is -2.5. This is where `.floor` and `.towardZero` part company, and where
+    // `.awayFromZero` and `.ceiling` do — a sign error in a mode shows up here and nowhere else.
+    @Test(
+        "Every mode resolves a negative exact half",
+        arguments: [
+            (RoundingMode.towardZero, GBP(-2)),
+            (.awayFromZero, GBP(-3)),
+            (.floor, GBP(-3)),
+            (.ceiling, GBP(-2)),
+            (.toNearestOrEven, GBP(-2)),
+            (.toNearestOrAwayFromZero, GBP(-3)),
+        ]
+    )
+    func modesAtANegativeExactHalf(mode: RoundingMode, expected: GBP) {
+        #expect(GBP(-10).scaled(by: Ratio(1, 4), rounding: mode) == expected)
+    }
+
+    // Banker's rounding breaks a tie toward the even neighbour, so 2.5 and 3.5 both settle on an even
+    // number rather than both going the same direction.
+    @Test("An exact half rounds to even in both directions")
+    func exactHalfRoundsToEven() {
+        #expect(GBP(10).scaled(by: Ratio(1, 4), rounding: .toNearestOrEven) == GBP(2))
+        #expect(GBP(14).scaled(by: Ratio(1, 4), rounding: .toNearestOrEven) == GBP(4))
+    }
+
+    @Test(
+        "A mode cannot change an exact result",
+        arguments: [
+            RoundingMode.towardZero,
+            .awayFromZero,
+            .floor,
+            .ceiling,
+            .toNearestOrEven,
+            .toNearestOrAwayFromZero,
+        ]
+    )
+    func exactResultsAreUnchanged(mode: RoundingMode) {
+        #expect(GBP(8).scaled(by: Ratio(1, 4), rounding: mode) == GBP(2))
+    }
+
     // MARK: - Overflow
+
+    @Test("Truncating reaches the largest amount exactly")
+    func truncatingReachesTheLargestAmount() {
+        #expect(threeHalvesOfThisIsTheLargestAmount.scaled(by: threeHalves, rounding: .towardZero) == GBP.max)
+    }
+
+    @Test("Rounding past the largest amount traps, where truncating would not")
+    func roundingPastTheLargestAmountTraps() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(threeHalvesOfThisIsTheLargestAmount.scaled(by: threeHalves, rounding: .awayFromZero))
+        }
+    }
 
     @Test("Scaling past the largest amount traps")
     func scalingPastTheLargestAmountTraps() async {
@@ -120,6 +222,13 @@ struct ScalingTests {
         }
     }
 }
+
+private let threeHalves = Ratio(3, 2)
+
+// Three halves of this amount is exactly the largest amount, with a half left over — so truncating fits
+// and only the rounding step passes the maximum. At file scope because an exit test runs in a child
+// process, so its closure cannot capture a local.
+private let threeHalvesOfThisIsTheLargestAmount = GBP(Int.max / 3 * 2 + 1)
 
 // An inexact result cannot be built from outside the module — that is what stops one claiming a
 // remainder it does not have — so these tests read the parts back out rather than comparing against a

@@ -7,6 +7,8 @@ enum Sign: Equatable {
     case positive
     case negative
 
+    // Zero counts as positive. It has no sign of its own, but nothing here needs one: a zero magnitude
+    // is the same value whichever sign is applied to it.
     init(of value: Int) {
         self = value < 0 ? .negative : .positive
     }

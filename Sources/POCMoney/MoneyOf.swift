@@ -154,11 +154,40 @@ extension MoneyOf {
     public func scaled(
         by ratio: Ratio
     ) -> Scaled<Self> {
-        guard let scaled = ratio.applied(to: minorUnits) else {
+        guard let scaled = POCMoney.scaled(minorUnits, by: ratio) else {
             preconditionFailure("Scaling by \(ratio) is not representable")
         }
 
         return scaled.map { Self($0) }
+    }
+
+    /// Returns this monetary amount scaled by a fraction and resolved to a whole unit.
+    ///
+    /// Use this where the caller already knows how a leftover part should be settled. Use
+    /// ``scaled(by:)`` to find out whether there was one.
+    ///
+    /// ```swift
+    /// GBP(10).scaled(by: Ratio(1, 4), rounding: .toNearestOrEven)   // 2p, from 2.5p
+    /// GBP(10).scaled(by: Ratio(1, 4), rounding: .ceiling)           // 3p
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - ratio: The fraction to scale by.
+    ///   - mode: How to resolve part of a unit left over.
+    /// - Precondition: The result is representable. Scaling past ``min`` or ``max`` traps, including
+    ///   where only the rounding step passes them.
+    public func scaled(
+        by ratio: Ratio,
+        rounding mode: RoundingMode
+    ) -> Self {
+        guard
+            let scaled = POCMoney.scaled(minorUnits, by: ratio),
+            let rounded = scaled.rounded(mode)
+        else {
+            preconditionFailure("Scaling by \(ratio) is not representable")
+        }
+
+        return Self(rounded)
     }
 }
 

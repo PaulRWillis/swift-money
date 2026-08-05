@@ -29,6 +29,22 @@ extension Scaled: Equatable {}
 
 extension Scaled: Sendable where Amount: Sendable {}
 
+// MARK: - Rounding
+
+// Constrained to `Int` because this is the layer where overflow can still be reported rather than
+// trapped, which is what lets `MoneyOf` trap and `Money` throw from the same code.
+extension Scaled where Amount == Int {
+    // The whole number this resolves to under `mode`. `nil` when that is not representable.
+    func rounded(_ mode: RoundingMode) -> Int? {
+        switch self {
+        case let .exact(whole):
+            whole
+        case let .inexact(nearZero, remainder):
+            remainder.resolving(nearZero, mode)
+        }
+    }
+}
+
 extension Scaled {
     func map<NewAmount>(
         _ transform: (Amount) -> NewAmount
