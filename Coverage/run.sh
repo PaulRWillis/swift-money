@@ -4,9 +4,11 @@
 #
 # Usage:
 #   bash Coverage/run.sh                       # summary
+#   bash Coverage/run.sh --diff origin/main    # + coverage of the lines this branch adds
 #   bash Coverage/run.sh --skip-tests          # reuse the last run's profile
+#   bash Coverage/run.sh --diff origin/main --markdown summary.md
 #
-# Requirements: Swift 6.2+, and llvm-cov — via xcrun on macOS, on PATH on Linux.
+# Requirements: Swift 6.2+, python3, and llvm-cov — via xcrun on macOS, on PATH on Linux.
 #
 # A caveat that matters when reading the output: every trap test uses
 # `#expect(processExitsWith: .failure)`, which runs its body in a child process. The child's profile is
@@ -20,9 +22,13 @@ REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 TARGET_SOURCES="$REPO_DIR/Sources/POCMoney"
 
 SKIP_TESTS=false
+DIFF_BASE=""
+MARKDOWN=""
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --skip-tests) SKIP_TESTS=true; shift ;;
+        --diff) DIFF_BASE="${2:?--diff needs a ref}"; shift 2 ;;
+        --markdown) MARKDOWN="${2:?--markdown needs a file}"; shift 2 ;;
         *) echo "Error: unknown option '$1'" >&2; exit 1 ;;
     esac
 done
@@ -78,4 +84,47 @@ while IFS= read -r -d '' f; do
 done < <(find "$TARGET_SOURCES" -name '*.swift' -print0)
 
 echo
-llvm_cov report "$TEST_BINARY" -instr-profile "$PROFDATA" "${SOURCES[@]}"
+SUMMARY="$(llvm_cov report "$TEST_BINARY" -instr-profile "$PROFDATA" "${SOURCES[@]}")"
+echo "$SUMMARY"
+
+if [[ -n "$DIFF_BASE" ]]; then
+    LCOV="$(mktemp)"
+    trap 'rm -f "$LCOV"' EXIT
+    llvm_cov export -format=lcov "$TEST_BINARY" -instr-profile "$PROFDATA" "${SOURCES[@]}" > "$LCOV"
+
+    echo
+    echo "Coverage of the lines this branch adds, against $DIFF_BASE:"
+    echo
+    python3 "$SCRIPT_DIR/diff-coverage.py" "$DIFF_BASE" "$LCOV"
+fi
+
+if [[ -n "$MARKDOWN" ]]; then
+    # `llvm-cov report`'s TOTAL row, in column order: regions, missed, cover, functions, missed, cover,
+    # lines, missed, cover.
+    read -r REGIONS FUNCTIONS LINES <<< "$(
+        echo "$SUMMARY" | awk '$1 == "TOTAL" { print $4, $7, $10 }'
+    )"
+
+    {
+        echo "### Coverage"
+        echo
+        echo "| | Lines | Functions | Regions |"
+        echo "|:--|------:|----------:|--------:|"
+        echo "| POCMoney | $LINES | $FUNCTIONS | $REGIONS |"
+        if [[ -n "$DIFF_BASE" ]]; then
+            echo
+            python3 "$SCRIPT_DIR/diff-coverage.py" "$DIFF_BASE" "$LCOV" --format markdown
+        fi
+        echo
+        echo "<details><summary>Full report</summary>"
+        echo
+        echo '```'
+        echo "$SUMMARY"
+        echo '```'
+        echo
+        echo "</details>"
+    } > "$MARKDOWN"
+
+    echo
+    echo "Wrote $MARKDOWN"
+fi
