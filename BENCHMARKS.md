@@ -17,15 +17,18 @@ swift package --package-path Benchmarks benchmark run
 ## Summary
 
 <!-- BENCHMARK-SUMMARY-START -->
-### SwiftMoney vs Foundation.Decimal
-
-| Operation | SwiftMoney | Decimal | Speedup | SwiftMoney allocs | Decimal allocs |
-|:----------|----------:|--------:|--------:|------------------:|---------------:|
-
-### SwiftMoney-only operations
-
-| Operation | Time (p50) | Allocations |
-|:----------|----------:|-----------:|
+| Operation | Ours | Compared with | Speedup | Our allocs | Their allocs |
+|:----------|-----:|--------------:|--------:|-----------:|-------------:|
+| Addition | 5 ns | 316 ns | **63×** | 0 | 5 |
+| Subtraction | 5 ns | 369 ns | **74×** | 0 | 7 |
+| Multiplication | 5 ns | 269 ns | **54×** | 0 | 5 |
+| Comparison | <1 ns | 57 ns | **∞** | 0 | 2 |
+| JSON encode | 818 ns | 1360 ns | **2×** | 3 | 10 |
+| JSON decode | 1314 ns | 1161 ns | 0.9× | 8 | 10 |
+| Formatting | 4683 ns | 2536 ns | 0.5× | 46 | 12 |
+| Distribution | 3 ns | — | — | 0 | — |
+| Exchange rate | 30 ns | — | — | 0 | — |
+| MoneyBag (10 adds) | 962 ns | — | — | 1 | — |
 <!-- BENCHMARK-SUMMARY-END -->
 
 ## Analysis
@@ -83,77 +86,77 @@ Host 'runnervmvrwv9' with 4 'x86_64' processors with 15 GB memory, running:
 | Metric                   |        p0 |       p25 |       p50 |       p75 |       p90 |       p99 |      p100 |   Samples |
 |:-------------------------|----------:|----------:|----------:|----------:|----------:|----------:|----------:|----------:|
 | Malloc (total) *         |         0 |         0 |         0 |         0 |         0 |         0 |         0 |        33 |
-| Time (wall clock) (ns) * |        30 |        30 |        30 |        30 |        30 |        32 |        32 |        33 |
+| Time (wall clock) (ns) * |        30 |        30 |        30 |        30 |        30 |        31 |        31 |        33 |
 
 ### Foundation Decimal JSON decode
 
 | Metric                   |        p0 |       p25 |       p50 |       p75 |       p90 |       p99 |      p100 |   Samples |
 |:-------------------------|----------:|----------:|----------:|----------:|----------:|----------:|----------:|----------:|
 | Malloc (total) *         |        10 |        10 |        10 |        10 |        10 |        10 |        10 |         1 |
-| Time (wall clock) (ns) * |      1165 |      1165 |      1165 |      1165 |      1165 |      1165 |      1165 |         1 |
+| Time (wall clock) (ns) * |      1161 |      1161 |      1161 |      1161 |      1161 |      1161 |      1161 |         1 |
 
 ### Foundation Decimal JSON encode
 
 | Metric                   |        p0 |       p25 |       p50 |       p75 |       p90 |       p99 |      p100 |   Samples |
 |:-------------------------|----------:|----------:|----------:|----------:|----------:|----------:|----------:|----------:|
 | Malloc (total) *         |        10 |        10 |        10 |        10 |        10 |        10 |        10 |         1 |
-| Time (wall clock) (ns) * |      1363 |      1363 |      1363 |      1363 |      1363 |      1363 |      1363 |         1 |
+| Time (wall clock) (ns) * |      1360 |      1360 |      1360 |      1360 |      1360 |      1360 |      1360 |         1 |
 
 ### Foundation Decimal addition
 
 | Metric                   |        p0 |       p25 |       p50 |       p75 |       p90 |       p99 |      p100 |   Samples |
 |:-------------------------|----------:|----------:|----------:|----------:|----------:|----------:|----------:|----------:|
 | Malloc (total) *         |         5 |         5 |         5 |         5 |         5 |         5 |         5 |         4 |
-| Time (wall clock) (ns) * |       314 |       314 |       314 |       315 |       315 |       315 |       315 |         4 |
+| Time (wall clock) (ns) * |       315 |       315 |       316 |       316 |       316 |       316 |       316 |         4 |
 
 ### Foundation Decimal comparison
 
 | Metric                   |        p0 |       p25 |       p50 |       p75 |       p90 |       p99 |      p100 |   Samples |
 |:-------------------------|----------:|----------:|----------:|----------:|----------:|----------:|----------:|----------:|
-| Malloc (total) *         |         2 |         2 |         2 |         2 |         2 |         2 |         2 |        17 |
-| Time (wall clock) (ns) * |        61 |        61 |        61 |        61 |        61 |        61 |        61 |        17 |
+| Malloc (total) *         |         2 |         2 |         2 |         2 |         2 |         2 |         2 |        18 |
+| Time (wall clock) (ns) * |        57 |        57 |        57 |        57 |        57 |        58 |        58 |        18 |
 
 ### Foundation Decimal formatted(.currency)
 
 | Metric                   |        p0 |       p25 |       p50 |       p75 |       p90 |       p99 |      p100 |   Samples |
 |:-------------------------|----------:|----------:|----------:|----------:|----------:|----------:|----------:|----------:|
 | Malloc (total) *         |        12 |        12 |        12 |        12 |        12 |        12 |        12 |         1 |
-| Time (wall clock) (ns) * |      2561 |      2561 |      2561 |      2561 |      2561 |      2561 |      2561 |         1 |
+| Time (wall clock) (ns) * |      2536 |      2536 |      2536 |      2536 |      2536 |      2536 |      2536 |         1 |
 
 ### Foundation Decimal multiplication
 
 | Metric                   |        p0 |       p25 |       p50 |       p75 |       p90 |       p99 |      p100 |   Samples |
 |:-------------------------|----------:|----------:|----------:|----------:|----------:|----------:|----------:|----------:|
 | Malloc (total) *         |         5 |         5 |         5 |         5 |         5 |         5 |         5 |         4 |
-| Time (wall clock) (ns) * |       276 |       276 |       276 |       276 |       280 |       280 |       280 |         4 |
+| Time (wall clock) (ns) * |       269 |       269 |       269 |       269 |       269 |       269 |       269 |         4 |
 
 ### Foundation Decimal subtraction
 
 | Metric                   |        p0 |       p25 |       p50 |       p75 |       p90 |       p99 |      p100 |   Samples |
 |:-------------------------|----------:|----------:|----------:|----------:|----------:|----------:|----------:|----------:|
 | Malloc (total) *         |         7 |         7 |         7 |         7 |         7 |         7 |         7 |         3 |
-| Time (wall clock) (ns) * |       354 |       354 |       354 |       373 |       373 |       373 |       373 |         3 |
+| Time (wall clock) (ns) * |       368 |       368 |       369 |       370 |       370 |       370 |       370 |         3 |
 
 ### Money JSON decode (.minorUnits)
 
 | Metric                   |        p0 |       p25 |       p50 |       p75 |       p90 |       p99 |      p100 |   Samples |
 |:-------------------------|----------:|----------:|----------:|----------:|----------:|----------:|----------:|----------:|
 | Malloc (total) *         |         8 |         8 |         8 |         8 |         8 |         8 |         8 |         1 |
-| Time (wall clock) (ns) * |      1290 |      1290 |      1290 |      1290 |      1290 |      1290 |      1290 |         1 |
+| Time (wall clock) (ns) * |      1314 |      1314 |      1314 |      1314 |      1314 |      1314 |      1314 |         1 |
 
 ### Money JSON encode (.minorUnits)
 
 | Metric                   |        p0 |       p25 |       p50 |       p75 |       p90 |       p99 |      p100 |   Samples |
 |:-------------------------|----------:|----------:|----------:|----------:|----------:|----------:|----------:|----------:|
 | Malloc (total) *         |         3 |         3 |         3 |         3 |         3 |         3 |         3 |         2 |
-| Time (wall clock) (ns) * |       830 |       830 |       830 |       832 |       832 |       832 |       832 |         2 |
+| Time (wall clock) (ns) * |       818 |       818 |       818 |       820 |       820 |       820 |       820 |         2 |
 
 ### Money addition
 
 | Metric                   |        p0 |       p25 |       p50 |       p75 |       p90 |       p99 |      p100 |   Samples |
 |:-------------------------|----------:|----------:|----------:|----------:|----------:|----------:|----------:|----------:|
 | Malloc (total) *         |         0 |         0 |         0 |         0 |         0 |         0 |         0 |       200 |
-| Time (wall clock) (ns) * |         5 |         5 |         5 |         5 |         5 |         5 |         5 |       200 |
+| Time (wall clock) (ns) * |         5 |         5 |         5 |         5 |         5 |         5 |         6 |       200 |
 
 ### Money comparison
 
@@ -174,14 +177,14 @@ Host 'runnervmvrwv9' with 4 'x86_64' processors with 15 GB memory, running:
 | Metric                   |        p0 |       p25 |       p50 |       p75 |       p90 |       p99 |      p100 |   Samples |
 |:-------------------------|----------:|----------:|----------:|----------:|----------:|----------:|----------:|----------:|
 | Malloc (total) *         |        46 |        46 |        46 |        46 |        46 |        46 |        46 |         1 |
-| Time (wall clock) (ns) * |      4682 |      4682 |      4682 |      4682 |      4682 |      4682 |      4682 |         1 |
+| Time (wall clock) (ns) * |      4683 |      4683 |      4683 |      4683 |      4683 |      4683 |      4683 |         1 |
 
 ### Money formatted(.grouping(.never))
 
 | Metric                   |        p0 |       p25 |       p50 |       p75 |       p90 |       p99 |      p100 |   Samples |
 |:-------------------------|----------:|----------:|----------:|----------:|----------:|----------:|----------:|----------:|
 | Malloc (total) *         |        46 |        46 |        46 |        46 |        46 |        46 |        46 |         1 |
-| Time (wall clock) (ns) * |      4719 |      4719 |      4719 |      4719 |      4719 |      4719 |      4719 |         1 |
+| Time (wall clock) (ns) * |      4660 |      4660 |      4660 |      4660 |      4660 |      4660 |      4660 |         1 |
 
 ### Money multiplication (Int64)
 
@@ -202,7 +205,7 @@ Host 'runnervmvrwv9' with 4 'x86_64' processors with 15 GB memory, running:
 | Metric                   |        p0 |       p25 |       p50 |       p75 |       p90 |       p99 |      p100 |   Samples |
 |:-------------------------|----------:|----------:|----------:|----------:|----------:|----------:|----------:|----------:|
 | Malloc (total) *         |         1 |         1 |         1 |         1 |         1 |         1 |         1 |         2 |
-| Time (wall clock) (ns) * |       977 |       977 |       977 |       977 |       977 |       977 |       977 |         2 |
+| Time (wall clock) (ns) * |       961 |       962 |       962 |       962 |       962 |       962 |       962 |         2 |
 
 
 <!-- BENCHMARK-END -->
