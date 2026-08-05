@@ -90,27 +90,39 @@ extension Split {
             Iterator(split)
         }
 
+        // Everything about the split is settled once, in the initializer. Reading it out of the enum
+        // per element meant recomputing `count` — itself a switch, two conversions and an addition —
+        // on every call to `next()`, for a value that cannot change while iterating.
         struct Iterator: IteratorProtocol {
-            private let split: Split
+            private let larger: Amount
+            private let smaller: Amount
+            private let largerCount: Int
+            private let count: Int
             private var position = 0
 
             fileprivate init(_ split: Split) {
-                self.split = split
+                switch split {
+                case let .even(group):
+                    larger = group.amount
+                    smaller = group.amount
+                    largerCount = Int(group.count)
+                    count = largerCount
+                case let .uneven(largerGroup, smallerGroup):
+                    larger = largerGroup.amount
+                    smaller = smallerGroup.amount
+                    largerCount = Int(largerGroup.count)
+                    count = largerCount + Int(smallerGroup.count)
+                }
             }
 
             mutating func next() -> Amount? {
-                guard position < Int(split.count) else {
+                guard position < count else {
                     return nil
                 }
 
                 defer { position += 1 }
 
-                switch split {
-                case let .even(group):
-                    return group.amount
-                case let .uneven(larger, smaller):
-                    return position < Int(larger.count) ? larger.amount : smaller.amount
-                }
+                return position < largerCount ? larger : smaller
             }
         }
     }

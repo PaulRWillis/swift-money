@@ -200,7 +200,12 @@ extension Money {
             throw .overflow
         }
 
-        return scaled.map { Money($0, currency: currency) }
+        switch scaled {
+        case let .exact(whole):
+            return .exact(Money(whole, currency: currency))
+        case let .inexact(whole, remainder):
+            return .inexact(Money(whole, currency: currency), remainder: remainder)
+        }
     }
 
     /// Returns this monetary amount scaled by a fraction and resolved to a whole unit.
