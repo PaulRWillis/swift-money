@@ -23,10 +23,10 @@ extension NonZeroInt64 {
     /// caller has to decide what to do when it is non-zero instead of being
     /// able to ignore it.
     ///
-    ///     let x = NonZeroInt64(1_000_000)!
-    ///     let (q, r) = x.quotientAndRemainder(dividingBy: 933)
-    ///     // q == 1071
-    ///     // r == .nonZero(757)
+    ///     // an amount of 1,000,000, divided into 933 parts
+    ///     let (quotient, remainder) = amount.quotientAndRemainder(dividingBy: 933)
+    ///     // quotient  == 1071
+    ///     // remainder == .nonZero(757)
     ///
     /// - Parameter dividingBy: The number of parts to divide this value by.
     /// - Returns: A tuple containing the quotient, and the remainder as a
