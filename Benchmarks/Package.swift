@@ -23,5 +23,16 @@ let package = Package(
                 .plugin(name: "BenchmarkPlugin", package: "package-benchmark"),
             ]
         ),
+        .executableTarget(
+            name: "POCMoneyBenchmarks",
+            dependencies: [
+                .product(name: "POCMoney", package: "swift-money"),
+                .product(name: "Benchmark", package: "package-benchmark"),
+            ],
+            path: "Benchmarks/POCMoneyBenchmarks",
+            plugins: [
+                .plugin(name: "BenchmarkPlugin", package: "package-benchmark"),
+            ]
+        ),
     ]
 )
