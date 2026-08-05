@@ -11,9 +11,13 @@ public enum Scaled<Amount: Equatable> {
     ///
     /// The amount is truncated toward zero and `remainder` carries the same sign, so the two together
     /// account for the whole of the result.
+    ///
+    /// This case cannot be created outside the library, because ``Ratio/FractionalRemainder`` cannot
+    /// be. An inexact result therefore always came from a division that really did leave something
+    /// over.
     case inexact(
         Amount,
-        remainder: Ratio
+        remainder: Ratio.FractionalRemainder
     )
 }
 

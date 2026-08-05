@@ -71,12 +71,51 @@ internal extension Ratio {
             return nil
         }
 
-        guard leftOver != 0 else {
+        guard let remainder = fractionalRemainder(leftOver) else {
             return .exact(whole)
         }
 
-        // A remainder is always smaller than its divisor, which came from an `Int64`.
-        return .inexact(whole, remainder: Ratio(Numerator(Int64(leftOver)), denominator))
+        return .inexact(whole, remainder: remainder)
+    }
+
+    // What a division by this ratio's denominator left over, as a fraction of one unit. `nil` when the
+    // division came out exact.
+    private func fractionalRemainder(_ leftOver: Int128) -> FractionalRemainder? {
+        guard leftOver != 0 else {
+            return nil
+        }
+
+        // A remainder is always smaller than its divisor, which came from an `Int64`, and it is
+        // non-zero by the guard above — which together are the invariant the type promises.
+        return FractionalRemainder(unchecked: Ratio(Numerator(Int64(leftOver)), denominator))
+    }
+}
+
+// MARK: - Fractional Remainder
+
+public extension Ratio {
+    /// The part of one unit left over by a division.
+    ///
+    /// Never zero, and always less than one whole. There is no way to create one — a remainder comes
+    /// only from a division that left something over, so a result cannot claim a remainder it does not
+    /// have.
+    struct FractionalRemainder: Equatable, Hashable, Sendable, CustomStringConvertible {
+        fileprivate let value: Ratio
+
+        public var description: String {
+            value.description
+        }
+
+        // fileprivate so a remainder can only come from a division in this file. That is what makes
+        // the guarantee above true, since nothing here validates it.
+        fileprivate init(unchecked value: Ratio) {
+            self.value = value
+        }
+    }
+
+    /// Creates a ratio from the part of a unit left over by a division.
+    init(_ remainder: FractionalRemainder) {
+        self = remainder.value
     }
 }
 

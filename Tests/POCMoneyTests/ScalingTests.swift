@@ -29,15 +29,28 @@ struct ScalingTests {
     // MARK: - Inexact
 
     @Test("A fraction that does not divide exactly reports the part left over")
-    func inexactDivision() {
-        #expect(GBP(10_00).scaled(by: Ratio(1, 3)) == .inexact(GBP(3_33), remainder: Ratio(1, 3)))
+    func inexactDivision() throws {
+        let (amount, remainder) = try #require(inexactParts(GBP(10_00).scaled(by: Ratio(1, 3))))
+
+        #expect(amount == GBP(3_33))
+        #expect(remainder == Ratio(1, 3))
     }
 
     // The remainder is a fraction of the ratio's own denominator, not of anything else: a quarter of 10
     // is 2 with 2 of 4 left over, which as a ratio is a half.
     @Test("The remainder is the part of one unit left over")
-    func remainderIsThePartOfOneUnitLeftOver() {
-        #expect(GBP(10).scaled(by: Ratio(1, 4)) == .inexact(GBP(2), remainder: Ratio(1, 2)))
+    func remainderIsThePartOfOneUnitLeftOver() throws {
+        let (amount, remainder) = try #require(inexactParts(GBP(10).scaled(by: Ratio(1, 4))))
+
+        #expect(amount == GBP(2))
+        #expect(remainder == Ratio(1, 2))
+    }
+
+    @Test("A remainder describes itself as its fraction")
+    func remainderDescription() throws {
+        let scaled = GBP(10_00).scaled(by: Ratio(1, 3))
+
+        #expect(String(describing: scaled).contains("1/3"))
     }
 
     // MARK: - Sign
@@ -45,18 +58,27 @@ struct ScalingTests {
     // The amount truncates toward zero and the remainder takes the same sign, so the two together
     // account for the exact product: -333 and -1/3, never -334 and 2/3.
     @Test("A negative amount truncates toward zero")
-    func negativeAmount() {
-        #expect(GBP(-10_00).scaled(by: Ratio(1, 3)) == .inexact(GBP(-3_33), remainder: Ratio(-1, 3)))
+    func negativeAmount() throws {
+        let (amount, remainder) = try #require(inexactParts(GBP(-10_00).scaled(by: Ratio(1, 3))))
+
+        #expect(amount == GBP(-3_33))
+        #expect(remainder == Ratio(-1, 3))
     }
 
     @Test("A negative ratio negates the result")
-    func negativeRatio() {
-        #expect(GBP(10_00).scaled(by: Ratio(-1, 3)) == .inexact(GBP(-3_33), remainder: Ratio(-1, 3)))
+    func negativeRatio() throws {
+        let (amount, remainder) = try #require(inexactParts(GBP(10_00).scaled(by: Ratio(-1, 3))))
+
+        #expect(amount == GBP(-3_33))
+        #expect(remainder == Ratio(-1, 3))
     }
 
     @Test("Two negatives make a positive")
-    func negativeAmountAndRatio() {
-        #expect(GBP(-10_00).scaled(by: Ratio(-1, 3)) == .inexact(GBP(3_33), remainder: Ratio(1, 3)))
+    func negativeAmountAndRatio() throws {
+        let (amount, remainder) = try #require(inexactParts(GBP(-10_00).scaled(by: Ratio(-1, 3))))
+
+        #expect(amount == GBP(3_33))
+        #expect(remainder == Ratio(1, 3))
     }
 
     // MARK: - Extremes
@@ -67,10 +89,11 @@ struct ScalingTests {
     // The largest amount leaves 1 over when divided by three, so two thirds of it is `Int.max / 3 * 2`
     // with 2/3 to spare.
     @Test("An amount whose doubled product would not fit still scales")
-    func amountWhoseProductWouldNotFit() {
-        #expect(
-            GBP.max.scaled(by: Ratio(2, 3)) == .inexact(GBP(Int.max / 3 * 2), remainder: Ratio(2, 3))
-        )
+    func amountWhoseProductWouldNotFit() throws {
+        let (amount, remainder) = try #require(inexactParts(GBP.max.scaled(by: Ratio(2, 3))))
+
+        #expect(amount == GBP(Int.max / 3 * 2))
+        #expect(remainder == Ratio(2, 3))
     }
 
     // The smallest amount has no positive counterpart, so rebuilding it from a magnitude is the one
@@ -96,4 +119,17 @@ struct ScalingTests {
             blackHole(GBP.min.scaled(by: Ratio(2, 1)))
         }
     }
+}
+
+// An inexact result cannot be built from outside the module — that is what stops one claiming a
+// remainder it does not have — so these tests read the parts back out rather than comparing against a
+// constructed value.
+private func inexactParts<Amount>(
+    _ scaled: Scaled<Amount>
+) -> (amount: Amount, remainder: Ratio)? {
+    guard case let .inexact(amount, remainder) = scaled else {
+        return nil
+    }
+
+    return (amount, Ratio(remainder))
 }
