@@ -136,9 +136,60 @@ extension MoneyOf {
     }
 }
 
-// MARK: - Fractional Multiplication
+// MARK: - Fractional Scaling
 
-#warning("TODO: scaled(by: Ratio) returning an exact/inexact result. MoneyOf never holds a fraction of a minor unit, so the caller resolves the remainder.")
+extension MoneyOf {
+    /// Returns this monetary amount scaled by a fraction.
+    ///
+    /// A monetary amount is always a whole number of the currency's smallest unit, so a fraction that
+    /// does not divide exactly leaves part of a unit for the caller to resolve.
+    ///
+    /// ```swift
+    /// GBP(9_99).scaled(by: Ratio(1, 3))    // .exact(£3.33)
+    /// GBP(10_00).scaled(by: Ratio(1, 3))   // .inexact(£3.33, remainder: 1/3)
+    /// ```
+    ///
+    /// - Parameter ratio: The fraction to scale by.
+    /// - Precondition: The result is representable. Scaling past ``min`` or ``max`` traps.
+    public func scaled(
+        by ratio: Ratio
+    ) -> Scaled<Self> {
+        guard let scaled = POCMoney.scaled(minorUnits, by: ratio) else {
+            preconditionFailure("Scaling by \(ratio) is not representable")
+        }
+
+        return scaled.map { Self($0) }
+    }
+
+    /// Returns this monetary amount scaled by a fraction and resolved to a whole unit.
+    ///
+    /// Use this where the caller already knows how a leftover part should be settled. Use
+    /// ``scaled(by:)`` to find out whether there was one.
+    ///
+    /// ```swift
+    /// GBP(10).scaled(by: Ratio(1, 4), rounding: .toNearestOrEven)   // 2p, from 2.5p
+    /// GBP(10).scaled(by: Ratio(1, 4), rounding: .ceiling)           // 3p
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - ratio: The fraction to scale by.
+    ///   - mode: How to resolve part of a unit left over.
+    /// - Precondition: The result is representable. Scaling past ``min`` or ``max`` traps, including
+    ///   where only the rounding step passes them.
+    public func scaled(
+        by ratio: Ratio,
+        rounding mode: RoundingMode
+    ) -> Self {
+        guard
+            let scaled = POCMoney.scaled(minorUnits, by: ratio),
+            let rounded = scaled.rounded(mode)
+        else {
+            preconditionFailure("Scaling by \(ratio) is not representable")
+        }
+
+        return Self(rounded)
+    }
+}
 
 // MARK: - Split
 

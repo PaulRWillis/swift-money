@@ -299,9 +299,57 @@ struct MoneyTests {
         }
     }
 
-    // MARK: - Fractional Multiplication
+    // MARK: - Fractional Scaling
 
-    #warning("TODO: cover scaled(by: Ratio) once it exists — exact and inexact results, and that the remainder is never lost.")
+    // The algorithm itself is covered by ScalingTests, which drives it through GBP. These check the
+    // steps unique to Money: re-attaching the currency, and throwing where MoneyOf traps.
+
+    @Test("Scaling keeps the currency")
+    func scalingKeepsTheCurrency() throws {
+        let sut = Money(9_99, currency: .eur)
+
+        #expect(try sut.scaled(by: Ratio(1, 3)) == .exact(Money(3_33, currency: .eur)))
+        #expect(try sut.scaled(by: Ratio(1, 3), rounding: .toNearestOrEven) == Money(3_33, currency: .eur))
+    }
+
+    @Test("An inexact result keeps the currency")
+    func inexactScalingKeepsTheCurrency() throws {
+        let scaled = try Money(10_00, currency: .eur).scaled(by: Ratio(1, 3))
+
+        guard case let .inexact(amount, remainder) = scaled else {
+            Issue.record("Expected an inexact result")
+            return
+        }
+
+        #expect(amount == Money(3_33, currency: .eur))
+        #expect(Ratio(remainder) == Ratio(1, 3))
+    }
+
+    @Test("Scaling past the largest amount throws, where MoneyOf traps")
+    func scalingPastTheLargestAmountThrows() {
+        let sut = Money(.max, currency: .gbp)
+
+        #expect(throws: MoneyError.overflow) {
+            try sut.scaled(by: Ratio(2, 1))
+        }
+
+        #expect(throws: MoneyError.overflow) {
+            try sut.scaled(by: Ratio(2, 1), rounding: .towardZero)
+        }
+    }
+
+    // Three halves of this is exactly the largest amount with a half left over, so truncating fits and
+    // only the rounding step passes the maximum.
+    @Test("Rounding past the largest amount throws, where truncating would not")
+    func roundingPastTheLargestAmountThrows() throws {
+        let sut = Money(Int.max / 3 * 2 + 1, currency: .gbp)
+
+        #expect(try sut.scaled(by: Ratio(3, 2), rounding: .towardZero) == Money(.max, currency: .gbp))
+
+        #expect(throws: MoneyError.overflow) {
+            try sut.scaled(by: Ratio(3, 2), rounding: .awayFromZero)
+        }
+    }
 
     // MARK: - Split
 

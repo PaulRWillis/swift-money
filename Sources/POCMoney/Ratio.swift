@@ -9,8 +9,10 @@
 ///
 /// Exact, unlike a decimal or floating-point rate — one third is `Ratio(1, 3)` and stays one third.
 public struct Ratio: Equatable, Hashable, Sendable {
-    private let numerator: Numerator
-    private let denominator: Denominator
+    // fileprivate rather than private so that `scaled(_:by:)`, a free function further down this file,
+    // can read them. Both stay invisible outside it.
+    fileprivate let numerator: Numerator
+    fileprivate let denominator: Denominator
 
     /// Creates a ratio, reduced to lowest terms.
     ///
@@ -41,11 +43,186 @@ public struct Ratio: Equatable, Hashable, Sendable {
         var a = numerator.rawValue.magnitude
         var b = denominator.rawValue.magnitude
 
+        // Larger first, as `swift-numerics` does: starting with the smaller spends a division arriving
+        // where this already is. Worth it because every remainder starts that way, a leftover always
+        // being below its divisor. Measured at roughly a tenth of the call.
+        if a < b {
+            swap(&a, &b)
+        }
+
         while b != 0 {
             (a, b) = (b, a % b)
         }
 
         return Denominator(unchecked: Int64(a))
+    }
+}
+
+// MARK: - Scaling
+
+// The whole part of `amount` multiplied by `ratio`, truncated toward zero, together with whatever
+// fraction is left over. The remainder carries the same sign as the whole part, so the two account for
+// the exact product between them.
+//
+// `nil` when the whole part is not representable as an `Int`.
+//
+// Here rather than beside ``Scaled`` — where its sibling `split(_:into:)` sits beside `Split` — because
+// it needs this file's private storage, and needs to build a `FractionalRemainder`, whose initializer
+// is deliberately reachable from nowhere else.
+func scaled(
+    _ amount: Int,
+    by ratio: Ratio
+) -> Scaled<Int>? {
+    let sign = Sign(of: amount) * Sign(of: ratio.numerator.rawValue)
+
+    // Widened before taking the magnitude, because `Int` is narrower than an `Int64` on arm64_32.
+    let product = WideMagnitude(Int64(amount).magnitude, times: ratio.numerator.rawValue.magnitude)
+
+    guard
+        let division = product.quotientAndRemainder(dividingBy: ratio.denominator.rawValue.magnitude),
+        let whole = Int(magnitude: division.quotient, sign: sign)
+    else {
+        return nil
+    }
+
+    guard let remainder = ratio.fractionalRemainder(division.remainder, sign: sign) else {
+        return .exact(whole)
+    }
+
+    return .inexact(whole, remainder: remainder)
+}
+
+private extension Ratio {
+    // What a division by this ratio's denominator left over, as a fraction of one unit. `nil` when the
+    // division came out exact.
+    func fractionalRemainder(
+        _ leftOver: UInt64,
+        sign: Sign
+    ) -> FractionalRemainder? {
+        guard leftOver != 0 else {
+            return nil
+        }
+
+        // A remainder is always smaller than its divisor, which came from an `Int64`, so it fits and
+        // negating it cannot overflow. Non-zero by the guard above — together, the invariant the type
+        // promises.
+        let magnitude = Int64(leftOver)
+        let signed = sign == .negative ? -magnitude : magnitude
+
+        return FractionalRemainder(unchecked: Ratio(Numerator(signed), denominator))
+    }
+}
+
+// MARK: - Fractional Remainder
+
+public extension Ratio {
+    /// The part of one unit left over by a division.
+    ///
+    /// Never zero, and always less than one whole. There is no way to create one — a remainder comes
+    /// only from a division that left something over, so a result cannot claim a remainder it does not
+    /// have.
+    struct FractionalRemainder: Equatable, Hashable, Sendable, CustomStringConvertible {
+        fileprivate let value: Ratio
+
+        public var description: String {
+            value.description
+        }
+
+        // fileprivate so a remainder can only come from a division in this file. That is what makes
+        // the guarantee above true, since nothing here validates it.
+        fileprivate init(unchecked value: Ratio) {
+            self.value = value
+        }
+    }
+
+    /// Creates a ratio from the part of a unit left over by a division.
+    init(_ remainder: FractionalRemainder) {
+        self = remainder.value
+    }
+}
+
+// MARK: - Resolving a remainder
+
+internal extension Ratio.FractionalRemainder {
+    // The whole number `nearZero` becomes once this leftover is resolved by `mode`.
+    //
+    // The answer is one of the two whole numbers either side. Truncating already gave the one nearer
+    // zero, so all the mode decides is whether to take the other.
+    //
+    // `nil` when that step is not representable: an amount that fits may not once it steps.
+    func resolving(
+        _ nearZero: Int,
+        _ mode: RoundingMode
+    ) -> Int? {
+        guard roundsAwayFromZero(under: mode, from: nearZero) else {
+            return nearZero
+        }
+
+        let (rounded, didOverflow) = nearZero.addingReportingOverflow(signum)
+
+        return didOverflow ? nil : rounded
+    }
+}
+
+private extension Ratio.FractionalRemainder {
+    func roundsAwayFromZero(
+        under mode: RoundingMode,
+        from nearZero: Int
+    ) -> Bool {
+        switch mode {
+        case .towardZero:
+            false
+        case .awayFromZero:
+            true
+        case .floor:
+            isNegative
+        case .ceiling:
+            !isNegative
+        // The two nearest modes differ by one line: what to do with a tie.
+        case .toNearestOrAwayFromZero:
+            switch comparedToHalf {
+            case .lessThanHalf: false
+            case .equalToHalf: true
+            case .moreThanHalf: true
+            }
+        case .toNearestOrEven:
+            switch comparedToHalf {
+            case .lessThanHalf: false
+            case .equalToHalf: !nearZero.isMultiple(of: 2)
+            case .moreThanHalf: true
+            }
+        }
+    }
+
+    var isNegative: Bool {
+        value.numerator.rawValue < 0
+    }
+
+    // `-1` when negative and `1` when positive. A remainder is never zero, so there is no third answer.
+    var signum: Int {
+        isNegative ? -1 : 1
+    }
+
+    // Where this remainder's magnitude sits against one half. Rounding to nearest needs all three
+    // answers: a tie is the one case where a mode has to look at anything besides the remainder.
+    enum ComparedToHalf {
+        case lessThanHalf
+        case equalToHalf
+        case moreThanHalf
+    }
+
+    var comparedToHalf: ComparedToHalf {
+        // Comparing what was left over with the distance to the next whole unit answers the same
+        // question as comparing it with a half, and is the same comparison Foundation's `Decimal` makes.
+        // Nothing can overflow, since a remainder is always smaller than its denominator.
+        let leftOver = value.numerator.rawValue.magnitude
+        let toNextWholeUnit = value.denominator.rawValue.magnitude - leftOver
+
+        if leftOver < toNextWholeUnit {
+            return .lessThanHalf
+        }
+
+        return leftOver == toNextWholeUnit ? .equalToHalf : .moreThanHalf
     }
 }
 

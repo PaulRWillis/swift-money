@@ -178,9 +178,61 @@ extension Money {
     }
 }
 
-// MARK: - Fractional Multiplication
+// MARK: - Fractional Scaling
 
-#warning("TODO: scaled(by: Ratio) returning an exact/inexact result. Money never holds a fraction of a minor unit, so the caller resolves the remainder.")
+extension Money {
+    /// Returns this monetary amount scaled by a fraction.
+    ///
+    /// A monetary amount is always a whole number of the currency's smallest unit, so a fraction that
+    /// does not divide exactly leaves part of a unit for the caller to resolve.
+    ///
+    /// ```swift
+    /// try Money(9_99, currency: .gbp).scaled(by: Ratio(1, 3))    // .exact(£3.33)
+    /// try Money(10_00, currency: .gbp).scaled(by: Ratio(1, 3))   // .inexact(£3.33, remainder: 1/3)
+    /// ```
+    ///
+    /// - Parameter ratio: The fraction to scale by.
+    /// - Throws: ``MoneyError/overflow`` if the result is not representable.
+    public func scaled(
+        by ratio: Ratio
+    ) throws(MoneyError) -> Scaled<Self> {
+        guard let scaled = POCMoney.scaled(minorUnits, by: ratio) else {
+            throw .overflow
+        }
+
+        return scaled.map { Money($0, currency: currency) }
+    }
+
+    /// Returns this monetary amount scaled by a fraction and resolved to a whole unit.
+    ///
+    /// Use this where the caller already knows how a leftover part should be settled. Use
+    /// ``scaled(by:)`` to find out whether there was one.
+    ///
+    /// ```swift
+    /// let price = Money(10, currency: .gbp)
+    /// try price.scaled(by: Ratio(1, 4), rounding: .toNearestOrEven)   // 2p, from 2.5p
+    /// try price.scaled(by: Ratio(1, 4), rounding: .ceiling)           // 3p
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - ratio: The fraction to scale by.
+    ///   - mode: How to resolve part of a unit left over.
+    /// - Throws: ``MoneyError/overflow`` if the result is not representable, including where only the
+    ///   rounding step makes it so.
+    public func scaled(
+        by ratio: Ratio,
+        rounding mode: RoundingMode
+    ) throws(MoneyError) -> Self {
+        guard
+            let scaled = POCMoney.scaled(minorUnits, by: ratio),
+            let rounded = scaled.rounded(mode)
+        else {
+            throw .overflow
+        }
+
+        return Money(rounded, currency: currency)
+    }
+}
 
 // MARK: - Split
 
