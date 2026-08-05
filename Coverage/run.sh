@@ -39,12 +39,15 @@ done
 
 cd "$REPO_DIR"
 
-# llvm-cov ships inside the Xcode toolchain on macOS and on PATH elsewhere.
+# llvm-cov lives inside the Xcode toolchain on macOS, and beside `swift` on Linux — where it is not
+# always on PATH, so fall back to resolving the toolchain through the symlink.
 llvm_cov() {
     if command -v xcrun >/dev/null 2>&1; then
         xcrun llvm-cov "$@"
-    else
+    elif command -v llvm-cov >/dev/null 2>&1; then
         llvm-cov "$@"
+    else
+        "$(dirname "$(readlink -f "$(command -v swift)")")/llvm-cov" "$@"
     fi
 }
 
