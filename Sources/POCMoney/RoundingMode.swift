@@ -19,12 +19,14 @@ public enum RoundingMode: Equatable, Hashable, Sendable {
     /// Moves toward positive infinity.
     case ceiling
 
-    /// Moves to the nearest whole unit, and an exact half to whichever neighbour is even.
+    /// Moves to the nearest whole unit; where two are equally close, to whichever is even.
     ///
-    /// Sometimes called banker's rounding. Over many amounts it does not drift the way
-    /// ``toNearestOrAwayFromZero`` does, because ties go each way equally often.
+    /// Banker's rounding, and the default IEEE 754 mode. Over many amounts it does not drift the way
+    /// ``toNearestOrAwayFromZero`` does, because equally close values go each way equally often.
     case toNearestOrEven
 
-    /// Moves to the nearest whole unit, and an exact half away from zero.
+    /// Moves to the nearest whole unit; where two are equally close, to the one of greater magnitude.
+    ///
+    /// Schoolbook rounding.
     case toNearestOrAwayFromZero
 }

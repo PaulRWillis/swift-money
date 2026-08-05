@@ -205,17 +205,17 @@ private extension Ratio.FractionalRemainder {
     }
 
     var comparedToHalf: ComparedToHalf {
-        // A ratio is always in lowest terms, so the only fraction that is exactly a half is one half.
-        if value == Ratio(1, 2) || value == Ratio(-1, 2) {
-            return .equalToHalf
+        // Comparing what was left over with the distance to the next whole unit answers the same
+        // question as comparing it with a half, and is the same comparison Foundation's `Decimal` makes.
+        // Nothing can overflow, since a remainder is always smaller than its denominator.
+        let leftOver = value.numerator.rawValue.magnitude
+        let toNextWholeUnit = value.denominator.rawValue.magnitude - leftOver
+
+        if leftOver < toNextWholeUnit {
+            return .lessThanHalf
         }
 
-        // Doubling the magnitude and comparing with one whole asks the same question as comparing the
-        // magnitude with a half, without dividing. It cannot overflow: a remainder's magnitude is below
-        // its denominator, which is at most `Int64.max`.
-        let doubled = value.numerator.rawValue.magnitude * 2
-
-        return doubled > value.denominator.rawValue.magnitude ? .moreThanHalf : .lessThanHalf
+        return leftOver == toNextWholeUnit ? .equalToHalf : .moreThanHalf
     }
 }
 
