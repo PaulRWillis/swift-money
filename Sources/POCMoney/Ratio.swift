@@ -21,17 +21,49 @@ public struct Ratio: Equatable, Hashable, Sendable {
         _ numerator: Numerator,
         _ denominator: Denominator
     ) {
-        let rawNumerator = Int64(numerator)
-        let rawDenominator = Int64(denominator)
+        let divisor = Self.greatestCommonDivisor(of: numerator, and: denominator)
 
-        // Reduce on magnitudes: `abs(Int64.min)` overflows, but its magnitude fits in `UInt64`. The
-        // divisor cannot exceed the denominator, so converting it back to `Int64` is always safe, and
-        // dividing by a positive value means `Int64.min / -1` — the one trapping division — cannot
-        // arise.
-        let divisor = Int64(greatestCommonDivisor(rawNumerator.magnitude, rawDenominator.magnitude))
+        self.numerator = numerator.reduced(by: divisor)
+        self.denominator = denominator.reduced(by: divisor)
+    }
 
-        self.numerator = Numerator(rawNumerator / divisor)
-        self.denominator = Denominator(unchecked: rawDenominator / divisor)
+    // Euclid, on magnitudes. `abs(Int64.min)` overflows, but `Int64.min.magnitude` is 2^63 and fits in
+    // `UInt64` comfortably.
+    //
+    // The result is a valid `Denominator` by construction: it divides the denominator, which is at
+    // least 1, so the result is between 1 and the denominator inclusive. That also means it can never
+    // be zero, so this needs none of the "return 1 if both inputs were zero" guard a general-purpose
+    // greatest common divisor requires.
+    private static func greatestCommonDivisor(
+        of numerator: Numerator,
+        and denominator: Denominator
+    ) -> Denominator {
+        var a = numerator.rawValue.magnitude
+        var b = denominator.rawValue.magnitude
+
+        while b != 0 {
+            (a, b) = (b, a % b)
+        }
+
+        return Denominator(unchecked: Int64(a))
+    }
+}
+
+// MARK: - Reduction
+
+private extension Ratio.Numerator {
+    // Every integer is a valid numerator, so dividing can never produce an invalid one. Dividing by a
+    // positive value also means `Int64.min / -1` — the one trapping integer division — cannot arise.
+    func reduced(by divisor: Ratio.Denominator) -> Self {
+        Self(rawValue / divisor.rawValue)
+    }
+}
+
+private extension Ratio.Denominator {
+    // The divisor divides this value exactly and never exceeds it, so the result is at least 1 and
+    // remains a valid denominator.
+    func reduced(by divisor: Ratio.Denominator) -> Self {
+        Self(unchecked: rawValue / divisor.rawValue)
     }
 }
 
