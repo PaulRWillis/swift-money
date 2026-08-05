@@ -58,20 +58,19 @@ internal extension Ratio {
     //
     // `nil` when the whole part is not representable as an `Int`.
     func applied(to amount: Int) -> Scaled<Int>? {
-        // `Int128` is wide enough to hold the product of any two 64-bit values, so the multiplication
-        // cannot overflow even where the answer would not fit on its own: `Int.max` doubled is too
-        // large for an `Int`, while two thirds of `Int.max` is not.
-        let product = Int128(amount) * Int128(numerator.rawValue)
+        let sign = Sign(of: amount) * Sign(of: numerator.rawValue)
 
-        let (wholePart, leftOver) = product.quotientAndRemainder(
-            dividingBy: Int128(denominator.rawValue)
-        )
+        // Widened before taking the magnitude, because `Int` is narrower than an `Int64` on arm64_32.
+        let product = WideMagnitude(Int64(amount).magnitude, times: numerator.rawValue.magnitude)
 
-        guard let whole = Int(exactly: wholePart) else {
+        guard
+            let division = product.quotientAndRemainder(dividingBy: denominator.rawValue.magnitude),
+            let whole = Int(magnitude: division.quotient, sign: sign)
+        else {
             return nil
         }
 
-        guard let remainder = fractionalRemainder(leftOver) else {
+        guard let remainder = fractionalRemainder(division.remainder, sign: sign) else {
             return .exact(whole)
         }
 
@@ -80,14 +79,21 @@ internal extension Ratio {
 
     // What a division by this ratio's denominator left over, as a fraction of one unit. `nil` when the
     // division came out exact.
-    private func fractionalRemainder(_ leftOver: Int128) -> FractionalRemainder? {
+    private func fractionalRemainder(
+        _ leftOver: UInt64,
+        sign: Sign
+    ) -> FractionalRemainder? {
         guard leftOver != 0 else {
             return nil
         }
 
-        // A remainder is always smaller than its divisor, which came from an `Int64`, and it is
-        // non-zero by the guard above — which together are the invariant the type promises.
-        return FractionalRemainder(unchecked: Ratio(Numerator(Int64(leftOver)), denominator))
+        // A remainder is always smaller than its divisor, which came from an `Int64`, so it fits and
+        // negating it cannot overflow. Non-zero by the guard above — together, the invariant the type
+        // promises.
+        let magnitude = Int64(leftOver)
+        let signed = sign == .negative ? -magnitude : magnitude
+
+        return FractionalRemainder(unchecked: Ratio(Numerator(signed), denominator))
     }
 }
 
