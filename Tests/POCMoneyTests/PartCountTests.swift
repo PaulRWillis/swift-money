@@ -82,6 +82,13 @@ struct PartCountTests {
         #expect(Int(parts) == 3)
     }
 
+    @Test("Int64 conversion returns the underlying value", arguments: [1, 3, 1_000_000])
+    func int64Conversion(_ raw: Int) throws {
+        let parts = try #require(PartCount(exactly: raw))
+
+        #expect(Int64(parts) == Int64(raw))
+    }
+
     // MARK: - Comparable
 
     @Test("Fewer parts compare as less than more parts")
