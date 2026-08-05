@@ -9,7 +9,7 @@ public struct MoneyOf<C: CurrencyType>: Equatable, Hashable, Sendable {
         C.currency
     }
 
-    private let minorUnits: Int
+    private let minorUnits: Int64
 
     /// Creates a monetary amount from a whole number of the currency's smallest
     /// (minor) units.
@@ -21,6 +21,16 @@ public struct MoneyOf<C: CurrencyType>: Equatable, Hashable, Sendable {
     public init(
         _ minorUnits: Int
     ) {
+        self.minorUnits = Int64(minorUnits)
+    }
+
+    /// Creates a monetary amount from a whole number of the currency's smallest
+    /// (minor) units.
+    ///
+    /// Amounts are held as an `Int64` on every platform, so the range does not vary with the word size.
+    public init(
+        _ minorUnits: Int64
+    ) {
         self.minorUnits = minorUnits
     }
 }
@@ -30,12 +40,12 @@ public struct MoneyOf<C: CurrencyType>: Equatable, Hashable, Sendable {
 public extension MoneyOf {
     /// The smallest representable monetary amount.
     static var min: Self {
-        Self(Int.min)
+        Self(Int64.min)
     }
 
     /// The largest representable monetary amount.
     static var max: Self {
-        Self(Int.max)
+        Self(Int64.max)
     }
 }
 
@@ -43,7 +53,7 @@ public extension MoneyOf {
 
 extension MoneyOf: AdditiveArithmetic {
     public static var zero: Self {
-        Self(.zero)
+        Self(Int64.zero)
     }
 
     // MARK: - Addition
@@ -118,7 +128,7 @@ extension MoneyOf {
     ///
     /// Traps on overflow.
     public static func * (lhs: Self, rhs: Int) -> Self {
-        Self(lhs.minorUnits * rhs)
+        Self(lhs.minorUnits * Int64(rhs))
     }
 
     /// Returns the result of multiplying an `Int` scalar by a `MoneyOf` value.
@@ -245,13 +255,13 @@ extension MoneyOf {
 
 extension MoneyOf: Strideable {
     /// A count of the currency's smallest (minor) unit.
-    public typealias Stride = Int
+    public typealias Stride = Int64
 
     /// Returns the distance from this monetary amount to `other`.
     ///
     /// - Precondition: The distance is representable as a ``Stride``. Amounts further apart than
     ///   that trap.
-    public func distance(to other: MoneyOf<C>) -> Int {
+    public func distance(to other: MoneyOf<C>) -> Int64 {
         other.minorUnits - self.minorUnits
     }
 

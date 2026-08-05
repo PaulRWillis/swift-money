@@ -64,23 +64,22 @@ public struct Ratio: Equatable, Hashable, Sendable {
 // fraction is left over. The remainder carries the same sign as the whole part, so the two account for
 // the exact product between them.
 //
-// `nil` when the whole part is not representable as an `Int`.
+// `nil` when the whole part is not representable as an `Int64`.
 //
 // Here rather than beside ``Scaled`` — where its sibling `split(_:into:)` sits beside `Split` — because
 // it needs this file's private storage, and needs to build a `FractionalRemainder`, whose initializer
 // is deliberately reachable from nowhere else.
 func scaled(
-    _ amount: Int,
+    _ amount: Int64,
     by ratio: Ratio
-) -> Scaled<Int>? {
+) -> Scaled<Int64>? {
     let sign = Sign(of: amount) * Sign(of: ratio.numerator.rawValue)
 
-    // Widened before taking the magnitude, because `Int` is narrower than an `Int64` on arm64_32.
-    let product = WideMagnitude(Int64(amount).magnitude, times: ratio.numerator.rawValue.magnitude)
+    let product = WideMagnitude(amount.magnitude, times: ratio.numerator.rawValue.magnitude)
 
     guard
         let division = product.quotientAndRemainder(dividingBy: ratio.denominator.rawValue.magnitude),
-        let whole = Int(magnitude: division.quotient, sign: sign)
+        let whole = Int64(magnitude: division.quotient, sign: sign)
     else {
         return nil
     }
@@ -151,9 +150,9 @@ internal extension Ratio.FractionalRemainder {
     //
     // `nil` when that step is not representable: an amount that fits may not once it steps.
     func resolving(
-        _ nearZero: Int,
+        _ nearZero: Int64,
         _ mode: RoundingMode
-    ) -> Int? {
+    ) -> Int64? {
         guard roundsAwayFromZero(under: mode, from: nearZero) else {
             return nearZero
         }
@@ -167,7 +166,7 @@ internal extension Ratio.FractionalRemainder {
 private extension Ratio.FractionalRemainder {
     func roundsAwayFromZero(
         under mode: RoundingMode,
-        from nearZero: Int
+        from nearZero: Int64
     ) -> Bool {
         switch mode {
         case .towardZero:
@@ -199,7 +198,7 @@ private extension Ratio.FractionalRemainder {
     }
 
     // `-1` when negative and `1` when positive. A remainder is never zero, so there is no third answer.
-    var signum: Int {
+    var signum: Int64 {
         isNegative ? -1 : 1
     }
 

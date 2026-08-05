@@ -67,3 +67,12 @@ public extension Int {
         self = parts.rawValue
     }
 }
+
+public extension Int64 {
+    /// Creates an integer from a part count.
+    ///
+    /// - Parameter parts: The part count to convert.
+    init(_ parts: PartCount) {
+        self = Int64(Int(parts))
+    }
+}

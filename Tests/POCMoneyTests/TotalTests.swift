@@ -61,7 +61,7 @@ struct TotalTests {
     @Test("Totalling propagates overflow")
     func totalPropagatesOverflow() {
         let amounts = [
-            Money(.max, currency: .gbp),
+            Money(Int64.max, currency: .gbp),
             Money(1, currency: .gbp),
         ]
 

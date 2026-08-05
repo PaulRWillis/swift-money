@@ -31,11 +31,11 @@ extension Scaled: Sendable where Amount: Sendable {}
 
 // MARK: - Rounding
 
-// Constrained to `Int` because this is the layer where overflow can still be reported rather than
+// Constrained to `Int64` because this is the layer where overflow can still be reported rather than
 // trapped, which is what lets `MoneyOf` trap and `Money` throw from the same code.
-extension Scaled where Amount == Int {
+extension Scaled where Amount == Int64 {
     // The whole number this resolves to under `mode`. `nil` when that is not representable.
-    func rounded(_ mode: RoundingMode) -> Int? {
+    func rounded(_ mode: RoundingMode) -> Int64? {
         switch self {
         case let .exact(whole):
             whole

@@ -15,12 +15,12 @@ struct MoneyOfTests {
 
     // MARK: - Min/Max
 
-    @Test("Min is equivalent to construction through `MoneyOf<C>(Int.min)`")
+    @Test("Min is equivalent to construction through `MoneyOf<C>(Int64.min)`")
     func min() {
         #expect(GBP.min == GBP.min)
     }
 
-    @Test("Max is equivalent to construction through `MoneyOf<C>(Int.max)`")
+    @Test("Max is equivalent to construction through `MoneyOf<C>(Int64.max)`")
     func max() {
         #expect(GBP.max == GBP.max)
     }
