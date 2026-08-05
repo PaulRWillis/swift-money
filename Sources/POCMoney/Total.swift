@@ -6,6 +6,7 @@ public extension Sequence {
     /// ```
     ///
     /// - Precondition: The sum is representable. Totalling beyond ``MoneyOf/max`` traps, as `+` does.
+    @inlinable
     func total<C: CurrencyType>() -> MoneyOf<C> where Element == MoneyOf<C> {
         reduce(.zero, +)
     }
@@ -23,6 +24,7 @@ public extension Sequence where Element == Money {
     ///
     /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if the amounts are not all in the same
     ///   currency, or ``MoneyError/overflow`` if the sum is not representable.
+    @inlinable
     func total() throws(MoneyError) -> Money? {
         var running: Money?
 
