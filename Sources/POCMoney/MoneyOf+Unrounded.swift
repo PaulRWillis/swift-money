@@ -72,6 +72,84 @@ public extension MoneyOf.Unrounded {
     }
 }
 
+// MARK: - AdditiveArithmetic
+
+extension MoneyOf.Unrounded: AdditiveArithmetic {
+    public static var zero: Self {
+        MoneyOf<C>.zero.unrounded
+    }
+
+    /// Returns the sum of two unrounded amounts, keeping both exact.
+    ///
+    /// Traps on overflow.
+    public static func + (lhs: Self, rhs: Self) -> Self {
+        guard let sum = lhs.minorUnits.adding(rhs.minorUnits) else {
+            preconditionFailure("Adding \(rhs) is not representable")
+        }
+
+        return Self(sum)
+    }
+
+    /// Returns the difference of two unrounded amounts, keeping both exact.
+    ///
+    /// Traps on overflow.
+    public static func - (lhs: Self, rhs: Self) -> Self {
+        guard let difference = lhs.minorUnits.subtracting(rhs.minorUnits) else {
+            preconditionFailure("Subtracting \(rhs) is not representable")
+        }
+
+        return Self(difference)
+    }
+}
+
+// MARK: - Mixing with settled money
+
+// A settled amount widens to an unrounded one exactly, so these lose nothing. The expression is already
+// marked by an `.unrounded` somewhere in it, which is what keeps the opt-in visible.
+public extension MoneyOf.Unrounded {
+    /// Returns the sum of an unrounded amount and a settled one.
+    ///
+    /// Traps on overflow.
+    static func + (lhs: Self, rhs: MoneyOf<C>) -> Self {
+        lhs + rhs.unrounded
+    }
+
+    /// Returns the sum of a settled amount and an unrounded one.
+    ///
+    /// Traps on overflow.
+    static func + (lhs: MoneyOf<C>, rhs: Self) -> Self {
+        lhs.unrounded + rhs
+    }
+
+    /// Returns a settled amount subtracted from an unrounded one.
+    ///
+    /// Traps on overflow.
+    static func - (lhs: Self, rhs: MoneyOf<C>) -> Self {
+        lhs - rhs.unrounded
+    }
+
+    /// Returns an unrounded amount subtracted from a settled one.
+    ///
+    /// Traps on overflow.
+    static func - (lhs: MoneyOf<C>, rhs: Self) -> Self {
+        lhs.unrounded - rhs
+    }
+
+    /// Adds a settled amount to an unrounded one in place.
+    ///
+    /// Traps on overflow.
+    static func += (lhs: inout Self, rhs: MoneyOf<C>) {
+        lhs = lhs + rhs
+    }
+
+    /// Subtracts a settled amount from an unrounded one in place.
+    ///
+    /// Traps on overflow.
+    static func -= (lhs: inout Self, rhs: MoneyOf<C>) {
+        lhs = lhs - rhs
+    }
+}
+
 // MARK: - Settling
 
 public extension MoneyOf.Unrounded {

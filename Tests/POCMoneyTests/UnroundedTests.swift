@@ -139,6 +139,130 @@ struct UnroundedTests {
         #expect(smallest.rounded(.awayFromZero) == GBP(Int64.min / 3 - 1))
     }
 
+    // MARK: - Addition and subtraction
+
+    @Test("Amounts over the same denominator add")
+    func sameDenominatorAdds() {
+        let third = GBP(10_00).unrounded * Ratio(1, 3)
+
+        #expect(roundsIdentically(third + third + third) == GBP(10_00))
+    }
+
+    @Test("Amounts over different denominators add")
+    func differentDenominatorsAdd() {
+        let aThird = GBP(3_00).unrounded * Ratio(1, 3)
+        let aQuarter = GBP(4_00).unrounded * Ratio(1, 4)
+
+        #expect(roundsIdentically(aThird + aQuarter) == GBP(2_00))
+    }
+
+    @Test("Amounts subtract")
+    func amountsSubtract() {
+        let aThird = GBP(10_00).unrounded * Ratio(1, 3)
+        let twoThirds = GBP(20_00).unrounded * Ratio(1, 3)
+
+        #expect(roundsIdentically(twoThirds - aThird) == nil)
+        #expect(roundsIdentically(twoThirds - aThird - aThird) == GBP(0))
+    }
+
+    // Over the product of the denominators this would need 10^36. Over their lowest common multiple it
+    // needs 10^18, which fits.
+    @Test("Amounts over the same large denominator add without overflowing")
+    func sameLargeDenominatorAdds() {
+        let tiny = GBP(1).unrounded * Ratio(1, 1_000_000_000_000_000_000)
+
+        #expect((tiny + tiny).rounded(.towardZero) == GBP.zero)
+        #expect((tiny + tiny).rounded(.awayFromZero) == GBP(1))
+    }
+
+    @Test("Adding and subtracting in place match the operators")
+    func inPlaceMatches() {
+        let third = GBP(10_00).unrounded * Ratio(1, 3)
+
+        var added = third
+        added += third
+
+        var subtracted = third
+        subtracted -= third
+
+        #expect(added == third + third)
+        #expect(subtracted == GBP.Unrounded.zero)
+    }
+
+    // MARK: - Mixing with settled money
+
+    @Test("A settled amount can join a chain from either side")
+    func settledMoneyJoinsAChain() {
+        let third = GBP(9_99).unrounded * Ratio(1, 3)
+
+        #expect(roundsIdentically(third + GBP(1_00)) == GBP(4_33))
+        #expect(roundsIdentically(GBP(1_00) + third) == GBP(4_33))
+        #expect(roundsIdentically(third - GBP(1_00)) == GBP(2_33))
+        #expect(roundsIdentically(GBP(1_00) - third) == GBP(-2_33))
+    }
+
+    @Test("A settled amount can join a chain in place")
+    func settledMoneyJoinsInPlace() {
+        var running = GBP(9_99).unrounded * Ratio(1, 3)
+        running += GBP(1_00)
+        running -= GBP(2_00)
+
+        #expect(roundsIdentically(running) == GBP(2_33))
+    }
+
+    // The whole library in one expression, and the one place `split` belongs.
+    @Test("A discounted, taxed line apportions across cost centres")
+    func aDiscountedTaxedLineApportions() {
+        let net = GBP(5_00).unrounded * Ratio(1, 3) + GBP(2_00) - GBP(1_00)
+        let shares = net.rounded(.toNearestOrEven).split(into: 2)
+
+        #expect(Array(shares.amounts) == [GBP(1_34), GBP(1_33)])
+    }
+
+    // MARK: - Zero
+
+    // Written out rather than as `.zero`: with a settled amount addable to an unrounded one, a leading
+    // dot cannot tell which type's zero is meant. That is a compile error rather than a wrong answer,
+    // and it is the price of letting the two mix.
+    @Test("Zero leaves an amount unchanged")
+    func zeroLeavesAnAmountUnchanged() {
+        let third = GBP(10_00).unrounded * Ratio(1, 3)
+
+        #expect(third + GBP.Unrounded.zero == third)
+        #expect(GBP.Unrounded.zero + third == third)
+        #expect(third + GBP.zero == third)
+        #expect(GBP.Unrounded.zero.rounded(.awayFromZero) == GBP.zero)
+    }
+
+    // 365 additions, all over the same denominator, and the year comes out exactly. The case the type
+    // exists for: settling each day would drift.
+    @Test("A year of daily accrual sums to the annual rate exactly")
+    func aYearOfDailyAccrualIsExact() {
+        let balance = GBP(10_000_00)
+        let daily = Ratio(45, 365_000)
+        var accrued = GBP.Unrounded.zero
+
+        for _ in 0 ..< 365 {
+            accrued += balance.unrounded * daily
+        }
+
+        #expect(roundsIdentically(accrued) == GBP(450_00))
+    }
+
+    @Test("Adding past the largest amount traps")
+    func addingPastTheLargestAmountTraps() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(GBP.max.unrounded + GBP.max.unrounded)
+        }
+    }
+
+    @Test("Subtracting past the smallest amount traps")
+    func subtractingPastTheSmallestAmountTraps() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(GBP.min.unrounded - GBP.max.unrounded)
+        }
+    }
+
     // MARK: - Equatable and Hashable
 
     @Test("Equal chains are equal however they were reached")
