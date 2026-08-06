@@ -29,6 +29,15 @@ public struct Ratio: Equatable, Hashable, Sendable {
         self.denominator = denominator.reduced(by: divisor)
     }
 
+    // No reduction: only for call sites that have already established the fraction is in lowest terms.
+    private init(
+        unchecked numerator: Numerator,
+        _ denominator: Denominator
+    ) {
+        self.numerator = numerator
+        self.denominator = denominator
+    }
+
     // Euclid, on magnitudes. `abs(Int64.min)` overflows, but `Int64.min.magnitude` is 2^63 and fits in
     // `UInt64` comfortably.
     //
@@ -112,6 +121,71 @@ private extension Ratio {
     }
 }
 
+// MARK: - Settling an exact count of units
+
+// The whole number `exact` settles to under `mode`.
+//
+// Total, unlike `scaled(_:by:)`: a denominator of one leaves nothing to settle, and any larger
+// denominator has already at least halved the numerator, so the step to the next unit always fits.
+//
+// Here rather than beside ``RoundingMode`` because it needs a `FractionalRemainder`, whose initializer
+// is deliberately reachable from nowhere else.
+func rounded(
+    _ exact: Ratio,
+    _ mode: RoundingMode
+) -> Int64 {
+    let nearZero = exact.numerator.rawValue / exact.denominator.rawValue
+    let leftOver = exact.numerator.rawValue % exact.denominator.rawValue
+
+    guard let remainder = exact.fractionalRemainder(leftOver.magnitude, sign: Sign(of: leftOver)) else {
+        return nearZero
+    }
+
+    return nearZero + remainder.step(under: mode, from: nearZero)
+}
+
+// MARK: - Multiplication
+
+internal extension Ratio {
+    // This ratio multiplied by another, in lowest terms. `nil` when the product is not representable.
+    //
+    // Multiplies first and reduces the product, which spends one greatest common divisor rather than
+    // two. Only if that overflows does it cancel across the two fractions instead, which succeeds
+    // wherever the reduced product would have fitted all along.
+    func multiplied(by other: Ratio) -> Ratio? {
+        let (numerator, numeratorOverflowed) = self.numerator.rawValue
+            .multipliedReportingOverflow(by: other.numerator.rawValue)
+        let (denominator, denominatorOverflowed) = self.denominator.rawValue
+            .multipliedReportingOverflow(by: other.denominator.rawValue)
+
+        guard !numeratorOverflowed, !denominatorOverflowed else {
+            return cancelled(against: other)
+        }
+
+        return Ratio(Numerator(numerator), Denominator(unchecked: denominator))
+    }
+}
+
+private extension Ratio {
+    // Cancels each numerator against the other's denominator before multiplying, so common factors go
+    // before anything grows. Both fractions are already in lowest terms, so the result is too.
+    func cancelled(against other: Ratio) -> Ratio? {
+        let ours = Self.greatestCommonDivisor(of: numerator, and: other.denominator)
+        let theirs = Self.greatestCommonDivisor(of: other.numerator, and: denominator)
+
+        let (numerator, numeratorOverflowed) = self.numerator.reduced(by: ours).rawValue
+            .multipliedReportingOverflow(by: other.numerator.reduced(by: theirs).rawValue)
+        let (denominator, denominatorOverflowed) = self.denominator.reduced(by: theirs).rawValue
+            .multipliedReportingOverflow(by: other.denominator.reduced(by: ours).rawValue)
+
+        guard !numeratorOverflowed, !denominatorOverflowed else {
+            return nil
+        }
+
+        return Ratio(unchecked: Numerator(numerator), Denominator(unchecked: denominator))
+    }
+}
+
 // MARK: - Fractional Remainder
 
 public extension Ratio {
@@ -143,21 +217,26 @@ public extension Ratio {
 // MARK: - Resolving a remainder
 
 internal extension Ratio.FractionalRemainder {
-    // The whole number `nearZero` becomes once this leftover is resolved by `mode`.
+    // How far `nearZero` moves once this leftover is resolved by `mode`: either nothing, or one whole
+    // unit away from zero.
     //
     // The answer is one of the two whole numbers either side. Truncating already gave the one nearer
     // zero, so all the mode decides is whether to take the other.
+    func step(
+        under mode: RoundingMode,
+        from nearZero: Int64
+    ) -> Int64 {
+        roundsAwayFromZero(under: mode, from: nearZero) ? signum : 0
+    }
+
+    // The whole number `nearZero` becomes once this leftover is resolved by `mode`.
     //
     // `nil` when that step is not representable: an amount that fits may not once it steps.
     func resolving(
         _ nearZero: Int64,
         _ mode: RoundingMode
     ) -> Int64? {
-        guard roundsAwayFromZero(under: mode, from: nearZero) else {
-            return nearZero
-        }
-
-        let (rounded, didOverflow) = nearZero.addingReportingOverflow(signum)
+        let (rounded, didOverflow) = nearZero.addingReportingOverflow(step(under: mode, from: nearZero))
 
         return didOverflow ? nil : rounded
     }
