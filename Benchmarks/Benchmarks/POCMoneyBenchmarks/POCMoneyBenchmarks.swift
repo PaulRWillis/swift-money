@@ -198,6 +198,85 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    // MARK: - Chained Scaling
+
+    // A 10% discount, then 20% VAT, then 31 days of a year. Only the unrounded chain is exact: the
+    // others settle, truncate or drift at every step, so the timings carry a correctness result too.
+
+    Benchmark("MoneyOf unrounded scaling", configuration: defaultConfiguration) { benchmark in
+        let vat = Ratio(7, 40)
+        var amount = 1
+
+        for _ in benchmark.scaledIterations {
+            blackHole(GBP(amount).unrounded * vat)
+            amount &+= 1
+        }
+    }
+
+    Benchmark("MoneyOf unrounded chain", configuration: defaultConfiguration) { benchmark in
+        let discount = Ratio(9, 10)
+        let vat = Ratio(6, 5)
+        let dayCount = Ratio(31, 365)
+        var amount = 1
+
+        for _ in benchmark.scaledIterations {
+            let chained = GBP(amount).unrounded * discount * vat * dayCount
+            blackHole(chained.rounded(.toNearestOrEven))
+            amount &+= 1
+        }
+    }
+
+    Benchmark("MoneyOf chain, rounding each step", configuration: defaultConfiguration) { benchmark in
+        let discount = Ratio(9, 10)
+        let vat = Ratio(6, 5)
+        let dayCount = Ratio(31, 365)
+        var amount = 1
+
+        for _ in benchmark.scaledIterations {
+            blackHole(
+                GBP(amount)
+                    .scaled(by: discount, rounding: .toNearestOrEven)
+                    .scaled(by: vat, rounding: .toNearestOrEven)
+                    .scaled(by: dayCount, rounding: .toNearestOrEven)
+            )
+            amount &+= 1
+        }
+    }
+
+    Benchmark("Int chained scaling, truncating", configuration: defaultConfiguration) { benchmark in
+        var amount = 1
+
+        for _ in benchmark.scaledIterations {
+            blackHole(amount * 9 / 10 * 6 / 5 * 31 / 365)
+            amount &+= 1
+        }
+    }
+
+    Benchmark("Double chained scaling", configuration: defaultConfiguration) { benchmark in
+        let dayCount = 31.0 / 365.0
+        var amount = 1.0
+
+        for _ in benchmark.scaledIterations {
+            blackHole((amount * 0.9 * 1.2 * dayCount).rounded())
+            amount += 1.0
+        }
+    }
+
+    Benchmark("Decimal chained scaling", configuration: defaultConfiguration) { benchmark in
+        let discount = Decimal(9) / Decimal(10)
+        let vat = Decimal(6) / Decimal(5)
+        let dayCount = Decimal(31) / Decimal(365)
+        var amount = 1
+
+        for _ in benchmark.scaledIterations {
+            var scaled = Decimal(amount) * discount * vat * dayCount
+            var rounded = Decimal()
+            NSDecimalRound(&rounded, &scaled, 0, .bankers)
+            blackHole(rounded)
+            amount &+= 1
+        }
+    }
+
     // MARK: - Comparison
 
     Benchmark("MoneyOf comparison", configuration: defaultConfiguration) { benchmark in
