@@ -70,6 +70,48 @@ struct TotalTests {
         }
     }
 
+    // MARK: - Unrounded
+
+    // Three thirds of a penny total a penny. Settling each one first would total nothing.
+    @Test("Totalling unrounded typed amounts stays exact")
+    func totalOfUnroundedTypedAmounts() {
+        let third = GBP(1).unrounded * Ratio(1, 3)
+
+        #expect([third, third, third].total().rounded(.towardZero) == GBP(1))
+    }
+
+    @Test("Totalling no unrounded typed amounts is zero")
+    func totalOfNoUnroundedTypedAmounts() {
+        #expect([GBP.Unrounded]().total() == GBP.Unrounded.zero)
+    }
+
+    @Test("Totalling unrounded untyped amounts stays exact")
+    func totalOfUnroundedUntypedAmounts() throws {
+        let third = try Money(1, currency: .eur).unrounded * Ratio(1, 3)
+
+        let summed = try [third, third, third].total()
+        let total = try #require(summed)
+
+        #expect(total.rounded(.towardZero) == Money(1, currency: .eur))
+    }
+
+    @Test("Totalling no unrounded untyped amounts is nil")
+    func totalOfNoUnroundedUntypedAmounts() throws {
+        #expect(try [Money.Unrounded]().total() == nil)
+    }
+
+    @Test("Totalling unrounded amounts of mixed currencies throws, naming both")
+    func totalOfUnroundedMixedCurrencies() {
+        let amounts = [
+            Money(1_00, currency: .gbp).unrounded,
+            Money(2_50, currency: .eur).unrounded,
+        ]
+
+        #expect(throws: MoneyError.currencyMismatch(lhs: .gbp, rhs: .eur)) {
+            try amounts.total()
+        }
+    }
+
     // MARK: - Any Sequence
 
     @Test("Totalling works on any sequence, not only arrays")
