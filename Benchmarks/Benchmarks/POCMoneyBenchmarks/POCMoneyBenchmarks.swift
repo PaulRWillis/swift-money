@@ -295,6 +295,50 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    // The same split on the runtime-currency type. Both run the same algorithm, so a gap between them
+    // is not arithmetic — it is what `MoneyOf` pays for being generic.
+    Benchmark("Money split into 3", configuration: defaultConfiguration) { benchmark in
+        var amount = 1
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Money(amount, currency: .gbp).split(into: 3))
+            amount &+= 1
+        }
+    }
+
+    // What splitting costs when the hardware does it unaided, and so the floor the others are measured
+    // against. A split is a division that keeps its remainder rather than discarding it.
+    Benchmark("Int quotient and remainder", configuration: defaultConfiguration) { benchmark in
+        var amount = 1
+
+        for _ in benchmark.scaledIterations {
+            blackHole(amount.quotientAndRemainder(dividingBy: 3))
+            amount &+= 1
+        }
+    }
+
+    // Neither of the next two is doing the same job: they divide and drop whatever will not divide
+    // evenly, where a split hands the leftover unit to one of the parts. They are here as the cost of
+    // the arithmetic alone, not as an equivalent.
+    Benchmark("Double divided by 3", configuration: defaultConfiguration) { benchmark in
+        var amount = 1.0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(amount / 3.0)
+            amount += 1.0
+        }
+    }
+
+    Benchmark("Decimal divided by 3", configuration: defaultConfiguration) { benchmark in
+        let three = Decimal(3)
+        var amount = Decimal(1)
+
+        for _ in benchmark.scaledIterations {
+            blackHole(amount / three)
+            amount += 1
+        }
+    }
+
     // A `Split` holds two groups rather than one amount per part, so iterating expands it on demand.
     // Against the split itself, this is what that expansion costs.
     Benchmark("MoneyOf split, iterating the parts", configuration: defaultConfiguration) { benchmark in
