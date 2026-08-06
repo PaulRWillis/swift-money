@@ -13,7 +13,9 @@ public struct Money: Equatable, Hashable, Sendable {
     /// The currency this amount is denominated in.
     public let currency: Currency
 
-    private let minorUnits: Int64
+    // Internal rather than private so that `split(into:)` can be inlinable.
+    @usableFromInline
+    let minorUnits: Int64
 
     /// Creates a monetary amount from a whole number of the currency's smallest
     /// (minor) units.
@@ -263,6 +265,7 @@ extension Money {
     /// ```swift
     /// Money(100_00, currency: .gbp).split(into: 3)   // one part of £33.34, two of £33.33
     /// ```
+    @inlinable
     public func split(
         into parts: PartCount
     ) -> Split<Self> {

@@ -47,6 +47,8 @@ TABLES = [
              ["Int scaled, truncating", "Double scaled and rounded", "Decimal scaled and rounded"]),
             ("Comparison", "MoneyOf comparison",
              ["Int comparison", "Double comparison", "Decimal comparison"]),
+            ("Split into 3", "MoneyOf split into 3",
+             ["Int quotient and remainder", "Double divided by 3", "Decimal divided by 3"]),
         ],
     },
     {
@@ -56,7 +58,7 @@ TABLES = [
             ("Addition, throwing", "Money addition, throwing", []),
             ("Scale, reporting a remainder", "MoneyOf scaled, reporting a remainder", []),
             ("Ratio construction", "Ratio construction", []),
-            ("Split into 3", "MoneyOf split into 3", []),
+            ("Split into 3, runtime currency", "Money split into 3", []),
             ("Split, iterating the parts", "MoneyOf split, iterating the parts", []),
             ("Total of 10", "MoneyOf total of 10", []),
             ("Currency code validation", "CurrencyCode validation", []),
