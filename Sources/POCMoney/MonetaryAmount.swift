@@ -6,10 +6,15 @@
 // which makes its operators non-throwing at every call site, while one that can fail names its error.
 // A plain non-throwing operator satisfies a `throws(Never)` requirement, so `Never` costs a conformer
 // nothing.
+//
+// `Unrounded` carries no constraints, so this checks that both types offer the entry point, not that
+// their unrounded arithmetic agrees.
 protocol MonetaryAmount: Hashable, Sendable {
     associatedtype ArithmeticError: Error
+    associatedtype Unrounded
 
     var currency: Currency { get }
+    var unrounded: Unrounded { get }
 
     func split(into parts: PartCount) -> Split<Self>
 

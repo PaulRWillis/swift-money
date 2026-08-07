@@ -373,4 +373,57 @@ struct MoneyTests {
 
         #expect(Array(result.amounts) == [Money(2, currency: .gbp), Money(1, currency: .gbp),])
     }
+
+    // MARK: - Unrounded
+
+    // The chaining itself is covered by UnroundedTests, which drives it through GBP. These check the
+    // steps unique to Money: keeping the currency, and throwing where MoneyOf traps.
+
+    @Test("A chain keeps the currency")
+    func chainKeepsTheCurrency() throws {
+        let sut = Money(10_00, currency: .eur)
+
+        let chained = try sut.unrounded * Ratio(1, 3) * Ratio(3, 1)
+
+        #expect(chained.rounded(.toNearestOrEven) == Money(10_00, currency: .eur))
+    }
+
+    // One `try` covers the whole expression, as it does for the rest of Money's arithmetic.
+    @Test("A chain of two rates settles once")
+    func chainOfTwoRatesSettlesOnce() throws {
+        let sut = Money(10_000_00, currency: .gbp)
+
+        let interest = try sut.unrounded * Ratio(45, 1000) * Ratio(31, 365)
+
+        #expect(interest.rounded(.toNearestOrEven) == Money(38_22, currency: .gbp))
+    }
+
+    @Test("Scaling an unrounded amount past the largest throws, where MoneyOf traps")
+    func unroundedScalingPastTheLargestAmountThrows() {
+        let sut = Money(Int64.max, currency: .gbp)
+
+        #expect(throws: MoneyError.overflow) {
+            try sut.unrounded * Ratio(3, 1)
+        }
+    }
+
+    @Test("Scaling an unrounded amount in place throws, leaving the value untouched")
+    func unroundedScalingInPlaceThrows() throws {
+        let sut = Money(Int64.max, currency: .gbp)
+        var unrounded = sut.unrounded
+
+        #expect(throws: MoneyError.overflow) {
+            try unrounded *= Ratio(3, 1)
+        }
+
+        #expect(unrounded == sut.unrounded)
+    }
+
+    // Settling cannot overflow, so it needs no `try` even at the largest amount.
+    @Test("Settling an unrounded amount never throws")
+    func settlingNeverThrows() {
+        let sut = Money(Int64.max, currency: .gbp)
+
+        #expect(sut.unrounded.rounded(.awayFromZero) == sut)
+    }
 }
