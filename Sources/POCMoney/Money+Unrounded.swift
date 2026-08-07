@@ -82,6 +82,130 @@ public extension Money.Unrounded {
     }
 }
 
+// MARK: - Addition and subtraction
+
+private extension Money.Unrounded {
+    func adding(_ other: Self) throws(MoneyError) -> Self {
+        guard currency == other.currency else {
+            throw .currencyMismatch(lhs: currency, rhs: other.currency)
+        }
+
+        guard let sum = minorUnits.adding(other.minorUnits) else {
+            throw .overflow
+        }
+
+        return Self(sum, currency: currency)
+    }
+
+    func subtracting(_ other: Self) throws(MoneyError) -> Self {
+        guard currency == other.currency else {
+            throw .currencyMismatch(lhs: currency, rhs: other.currency)
+        }
+
+        guard let difference = minorUnits.subtracting(other.minorUnits) else {
+            throw .overflow
+        }
+
+        return Self(difference, currency: currency)
+    }
+}
+
+public extension Money.Unrounded {
+    /// Returns the sum of two unrounded amounts, keeping both exact.
+    ///
+    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if the currencies differ, or
+    ///   ``MoneyError/overflow`` if the sum is not representable.
+    static func + (lhs: Self, rhs: Self) throws(MoneyError) -> Self {
+        try lhs.adding(rhs)
+    }
+
+    /// Returns the difference of two unrounded amounts, keeping both exact.
+    ///
+    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if the currencies differ, or
+    ///   ``MoneyError/overflow`` if the difference is not representable.
+    static func - (lhs: Self, rhs: Self) throws(MoneyError) -> Self {
+        try lhs.subtracting(rhs)
+    }
+
+    /// Adds an unrounded amount in place.
+    ///
+    /// `lhs` is left untouched when this throws.
+    ///
+    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if the currencies differ, or
+    ///   ``MoneyError/overflow`` if the sum is not representable.
+    static func += (lhs: inout Self, rhs: Self) throws(MoneyError) {
+        lhs = try lhs.adding(rhs)
+    }
+
+    /// Subtracts an unrounded amount in place.
+    ///
+    /// `lhs` is left untouched when this throws.
+    ///
+    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if the currencies differ, or
+    ///   ``MoneyError/overflow`` if the difference is not representable.
+    static func -= (lhs: inout Self, rhs: Self) throws(MoneyError) {
+        lhs = try lhs.subtracting(rhs)
+    }
+}
+
+// MARK: - Mixing with settled money
+
+// A settled amount widens to an unrounded one exactly, so these lose nothing. The expression is already
+// marked by an `.unrounded` somewhere in it, which is what keeps the opt-in visible.
+public extension Money.Unrounded {
+    /// Returns the sum of an unrounded amount and a settled one.
+    ///
+    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if the currencies differ, or
+    ///   ``MoneyError/overflow`` if the sum is not representable.
+    static func + (lhs: Self, rhs: Money) throws(MoneyError) -> Self {
+        try lhs.adding(rhs.unrounded)
+    }
+
+    /// Returns the sum of a settled amount and an unrounded one.
+    ///
+    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if the currencies differ, or
+    ///   ``MoneyError/overflow`` if the sum is not representable.
+    static func + (lhs: Money, rhs: Self) throws(MoneyError) -> Self {
+        try lhs.unrounded.adding(rhs)
+    }
+
+    /// Returns a settled amount subtracted from an unrounded one.
+    ///
+    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if the currencies differ, or
+    ///   ``MoneyError/overflow`` if the difference is not representable.
+    static func - (lhs: Self, rhs: Money) throws(MoneyError) -> Self {
+        try lhs.subtracting(rhs.unrounded)
+    }
+
+    /// Returns an unrounded amount subtracted from a settled one.
+    ///
+    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if the currencies differ, or
+    ///   ``MoneyError/overflow`` if the difference is not representable.
+    static func - (lhs: Money, rhs: Self) throws(MoneyError) -> Self {
+        try lhs.unrounded.subtracting(rhs)
+    }
+
+    /// Adds a settled amount to an unrounded one in place.
+    ///
+    /// `lhs` is left untouched when this throws.
+    ///
+    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if the currencies differ, or
+    ///   ``MoneyError/overflow`` if the sum is not representable.
+    static func += (lhs: inout Self, rhs: Money) throws(MoneyError) {
+        lhs = try lhs.adding(rhs.unrounded)
+    }
+
+    /// Subtracts a settled amount from an unrounded one in place.
+    ///
+    /// `lhs` is left untouched when this throws.
+    ///
+    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if the currencies differ, or
+    ///   ``MoneyError/overflow`` if the difference is not representable.
+    static func -= (lhs: inout Self, rhs: Money) throws(MoneyError) {
+        lhs = try lhs.subtracting(rhs.unrounded)
+    }
+}
+
 // MARK: - Settling
 
 public extension Money.Unrounded {

@@ -46,6 +46,13 @@ public struct Ratio: Equatable, Hashable, Sendable {
     // be zero, so this needs none of the "return 1 if both inputs were zero" guard a general-purpose
     // greatest common divisor requires.
     private static func greatestCommonDivisor(
+        of first: Denominator,
+        and second: Denominator
+    ) -> Denominator {
+        greatestCommonDivisor(of: Numerator(first.rawValue), and: second)
+    }
+
+    private static func greatestCommonDivisor(
         of numerator: Numerator,
         and denominator: Denominator
     ) -> Denominator {
@@ -166,7 +173,64 @@ internal extension Ratio {
     }
 }
 
+// MARK: - Addition
+
+internal extension Ratio {
+    // This ratio plus another, in lowest terms. `nil` when the sum is not representable.
+    func adding(_ other: Ratio) -> Ratio? {
+        guard let restated = overCommonDenominator(other) else {
+            return nil
+        }
+
+        let (total, overflowed) = restated.ours.addingReportingOverflow(restated.theirs)
+
+        guard !overflowed else {
+            return nil
+        }
+
+        return Ratio(Numerator(total), restated.denominator)
+    }
+
+    // This ratio minus another, in lowest terms. `nil` when the difference is not representable.
+    func subtracting(_ other: Ratio) -> Ratio? {
+        guard let restated = overCommonDenominator(other) else {
+            return nil
+        }
+
+        let (total, overflowed) = restated.ours.subtractingReportingOverflow(restated.theirs)
+
+        guard !overflowed else {
+            return nil
+        }
+
+        return Ratio(Numerator(total), restated.denominator)
+    }
+}
+
 private extension Ratio {
+    // Both numerators restated over the lowest common multiple of the two denominators. Two ratios that
+    // already share a denominator keep it, where the product would square it.
+    func overCommonDenominator(
+        _ other: Ratio
+    ) -> (ours: Int64, theirs: Int64, denominator: Denominator)? {
+        let shared = Self.greatestCommonDivisor(of: denominator, and: other.denominator)
+        let ourStep = other.denominator.reduced(by: shared)
+        let theirStep = denominator.reduced(by: shared)
+
+        let (common, commonOverflowed) = denominator.rawValue
+            .multipliedReportingOverflow(by: ourStep.rawValue)
+        let (ours, oursOverflowed) = numerator.rawValue
+            .multipliedReportingOverflow(by: ourStep.rawValue)
+        let (theirs, theirsOverflowed) = other.numerator.rawValue
+            .multipliedReportingOverflow(by: theirStep.rawValue)
+
+        guard !commonOverflowed, !oursOverflowed, !theirsOverflowed else {
+            return nil
+        }
+
+        return (ours, theirs, Denominator(unchecked: common))
+    }
+
     // Cancels each numerator against the other's denominator before multiplying, so common factors go
     // before anything grows. Both fractions are already in lowest terms, so the result is too.
     func cancelled(against other: Ratio) -> Ratio? {

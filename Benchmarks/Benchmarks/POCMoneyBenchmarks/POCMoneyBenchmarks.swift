@@ -277,6 +277,19 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    // Cycling through pre-built operands, so neither the addition nor the scaling that produced them
+    // can be hoisted out of the loop.
+    let thirds = (1 ... 16).map { GBP($0 * 100).unrounded * Ratio(1, 3) }
+
+    Benchmark("MoneyOf unrounded addition", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(thirds[index % thirds.count] + thirds[(index &+ 1) % thirds.count])
+            index &+= 1
+        }
+    }
+
     // MARK: - Comparison
 
     Benchmark("MoneyOf comparison", configuration: defaultConfiguration) { benchmark in

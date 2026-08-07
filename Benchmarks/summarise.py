@@ -61,6 +61,7 @@ TABLES = [
             ("Addition, throwing", "Money addition, throwing", []),
             ("Scale, reporting a remainder", "MoneyOf scaled, reporting a remainder", []),
             ("Scale, leaving it unrounded", "MoneyOf unrounded scaling", []),
+            ("Unrounded addition", "MoneyOf unrounded addition", []),
             ("Chained scaling, rounding each step", "MoneyOf chain, rounding each step", []),
             ("Ratio construction", "Ratio construction", []),
             ("Split into 3, runtime currency", "Money split into 3", []),

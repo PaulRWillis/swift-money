@@ -426,4 +426,62 @@ struct MoneyTests {
 
         #expect(sut.unrounded.rounded(.awayFromZero) == sut)
     }
+
+    @Test("Adding unrounded amounts keeps the currency")
+    func addingUnroundedKeepsTheCurrency() throws {
+        let third = try Money(9_99, currency: .eur).unrounded * Ratio(1, 3)
+
+        let whole = try third + third + third
+
+        #expect(whole.rounded(.toNearestOrEven) == Money(9_99, currency: .eur))
+    }
+
+    @Test("Adding unrounded amounts in different currencies throws, naming both")
+    func addingUnroundedDifferentCurrenciesThrows() {
+        let sterling = Money(1_00, currency: .gbp).unrounded
+        let euros = Money(1_00, currency: .eur).unrounded
+
+        #expect(throws: MoneyError.currencyMismatch(lhs: .gbp, rhs: .eur)) {
+            try sterling + euros
+        }
+    }
+
+    @Test("A settled amount joins an unrounded chain")
+    func settledAmountJoinsAnUnroundedChain() throws {
+        let net = try Money(5_00, currency: .gbp).unrounded * Ratio(1, 3)
+            + Money(2_00, currency: .gbp)
+            - Money(1_00, currency: .gbp)
+
+        #expect(net.rounded(.toNearestOrEven) == Money(2_67, currency: .gbp))
+    }
+
+    @Test("A settled amount in another currency throws")
+    func settledAmountInAnotherCurrencyThrows() {
+        let sterling = Money(1_00, currency: .gbp).unrounded
+
+        #expect(throws: MoneyError.currencyMismatch(lhs: .gbp, rhs: .eur)) {
+            try sterling + Money(1_00, currency: .eur)
+        }
+    }
+
+    @Test("Adding unrounded amounts past the largest throws")
+    func addingUnroundedPastTheLargestThrows() {
+        let largest = Money(Int64.max, currency: .gbp).unrounded
+
+        #expect(throws: MoneyError.overflow) {
+            try largest + largest
+        }
+    }
+
+    @Test("Adding to an unrounded amount in place throws, leaving the value untouched")
+    func addingUnroundedInPlaceThrows() {
+        let largest = Money(Int64.max, currency: .gbp)
+        var running = largest.unrounded
+
+        #expect(throws: MoneyError.overflow) {
+            try running += largest
+        }
+
+        #expect(running == largest.unrounded)
+    }
 }
