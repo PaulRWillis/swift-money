@@ -233,6 +233,27 @@ struct MoneyOfTests {
         #expect(high > low)
     }
 
+    // Ranges, ordering and clamping come from `Comparable`, not from `Strideable`, which is why
+    // dropping `Strideable` costs only the ability to iterate every minor unit between two amounts.
+    @Test("when building a range of amounts should support containment and bounds")
+    func rangesComeFromComparable() {
+        let band = GBP(1_00)...GBP(9_00)
+
+        #expect(band.contains(GBP(5_00)))
+        #expect(!band.contains(GBP(9_01)))
+        #expect(band.lowerBound == GBP(1_00))
+        #expect(band.upperBound == GBP(9_00))
+        #expect(band.clamped(to: GBP(2_00)...GBP(4_00)) == GBP(2_00)...GBP(4_00))
+    }
+
+    @Test("when comparing a sequence of amounts should return the extremes")
+    func extremesComeFromComparable() {
+        let values = [GBP(5_20), GBP(-2_40), GBP(3_38)]
+
+        #expect(values.max() == GBP(5_20))
+        #expect(values.min() == GBP(-2_40))
+    }
+
     @Test("Sorting produces ascending order")
     func sortingProducesAscendingOrder() {
         let values = [
@@ -289,96 +310,4 @@ struct MoneyOfTests {
         #expect(!GBP(1).isMultiple(of: GBP.zero))
     }
 
-    // MARK: - Strideable
-
-    @Test("Strideable advancing by zero returns self")
-    func strideableAdvanceByZeroReturnsSelf() {
-        let sut = GBP(12_34) // £12.34
-
-        #expect(sut.advanced(by: .zero) == sut)
-    }
-
-    @Test("Strideable distance to self is zero")
-    func strideableDistanceToSelfIsZero() {
-        let sut = GBP(12_34)
-
-        #expect(sut.distance(to: sut) == .zero)
-    }
-
-    @Test("Strideable advancing produces expected distance")
-    func strideableAdvanceProducesExpectedDistance() {
-        let start = GBP(10_00) // £10.00
-        let end = start.advanced(by: 2_50) // £2.50
-
-        #expect(start.distance(to: end) == 2_50) // distance == £2.50
-    }
-
-    @Test("Strideable advancing by distance reaches destination")
-    func strideableAdvanceByDistanceReachesDestination() {
-        let start = GBP(10_00)
-        let end = GBP(13_75)
-
-        let distance = start.distance(to: end)
-
-        #expect(start.advanced(by: distance) == end)
-    }
-
-    @Test("Positive and negative strides")
-    func positiveAndNegativeStrides() {
-        let sut = GBP(9_00)
-
-        #expect(sut.advanced(by: +5_00) == GBP(14_00))
-        #expect(sut.advanced(by: -5_00) == GBP(4_00))
-    }
-
-    @Test("Strideable distance has correct sign")
-    func strideableDistanceHasCorrectSign() {
-        let low = GBP(5_00)
-        let high = GBP(9_00)
-
-        #expect(low.distance(to: high) == 4_00)
-        #expect(high.distance(to: low) == -4_00)
-    }
-
-    @Test("Strideable distances are opposites")
-    func strideableDistancesAreOpposites() {
-        let a = GBP(2_50)
-        let b = GBP(8_00)
-
-        #expect(a.distance(to: b) == -b.distance(to: a))
-    }
-
-    @Test("Strideable ordering matches distance")
-    func orderingMatchesStrideableDistance() {
-        let a = GBP(1_00)
-        let b = GBP(2_00)
-
-        #expect(a < b)
-        #expect(a.distance(to: b) > 0)
-        #expect(b.distance(to: a) < 0)
-    }
-
-    @Test("Strideable advances compose")
-    func strideableAdvancesCompose() {
-        let start = GBP(10_00)
-
-        let composed = start
-            .advanced(by: 2_00)
-            .advanced(by: 3_00)
-
-        let once = start.advanced(by: 5_00)
-
-        #expect(composed == once)
-    }
-
-    @Test("Strideable round trip returns self")
-    func strideableRoundTripReturnsSelf() {
-        let sut = GBP(9_87)
-
-        let result = sut
-            .advanced(by: +4_32) // forwards
-            .advanced(by: -4_32) // backwards
-
-        #expect(result == sut)
-    }
 }

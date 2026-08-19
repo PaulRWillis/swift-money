@@ -116,7 +116,7 @@ struct TotalTests {
 
     @Test("Totalling works on any sequence, not only arrays")
     func totalOfAnySequence() throws {
-        let typed = stride(from: GBP(1), to: GBP(4), by: 1)
+        let typed = [1, 2, 3].lazy.map { GBP($0) }
         #expect(typed.total() == GBP(6)) // 1 + 2 + 3
 
         let untyped = [1, 2, 3].lazy.map { Money($0, currency: .gbp) }

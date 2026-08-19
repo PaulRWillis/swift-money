@@ -253,32 +253,3 @@ extension MoneyOf {
         self.minorUnits.isMultiple(of: other.minorUnits)
     }
 }
-
-// MARK: - Strideable
-
-extension MoneyOf: Strideable {
-    /// A count of the currency's smallest (minor) unit.
-    public typealias Stride = Int64
-
-    /// Returns the distance from this monetary amount to `other`.
-    ///
-    /// - Precondition: The distance is representable as a ``Stride``. Amounts further apart than
-    ///   that trap.
-    public func distance(to other: MoneyOf<C>) -> Int64 {
-        other.minorUnits - self.minorUnits
-    }
-
-    /// Returns the monetary amount `n` steps from this one.
-    ///
-    /// Advances in the currency's smallest (minor) unit.
-    ///
-    /// ```swift
-    /// let price = GBP(4_99)   // £4.99
-    /// let incr = price.advanced(by: 1)    // £5.00
-    /// ```
-    ///
-    /// - Precondition: The result is representable. Advancing beyond ``min`` or ``max`` traps.
-    public func advanced(by n: Stride) -> MoneyOf<C> {
-        Self(self.minorUnits + n)
-    }
-}
