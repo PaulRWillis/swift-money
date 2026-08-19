@@ -216,9 +216,9 @@ public extension Money.Unrounded {
     /// third.rounded(.toNearestOrEven)   // £3.33
     /// ```
     ///
-    /// - Parameter mode: How to settle any fraction of a unit.
-    func rounded(_ mode: RoundingMode) -> Money {
-        Money(SwiftMoney.rounded(minorUnits, mode), currency: currency)
+    /// - Parameter rule: How to settle any fraction of a unit.
+    func rounded(_ rule: RoundingRule) -> Money {
+        Money(SwiftMoney.rounded(minorUnits, rule), currency: currency)
     }
 }
 

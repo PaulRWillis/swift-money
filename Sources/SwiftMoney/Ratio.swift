@@ -130,16 +130,16 @@ private extension Ratio {
 
 // MARK: - Settling an exact count of units
 
-// The whole number `exact` settles to under `mode`.
+// The whole number `exact` settles to under `rule`.
 //
 // Total, unlike `scaled(_:by:)`: a denominator of one leaves nothing to settle, and any larger
 // denominator has already at least halved the numerator, so the step to the next unit always fits.
 //
-// Here rather than beside ``RoundingMode`` because it needs a `FractionalRemainder`, whose initializer
+// Here rather than beside ``RoundingRule`` because it needs a `FractionalRemainder`, whose initializer
 // is deliberately reachable from nowhere else.
 func rounded(
     _ exact: Ratio,
-    _ mode: RoundingMode
+    _ rule: RoundingRule
 ) -> Int64 {
     let nearZero = exact.numerator.rawValue / exact.denominator.rawValue
     let leftOver = exact.numerator.rawValue % exact.denominator.rawValue
@@ -148,7 +148,7 @@ func rounded(
         return nearZero
     }
 
-    return nearZero + remainder.step(under: mode, from: nearZero)
+    return nearZero + remainder.step(under: rule, from: nearZero)
 }
 
 // MARK: - Multiplication
@@ -281,26 +281,26 @@ public extension Ratio {
 // MARK: - Resolving a remainder
 
 internal extension Ratio.FractionalRemainder {
-    // How far `nearZero` moves once this leftover is resolved by `mode`: either nothing, or one whole
+    // How far `nearZero` moves once this leftover is resolved by `rule`: either nothing, or one whole
     // unit away from zero.
     //
     // The answer is one of the two whole numbers either side. Truncating already gave the one nearer
-    // zero, so all the mode decides is whether to take the other.
+    // zero, so all the rule decides is whether to take the other.
     func step(
-        under mode: RoundingMode,
+        under rule: RoundingRule,
         from nearZero: Int64
     ) -> Int64 {
-        roundsAwayFromZero(under: mode, from: nearZero) ? signum : 0
+        roundsAwayFromZero(under: rule, from: nearZero) ? signum : 0
     }
 
-    // The whole number `nearZero` becomes once this leftover is resolved by `mode`.
+    // The whole number `nearZero` becomes once this leftover is resolved by `rule`.
     //
     // `nil` when that step is not representable: an amount that fits may not once it steps.
     func resolving(
         _ nearZero: Int64,
-        _ mode: RoundingMode
+        _ rule: RoundingRule
     ) -> Int64? {
-        let (rounded, didOverflow) = nearZero.addingReportingOverflow(step(under: mode, from: nearZero))
+        let (rounded, didOverflow) = nearZero.addingReportingOverflow(step(under: rule, from: nearZero))
 
         return didOverflow ? nil : rounded
     }
@@ -308,19 +308,19 @@ internal extension Ratio.FractionalRemainder {
 
 private extension Ratio.FractionalRemainder {
     func roundsAwayFromZero(
-        under mode: RoundingMode,
+        under rule: RoundingRule,
         from nearZero: Int64
     ) -> Bool {
-        switch mode {
+        switch rule {
         case .towardZero:
             false
         case .awayFromZero:
             true
-        case .floor:
+        case .down:
             isNegative
-        case .ceiling:
+        case .up:
             !isNegative
-        // The two nearest modes differ by one line: what to do with a tie.
+        // The two nearest rules differ by one line: what to do with a tie.
         case .toNearestOrAwayFromZero:
             switch comparedToHalf {
             case .lessThanHalf: false
@@ -333,6 +333,11 @@ private extension Ratio.FractionalRemainder {
             case .equalToHalf: !nearZero.isMultiple(of: 2)
             case .moreThanHalf: true
             }
+        // `FloatingPointRoundingRule` belongs to the standard library and is not frozen, so a future
+        // Swift can add a rule this build has never seen. Rounding money by a rule we cannot
+        // interpret would have to guess, and a wrong guess is a wrong amount, so refuse instead.
+        @unknown default:
+            preconditionFailure("Unknown rounding rule: \(rule)")
         }
     }
 
@@ -346,7 +351,7 @@ private extension Ratio.FractionalRemainder {
     }
 
     // Where this remainder's magnitude sits against one half. Rounding to nearest needs all three
-    // answers: a tie is the one case where a mode has to look at anything besides the remainder.
+    // answers: a tie is the one case where a rule has to look at anything besides the remainder.
     enum ComparedToHalf {
         case lessThanHalf
         case equalToHalf

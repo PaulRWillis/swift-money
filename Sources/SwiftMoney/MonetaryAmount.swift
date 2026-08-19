@@ -19,7 +19,7 @@ protocol MonetaryAmount: Hashable, Sendable {
     func split(into parts: PartCount) -> Split<Self>
 
     func scaled(by ratio: Ratio) throws(ArithmeticError) -> Scaled<Self>
-    func scaled(by ratio: Ratio, rounding mode: RoundingMode) throws(ArithmeticError) -> Self
+    func scaled(by ratio: Ratio, rounding rule: RoundingRule) throws(ArithmeticError) -> Self
 
     func isMultiple(of other: Self) throws(ArithmeticError) -> Bool
 

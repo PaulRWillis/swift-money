@@ -106,69 +106,69 @@ struct ScalingTests {
 
     // MARK: - Rounding
 
-    // A quarter of 10 is 2.5 — exactly between two whole units, which is where the modes differ most.
+    // A quarter of 10 is 2.5 — exactly between two whole units, which is where the rules differ most.
     @Test(
-        "Every mode resolves an exact half",
+        "Every rule resolves an exact half",
         arguments: [
-            (RoundingMode.towardZero, GBP(2)),
+            (RoundingRule.towardZero, GBP(2)),
             (.awayFromZero, GBP(3)),
-            (.floor, GBP(2)),
-            (.ceiling, GBP(3)),
+            (.down, GBP(2)),
+            (.up, GBP(3)),
             (.toNearestOrEven, GBP(2)),
             (.toNearestOrAwayFromZero, GBP(3)),
         ]
     )
-    func modesAtAnExactHalf(mode: RoundingMode, expected: GBP) {
-        #expect(GBP(10).scaled(by: Ratio(1, 4), rounding: mode) == expected)
+    func rulesAtAnExactHalf(rule: RoundingRule, expected: GBP) {
+        #expect(GBP(10).scaled(by: Ratio(1, 4), rounding: rule) == expected)
     }
 
     // A quarter of 9 is 2.25, so the nearest whole unit is the one it was truncated to.
     @Test(
-        "Every mode resolves a fraction below a half",
+        "Every rule resolves a fraction below a half",
         arguments: [
-            (RoundingMode.towardZero, GBP(2)),
+            (RoundingRule.towardZero, GBP(2)),
             (.awayFromZero, GBP(3)),
-            (.floor, GBP(2)),
-            (.ceiling, GBP(3)),
+            (.down, GBP(2)),
+            (.up, GBP(3)),
             (.toNearestOrEven, GBP(2)),
             (.toNearestOrAwayFromZero, GBP(2)),
         ]
     )
-    func modesBelowAHalf(mode: RoundingMode, expected: GBP) {
-        #expect(GBP(9).scaled(by: Ratio(1, 4), rounding: mode) == expected)
+    func rulesBelowAHalf(rule: RoundingRule, expected: GBP) {
+        #expect(GBP(9).scaled(by: Ratio(1, 4), rounding: rule) == expected)
     }
 
-    // A quarter of 11 is 2.75, so both nearest modes step where they did not at 2.25.
+    // A quarter of 11 is 2.75, so both nearest rules step where they did not at 2.25.
     @Test(
-        "Every mode resolves a fraction above a half",
+        "Every rule resolves a fraction above a half",
         arguments: [
-            (RoundingMode.towardZero, GBP(2)),
+            (RoundingRule.towardZero, GBP(2)),
             (.awayFromZero, GBP(3)),
-            (.floor, GBP(2)),
-            (.ceiling, GBP(3)),
+            (.down, GBP(2)),
+            (.up, GBP(3)),
             (.toNearestOrEven, GBP(3)),
             (.toNearestOrAwayFromZero, GBP(3)),
         ]
     )
-    func modesAboveAHalf(mode: RoundingMode, expected: GBP) {
-        #expect(GBP(11).scaled(by: Ratio(1, 4), rounding: mode) == expected)
+    func rulesAboveAHalf(rule: RoundingRule, expected: GBP) {
+        #expect(GBP(11).scaled(by: Ratio(1, 4), rounding: rule) == expected)
     }
 
-    // A quarter of -10 is -2.5. This is where `.floor` and `.towardZero` part company, and where
-    // `.awayFromZero` and `.ceiling` do — a sign error in a mode shows up here and nowhere else.
+    // A quarter of -10 is -2.5. This is where `.down` and `.towardZero` part company, and where
+    // `.awayFromZero` and `.up` do — a sign error in a rule shows up here and nowhere else.
     @Test(
-        "Every mode resolves a negative exact half",
+        "Every rule resolves a negative exact half",
         arguments: [
-            (RoundingMode.towardZero, GBP(-2)),
+            (RoundingRule.towardZero, GBP(-2)),
             (.awayFromZero, GBP(-3)),
-            (.floor, GBP(-3)),
-            (.ceiling, GBP(-2)),
+            (.down, GBP(-3)),
+            (.up, GBP(-2)),
             (.toNearestOrEven, GBP(-2)),
             (.toNearestOrAwayFromZero, GBP(-3)),
         ]
     )
-    func modesAtANegativeExactHalf(mode: RoundingMode, expected: GBP) {
-        #expect(GBP(-10).scaled(by: Ratio(1, 4), rounding: mode) == expected)
+    func rulesAtANegativeExactHalf(rule: RoundingRule, expected: GBP) {
+        #expect(GBP(-10).scaled(by: Ratio(1, 4), rounding: rule) == expected)
     }
 
     // Banker's rounding breaks a tie toward the even neighbour, so 2.5 and 3.5 both settle on an even
@@ -180,18 +180,18 @@ struct ScalingTests {
     }
 
     @Test(
-        "A mode cannot change an exact result",
+        "A rule cannot change an exact result",
         arguments: [
-            RoundingMode.towardZero,
+            RoundingRule.towardZero,
             .awayFromZero,
-            .floor,
-            .ceiling,
+            .down,
+            .up,
             .toNearestOrEven,
             .toNearestOrAwayFromZero,
         ]
     )
-    func exactResultsAreUnchanged(mode: RoundingMode) {
-        #expect(GBP(8).scaled(by: Ratio(1, 4), rounding: mode) == GBP(2))
+    func exactResultsAreUnchanged(rule: RoundingRule) {
+        #expect(GBP(8).scaled(by: Ratio(1, 4), rounding: rule) == GBP(2))
     }
 
     // MARK: - Overflow
