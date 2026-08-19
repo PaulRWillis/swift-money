@@ -22,8 +22,8 @@ let benchmarks: @Sendable () -> Void = {
     // MARK: - Addition
 
     Benchmark("MoneyOf addition", configuration: defaultConfiguration) { benchmark in
-        var accumulated = GBP(0)
-        let delta = GBP(1)
+        var accumulated = GBP(minorUnits: 0)
+        let delta = GBP(minorUnits: 1)
 
         for _ in benchmark.scaledIterations {
             blackHole(accumulated)
@@ -64,8 +64,8 @@ let benchmarks: @Sendable () -> Void = {
     // MARK: - Subtraction
 
     Benchmark("MoneyOf subtraction", configuration: defaultConfiguration) { benchmark in
-        var accumulated = GBP(999_999_999)
-        let delta = GBP(1)
+        var accumulated = GBP(minorUnits: 999_999_999)
+        let delta = GBP(minorUnits: 1)
 
         for _ in benchmark.scaledIterations {
             blackHole(accumulated)
@@ -109,7 +109,7 @@ let benchmarks: @Sendable () -> Void = {
     let factors = [1, 2, 3, 5, 7, 10, 13, 17, 19, 23]
 
     Benchmark("MoneyOf scalar multiplication", configuration: defaultConfiguration) { benchmark in
-        let price = GBP(12_50)
+        let price = GBP(minorUnits: 12_50)
         var index = 0
 
         for _ in benchmark.scaledIterations {
@@ -161,7 +161,7 @@ let benchmarks: @Sendable () -> Void = {
         var amount = 1
 
         for _ in benchmark.scaledIterations {
-            blackHole(GBP(amount).scaled(by: vat, rounding: .toNearestOrEven))
+            blackHole(GBP(minorUnits: amount).scaled(by: vat, rounding: .toNearestOrEven))
             amount &+= 1
         }
     }
@@ -208,7 +208,7 @@ let benchmarks: @Sendable () -> Void = {
         var amount = 1
 
         for _ in benchmark.scaledIterations {
-            blackHole(GBP(amount).unrounded * vat)
+            blackHole(GBP(minorUnits: amount).unrounded * vat)
             amount &+= 1
         }
     }
@@ -220,7 +220,7 @@ let benchmarks: @Sendable () -> Void = {
         var amount = 1
 
         for _ in benchmark.scaledIterations {
-            let chained = GBP(amount).unrounded * discount * vat * dayCount
+            let chained = GBP(minorUnits: amount).unrounded * discount * vat * dayCount
             blackHole(chained.rounded(.toNearestOrEven))
             amount &+= 1
         }
@@ -234,7 +234,7 @@ let benchmarks: @Sendable () -> Void = {
 
         for _ in benchmark.scaledIterations {
             blackHole(
-                GBP(amount)
+                GBP(minorUnits: amount)
                     .scaled(by: discount, rounding: .toNearestOrEven)
                     .scaled(by: vat, rounding: .toNearestOrEven)
                     .scaled(by: dayCount, rounding: .toNearestOrEven)
@@ -279,7 +279,7 @@ let benchmarks: @Sendable () -> Void = {
 
     // Cycling through pre-built operands, so neither the addition nor the scaling that produced them
     // can be hoisted out of the loop.
-    let thirds = (1 ... 16).map { GBP($0 * 100).unrounded * Ratio(1, 3) }
+    let thirds = (1 ... 16).map { GBP(minorUnits: $0 * 100).unrounded * Ratio(1, 3) }
 
     Benchmark("MoneyOf unrounded addition", configuration: defaultConfiguration) { benchmark in
         var index = 0
@@ -293,8 +293,8 @@ let benchmarks: @Sendable () -> Void = {
     // MARK: - Comparison
 
     Benchmark("MoneyOf comparison", configuration: defaultConfiguration) { benchmark in
-        let a = GBP(10_00)
-        let b = GBP(20_00)
+        let a = GBP(minorUnits: 10_00)
+        let b = GBP(minorUnits: 20_00)
         var count = 0
 
         for _ in benchmark.scaledIterations where a < b {
@@ -342,8 +342,8 @@ let benchmarks: @Sendable () -> Void = {
     // an error return path that never fires. `BenchmarkClosure` cannot throw, hence the surrounding
     // `do`; the `catch` is unreachable with matching currencies.
     Benchmark("Money addition, throwing", configuration: defaultConfiguration) { benchmark in
-        var accumulated = Money(0, currency: .gbp)
-        let delta = Money(1, currency: .gbp)
+        var accumulated = Money(minorUnits: 0, currency: .gbp)
+        let delta = Money(minorUnits: 1, currency: .gbp)
 
         do {
             for _ in benchmark.scaledIterations {
@@ -362,7 +362,7 @@ let benchmarks: @Sendable () -> Void = {
         var amount = 1
 
         for _ in benchmark.scaledIterations {
-            blackHole(GBP(amount).scaled(by: vat))
+            blackHole(GBP(minorUnits: amount).scaled(by: vat))
             amount &+= 1
         }
     }
@@ -382,7 +382,7 @@ let benchmarks: @Sendable () -> Void = {
         var amount = 1
 
         for _ in benchmark.scaledIterations {
-            blackHole(GBP(amount).split(into: 3))
+            blackHole(GBP(minorUnits: amount).split(into: 3))
             amount &+= 1
         }
     }
@@ -393,7 +393,7 @@ let benchmarks: @Sendable () -> Void = {
         var amount = 1
 
         for _ in benchmark.scaledIterations {
-            blackHole(Money(amount, currency: .gbp).split(into: 3))
+            blackHole(Money(minorUnits: amount, currency: .gbp).split(into: 3))
             amount &+= 1
         }
     }
@@ -434,7 +434,7 @@ let benchmarks: @Sendable () -> Void = {
     // A `Split` holds two groups rather than one amount per part, so iterating expands it on demand.
     // Against the split itself, this is what that expansion costs.
     Benchmark("MoneyOf split, iterating the parts", configuration: defaultConfiguration) { benchmark in
-        let split = GBP(100_00).split(into: 3)
+        let split = GBP(minorUnits: 100_00).split(into: 3)
         var total = 0
 
         for _ in benchmark.scaledIterations {
@@ -447,7 +447,7 @@ let benchmarks: @Sendable () -> Void = {
     }
 
     Benchmark("MoneyOf total of 10", configuration: defaultConfiguration) { benchmark in
-        let amounts = (1...10).map { GBP($0 * 100) }
+        let amounts = (1...10).map { GBP(minorUnits: $0 * 100) }
 
         for _ in benchmark.scaledIterations {
             blackHole(amounts.total())

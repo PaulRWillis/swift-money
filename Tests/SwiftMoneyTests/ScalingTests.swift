@@ -8,17 +8,17 @@ struct ScalingTests {
 
     @Test("A fraction that divides exactly reports no remainder")
     func exactDivision() {
-        #expect(GBP(9_99).scaled(by: Ratio(1, 3)) == .exact(GBP(3_33)))
+        #expect(GBP(minorUnits: 9_99).scaled(by: Ratio(1, 3)) == .exact(GBP(minorUnits: 3_33)))
     }
 
     @Test("A whole ratio multiplies")
     func wholeRatio() {
-        #expect(GBP(1_00).scaled(by: Ratio(3, 1)) == .exact(GBP(3_00)))
+        #expect(GBP(minorUnits: 1_00).scaled(by: Ratio(3, 1)) == .exact(GBP(minorUnits: 3_00)))
     }
 
     @Test("Scaling by zero is zero")
     func zeroRatio() {
-        #expect(GBP(10_00).scaled(by: Ratio(0, 1)) == .exact(GBP.zero))
+        #expect(GBP(minorUnits: 10_00).scaled(by: Ratio(0, 1)) == .exact(GBP.zero))
     }
 
     @Test("Scaling zero is zero")
@@ -30,9 +30,9 @@ struct ScalingTests {
 
     @Test("A fraction that does not divide exactly reports the part left over")
     func inexactDivision() throws {
-        let (amount, remainder) = try #require(inexactParts(GBP(10_00).scaled(by: Ratio(1, 3))))
+        let (amount, remainder) = try #require(inexactParts(GBP(minorUnits: 10_00).scaled(by: Ratio(1, 3))))
 
-        #expect(amount == GBP(3_33))
+        #expect(amount == GBP(minorUnits: 3_33))
         #expect(remainder == Ratio(1, 3))
     }
 
@@ -40,15 +40,15 @@ struct ScalingTests {
     // is 2 with 2 of 4 left over, which as a ratio is a half.
     @Test("The remainder is the part of one unit left over")
     func remainderIsThePartOfOneUnitLeftOver() throws {
-        let (amount, remainder) = try #require(inexactParts(GBP(10).scaled(by: Ratio(1, 4))))
+        let (amount, remainder) = try #require(inexactParts(GBP(minorUnits: 10).scaled(by: Ratio(1, 4))))
 
-        #expect(amount == GBP(2))
+        #expect(amount == GBP(minorUnits: 2))
         #expect(remainder == Ratio(1, 2))
     }
 
     @Test("A remainder describes itself as its fraction")
     func remainderDescription() throws {
-        let scaled = GBP(10_00).scaled(by: Ratio(1, 3))
+        let scaled = GBP(minorUnits: 10_00).scaled(by: Ratio(1, 3))
 
         #expect(String(describing: scaled).contains("1/3"))
     }
@@ -59,25 +59,25 @@ struct ScalingTests {
     // account for the exact product: -333 and -1/3, never -334 and 2/3.
     @Test("A negative amount truncates toward zero")
     func negativeAmount() throws {
-        let (amount, remainder) = try #require(inexactParts(GBP(-10_00).scaled(by: Ratio(1, 3))))
+        let (amount, remainder) = try #require(inexactParts(GBP(minorUnits: -10_00).scaled(by: Ratio(1, 3))))
 
-        #expect(amount == GBP(-3_33))
+        #expect(amount == GBP(minorUnits: -3_33))
         #expect(remainder == Ratio(-1, 3))
     }
 
     @Test("A negative ratio negates the result")
     func negativeRatio() throws {
-        let (amount, remainder) = try #require(inexactParts(GBP(10_00).scaled(by: Ratio(-1, 3))))
+        let (amount, remainder) = try #require(inexactParts(GBP(minorUnits: 10_00).scaled(by: Ratio(-1, 3))))
 
-        #expect(amount == GBP(-3_33))
+        #expect(amount == GBP(minorUnits: -3_33))
         #expect(remainder == Ratio(-1, 3))
     }
 
     @Test("Two negatives make a positive")
     func negativeAmountAndRatio() throws {
-        let (amount, remainder) = try #require(inexactParts(GBP(-10_00).scaled(by: Ratio(-1, 3))))
+        let (amount, remainder) = try #require(inexactParts(GBP(minorUnits: -10_00).scaled(by: Ratio(-1, 3))))
 
-        #expect(amount == GBP(3_33))
+        #expect(amount == GBP(minorUnits: 3_33))
         #expect(remainder == Ratio(1, 3))
     }
 
@@ -92,7 +92,7 @@ struct ScalingTests {
     func amountWhoseProductWouldNotFit() throws {
         let (amount, remainder) = try #require(inexactParts(GBP.max.scaled(by: Ratio(2, 3))))
 
-        #expect(amount == GBP(Int64.max / 3 * 2))
+        #expect(amount == GBP(minorUnits: Int64.max / 3 * 2))
         #expect(remainder == Ratio(2, 3))
     }
 
@@ -101,7 +101,7 @@ struct ScalingTests {
     @Test("The smallest amount scales")
     func smallestAmountScales() {
         #expect(GBP.min.scaled(by: Ratio(1, 1)) == .exact(GBP.min))
-        #expect(GBP.min.scaled(by: Ratio(1, 2)) == .exact(GBP(Int64.min / 2)))
+        #expect(GBP.min.scaled(by: Ratio(1, 2)) == .exact(GBP(minorUnits: Int64.min / 2)))
     }
 
     // MARK: - Rounding
@@ -110,48 +110,48 @@ struct ScalingTests {
     @Test(
         "Every rule resolves an exact half",
         arguments: [
-            (RoundingRule.towardZero, GBP(2)),
-            (.awayFromZero, GBP(3)),
-            (.down, GBP(2)),
-            (.up, GBP(3)),
-            (.toNearestOrEven, GBP(2)),
-            (.toNearestOrAwayFromZero, GBP(3)),
+            (RoundingRule.towardZero, GBP(minorUnits: 2)),
+            (.awayFromZero, GBP(minorUnits: 3)),
+            (.down, GBP(minorUnits: 2)),
+            (.up, GBP(minorUnits: 3)),
+            (.toNearestOrEven, GBP(minorUnits: 2)),
+            (.toNearestOrAwayFromZero, GBP(minorUnits: 3)),
         ]
     )
     func rulesAtAnExactHalf(rule: RoundingRule, expected: GBP) {
-        #expect(GBP(10).scaled(by: Ratio(1, 4), rounding: rule) == expected)
+        #expect(GBP(minorUnits: 10).scaled(by: Ratio(1, 4), rounding: rule) == expected)
     }
 
     // A quarter of 9 is 2.25, so the nearest whole unit is the one it was truncated to.
     @Test(
         "Every rule resolves a fraction below a half",
         arguments: [
-            (RoundingRule.towardZero, GBP(2)),
-            (.awayFromZero, GBP(3)),
-            (.down, GBP(2)),
-            (.up, GBP(3)),
-            (.toNearestOrEven, GBP(2)),
-            (.toNearestOrAwayFromZero, GBP(2)),
+            (RoundingRule.towardZero, GBP(minorUnits: 2)),
+            (.awayFromZero, GBP(minorUnits: 3)),
+            (.down, GBP(minorUnits: 2)),
+            (.up, GBP(minorUnits: 3)),
+            (.toNearestOrEven, GBP(minorUnits: 2)),
+            (.toNearestOrAwayFromZero, GBP(minorUnits: 2)),
         ]
     )
     func rulesBelowAHalf(rule: RoundingRule, expected: GBP) {
-        #expect(GBP(9).scaled(by: Ratio(1, 4), rounding: rule) == expected)
+        #expect(GBP(minorUnits: 9).scaled(by: Ratio(1, 4), rounding: rule) == expected)
     }
 
     // A quarter of 11 is 2.75, so both nearest rules step where they did not at 2.25.
     @Test(
         "Every rule resolves a fraction above a half",
         arguments: [
-            (RoundingRule.towardZero, GBP(2)),
-            (.awayFromZero, GBP(3)),
-            (.down, GBP(2)),
-            (.up, GBP(3)),
-            (.toNearestOrEven, GBP(3)),
-            (.toNearestOrAwayFromZero, GBP(3)),
+            (RoundingRule.towardZero, GBP(minorUnits: 2)),
+            (.awayFromZero, GBP(minorUnits: 3)),
+            (.down, GBP(minorUnits: 2)),
+            (.up, GBP(minorUnits: 3)),
+            (.toNearestOrEven, GBP(minorUnits: 3)),
+            (.toNearestOrAwayFromZero, GBP(minorUnits: 3)),
         ]
     )
     func rulesAboveAHalf(rule: RoundingRule, expected: GBP) {
-        #expect(GBP(11).scaled(by: Ratio(1, 4), rounding: rule) == expected)
+        #expect(GBP(minorUnits: 11).scaled(by: Ratio(1, 4), rounding: rule) == expected)
     }
 
     // A quarter of -10 is -2.5. This is where `.down` and `.towardZero` part company, and where
@@ -159,24 +159,24 @@ struct ScalingTests {
     @Test(
         "Every rule resolves a negative exact half",
         arguments: [
-            (RoundingRule.towardZero, GBP(-2)),
-            (.awayFromZero, GBP(-3)),
-            (.down, GBP(-3)),
-            (.up, GBP(-2)),
-            (.toNearestOrEven, GBP(-2)),
-            (.toNearestOrAwayFromZero, GBP(-3)),
+            (RoundingRule.towardZero, GBP(minorUnits: -2)),
+            (.awayFromZero, GBP(minorUnits: -3)),
+            (.down, GBP(minorUnits: -3)),
+            (.up, GBP(minorUnits: -2)),
+            (.toNearestOrEven, GBP(minorUnits: -2)),
+            (.toNearestOrAwayFromZero, GBP(minorUnits: -3)),
         ]
     )
     func rulesAtANegativeExactHalf(rule: RoundingRule, expected: GBP) {
-        #expect(GBP(-10).scaled(by: Ratio(1, 4), rounding: rule) == expected)
+        #expect(GBP(minorUnits: -10).scaled(by: Ratio(1, 4), rounding: rule) == expected)
     }
 
     // Banker's rounding breaks a tie toward the even neighbour, so 2.5 and 3.5 both settle on an even
     // number rather than both going the same direction.
     @Test("An exact half rounds to even in both directions")
     func exactHalfRoundsToEven() {
-        #expect(GBP(10).scaled(by: Ratio(1, 4), rounding: .toNearestOrEven) == GBP(2))
-        #expect(GBP(14).scaled(by: Ratio(1, 4), rounding: .toNearestOrEven) == GBP(4))
+        #expect(GBP(minorUnits: 10).scaled(by: Ratio(1, 4), rounding: .toNearestOrEven) == GBP(minorUnits: 2))
+        #expect(GBP(minorUnits: 14).scaled(by: Ratio(1, 4), rounding: .toNearestOrEven) == GBP(minorUnits: 4))
     }
 
     @Test(
@@ -191,7 +191,7 @@ struct ScalingTests {
         ]
     )
     func exactResultsAreUnchanged(rule: RoundingRule) {
-        #expect(GBP(8).scaled(by: Ratio(1, 4), rounding: rule) == GBP(2))
+        #expect(GBP(minorUnits: 8).scaled(by: Ratio(1, 4), rounding: rule) == GBP(minorUnits: 2))
     }
 
     // MARK: - Overflow
@@ -228,7 +228,7 @@ private let threeHalves = Ratio(3, 2)
 // Three halves of this amount is exactly the largest amount, with a half left over — so truncating fits
 // and only the rounding step passes the maximum. At file scope because an exit test runs in a child
 // process, so its closure cannot capture a local.
-private let threeHalvesOfThisIsTheLargestAmount = GBP(Int64.max / 3 * 2 + 1)
+private let threeHalvesOfThisIsTheLargestAmount = GBP(minorUnits: Int64.max / 3 * 2 + 1)
 
 // An inexact result cannot be built from outside the module — that is what stops one claiming a
 // remainder it does not have — so these tests read the parts back out rather than comparing against a

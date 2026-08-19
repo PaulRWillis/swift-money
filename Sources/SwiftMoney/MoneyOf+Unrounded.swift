@@ -5,7 +5,7 @@ public extension MoneyOf {
     /// every step.
     ///
     /// ```swift
-    /// let interest = GBP(10_000_00).unrounded * Ratio(45, 1000) * Ratio(31, 365)
+    /// let interest = GBP(minorUnits: 10_000_00).unrounded * Ratio(45, 1000) * Ratio(31, 365)
     /// interest.rounded(.toNearestOrEven)   // £38.22
     /// ```
     struct Unrounded: Equatable, Hashable, Sendable {
@@ -156,12 +156,12 @@ public extension MoneyOf.Unrounded {
     /// Returns this amount as a whole number of the currency's smallest unit.
     ///
     /// ```swift
-    /// (GBP(10_00).unrounded * Ratio(1, 3)).rounded(.toNearestOrEven)   // £3.33
+    /// (GBP(minorUnits: 10_00).unrounded * Ratio(1, 3)).rounded(.toNearestOrEven)   // £3.33
     /// ```
     ///
     /// - Parameter rule: How to settle any fraction of a unit.
     func rounded(_ rule: RoundingRule) -> MoneyOf<C> {
-        MoneyOf(SwiftMoney.rounded(minorUnits, rule))
+        MoneyOf(unchecked: SwiftMoney.rounded(minorUnits, rule))
     }
 }
 

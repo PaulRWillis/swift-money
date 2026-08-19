@@ -1,7 +1,7 @@
 /// Consumes a value so that trapping arithmetic is not optimized away.
 ///
 /// An overflow check is removed along with the arithmetic when its result is unused, so
-/// `_ = GBP.max + GBP(1)` does not trap in a release build. Passing the result here keeps the
+/// `_ = GBP.max + GBP(minorUnits: 1)` does not trap in a release build. Passing the result here keeps the
 /// arithmetic, and therefore the trap, in the generated code.
 ///
 /// Required by every test that asserts a trap on overflow. Without it those tests pass in debug and
