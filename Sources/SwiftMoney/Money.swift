@@ -234,21 +234,21 @@ extension Money {
     /// ```swift
     /// let price = Money(10, currency: .gbp)
     /// try price.scaled(by: Ratio(1, 4), rounding: .toNearestOrEven)   // 2p, from 2.5p
-    /// try price.scaled(by: Ratio(1, 4), rounding: .ceiling)           // 3p
+    /// try price.scaled(by: Ratio(1, 4), rounding: .up)           // 3p
     /// ```
     ///
     /// - Parameters:
     ///   - ratio: The fraction to scale by.
-    ///   - mode: How to resolve part of a unit left over.
+    ///   - rule: How to resolve part of a unit left over.
     /// - Throws: ``MoneyError/overflow`` if the result is not representable, including where only the
     ///   rounding step makes it so.
     public func scaled(
         by ratio: Ratio,
-        rounding mode: RoundingMode
+        rounding rule: RoundingRule
     ) throws(MoneyError) -> Self {
         guard
             let scaled = SwiftMoney.scaled(minorUnits, by: ratio),
-            let rounded = scaled.rounded(mode)
+            let rounded = scaled.rounded(rule)
         else {
             throw .overflow
         }

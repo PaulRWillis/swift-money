@@ -159,9 +159,9 @@ public extension MoneyOf.Unrounded {
     /// (GBP(10_00).unrounded * Ratio(1, 3)).rounded(.toNearestOrEven)   // £3.33
     /// ```
     ///
-    /// - Parameter mode: How to settle any fraction of a unit.
-    func rounded(_ mode: RoundingMode) -> MoneyOf<C> {
-        MoneyOf(SwiftMoney.rounded(minorUnits, mode))
+    /// - Parameter rule: How to settle any fraction of a unit.
+    func rounded(_ rule: RoundingRule) -> MoneyOf<C> {
+        MoneyOf(SwiftMoney.rounded(minorUnits, rule))
     }
 }
 

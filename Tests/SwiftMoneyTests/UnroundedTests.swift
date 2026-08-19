@@ -27,11 +27,11 @@ struct UnroundedTests {
 
     // MARK: - Entry
 
-    @Test("An amount survives a round trip", arguments: everyMode)
-    func roundTrip(mode: RoundingMode) {
-        #expect(GBP(12_34).unrounded.rounded(mode) == GBP(12_34))
-        #expect(GBP(-12_34).unrounded.rounded(mode) == GBP(-12_34))
-        #expect(GBP.zero.unrounded.rounded(mode) == GBP.zero)
+    @Test("An amount survives a round trip", arguments: everyRule)
+    func roundTrip(rule: RoundingRule) {
+        #expect(GBP(12_34).unrounded.rounded(rule) == GBP(12_34))
+        #expect(GBP(-12_34).unrounded.rounded(rule) == GBP(-12_34))
+        #expect(GBP.zero.unrounded.rounded(rule) == GBP.zero)
     }
 
     // MARK: - Multiplication
@@ -67,9 +67,9 @@ struct UnroundedTests {
         #expect(byWholeNumber == GBP(1_00).unrounded * 3)
     }
 
-    @Test("Scaling by zero is zero", arguments: everyMode)
-    func scalingByZero(mode: RoundingMode) {
-        #expect((GBP(10_00).unrounded * Ratio(0, 1)).rounded(mode) == GBP.zero)
+    @Test("Scaling by zero is zero", arguments: everyRule)
+    func scalingByZero(rule: RoundingRule) {
+        #expect((GBP(10_00).unrounded * Ratio(0, 1)).rounded(rule) == GBP.zero)
     }
 
     @Test("A chain keeps a fraction no single step could")
@@ -82,13 +82,13 @@ struct UnroundedTests {
 
     // MARK: - Exactness
 
-    @Test("An exact chain rounds the same way under every mode")
-    func anExactChainIsIndifferentToMode() {
+    @Test("An exact chain rounds the same way under every rule")
+    func anExactChainIsIndifferentToRule() {
         #expect(roundsIdentically(GBP(30_00).unrounded * Ratio(18, 30) * Ratio(11, 18)) == GBP(11_00))
     }
 
-    @Test("An inexact chain does not round the same way under every mode")
-    func anInexactChainIsNotIndifferentToMode() {
+    @Test("An inexact chain does not round the same way under every rule")
+    func anInexactChainIsNotIndifferentToRule() {
         #expect(roundsIdentically(GBP(10_00).unrounded * Ratio(1, 3)) == nil)
     }
 
@@ -120,13 +120,13 @@ struct UnroundedTests {
     // Settling cannot overflow, whatever the amount: a denominator of one leaves nothing to settle, and
     // any larger denominator has already at least halved the amount, so the step to the next unit
     // always fits.
-    @Test("Settling the largest and smallest amounts never overflows", arguments: everyMode)
-    func settlingTheExtremesNeverOverflows(mode: RoundingMode) {
-        #expect(GBP.max.unrounded.rounded(mode) == GBP.max)
-        #expect(GBP.min.unrounded.rounded(mode) == GBP.min)
+    @Test("Settling the largest and smallest amounts never overflows", arguments: everyRule)
+    func settlingTheExtremesNeverOverflows(rule: RoundingRule) {
+        #expect(GBP.max.unrounded.rounded(rule) == GBP.max)
+        #expect(GBP.min.unrounded.rounded(rule) == GBP.min)
     }
 
-    // A third of either extreme leaves part of a unit over, so the modes that move away from zero take
+    // A third of either extreme leaves part of a unit over, so the rules that move away from zero take
     // the step that would overflow if settling were not total.
     @Test("Settling a fraction of an extreme amount steps without overflowing")
     func settlingAFractionOfAnExtremeSteps() {
@@ -278,22 +278,22 @@ struct UnroundedTests {
     }
 }
 
-private let everyMode: [RoundingMode] = [
+private let everyRule: [RoundingRule] = [
     .towardZero,
     .awayFromZero,
-    .floor,
-    .ceiling,
+    .down,
+    .up,
     .toNearestOrEven,
     .toNearestOrAwayFromZero,
 ]
 
-// An exact amount settles to the same whole number whichever mode is applied, and an inexact one does
-// not. Asking every mode is a stronger check on exactness than reading a remainder would be, and it is
+// An exact amount settles to the same whole number whichever rule is applied, and an inexact one does
+// not. Asking every rule is a stronger check on exactness than reading a remainder would be, and it is
 // the only one available: an unrounded amount reports no remainder.
 private func roundsIdentically<C: CurrencyType>(
     _ unrounded: MoneyOf<C>.Unrounded
 ) -> MoneyOf<C>? {
-    let settled = Set(everyMode.map(unrounded.rounded))
+    let settled = Set(everyRule.map(unrounded.rounded))
 
     return settled.count == 1 ? settled.first : nil
 }

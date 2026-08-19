@@ -188,21 +188,21 @@ extension MoneyOf {
     ///
     /// ```swift
     /// GBP(10).scaled(by: Ratio(1, 4), rounding: .toNearestOrEven)   // 2p, from 2.5p
-    /// GBP(10).scaled(by: Ratio(1, 4), rounding: .ceiling)           // 3p
+    /// GBP(10).scaled(by: Ratio(1, 4), rounding: .up)           // 3p
     /// ```
     ///
     /// - Parameters:
     ///   - ratio: The fraction to scale by.
-    ///   - mode: How to resolve part of a unit left over.
+    ///   - rule: How to resolve part of a unit left over.
     /// - Precondition: The result is representable. Scaling past ``min`` or ``max`` traps, including
     ///   where only the rounding step passes them.
     public func scaled(
         by ratio: Ratio,
-        rounding mode: RoundingMode
+        rounding rule: RoundingRule
     ) -> Self {
         guard
             let scaled = SwiftMoney.scaled(minorUnits, by: ratio),
-            let rounded = scaled.rounded(mode)
+            let rounded = scaled.rounded(rule)
         else {
             preconditionFailure("Scaling by \(ratio) is not representable")
         }
