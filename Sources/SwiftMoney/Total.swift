@@ -2,7 +2,7 @@ public extension Sequence {
     /// Returns the sum of every amount, or zero if there are none.
     ///
     /// ```swift
-    /// [GBP(1_00), GBP(2_50)].total()   // £3.50
+    /// [GBP(minorUnits: 1_00), GBP(minorUnits: 2_50)].total()   // £3.50
     /// ```
     ///
     /// - Precondition: The sum is representable. Totalling beyond ``MoneyOf/max`` traps, as `+` does.
@@ -31,7 +31,7 @@ public extension Sequence where Element == Money {
     /// An empty sequence has no total because a zero cannot exist without a currency to be zero *of*.
     ///
     /// ```swift
-    /// let basket = [Money(1_00, currency: .gbp), Money(2_50, currency: .gbp)]
+    /// let basket = [Money(minorUnits: 1_00, currency: .gbp), Money(minorUnits: 2_50, currency: .gbp)]
     /// try basket.total()   // £3.50
     /// ```
     ///

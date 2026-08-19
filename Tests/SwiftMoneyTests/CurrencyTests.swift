@@ -81,19 +81,19 @@ struct CurrencyTests {
 
     @Test("A typed amount reports the currency from its type parameter")
     func typedAmountReportsItsCurrency() {
-        #expect(GBP(4_99).currency == .gbp)
-        #expect(EUR(4_99).currency == .eur)
+        #expect(GBP(minorUnits: 4_99).currency == .gbp)
+        #expect(EUR(minorUnits: 4_99).currency == .eur)
     }
 
     @Test("The currency is a property of the type, so every amount reports the same one")
     func currencyIsTheSameForEveryAmount() {
-        #expect(GBP(0).currency == GBP(999_99).currency)
+        #expect(GBP(minorUnits: 0).currency == GBP(minorUnits: 999_99).currency)
         #expect(GBP.min.currency == GBP.max.currency)
     }
 
     @Test("A typed amount reaches its quantization through its currency")
     func typedAmountReachesItsQuantization() {
-        #expect(GBP(1).currency.minimalQuantization == 100)
+        #expect(GBP(minorUnits: 1).currency.minimalQuantization == 100)
     }
 
     // MARK: - Caller-defined currencies
@@ -102,10 +102,10 @@ struct CurrencyTests {
     func callerDefinedCurrency() {
         typealias Points = MoneyOf<LoyaltyPoints>
 
-        let earned = Points(250)
-        let spent = Points(100)
+        let earned = Points(minorUnits: 250)
+        let spent = Points(minorUnits: 100)
 
-        #expect(earned - spent == Points(150))
+        #expect(earned - spent == Points(minorUnits: 150))
         #expect(earned.currency.code == "LTY")
         #expect(earned.currency.minimalQuantization == 1)
     }

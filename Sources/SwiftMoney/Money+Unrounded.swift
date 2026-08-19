@@ -5,7 +5,7 @@ public extension Money {
     /// every step.
     ///
     /// ```swift
-    /// let balance = Money(10_000_00, currency: .gbp)
+    /// let balance = Money(minorUnits: 10_000_00, currency: .gbp)
     /// let interest = try balance.unrounded * Ratio(45, 1000) * Ratio(31, 365)
     /// interest.rounded(.toNearestOrEven)   // £38.22
     /// ```
@@ -212,13 +212,13 @@ public extension Money.Unrounded {
     /// Returns this amount as a whole number of the currency's smallest unit.
     ///
     /// ```swift
-    /// let third = try Money(10_00, currency: .gbp).unrounded * Ratio(1, 3)
+    /// let third = try Money(minorUnits: 10_00, currency: .gbp).unrounded * Ratio(1, 3)
     /// third.rounded(.toNearestOrEven)   // £3.33
     /// ```
     ///
     /// - Parameter rule: How to settle any fraction of a unit.
     func rounded(_ rule: RoundingRule) -> Money {
-        Money(SwiftMoney.rounded(minorUnits, rule), currency: currency)
+        Money(minorUnits: SwiftMoney.rounded(minorUnits, rule), currency: currency)
     }
 }
 

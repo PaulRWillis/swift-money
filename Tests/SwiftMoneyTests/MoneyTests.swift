@@ -4,20 +4,41 @@ import Testing
 @Suite("Money Tests")
 struct MoneyTests {
 
+    // MARK: - Construction
+
+    @Test("when constructed exactly from representable value should hold same amount")
+    func whenConstructedExactlyFromRepresentableValue_shouldHoldSameAmount() {
+        let sut = Money(exactly: Int128(4_99), currency: .gbp)
+
+        #expect(sut == Money(minorUnits: 4_99, currency: .gbp))
+    }
+
+    @Test("when constructed exactly from value beyond storage should return nil")
+    func whenConstructedExactlyFromValueBeyondStorage_shouldReturnNil() {
+        #expect(Money(exactly: Int128.max, currency: .gbp) == nil)
+    }
+
+    @Test("when constructed from value beyond storage should trap")
+    func whenConstructedFromValueBeyondStorage_shouldTrap() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(Money(minorUnits: Int128.max, currency: .gbp))
+        }
+    }
+
     // MARK: - Addition
 
     @Test("Add same currency succeeds")
     func addSameCurrency() throws {
-        let a = Money(5, currency: .eur)
-        let b = Money(7, currency: .eur)
+        let a = Money(minorUnits: 5, currency: .eur)
+        let b = Money(minorUnits: 7, currency: .eur)
 
-        #expect(try a + b == Money(12, currency: .eur))
+        #expect(try a + b == Money(minorUnits: 12, currency: .eur))
     }
 
     @Test("Add throws on positive overflow")
     func addPositiveOverflow() {
-        let a = Money(Int64.max, currency: .gbp)
-        let b = Money(1, currency: .gbp)
+        let a = Money(minorUnits: Int64.max, currency: .gbp)
+        let b = Money(minorUnits: 1, currency: .gbp)
 
         #expect(throws: MoneyError.overflow) {
             try a + b
@@ -26,8 +47,8 @@ struct MoneyTests {
 
     @Test("Add throws on negative overflow")
     func addNegativeOverflow() {
-        let a = Money(Int64.min, currency: .gbp)
-        let b = Money(-1, currency: .gbp)
+        let a = Money(minorUnits: Int64.min, currency: .gbp)
+        let b = Money(minorUnits: -1, currency: .gbp)
 
         #expect(throws: MoneyError.overflow) {
             try a + b
@@ -36,8 +57,8 @@ struct MoneyTests {
 
     @Test("Add different currencies throws, naming both")
     func addDifferentCurrencies() {
-        let a = Money(5, currency: .gbp)
-        let b = Money(7, currency: .eur)
+        let a = Money(minorUnits: 5, currency: .gbp)
+        let b = Money(minorUnits: 7, currency: .eur)
 
         #expect(throws: MoneyError.currencyMismatch(lhs: .gbp, rhs: .eur)) {
             try a + b
@@ -48,31 +69,31 @@ struct MoneyTests {
 
     @Test("Addition in place succeeds for same currency")
     func additionInPlaceSameCurrency() throws {
-        var a = Money(5, currency: .gbp)
-        let b = Money(7, currency: .gbp)
+        var a = Money(minorUnits: 5, currency: .gbp)
+        let b = Money(minorUnits: 7, currency: .gbp)
 
         try a += b
 
-        #expect(a == Money(12, currency: .gbp))
+        #expect(a == Money(minorUnits: 12, currency: .gbp))
     }
 
     @Test("Addition in place throws for different currency, leaving the value untouched")
     func additionInPlaceDifferentCurrency() {
-        var a = Money(5, currency: .gbp)
+        var a = Money(minorUnits: 5, currency: .gbp)
 
         #expect(throws: MoneyError.currencyMismatch(lhs: .gbp, rhs: .eur)) {
-            try a += Money(7, currency: .eur)
+            try a += Money(minorUnits: 7, currency: .eur)
         }
 
-        #expect(a == Money(5, currency: .gbp))
+        #expect(a == Money(minorUnits: 5, currency: .gbp))
     }
 
     @Test("Addition in place throws on overflow")
     func additionInPlaceOverflow() {
-        var a = Money(Int64.max, currency: .gbp)
+        var a = Money(minorUnits: Int64.max, currency: .gbp)
 
         #expect(throws: MoneyError.overflow) {
-            try a += Money(1, currency: .gbp)
+            try a += Money(minorUnits: 1, currency: .gbp)
         }
     }
 
@@ -80,16 +101,16 @@ struct MoneyTests {
 
     @Test("Subtract same currency succeeds")
     func subtractSameCurrency() throws {
-        let a = Money(5, currency: .eur)
-        let b = Money(7, currency: .eur)
+        let a = Money(minorUnits: 5, currency: .eur)
+        let b = Money(minorUnits: 7, currency: .eur)
 
-        #expect(try a - b == Money(-2, currency: .eur))
+        #expect(try a - b == Money(minorUnits: -2, currency: .eur))
     }
 
     @Test("Subtract throws on positive overflow")
     func subtractPositiveOverflow() {
-        let a = Money(Int64.max, currency: .gbp)
-        let b = Money(-1, currency: .gbp)
+        let a = Money(minorUnits: Int64.max, currency: .gbp)
+        let b = Money(minorUnits: -1, currency: .gbp)
 
         #expect(throws: MoneyError.overflow) {
             try a - b
@@ -98,8 +119,8 @@ struct MoneyTests {
 
     @Test("Subtract throws on negative overflow")
     func subtractNegativeOverflow() {
-        let a = Money(Int64.min, currency: .gbp)
-        let b = Money(1, currency: .gbp)
+        let a = Money(minorUnits: Int64.min, currency: .gbp)
+        let b = Money(minorUnits: 1, currency: .gbp)
 
         #expect(throws: MoneyError.overflow) {
             try a - b
@@ -108,8 +129,8 @@ struct MoneyTests {
 
     @Test("Subtract different currencies throws, naming both")
     func subtractDifferentCurrencies() {
-        let a = Money(5, currency: .gbp)
-        let b = Money(7, currency: .eur)
+        let a = Money(minorUnits: 5, currency: .gbp)
+        let b = Money(minorUnits: 7, currency: .eur)
 
         #expect(throws: MoneyError.currencyMismatch(lhs: .gbp, rhs: .eur)) {
             try a - b
@@ -120,31 +141,31 @@ struct MoneyTests {
 
     @Test("Subtraction in place succeeds for same currency")
     func subtractionInPlaceSameCurrency() throws {
-        var a = Money(5, currency: .gbp)
-        let b = Money(7, currency: .gbp)
+        var a = Money(minorUnits: 5, currency: .gbp)
+        let b = Money(minorUnits: 7, currency: .gbp)
 
         try a -= b
 
-        #expect(a == Money(-2, currency: .gbp))
+        #expect(a == Money(minorUnits: -2, currency: .gbp))
     }
 
     @Test("Subtraction in place throws for different currency, leaving the value untouched")
     func subtractionInPlaceDifferentCurrency() {
-        var a = Money(5, currency: .gbp)
+        var a = Money(minorUnits: 5, currency: .gbp)
 
         #expect(throws: MoneyError.currencyMismatch(lhs: .gbp, rhs: .eur)) {
-            try a -= Money(7, currency: .eur)
+            try a -= Money(minorUnits: 7, currency: .eur)
         }
 
-        #expect(a == Money(5, currency: .gbp))
+        #expect(a == Money(minorUnits: 5, currency: .gbp))
     }
 
     @Test("Subtraction in place throws on overflow")
     func subtractionInPlaceOverflow() {
-        var a = Money(Int64.min, currency: .gbp)
+        var a = Money(minorUnits: Int64.min, currency: .gbp)
 
         #expect(throws: MoneyError.overflow) {
-            try a -= Money(1, currency: .gbp)
+            try a -= Money(minorUnits: 1, currency: .gbp)
         }
     }
 
@@ -152,43 +173,43 @@ struct MoneyTests {
 
     @Test("Integral multiplication succeeds")
     func integralMultiplication() throws {
-        let a = Money(6, currency: .gbp)
+        let a = Money(minorUnits: 6, currency: .gbp)
 
-        #expect(try a * 4 == Money(24, currency: .gbp))
-        #expect(try 4 * a == Money(24, currency: .gbp))
+        #expect(try a * 4 == Money(minorUnits: 24, currency: .gbp))
+        #expect(try 4 * a == Money(minorUnits: 24, currency: .gbp))
     }
 
     @Test("Integral multiplication returns correct sign")
     func integralMultiplicationSign() throws {
-        let pos = Money(+12, currency: .gbp) // 12p; £0.12
-        let neg = Money(-12, currency: .gbp)
+        let pos = Money(minorUnits: +12, currency: .gbp) // 12p; £0.12
+        let neg = Money(minorUnits: -12, currency: .gbp)
 
-        #expect(try pos * 2 == Money(+24, currency: .gbp))
-        #expect(try neg * 2 == Money(-24, currency: .gbp))
+        #expect(try pos * 2 == Money(minorUnits: +24, currency: .gbp))
+        #expect(try neg * 2 == Money(minorUnits: -24, currency: .gbp))
 
-        #expect(try pos * -3 == Money(-36, currency: .gbp)) // -36p; -£0.36
-        #expect(try neg * -3 == Money(+36, currency: .gbp))
+        #expect(try pos * -3 == Money(minorUnits: -36, currency: .gbp)) // -36p; -£0.36
+        #expect(try neg * -3 == Money(minorUnits: +36, currency: .gbp))
     }
 
     @Test("Integral multiplication throws on positive overflow")
     func integralMultiplicationPositiveOverflow() {
         #expect(throws: MoneyError.overflow) {
-            try Money(Int64.max, currency: .gbp) * 2
+            try Money(minorUnits: Int64.max, currency: .gbp) * 2
         }
 
         #expect(throws: MoneyError.overflow) {
-            try 2 * Money(Int64.max, currency: .gbp)
+            try 2 * Money(minorUnits: Int64.max, currency: .gbp)
         }
     }
 
     @Test("Integral multiplication throws on negative overflow")
     func integralMultiplicationNegativeOverflow() {
         #expect(throws: MoneyError.overflow) {
-            try Money(Int64.min, currency: .gbp) * 2
+            try Money(minorUnits: Int64.min, currency: .gbp) * 2
         }
 
         #expect(throws: MoneyError.overflow) {
-            try 2 * Money(Int64.min, currency: .gbp)
+            try 2 * Money(minorUnits: Int64.min, currency: .gbp)
         }
     }
 
@@ -196,23 +217,23 @@ struct MoneyTests {
 
     @Test("Integral multiplication in place succeeds")
     func integralMultiplicationInPlace() throws {
-        var a = Money(2_25, currency: .gbp) // £2.25
+        var a = Money(minorUnits: 2_25, currency: .gbp) // £2.25
         let b: Int = 3
 
         try a *= b
 
-        #expect(a == Money(6_75, currency: .gbp)) // £6.75
+        #expect(a == Money(minorUnits: 6_75, currency: .gbp)) // £6.75
     }
 
     // MARK: - Chaining
 
     @Test("One try covers a whole chain")
     func oneTryCoversAWholeChain() throws {
-        let result = try (Money(10_00, currency: .gbp) * 3)
-            + Money(2_50, currency: .gbp)
-            - Money(1_00, currency: .gbp)
+        let result = try (Money(minorUnits: 10_00, currency: .gbp) * 3)
+            + Money(minorUnits: 2_50, currency: .gbp)
+            - Money(minorUnits: 1_00, currency: .gbp)
 
-        #expect(result == Money(31_50, currency: .gbp))
+        #expect(result == Money(minorUnits: 31_50, currency: .gbp))
     }
 
     // A typed throw means the catch is exhaustive over MoneyError without a `default`, so a new case
@@ -232,10 +253,10 @@ struct MoneyTests {
         }
 
         let mismatch = describe { () throws(MoneyError) in
-            try Money(1, currency: .gbp) + Money(1, currency: .eur)
+            try Money(minorUnits: 1, currency: .gbp) + Money(minorUnits: 1, currency: .eur)
         }
         let overflow = describe { () throws(MoneyError) in
-            try Money(Int64.max, currency: .gbp) * 2
+            try Money(minorUnits: Int64.max, currency: .gbp) * 2
         }
 
         #expect(mismatch == "mismatch GBP/EUR")
@@ -246,19 +267,19 @@ struct MoneyTests {
     // rather than one per step.
     @Test("try? yields one Optional for a whole chain")
     func tryQuestionMarkYieldsOneOptional() {
-        let failed: Money? = try? (Money(10_00, currency: .gbp) * 3) + Money(1, currency: .eur)
-        let succeeded: Money? = try? Money(10_00, currency: .gbp) + Money(2_50, currency: .gbp)
+        let failed: Money? = try? (Money(minorUnits: 10_00, currency: .gbp) * 3) + Money(minorUnits: 1, currency: .eur)
+        let succeeded: Money? = try? Money(minorUnits: 10_00, currency: .gbp) + Money(minorUnits: 2_50, currency: .gbp)
 
         #expect(failed == nil)
-        #expect(succeeded == Money(12_50, currency: .gbp))
+        #expect(succeeded == Money(minorUnits: 12_50, currency: .gbp))
     }
 
     // MARK: - isMultiple(of:)
 
     @Test("Is multiple of money where euclidean remainder is zero")
     func isMultipleOnZeroRemainder() throws {
-        let a = Money(3_33, currency: .gbp)
-        let b = Money(9_99, currency: .gbp)
+        let a = Money(minorUnits: 3_33, currency: .gbp)
+        let b = Money(minorUnits: 9_99, currency: .gbp)
 
         #expect(try b.isMultiple(of: a))
         #expect(try !a.isMultiple(of: b))
@@ -266,33 +287,33 @@ struct MoneyTests {
 
     @Test("Is not a multiple where the euclidean remainder is not zero")
     func isNotMultipleForRemainder() throws {
-        let a = Money(2_00, currency: .gbp) // £2.00
-        let b = Money(6_01, currency: .gbp) // Results in £0.01 remainder
+        let a = Money(minorUnits: 2_00, currency: .gbp) // £2.00
+        let b = Money(minorUnits: 6_01, currency: .gbp) // Results in £0.01 remainder
 
         #expect(try !b.isMultiple(of: a))
     }
 
     @Test("Zero is a multiple of any value")
     func zeroIsMultipleOfAnyValue() throws {
-        let zero = Money(0, currency: .gbp)
+        let zero = Money(minorUnits: 0, currency: .gbp)
 
-        for value in [Money(0, currency: .gbp), Money(10, currency: .gbp), Money(999_99, currency: .gbp)] {
+        for value in [Money(minorUnits: 0, currency: .gbp), Money(minorUnits: 10, currency: .gbp), Money(minorUnits: 999_99, currency: .gbp)] {
             #expect(try zero.isMultiple(of: value))
         }
     }
 
     @Test("No amount other than zero is a multiple of zero")
     func onlyZeroIsMultipleOfZero() throws {
-        let zero = Money(0, currency: .gbp)
+        let zero = Money(minorUnits: 0, currency: .gbp)
 
         #expect(try zero.isMultiple(of: zero))
-        #expect(try !Money(1, currency: .gbp).isMultiple(of: zero))
+        #expect(try !Money(minorUnits: 1, currency: .gbp).isMultiple(of: zero))
     }
 
     @Test("Testing against a different currency throws, naming both")
     func isMultipleOfDifferentCurrencyThrows() {
-        let a = Money(9_99, currency: .gbp)
-        let b = Money(3_33, currency: .eur)
+        let a = Money(minorUnits: 9_99, currency: .gbp)
+        let b = Money(minorUnits: 3_33, currency: .eur)
 
         #expect(throws: MoneyError.currencyMismatch(lhs: .gbp, rhs: .eur)) {
             try a.isMultiple(of: b)
@@ -306,28 +327,28 @@ struct MoneyTests {
 
     @Test("Scaling keeps the currency")
     func scalingKeepsTheCurrency() throws {
-        let sut = Money(9_99, currency: .eur)
+        let sut = Money(minorUnits: 9_99, currency: .eur)
 
-        #expect(try sut.scaled(by: Ratio(1, 3)) == .exact(Money(3_33, currency: .eur)))
-        #expect(try sut.scaled(by: Ratio(1, 3), rounding: .toNearestOrEven) == Money(3_33, currency: .eur))
+        #expect(try sut.scaled(by: Ratio(1, 3)) == .exact(Money(minorUnits: 3_33, currency: .eur)))
+        #expect(try sut.scaled(by: Ratio(1, 3), rounding: .toNearestOrEven) == Money(minorUnits: 3_33, currency: .eur))
     }
 
     @Test("An inexact result keeps the currency")
     func inexactScalingKeepsTheCurrency() throws {
-        let scaled = try Money(10_00, currency: .eur).scaled(by: Ratio(1, 3))
+        let scaled = try Money(minorUnits: 10_00, currency: .eur).scaled(by: Ratio(1, 3))
 
         guard case let .inexact(amount, remainder) = scaled else {
             Issue.record("Expected an inexact result")
             return
         }
 
-        #expect(amount == Money(3_33, currency: .eur))
+        #expect(amount == Money(minorUnits: 3_33, currency: .eur))
         #expect(Ratio(remainder) == Ratio(1, 3))
     }
 
     @Test("Scaling past the largest amount throws, where MoneyOf traps")
     func scalingPastTheLargestAmountThrows() {
-        let sut = Money(Int64.max, currency: .gbp)
+        let sut = Money(minorUnits: Int64.max, currency: .gbp)
 
         #expect(throws: MoneyError.overflow) {
             try sut.scaled(by: Ratio(2, 1))
@@ -342,9 +363,9 @@ struct MoneyTests {
     // only the rounding step passes the maximum.
     @Test("Rounding past the largest amount throws, where truncating would not")
     func roundingPastTheLargestAmountThrows() throws {
-        let sut = Money(Int64.max / 3 * 2 + 1, currency: .gbp)
+        let sut = Money(minorUnits: Int64.max / 3 * 2 + 1, currency: .gbp)
 
-        #expect(try sut.scaled(by: Ratio(3, 2), rounding: .towardZero) == Money(Int64.max, currency: .gbp))
+        #expect(try sut.scaled(by: Ratio(3, 2), rounding: .towardZero) == Money(minorUnits: Int64.max, currency: .gbp))
 
         #expect(throws: MoneyError.overflow) {
             try sut.scaled(by: Ratio(3, 2), rounding: .awayFromZero)
@@ -358,20 +379,20 @@ struct MoneyTests {
 
     @Test("Split evenly, shares keep the currency")
     func splitEvenlyKeepsCurrency() {
-        let sut = Money(2, currency: .gbp)
+        let sut = Money(minorUnits: 2, currency: .gbp)
 
         let result = sut.split(into: 2)
 
-        #expect(Array(result.amounts) == [Money(1, currency: .gbp), Money(1, currency: .gbp),])
+        #expect(Array(result.amounts) == [Money(minorUnits: 1, currency: .gbp), Money(minorUnits: 1, currency: .gbp),])
     }
 
     @Test("Split unevenly, shares keep the currency")
     func splitUnevenlyKeepsCurrency() {
-        let sut = Money(3, currency: .gbp)
+        let sut = Money(minorUnits: 3, currency: .gbp)
 
         let result = sut.split(into: 2)
 
-        #expect(Array(result.amounts) == [Money(2, currency: .gbp), Money(1, currency: .gbp),])
+        #expect(Array(result.amounts) == [Money(minorUnits: 2, currency: .gbp), Money(minorUnits: 1, currency: .gbp),])
     }
 
     // MARK: - Unrounded
@@ -381,26 +402,26 @@ struct MoneyTests {
 
     @Test("A chain keeps the currency")
     func chainKeepsTheCurrency() throws {
-        let sut = Money(10_00, currency: .eur)
+        let sut = Money(minorUnits: 10_00, currency: .eur)
 
         let chained = try sut.unrounded * Ratio(1, 3) * Ratio(3, 1)
 
-        #expect(chained.rounded(.toNearestOrEven) == Money(10_00, currency: .eur))
+        #expect(chained.rounded(.toNearestOrEven) == Money(minorUnits: 10_00, currency: .eur))
     }
 
     // One `try` covers the whole expression, as it does for the rest of Money's arithmetic.
     @Test("A chain of two rates settles once")
     func chainOfTwoRatesSettlesOnce() throws {
-        let sut = Money(10_000_00, currency: .gbp)
+        let sut = Money(minorUnits: 10_000_00, currency: .gbp)
 
         let interest = try sut.unrounded * Ratio(45, 1000) * Ratio(31, 365)
 
-        #expect(interest.rounded(.toNearestOrEven) == Money(38_22, currency: .gbp))
+        #expect(interest.rounded(.toNearestOrEven) == Money(minorUnits: 38_22, currency: .gbp))
     }
 
     @Test("Scaling an unrounded amount past the largest throws, where MoneyOf traps")
     func unroundedScalingPastTheLargestAmountThrows() {
-        let sut = Money(Int64.max, currency: .gbp)
+        let sut = Money(minorUnits: Int64.max, currency: .gbp)
 
         #expect(throws: MoneyError.overflow) {
             try sut.unrounded * Ratio(3, 1)
@@ -409,7 +430,7 @@ struct MoneyTests {
 
     @Test("Scaling an unrounded amount in place throws, leaving the value untouched")
     func unroundedScalingInPlaceThrows() throws {
-        let sut = Money(Int64.max, currency: .gbp)
+        let sut = Money(minorUnits: Int64.max, currency: .gbp)
         var unrounded = sut.unrounded
 
         #expect(throws: MoneyError.overflow) {
@@ -422,24 +443,24 @@ struct MoneyTests {
     // Settling cannot overflow, so it needs no `try` even at the largest amount.
     @Test("Settling an unrounded amount never throws")
     func settlingNeverThrows() {
-        let sut = Money(Int64.max, currency: .gbp)
+        let sut = Money(minorUnits: Int64.max, currency: .gbp)
 
         #expect(sut.unrounded.rounded(.awayFromZero) == sut)
     }
 
     @Test("Adding unrounded amounts keeps the currency")
     func addingUnroundedKeepsTheCurrency() throws {
-        let third = try Money(9_99, currency: .eur).unrounded * Ratio(1, 3)
+        let third = try Money(minorUnits: 9_99, currency: .eur).unrounded * Ratio(1, 3)
 
         let whole = try third + third + third
 
-        #expect(whole.rounded(.toNearestOrEven) == Money(9_99, currency: .eur))
+        #expect(whole.rounded(.toNearestOrEven) == Money(minorUnits: 9_99, currency: .eur))
     }
 
     @Test("Adding unrounded amounts in different currencies throws, naming both")
     func addingUnroundedDifferentCurrenciesThrows() {
-        let sterling = Money(1_00, currency: .gbp).unrounded
-        let euros = Money(1_00, currency: .eur).unrounded
+        let sterling = Money(minorUnits: 1_00, currency: .gbp).unrounded
+        let euros = Money(minorUnits: 1_00, currency: .eur).unrounded
 
         #expect(throws: MoneyError.currencyMismatch(lhs: .gbp, rhs: .eur)) {
             try sterling + euros
@@ -448,25 +469,25 @@ struct MoneyTests {
 
     @Test("A settled amount joins an unrounded chain")
     func settledAmountJoinsAnUnroundedChain() throws {
-        let net = try Money(5_00, currency: .gbp).unrounded * Ratio(1, 3)
-            + Money(2_00, currency: .gbp)
-            - Money(1_00, currency: .gbp)
+        let net = try Money(minorUnits: 5_00, currency: .gbp).unrounded * Ratio(1, 3)
+            + Money(minorUnits: 2_00, currency: .gbp)
+            - Money(minorUnits: 1_00, currency: .gbp)
 
-        #expect(net.rounded(.toNearestOrEven) == Money(2_67, currency: .gbp))
+        #expect(net.rounded(.toNearestOrEven) == Money(minorUnits: 2_67, currency: .gbp))
     }
 
     @Test("A settled amount in another currency throws")
     func settledAmountInAnotherCurrencyThrows() {
-        let sterling = Money(1_00, currency: .gbp).unrounded
+        let sterling = Money(minorUnits: 1_00, currency: .gbp).unrounded
 
         #expect(throws: MoneyError.currencyMismatch(lhs: .gbp, rhs: .eur)) {
-            try sterling + Money(1_00, currency: .eur)
+            try sterling + Money(minorUnits: 1_00, currency: .eur)
         }
     }
 
     @Test("Adding unrounded amounts past the largest throws")
     func addingUnroundedPastTheLargestThrows() {
-        let largest = Money(Int64.max, currency: .gbp).unrounded
+        let largest = Money(minorUnits: Int64.max, currency: .gbp).unrounded
 
         #expect(throws: MoneyError.overflow) {
             try largest + largest
@@ -475,7 +496,7 @@ struct MoneyTests {
 
     @Test("Adding to an unrounded amount in place throws, leaving the value untouched")
     func addingUnroundedInPlaceThrows() {
-        let largest = Money(Int64.max, currency: .gbp)
+        let largest = Money(minorUnits: Int64.max, currency: .gbp)
         var running = largest.unrounded
 
         #expect(throws: MoneyError.overflow) {

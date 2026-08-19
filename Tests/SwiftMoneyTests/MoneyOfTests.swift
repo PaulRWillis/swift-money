@@ -10,7 +10,7 @@ struct MoneyOfTests {
     func zeroPropertyHasZeroValue() {
         let zero = GBP.zero
 
-        #expect(zero == GBP(0))
+        #expect(zero == GBP(minorUnits: 0))
     }
 
     // MARK: - Min/Max
@@ -25,27 +25,56 @@ struct MoneyOfTests {
         #expect(GBP.max == GBP.max)
     }
 
+    // MARK: - Construction
+
+    @Test("when constructed from narrower integer should hold same amount")
+    func whenConstructedFromNarrowerInteger_shouldHoldSameAmount() {
+        let sut = GBP(minorUnits: Int8(99))
+
+        #expect(sut == GBP(minorUnits: 99))
+    }
+
+    @Test("when constructed exactly from representable value should hold same amount")
+    func whenConstructedExactlyFromRepresentableValue_shouldHoldSameAmount() {
+        let sut = GBP(exactly: Int128(4_99))
+
+        #expect(sut == GBP(minorUnits: 4_99))
+    }
+
+    @Test("when constructed exactly from value beyond storage should return nil")
+    func whenConstructedExactlyFromValueBeyondStorage_shouldReturnNil() {
+        #expect(GBP(exactly: Int128.max) == nil)
+        #expect(GBP(exactly: UInt64.max) == nil)
+    }
+
+    @Test("when constructed from value beyond storage should trap")
+    func whenConstructedFromValueBeyondStorage_shouldTrap() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(GBP(minorUnits: Int128.max))
+        }
+    }
+
     // MARK: - Addition
 
     @Test("Add succeeds")
     func add() {
-        let a = GBP(5)
-        let b = GBP(7)
+        let a = GBP(minorUnits: 5)
+        let b = GBP(minorUnits: 7)
 
-        #expect(a + b == GBP(12))
+        #expect(a + b == GBP(minorUnits: 12))
     }
 
     @Test("Add traps on positive overflow")
     func addPositiveOverflow() async {
         await #expect(processExitsWith: .failure) {
-            blackHole(GBP.max + GBP(1))
+            blackHole(GBP.max + GBP(minorUnits: 1))
         }
     }
 
     @Test("Add traps on negative overflow")
     func addNegativeOverflow() async {
         await #expect(processExitsWith: .failure) {
-            blackHole(GBP.min + GBP(-1))
+            blackHole(GBP.min + GBP(minorUnits: -1))
         }
     }
 
@@ -53,35 +82,35 @@ struct MoneyOfTests {
 
     @Test("Addition in place succeeds")
     func additionInPlace() {
-        var a = GBP(5)
-        let b = GBP(7)
+        var a = GBP(minorUnits: 5)
+        let b = GBP(minorUnits: 7)
 
         a += b
 
-        #expect(a == GBP(12))
+        #expect(a == GBP(minorUnits: 12))
     }
 
     // MARK: - Subtraction
 
     @Test("Subtract succeeds")
     func subtract() {
-        let a = GBP(5)
-        let b = GBP(7)
+        let a = GBP(minorUnits: 5)
+        let b = GBP(minorUnits: 7)
 
-        #expect(a - b == GBP(-2))
+        #expect(a - b == GBP(minorUnits: -2))
     }
 
     @Test("Subtract traps on positive overflow")
     func subtractPositiveOverflow() async {
         await #expect(processExitsWith: .failure) {
-            blackHole(GBP.max - GBP(-1))
+            blackHole(GBP.max - GBP(minorUnits: -1))
         }
     }
 
     @Test("Subtract traps on negative overflow")
     func subtractNegativeOverflow() async {
         await #expect(processExitsWith: .failure) {
-            blackHole(GBP.min - GBP(1))
+            blackHole(GBP.min - GBP(minorUnits: 1))
         }
     }
 
@@ -89,34 +118,34 @@ struct MoneyOfTests {
 
     @Test("Subtraction in place succeeds")
     func subtractionInPlace() {
-        var a = GBP(5)
-        let b = GBP(7)
+        var a = GBP(minorUnits: 5)
+        let b = GBP(minorUnits: 7)
 
         a -= b
 
-        #expect(a == GBP(-2))
+        #expect(a == GBP(minorUnits: -2))
     }
 
     // MARK: - Integral Multiplication
 
     @Test("Integral multiplication succeeds")
     func integralMultiplication() {
-        let a = GBP(7)
+        let a = GBP(minorUnits: 7)
 
-        #expect(a * 5 == GBP(35))
-        #expect(5 * a == GBP(35))
+        #expect(a * 5 == GBP(minorUnits: 35))
+        #expect(5 * a == GBP(minorUnits: 35))
     }
 
     @Test("Integral multiplication returns correct sign")
     func integralMultiplicationSign() {
-        let pos = GBP(+12) // 12p; £0.12
-        let neg = GBP(-12)
+        let pos = GBP(minorUnits: +12) // 12p; £0.12
+        let neg = GBP(minorUnits: -12)
 
-        #expect(pos * 2 == GBP(+24))
-        #expect(neg * 2 == GBP(-24))
+        #expect(pos * 2 == GBP(minorUnits: +24))
+        #expect(neg * 2 == GBP(minorUnits: -24))
 
-        #expect(pos * -3 == GBP(-36)) // -36p; -£0.36
-        #expect(neg * -3 == GBP(+36))
+        #expect(pos * -3 == GBP(minorUnits: -36)) // -36p; -£0.36
+        #expect(neg * -3 == GBP(minorUnits: +36))
     }
 
     @Test("Integral multiplication traps on positive overflow")
@@ -145,12 +174,12 @@ struct MoneyOfTests {
 
     @Test("Integral multiplication in place func succeeds")
     func integralMultiplicationInPlace() {
-        var a = GBP(2_25) // £2.25
+        var a = GBP(minorUnits: 2_25) // £2.25
         let b: Int = 3
 
         a *= b
 
-        #expect(a == GBP(6_75)) // £6.75
+        #expect(a == GBP(minorUnits: 6_75)) // £6.75
     }
 
     // MARK: - Fractional Scaling
@@ -164,28 +193,28 @@ struct MoneyOfTests {
 
     @Test("Split evenly, shares come back as the same money type")
     func splitEvenlyKeepsMoneyType() {
-        let sut = GBP(2)
+        let sut = GBP(minorUnits: 2)
 
         let result = sut.split(into: 2)
 
-        #expect(Array(result.amounts) == [GBP(1), GBP(1),])
+        #expect(Array(result.amounts) == [GBP(minorUnits: 1), GBP(minorUnits: 1),])
     }
 
     @Test("Split unevenly, shares come back as the same money type")
     func splitUnevenlyKeepsMoneyType() {
-        let sut = GBP(3)
+        let sut = GBP(minorUnits: 3)
 
         let result = sut.split(into: 2)
 
-        #expect(Array(result.amounts) == [GBP(2), GBP(1),])
+        #expect(Array(result.amounts) == [GBP(minorUnits: 2), GBP(minorUnits: 1),])
     }
 
     // MARK: - Comparable
 
     @Test("Lower value is less than higher value")
     func lowerValueIsLessThanHigherValue() {
-        let low = GBP(9)
-        let high = GBP(10)
+        let low = GBP(minorUnits: 9)
+        let high = GBP(minorUnits: 10)
 
         #expect(low < high)
         #expect(!(high < low))
@@ -193,9 +222,9 @@ struct MoneyOfTests {
 
     @Test("Compared values can be transitively ordered")
     func comparedValuesCanBeTransitivelyOrdered() {
-        let a = GBP(1_00)
-        let b = GBP(2_00)
-        let c = GBP(3_00)
+        let a = GBP(minorUnits: 1_00)
+        let b = GBP(minorUnits: 2_00)
+        let c = GBP(minorUnits: 3_00)
 
         #expect(a < b)
         #expect(b < c)
@@ -204,15 +233,15 @@ struct MoneyOfTests {
 
     @Test("Value is not less than itself")
     func valueIsNotLessThanItself() {
-        let sut = GBP(1_00)
+        let sut = GBP(minorUnits: 1_00)
 
         #expect(!(sut < sut))
     }
 
     @Test("Equal values are not less than each other")
     func equalValuesAreNotLessThanEachOther() {
-        let a = GBP(5_00)
-        let b = GBP(5_00)
+        let a = GBP(minorUnits: 5_00)
+        let b = GBP(minorUnits: 5_00)
 
         #expect(a == b)
         #expect(!(a < b))
@@ -221,8 +250,8 @@ struct MoneyOfTests {
 
     @Test("Derived comparison operators follow comparable logic")
     func derivedComparisonOperators() {
-        let low = GBP(1_00)
-        let high = GBP(2_00)
+        let low = GBP(minorUnits: 1_00)
+        let high = GBP(minorUnits: 2_00)
 
         #expect(low <= high)
         #expect(low <= low)
@@ -237,41 +266,41 @@ struct MoneyOfTests {
     // dropping `Strideable` costs only the ability to iterate every minor unit between two amounts.
     @Test("when building a range of amounts should support containment and bounds")
     func rangesComeFromComparable() {
-        let band = GBP(1_00)...GBP(9_00)
+        let band = GBP(minorUnits: 1_00)...GBP(minorUnits: 9_00)
 
-        #expect(band.contains(GBP(5_00)))
-        #expect(!band.contains(GBP(9_01)))
-        #expect(band.lowerBound == GBP(1_00))
-        #expect(band.upperBound == GBP(9_00))
-        #expect(band.clamped(to: GBP(2_00)...GBP(4_00)) == GBP(2_00)...GBP(4_00))
+        #expect(band.contains(GBP(minorUnits: 5_00)))
+        #expect(!band.contains(GBP(minorUnits: 9_01)))
+        #expect(band.lowerBound == GBP(minorUnits: 1_00))
+        #expect(band.upperBound == GBP(minorUnits: 9_00))
+        #expect(band.clamped(to: GBP(minorUnits: 2_00)...GBP(minorUnits: 4_00)) == GBP(minorUnits: 2_00)...GBP(minorUnits: 4_00))
     }
 
     @Test("when comparing a sequence of amounts should return the extremes")
     func extremesComeFromComparable() {
-        let values = [GBP(5_20), GBP(-2_40), GBP(3_38)]
+        let values = [GBP(minorUnits: 5_20), GBP(minorUnits: -2_40), GBP(minorUnits: 3_38)]
 
-        #expect(values.max() == GBP(5_20))
-        #expect(values.min() == GBP(-2_40))
+        #expect(values.max() == GBP(minorUnits: 5_20))
+        #expect(values.min() == GBP(minorUnits: -2_40))
     }
 
     @Test("Sorting produces ascending order")
     func sortingProducesAscendingOrder() {
         let values = [
-            GBP(5_20),
-            GBP(-2_40),
-            GBP(1_40),
-            GBP(3_38),
-            GBP(3_39),
+            GBP(minorUnits: 5_20),
+            GBP(minorUnits: -2_40),
+            GBP(minorUnits: 1_40),
+            GBP(minorUnits: 3_38),
+            GBP(minorUnits: 3_39),
         ]
 
         let sorted = values.sorted()
 
         #expect(sorted == [
-            GBP(-2_40),
-            GBP(1_40),
-            GBP(3_38),
-            GBP(3_39),
-            GBP(5_20),
+            GBP(minorUnits: -2_40),
+            GBP(minorUnits: 1_40),
+            GBP(minorUnits: 3_38),
+            GBP(minorUnits: 3_39),
+            GBP(minorUnits: 5_20),
         ])
     }
 
@@ -279,8 +308,8 @@ struct MoneyOfTests {
 
     @Test("Is multiple of money where euclidean remainder is zero")
     func isMultipleOnZeroRemainder() {
-        let a = GBP(3_33)
-        let b = GBP(9_99)
+        let a = GBP(minorUnits: 3_33)
+        let b = GBP(minorUnits: 9_99)
 
         #expect(b.isMultiple(of: a))
         #expect(!a.isMultiple(of: b))
@@ -288,8 +317,8 @@ struct MoneyOfTests {
 
     @Test("Is NOT multiple of money where euclidean remainder is not zero")
     func isNotMultipleForRemainder() {
-        let a = GBP(2_00) // £2.00
-        let b = GBP(6_01) // Results in £0.01 remainder
+        let a = GBP(minorUnits: 2_00) // £2.00
+        let b = GBP(minorUnits: 6_01) // Results in £0.01 remainder
 
         #expect(!b.isMultiple(of: a))
     }
@@ -297,7 +326,7 @@ struct MoneyOfTests {
     @Test("Zero is multiple of any value")
     func zeroIsMultipleOfAnyValue() {
         let zero = GBP.zero
-        let arr = [GBP(0), GBP(10), GBP(999_99), GBP(12345678_99)]
+        let arr = [GBP(minorUnits: 0), GBP(minorUnits: 10), GBP(minorUnits: 999_99), GBP(minorUnits: 12345678_99)]
 
         for value in arr {
             #expect(zero.isMultiple(of: value))
@@ -307,7 +336,7 @@ struct MoneyOfTests {
     @Test("No amount other than zero is a multiple of zero")
     func onlyZeroIsMultipleOfZero() {
         #expect(GBP.zero.isMultiple(of: GBP.zero))
-        #expect(!GBP(1).isMultiple(of: GBP.zero))
+        #expect(!GBP(minorUnits: 1).isMultiple(of: GBP.zero))
     }
 
 }
