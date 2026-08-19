@@ -6,6 +6,18 @@ struct MoneyTests {
 
     // MARK: - Construction
 
+    @Test("when constructed exactly from representable value should hold same amount")
+    func whenConstructedExactlyFromRepresentableValue_shouldHoldSameAmount() {
+        let sut = Money(exactly: Int128(4_99), currency: .gbp)
+
+        #expect(sut == Money(minorUnits: 4_99, currency: .gbp))
+    }
+
+    @Test("when constructed exactly from value beyond storage should return nil")
+    func whenConstructedExactlyFromValueBeyondStorage_shouldReturnNil() {
+        #expect(Money(exactly: Int128.max, currency: .gbp) == nil)
+    }
+
     @Test("when constructed from value beyond storage should trap")
     func whenConstructedFromValueBeyondStorage_shouldTrap() async {
         await #expect(processExitsWith: .failure) {

@@ -36,6 +36,28 @@ public struct MoneyOf<C: CurrencyType>: Equatable, Hashable, Sendable {
         self.minorUnits = representable
     }
 
+    /// Creates a monetary amount from a whole number of the currency's smallest (minor) units, if
+    /// the count is representable.
+    ///
+    /// Use this for a value from outside the program, where an amount too large to hold is bad input
+    /// rather than a mistake in the source. The range an amount can hold is deliberately not part of
+    /// this API, so a caller cannot check it beforehand.
+    ///
+    /// ```swift
+    /// GBP(exactly: fromTheNetwork)   // nil rather than a trap
+    /// ```
+    ///
+    /// - Parameter minorUnits: The number of the currency's smallest units.
+    /// - Returns: `nil` if `minorUnits` is outside the range an amount can hold.
+    @inlinable
+    public init?(exactly minorUnits: some BinaryInteger) {
+        guard let representable = Int64(exactly: minorUnits) else {
+            return nil
+        }
+
+        self.minorUnits = representable
+    }
+
     // No range check: for call sites holding a value this type computed, and so already knows is
     // representable. Public construction validates; internal arithmetic must not pay for it.
     @usableFromInline
