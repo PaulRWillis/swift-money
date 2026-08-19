@@ -23,7 +23,7 @@ jobs:
 
     - name: Analyze API breakage (workaround compile issue on first run)
       continue-on-error: true
-      run: swift package diagnose-api-breaking-changes origin/main --targets SwiftMoney POCMoney
+      run: swift package diagnose-api-breaking-changes origin/main --targets SwiftMoney
 
     - name: Analyze API breakage
-      run: swift package diagnose-api-breaking-changes origin/main --targets SwiftMoney POCMoney
+      run: swift package diagnose-api-breaking-changes origin/main --targets SwiftMoney

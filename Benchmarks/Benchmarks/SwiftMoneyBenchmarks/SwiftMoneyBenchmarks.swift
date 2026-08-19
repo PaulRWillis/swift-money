@@ -2,6 +2,11 @@ import Benchmark
 import Foundation
 import SwiftMoney
 
+// Three baselines, because one number on its own says nothing. `Int` is what the type safety costs,
+// `Double` is the fast answer that is wrong at scale, and `Decimal` is the exact answer that is slow.
+//
+// Benchmark names are distinct from the SwiftMoney target's, since results are keyed by name across a
+// whole run.
 let benchmarks: @Sendable () -> Void = {
     let defaultMetrics: [BenchmarkMetric] = [
         .wallClock,
@@ -14,21 +19,11 @@ let benchmarks: @Sendable () -> Void = {
         scalingFactor: .mega
     )
 
-    // MARK: - Money Arithmetic
+    // MARK: - Addition
 
-    Benchmark("Money addition", configuration: defaultConfiguration) { benchmark in
-        var accumulated = Money<GBP>(minorUnits: 0)
-        let delta = Money<GBP>(minorUnits: 1)
-
-        for _ in benchmark.scaledIterations {
-            blackHole(accumulated)
-            accumulated = accumulated + delta
-        }
-    }
-
-    Benchmark("Foundation Decimal addition", configuration: defaultConfiguration) { benchmark in
-        var accumulated = Foundation.Decimal.zero
-        let delta = Foundation.Decimal(string: "0.01")!
+    Benchmark("MoneyOf addition", configuration: defaultConfiguration) { benchmark in
+        var accumulated = GBP(0)
+        let delta = GBP(1)
 
         for _ in benchmark.scaledIterations {
             blackHole(accumulated)
@@ -36,9 +31,41 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
-    Benchmark("Money subtraction", configuration: defaultConfiguration) { benchmark in
-        var accumulated = Money<GBP>(minorUnits: 999_999_999)
-        let delta = Money<GBP>(minorUnits: 1)
+    Benchmark("Int addition", configuration: defaultConfiguration) { benchmark in
+        var accumulated = 0
+        let delta = 1
+
+        for _ in benchmark.scaledIterations {
+            blackHole(accumulated)
+            accumulated = accumulated + delta
+        }
+    }
+
+    Benchmark("Double addition", configuration: defaultConfiguration) { benchmark in
+        var accumulated = 0.0
+        let delta = 0.01
+
+        for _ in benchmark.scaledIterations {
+            blackHole(accumulated)
+            accumulated = accumulated + delta
+        }
+    }
+
+    Benchmark("Decimal addition", configuration: defaultConfiguration) { benchmark in
+        var accumulated = Decimal.zero
+        let delta = Decimal(1) / Decimal(100)
+
+        for _ in benchmark.scaledIterations {
+            blackHole(accumulated)
+            accumulated = accumulated + delta
+        }
+    }
+
+    // MARK: - Subtraction
+
+    Benchmark("MoneyOf subtraction", configuration: defaultConfiguration) { benchmark in
+        var accumulated = GBP(999_999_999)
+        let delta = GBP(1)
 
         for _ in benchmark.scaledIterations {
             blackHole(accumulated)
@@ -46,9 +73,9 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
-    Benchmark("Foundation Decimal subtraction", configuration: defaultConfiguration) { benchmark in
-        var accumulated = Foundation.Decimal(string: "9999999.99")!
-        let delta = Foundation.Decimal(string: "0.01")!
+    Benchmark("Int subtraction", configuration: defaultConfiguration) { benchmark in
+        var accumulated = 999_999_999
+        let delta = 1
 
         for _ in benchmark.scaledIterations {
             blackHole(accumulated)
@@ -56,168 +83,386 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
-    Benchmark("Money multiplication (Int64)", configuration: defaultConfiguration) { benchmark in
-        let price = Money<GBP>(minorUnits: 1250)
-        let quantities: [Int64] = [1, 2, 3, 5, 7, 10, 13, 17, 19, 23]
-        var i = 0
+    Benchmark("Double subtraction", configuration: defaultConfiguration) { benchmark in
+        var accumulated = 9_999_999.99
+        let delta = 0.01
 
         for _ in benchmark.scaledIterations {
-            blackHole(price * quantities[i % quantities.count])
-            i &+= 1
+            blackHole(accumulated)
+            accumulated = accumulated - delta
         }
     }
 
-    Benchmark("Foundation Decimal multiplication", configuration: defaultConfiguration) { benchmark in
-        let price = Foundation.Decimal(string: "12.50")!
-        let quantities: [Foundation.Decimal] = [1, 2, 3, 5, 7, 10, 13, 17, 19, 23]
-        var i = 0
+    Benchmark("Decimal subtraction", configuration: defaultConfiguration) { benchmark in
+        var accumulated = Decimal(999_999_999) / Decimal(100)
+        let delta = Decimal(1) / Decimal(100)
 
         for _ in benchmark.scaledIterations {
-            blackHole(price * quantities[i % quantities.count])
-            i &+= 1
+            blackHole(accumulated)
+            accumulated = accumulated - delta
         }
     }
 
-    Benchmark("Money comparison", configuration: defaultConfiguration) { benchmark in
-        let a = Money<GBP>(minorUnits: 1000)
-        let b = Money<GBP>(minorUnits: 2000)
-        var count: Int = 0
+    // MARK: - Scalar Multiplication
+
+    // Cycling through a spread of factors rather than one, so the result cannot be hoisted.
+    let factors = [1, 2, 3, 5, 7, 10, 13, 17, 19, 23]
+
+    Benchmark("MoneyOf scalar multiplication", configuration: defaultConfiguration) { benchmark in
+        let price = GBP(12_50)
+        var index = 0
 
         for _ in benchmark.scaledIterations {
-            if a < b { count &+= 1 }
+            blackHole(price * factors[index % factors.count])
+            index &+= 1
         }
-        blackHole(count)
     }
 
-    Benchmark("Foundation Decimal comparison", configuration: defaultConfiguration) { benchmark in
-        let a = Foundation.Decimal(string: "10.00")!
-        let b = Foundation.Decimal(string: "20.00")!
-        var count: Int = 0
+    Benchmark("Int scalar multiplication", configuration: defaultConfiguration) { benchmark in
+        let price = 12_50
+        var index = 0
 
         for _ in benchmark.scaledIterations {
-            if a < b { count &+= 1 }
+            blackHole(price * factors[index % factors.count])
+            index &+= 1
         }
-        blackHole(count)
     }
 
-    // MARK: - FormatStyle
-
-    Benchmark("Money formatted()", configuration: defaultConfiguration) { benchmark in
-        let price = Money<GBP>(minorUnits: 12550)
-        var lengthAccumulator: Int = 0
+    Benchmark("Double scalar multiplication", configuration: defaultConfiguration) { benchmark in
+        let price = 12.50
+        let doubles = factors.map(Double.init)
+        var index = 0
 
         for _ in benchmark.scaledIterations {
-            lengthAccumulator &+= price.formatted().count
+            blackHole(price * doubles[index % doubles.count])
+            index &+= 1
         }
-        blackHole(lengthAccumulator)
     }
 
-    Benchmark("Foundation Decimal formatted(.currency)", configuration: defaultConfiguration) { benchmark in
-        let price = Foundation.Decimal(string: "125.50")!
-        let style = Foundation.Decimal.FormatStyle.Currency(code: "GBP")
-        var lengthAccumulator: Int = 0
+    Benchmark("Decimal scalar multiplication", configuration: defaultConfiguration) { benchmark in
+        let price = Decimal(1250) / Decimal(100)
+        let decimals = factors.map { Decimal($0) }
+        var index = 0
 
         for _ in benchmark.scaledIterations {
-            lengthAccumulator &+= price.formatted(style).count
+            blackHole(price * decimals[index % decimals.count])
+            index &+= 1
         }
-        blackHole(lengthAccumulator)
     }
 
-    Benchmark("Money formatted(.grouping(.never))", configuration: defaultConfiguration) { benchmark in
-        let price = Money<GBP>(minorUnits: 12550)
-        let style = Money<GBP>.FormatStyle().grouping(.never)
-        var lengthAccumulator: Int = 0
+    // MARK: - Scale and Round
+
+    // 17.5% of an amount, resolved to a whole unit. The operation this library exists for, and the one
+    // where the three baselines diverge most: `Int` cannot round at all, `Double` rounds a value it
+    // cannot represent, and `Decimal` is exact but pays for it.
+
+    Benchmark("MoneyOf scaled and rounded", configuration: defaultConfiguration) { benchmark in
+        let vat = Ratio(7, 40)
+        var amount = 1
 
         for _ in benchmark.scaledIterations {
-            lengthAccumulator &+= price.formatted(style).count
+            blackHole(GBP(amount).scaled(by: vat, rounding: .toNearestOrEven))
+            amount &+= 1
         }
-        blackHole(lengthAccumulator)
     }
 
-    // MARK: - Codable
-
-    Benchmark("Money JSON encode (.minorUnits)", configuration: defaultConfiguration) { benchmark in
-        let price = Money<GBP>(minorUnits: 12550)
-        let encoder = JSONEncoder()
-        encoder.moneyEncodingStrategy = .minorUnits
-        var byteCount: Int = 0
+    Benchmark("Int scaled, truncating", configuration: defaultConfiguration) { benchmark in
+        var amount = 1
 
         for _ in benchmark.scaledIterations {
-            byteCount &+= (try? encoder.encode(price))?.count ?? 0
+            blackHole(amount * 7 / 40)
+            amount &+= 1
         }
-        blackHole(byteCount)
     }
 
-    Benchmark("Foundation Decimal JSON encode", configuration: defaultConfiguration) { benchmark in
-        let decimal = Foundation.Decimal(string: "125.50")!
-        let encoder = JSONEncoder()
-        var byteCount: Int = 0
+    Benchmark("Double scaled and rounded", configuration: defaultConfiguration) { benchmark in
+        var amount = 1.0
 
         for _ in benchmark.scaledIterations {
-            byteCount &+= (try? encoder.encode(decimal))?.count ?? 0
+            blackHole((amount * 7.0 / 40.0).rounded(.toNearestOrEven))
+            amount += 1.0
         }
-        blackHole(byteCount)
     }
 
-    Benchmark("Money JSON decode (.minorUnits)", configuration: defaultConfiguration) { benchmark in
-        let data = "12550".data(using: .utf8)!
-        let decoder = JSONDecoder()
-        decoder.moneyDecodingStrategy = .minorUnits
-        var count: Int = 0
+    Benchmark("Decimal scaled and rounded", configuration: defaultConfiguration) { benchmark in
+        let numerator = Decimal(7)
+        let denominator = Decimal(40)
+        var amount = 1
 
         for _ in benchmark.scaledIterations {
-            let value = try? decoder.decode(Money<GBP>.self, from: data)
-            blackHole(value)
+            var scaled = Decimal(amount) * numerator / denominator
+            var rounded = Decimal()
+            NSDecimalRound(&rounded, &scaled, 0, .bankers)
+            blackHole(rounded)
+            amount &+= 1
+        }
+    }
+
+    // MARK: - Chained Scaling
+
+    // A 10% discount, then 20% VAT, then 31 days of a year. Only the unrounded chain is exact: the
+    // others settle, truncate or drift at every step, so the timings carry a correctness result too.
+
+    Benchmark("MoneyOf unrounded scaling", configuration: defaultConfiguration) { benchmark in
+        let vat = Ratio(7, 40)
+        var amount = 1
+
+        for _ in benchmark.scaledIterations {
+            blackHole(GBP(amount).unrounded * vat)
+            amount &+= 1
+        }
+    }
+
+    Benchmark("MoneyOf unrounded chain", configuration: defaultConfiguration) { benchmark in
+        let discount = Ratio(9, 10)
+        let vat = Ratio(6, 5)
+        let dayCount = Ratio(31, 365)
+        var amount = 1
+
+        for _ in benchmark.scaledIterations {
+            let chained = GBP(amount).unrounded * discount * vat * dayCount
+            blackHole(chained.rounded(.toNearestOrEven))
+            amount &+= 1
+        }
+    }
+
+    Benchmark("MoneyOf chain, rounding each step", configuration: defaultConfiguration) { benchmark in
+        let discount = Ratio(9, 10)
+        let vat = Ratio(6, 5)
+        let dayCount = Ratio(31, 365)
+        var amount = 1
+
+        for _ in benchmark.scaledIterations {
+            blackHole(
+                GBP(amount)
+                    .scaled(by: discount, rounding: .toNearestOrEven)
+                    .scaled(by: vat, rounding: .toNearestOrEven)
+                    .scaled(by: dayCount, rounding: .toNearestOrEven)
+            )
+            amount &+= 1
+        }
+    }
+
+    Benchmark("Int chained scaling, truncating", configuration: defaultConfiguration) { benchmark in
+        var amount = 1
+
+        for _ in benchmark.scaledIterations {
+            blackHole(amount * 9 / 10 * 6 / 5 * 31 / 365)
+            amount &+= 1
+        }
+    }
+
+    Benchmark("Double chained scaling", configuration: defaultConfiguration) { benchmark in
+        let dayCount = 31.0 / 365.0
+        var amount = 1.0
+
+        for _ in benchmark.scaledIterations {
+            blackHole((amount * 0.9 * 1.2 * dayCount).rounded())
+            amount += 1.0
+        }
+    }
+
+    Benchmark("Decimal chained scaling", configuration: defaultConfiguration) { benchmark in
+        let discount = Decimal(9) / Decimal(10)
+        let vat = Decimal(6) / Decimal(5)
+        let dayCount = Decimal(31) / Decimal(365)
+        var amount = 1
+
+        for _ in benchmark.scaledIterations {
+            var scaled = Decimal(amount) * discount * vat * dayCount
+            var rounded = Decimal()
+            NSDecimalRound(&rounded, &scaled, 0, .bankers)
+            blackHole(rounded)
+            amount &+= 1
+        }
+    }
+
+    // Cycling through pre-built operands, so neither the addition nor the scaling that produced them
+    // can be hoisted out of the loop.
+    let thirds = (1 ... 16).map { GBP($0 * 100).unrounded * Ratio(1, 3) }
+
+    Benchmark("MoneyOf unrounded addition", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(thirds[index % thirds.count] + thirds[(index &+ 1) % thirds.count])
+            index &+= 1
+        }
+    }
+
+    // MARK: - Comparison
+
+    Benchmark("MoneyOf comparison", configuration: defaultConfiguration) { benchmark in
+        let a = GBP(10_00)
+        let b = GBP(20_00)
+        var count = 0
+
+        for _ in benchmark.scaledIterations where a < b {
             count &+= 1
         }
         blackHole(count)
     }
 
-    Benchmark("Foundation Decimal JSON decode", configuration: defaultConfiguration) { benchmark in
-        let data = "125.50".data(using: .utf8)!
-        let decoder = JSONDecoder()
-        var count: Int = 0
+    Benchmark("Int comparison", configuration: defaultConfiguration) { benchmark in
+        let a = 10_00
+        let b = 20_00
+        var count = 0
 
-        for _ in benchmark.scaledIterations {
-            let value = try? decoder.decode(Foundation.Decimal.self, from: data)
-            blackHole(value)
+        for _ in benchmark.scaledIterations where a < b {
             count &+= 1
         }
         blackHole(count)
     }
 
-    // MARK: - Distribution
+    Benchmark("Double comparison", configuration: defaultConfiguration) { benchmark in
+        let a = 10.00
+        let b = 20.00
+        var count = 0
 
-    Benchmark("Money distributed(into: 3)", configuration: defaultConfiguration) { benchmark in
-        let amount = Money<GBP>(minorUnits: 1000)
-
-        for _ in benchmark.scaledIterations {
-            blackHole(amount.distributed(into: 3))
+        for _ in benchmark.scaledIterations where a < b {
+            count &+= 1
         }
+        blackHole(count)
     }
 
-    // MARK: - ExchangeRate
+    Benchmark("Decimal comparison", configuration: defaultConfiguration) { benchmark in
+        let a = Decimal(1000) / Decimal(100)
+        let b = Decimal(2000) / Decimal(100)
+        var count = 0
 
-    Benchmark("ExchangeRate convert", configuration: defaultConfiguration) { benchmark in
-        let rate = ExchangeRate<GBP, USD>(from: 100, to: 135)!
-        let gbp = Money<GBP>(minorUnits: 1000)
-
-        for _ in benchmark.scaledIterations {
-            blackHole(rate.convert(gbp))
+        for _ in benchmark.scaledIterations where a < b {
+            count &+= 1
         }
+        blackHole(count)
     }
 
-    // MARK: - MoneyBag
+    // MARK: - What the library's own choices cost
 
-    Benchmark("MoneyBag add 10 entries", configuration: defaultConfiguration) { benchmark in
-        let amounts: [Money<GBP>] = (1...10).map { Money<GBP>(minorUnits: Int64($0) * 100) }
+    // `Money` throws where `MoneyOf` traps, so this is the price of typed throws — a currency check and
+    // an error return path that never fires. `BenchmarkClosure` cannot throw, hence the surrounding
+    // `do`; the `catch` is unreachable with matching currencies.
+    Benchmark("Money addition, throwing", configuration: defaultConfiguration) { benchmark in
+        var accumulated = Money(0, currency: .gbp)
+        let delta = Money(1, currency: .gbp)
 
-        for _ in benchmark.scaledIterations {
-            var bag = MoneyBag()
-            for amount in amounts {
-                bag.add(amount)
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(accumulated)
+                accumulated = try accumulated + delta
             }
-            blackHole(bag)
+        } catch {
+            fatalError("these amounts share a currency, so this cannot happen: \(error)")
+        }
+    }
+
+    // Reporting a remainder means constructing a `Ratio`, which reduces to lowest terms. Against
+    // `scaled(by:rounding:)`, the difference is what the report itself costs.
+    Benchmark("MoneyOf scaled, reporting a remainder", configuration: defaultConfiguration) { benchmark in
+        let vat = Ratio(7, 40)
+        var amount = 1
+
+        for _ in benchmark.scaledIterations {
+            blackHole(GBP(amount).scaled(by: vat))
+            amount &+= 1
+        }
+    }
+
+    // Construction reduces, so this measures the greatest common divisor. Denominators with many
+    // factors are the expensive case, and the ones money actually uses.
+    Benchmark("Ratio construction", configuration: defaultConfiguration) { benchmark in
+        var numerator: Int64 = 1
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Ratio(Ratio.Numerator(numerator % 40), 40))
+            numerator &+= 1
+        }
+    }
+
+    Benchmark("MoneyOf split into 3", configuration: defaultConfiguration) { benchmark in
+        var amount = 1
+
+        for _ in benchmark.scaledIterations {
+            blackHole(GBP(amount).split(into: 3))
+            amount &+= 1
+        }
+    }
+
+    // The same split on the runtime-currency type. Both run the same algorithm, so a gap between them
+    // is not arithmetic — it is what `MoneyOf` pays for being generic.
+    Benchmark("Money split into 3", configuration: defaultConfiguration) { benchmark in
+        var amount = 1
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Money(amount, currency: .gbp).split(into: 3))
+            amount &+= 1
+        }
+    }
+
+    // What splitting costs when the hardware does it unaided, and so the floor the others are measured
+    // against. A split is a division that keeps its remainder rather than discarding it.
+    Benchmark("Int quotient and remainder", configuration: defaultConfiguration) { benchmark in
+        var amount = 1
+
+        for _ in benchmark.scaledIterations {
+            blackHole(amount.quotientAndRemainder(dividingBy: 3))
+            amount &+= 1
+        }
+    }
+
+    // Neither of the next two is doing the same job: they divide and drop whatever will not divide
+    // evenly, where a split hands the leftover unit to one of the parts. They are here as the cost of
+    // the arithmetic alone, not as an equivalent.
+    Benchmark("Double divided by 3", configuration: defaultConfiguration) { benchmark in
+        var amount = 1.0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(amount / 3.0)
+            amount += 1.0
+        }
+    }
+
+    Benchmark("Decimal divided by 3", configuration: defaultConfiguration) { benchmark in
+        let three = Decimal(3)
+        var amount = Decimal(1)
+
+        for _ in benchmark.scaledIterations {
+            blackHole(amount / three)
+            amount += 1
+        }
+    }
+
+    // A `Split` holds two groups rather than one amount per part, so iterating expands it on demand.
+    // Against the split itself, this is what that expansion costs.
+    Benchmark("MoneyOf split, iterating the parts", configuration: defaultConfiguration) { benchmark in
+        let split = GBP(100_00).split(into: 3)
+        var total = 0
+
+        for _ in benchmark.scaledIterations {
+            for part in split.amounts {
+                blackHole(part)
+                total &+= 1
+            }
+        }
+        blackHole(total)
+    }
+
+    Benchmark("MoneyOf total of 10", configuration: defaultConfiguration) { benchmark in
+        let amounts = (1...10).map { GBP($0 * 100) }
+
+        for _ in benchmark.scaledIterations {
+            blackHole(amounts.total())
+        }
+    }
+
+    // Validation walks the string's bytes and normalizes case, so this is the boundary cost of
+    // accepting a currency code from outside.
+    Benchmark("CurrencyCode validation", configuration: defaultConfiguration) { benchmark in
+        let codes = ["GBP", "eur", "usd", "JPY", "XBT", "LTY1"]
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(CurrencyCode(string: codes[index % codes.count]))
+            index &+= 1
         }
     }
 }
