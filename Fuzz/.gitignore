@@ -1,7 +1,0 @@
-fuzz-swiftmoney
-.build/
-corpus/
-crash-*
-leak-*
-timeout-*
-oom-*
