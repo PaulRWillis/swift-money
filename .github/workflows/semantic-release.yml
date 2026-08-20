@@ -13,6 +13,8 @@ jobs:
         with:
           fetch-depth: 0
 
+      # A breaking change releases a minor while the package is still 0.x, where the leading zero
+      # already says the API is unstable. Restore `major` once 1.0.0 is tagged by hand.
       - name: Semantic Release Config
         run: |
           echo "
@@ -24,7 +26,7 @@ jobs:
             - - '@semantic-release/commit-analyzer'
               - releaseRules:
                 - breaking: true
-                  release: major
+                  release: minor
                 - type: build
                   release: patch
                 - type: chore
