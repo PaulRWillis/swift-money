@@ -130,81 +130,90 @@ func codeAndDigits(
     return (code, utf8[utf8.index(after: space)...])
 }
 
+// The amount a run of bytes holds, in the smallest units of a currency of `scale`. One pass: the
+// decimal point is met rather than searched for, and the power of ten it implies is accumulated
+// alongside the digits it counts.
 @usableFromInline
 func minorUnits(
     _ utf8: Slice<UnsafeBufferPointer<UInt8>>,
     scale: UInt64
 ) -> Int64? {
-    guard !utf8.isEmpty else {
-        return nil
-    }
-
-    var index = utf8.startIndex
+    var whole: UInt64 = 0
+    var fraction: UInt64 = 0
+    var power: UInt64 = 1
     var isNegative = false
+    var seenPoint = false
+    var seenDigit = false
+    var index = utf8.startIndex
 
-    switch utf8[index] {
-    case UInt8(ascii: "-"):
-        isNegative = true
+    if index < utf8.endIndex, utf8[index] == UInt8(ascii: "-") || utf8[index] == UInt8(ascii: "+") {
+        isNegative = utf8[index] == UInt8(ascii: "-")
         index = utf8.index(after: index)
-    case UInt8(ascii: "+"):
-        index = utf8.index(after: index)
-    default:
-        break
     }
 
-    let point = utf8[index...].firstIndex(of: UInt8(ascii: "."))
-    let wholeEnd = point ?? utf8.endIndex
+    while index < utf8.endIndex {
+        let byte = utf8[index]
+        index = utf8.index(after: index)
 
-    guard let whole = value(ofDigits: utf8[index ..< wholeEnd]) else {
-        return nil
-    }
+        if byte == UInt8(ascii: ".") {
+            guard !seenPoint else {
+                return nil
+            }
 
-    var magnitude = whole
+            seenPoint = true
+            seenDigit = false
+            continue
+        }
 
-    if let point {
-        let fractionDigits = utf8[utf8.index(after: point)...]
+        let digit = UInt64(byte &- UInt8(ascii: "0"))
 
-        guard let fraction = value(ofDigits: fractionDigits),
-              let power = UInt64.powerOfTen(exactly: fractionDigits.count),
-              let scaled = fraction.multipliedExactly(by: scale),
-              // A remainder means the string is finer than the currency divides, as "GBP 4.999" is,
-              // and rounding it away here would be losing money quietly.
-              scaled.isMultiple(of: power),
-              let whole = magnitude.multipliedExactly(by: scale),
-              let total = whole.addedExactly(scaled / power)
-        else {
+        guard digit < 10 else {
             return nil
         }
 
-        magnitude = total
+        seenDigit = true
+
+        if seenPoint {
+            guard let raised = power.multipliedExactly(by: 10),
+                  let shifted = fraction.multipliedExactly(by: 10),
+                  let added = shifted.addedExactly(digit)
+            else {
+                return nil
+            }
+
+            power = raised
+            fraction = added
+        } else {
+            guard let shifted = whole.multipliedExactly(by: 10),
+                  let added = shifted.addedExactly(digit)
+            else {
+                return nil
+            }
+
+            whole = added
+        }
+    }
+
+    guard seenDigit else {
+        return nil
+    }
+
+    // Without a point the digits are already the smallest units, so nothing is scaled.
+    guard seenPoint else {
+        return Int64(magnitude: whole, sign: isNegative ? .negative : .positive)
+    }
+
+    guard let scaled = fraction.multipliedExactly(by: scale),
+          // A remainder means the string is finer than the currency divides, as "GBP 4.999" is, and
+          // rounding it away here would be losing money quietly.
+          scaled.isMultiple(of: power),
+          let major = whole.multipliedExactly(by: scale),
+          let magnitude = major.addedExactly(scaled / power)
+    else {
+        return nil
     }
 
     return Int64(magnitude: magnitude, sign: isNegative ? .negative : .positive)
-}
-
-// The value of a run of ASCII digits, or `nil` if it is empty, holds anything else, or overflows.
-@usableFromInline
-func value(ofDigits utf8: Slice<UnsafeBufferPointer<UInt8>>) -> UInt64? {
-    guard !utf8.isEmpty else {
-        return nil
-    }
-
-    var value: UInt64 = 0
-
-    for byte in utf8 {
-        let digit = byte &- UInt8(ascii: "0")
-
-        guard digit < 10,
-              let shifted = value.multipliedExactly(by: 10),
-              let added = shifted.addedExactly(UInt64(digit))
-        else {
-            return nil
-        }
-
-        value = added
-    }
-
-    return value
 }
 
 extension UInt64 {
