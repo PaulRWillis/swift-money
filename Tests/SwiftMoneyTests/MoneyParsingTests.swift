@@ -1,0 +1,147 @@
+import SwiftMoney
+import Testing
+
+private enum OldSterling: CurrencyType {
+    static let currency = Currency(code: "OLD", unitScale: 240)
+}
+
+private enum Khoums: CurrencyType {
+    static let currency = Currency(code: "KHO", unitScale: 5)
+}
+
+private let loyaltyPoints = Currency(code: "LTY", unitScale: 1)
+
+@Suite("Money Parsing Tests")
+struct MoneyParsingTests {
+
+    // MARK: - Both spellings
+
+    @Test(
+        "A dot means major units and no dot means the smallest units",
+        arguments: [
+            ("4.99", 4_99),
+            ("499", 4_99),
+            ("0.05", 5),
+            ("5", 5),
+            ("0.00", 0),
+            ("0", 0),
+        ]
+    )
+    func bothSpellings(_ text: String, _ expected: Int64) throws {
+        #expect(try #require(GBP(string: text)) == GBP(minorUnits: expected))
+    }
+
+    @Test("Fewer decimals than the currency divides into are filled out")
+    func shortDecimal() throws {
+        #expect(try #require(GBP(string: "4.9")) == GBP(minorUnits: 4_90))
+        #expect(GBP(string: "4.") == nil)
+    }
+
+    @Test("A negative amount parses in either spelling")
+    func negative() throws {
+        #expect(try #require(GBP(string: "-4.99")) == GBP(minorUnits: -4_99))
+        #expect(try #require(GBP(string: "-499")) == GBP(minorUnits: -4_99))
+    }
+
+    // MARK: - Where the currency comes from
+
+    @Test("A code may be left out where the type names the currency, and must match where given")
+    func codeOptionalForATypedAmount() throws {
+        #expect(try #require(GBP(string: "GBP 4.99")) == GBP(minorUnits: 4_99))
+        #expect(GBP(string: "USD 4.99") == nil)
+    }
+
+    @Test("A code may be left out where the caller names the currency, and must match where given")
+    func codeOptionalWhenTheCallerNamesIt() throws {
+        let expected = Money(minorUnits: 250, currency: loyaltyPoints)
+
+        #expect(try #require(Money(string: "250", currency: loyaltyPoints)) == expected)
+        #expect(try #require(Money(string: "LTY 250", currency: loyaltyPoints)) == expected)
+        #expect(Money(string: "GBP 250", currency: loyaltyPoints) == nil)
+    }
+
+    @Test("A code is required where nothing else names the currency")
+    func codeRequiredForARuntimeAmount() throws {
+        #expect(try #require(Money(string: "GBP 4.99")) == Money(minorUnits: 4_99, currency: .gbp))
+        #expect(Money(string: "4.99") == nil)
+        #expect(Money(string: "499") == nil)
+    }
+
+    @Test("A code outside ISO 4217 does not resolve on its own")
+    func unknownCode() {
+        #expect(Money(string: "LTY 250") == nil)
+    }
+
+    // MARK: - Precision the currency cannot hold
+
+    // The rule is one test, not two: a decimal is accepted exactly when it converts to a whole
+    // number of the currency's smallest units.
+    @Test(
+        "An amount finer than the currency divides is refused rather than rounded",
+        arguments: [
+            "4.999",     // a hundredth of a penny
+            "4.991",
+            "0.001",
+        ]
+    )
+    func excessPrecision(_ text: String) {
+        #expect(GBP(string: text) == nil)
+    }
+
+    @Test("A currency with no exact decimal takes its smallest units and refuses a decimal")
+    func currencyWithoutAnExactDecimal() throws {
+        let sevenPence = try #require(MoneyOf<OldSterling>(string: "7"))
+
+        #expect(sevenPence == MoneyOf<OldSterling>(minorUnits: 7))
+        #expect(MoneyOf<OldSterling>(string: "0.03") == nil)
+        #expect(try #require(MoneyOf<OldSterling>(string: "1.0")) == MoneyOf<OldSterling>(minorUnits: 240))
+    }
+
+    @Test("A currency dividing by five takes the decimals it can hold")
+    func currencyDividingByFive() throws {
+        #expect(try #require(MoneyOf<Khoums>(string: "0.6")) == MoneyOf<Khoums>(minorUnits: 3))
+        #expect(MoneyOf<Khoums>(string: "0.7") == nil)
+    }
+
+    // MARK: - Rejected
+
+    @Test(
+        "Anything that is not an amount is refused",
+        arguments: ["", " ", "GBP", "GBP ", "four", "4.9.9", "4,99", "£4.99", "4 99", "0x10"]
+    )
+    func refusesRubbish(_ text: String) {
+        #expect(GBP(string: text) == nil)
+    }
+
+    @Test("An amount too large for the range is refused rather than wrapped")
+    func overflow() {
+        #expect(GBP(string: "999999999999999999999999999999") == nil)
+        #expect(GBP(string: "92233720368547758.08") == nil)
+        #expect(Money(string: "GBP 99999999999999999999") == nil)
+    }
+
+    @Test("The extremes of the range parse")
+    func extremes() throws {
+        #expect(try #require(GBP(string: "-92233720368547758.08")) == GBP.min)
+        #expect(try #require(GBP(string: "92233720368547758.07")) == GBP.max)
+    }
+
+    // MARK: - Round trip
+
+    @Test("Every amount this library writes, it reads back")
+    func roundTrip() throws {
+        let amounts: [Money] = [
+            Money(minorUnits: 4_99, currency: .gbp),
+            Money(minorUnits: -4_99, currency: .gbp),
+            Money(minorUnits: 0, currency: .gbp),
+            Money(minorUnits: 499, currency: .jpy),
+            Money(minorUnits: 1, currency: .kwd),
+            Money(minorUnits: Int64.max, currency: .gbp),
+            Money(minorUnits: Int64.min, currency: .gbp),
+        ]
+
+        for amount in amounts {
+            #expect(try #require(Money(string: String(describing: amount))) == amount)
+        }
+    }
+}
