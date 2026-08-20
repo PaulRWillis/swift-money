@@ -33,7 +33,7 @@ SUMMARY_MARKERS = ("<!-- BENCHMARK-SUMMARY-START -->", "<!-- BENCHMARK-SUMMARY-E
 # it is measured against — one per column). A table with no columns is a plain list of measurements.
 TABLES = [
     {
-        "heading": "POCMoney against the alternatives",
+        "heading": "SwiftMoney against the alternatives",
         "columns": ["Int", "Double", "Decimal"],
         "rows": [
             ("Addition", "MoneyOf addition",
@@ -55,7 +55,15 @@ TABLES = [
         ],
     },
     {
-        "heading": "POCMoney's own operations",
+        "heading": "What the measurement itself costs",
+        "columns": [],
+        "rows": [
+            ("Handing an integer to the harness", "Harness floor, an integer", []),
+            ("Handing a struct to the harness", "Harness floor, a struct", []),
+        ],
+    },
+    {
+        "heading": "SwiftMoney's own operations",
         "columns": [],
         "rows": [
             ("Addition, throwing", "Money addition, throwing", []),
@@ -68,26 +76,22 @@ TABLES = [
             ("Split, iterating the parts", "MoneyOf split, iterating the parts", []),
             ("Total of 10", "MoneyOf total of 10", []),
             ("Currency code validation", "CurrencyCode validation", []),
-        ],
-    },
-    {
-        "heading": "SwiftMoney against Foundation.Decimal",
-        "columns": ["Decimal"],
-        "rows": [
-            ("Addition", "Money addition", ["Foundation Decimal addition"]),
-            ("Subtraction", "Money subtraction", ["Foundation Decimal subtraction"]),
-            ("Multiplication", "Money multiplication (Int64)",
-             ["Foundation Decimal multiplication"]),
-            ("Comparison", "Money comparison", ["Foundation Decimal comparison"]),
-            ("JSON encode", "Money JSON encode (.minorUnits)", ["Foundation Decimal JSON encode"]),
-            ("JSON decode", "Money JSON decode (.minorUnits)", ["Foundation Decimal JSON decode"]),
-            ("Formatting", "Money formatted()", ["Foundation Decimal formatted(.currency)"]),
-            ("Distribution", "Money distributed(into: 3)", []),
-            ("Exchange rate", "ExchangeRate convert", []),
-            ("MoneyBag (10 adds)", "MoneyBag add 10 entries", []),
+            ("Proportion", "MoneyOf proportion", []),
+            ("Proportion of large amounts", "MoneyOf proportion of large amounts", []),
+            ("Addition, separately built currencies", "Money addition, separately built currencies", []),
         ],
     },
 ]
+
+
+TIME_SCALES = {"ns": 1, "μs": 1_000, "us": 1_000, "ms": 1_000_000, "s": 1_000_000_000}
+
+
+def unit(metric):
+    """The unit named in a metric heading, such as `ns` in `Time (wall clock) (ns)`."""
+    units = re.findall(r"\(([^)]+)\)", metric)
+
+    return units[-1] if units and units[-1] in TIME_SCALES else "ns"
 
 
 def parse(raw):
@@ -110,7 +114,10 @@ def parse(raw):
                 continue
 
             if "Time" in metric or "wall clock" in metric:
-                time_ns = p50
+                # The table rescales large values and says so in the metric name, so a benchmark
+                # slow enough to be reported in microseconds would otherwise be published as
+                # nanoseconds, understating it a thousandfold.
+                time_ns = p50 * TIME_SCALES[unit(metric)]
             elif "Malloc" in metric or "malloc" in metric:
                 mallocs = p50
 
@@ -144,6 +151,10 @@ def cell(measurement):
 
 
 def table(spec, results):
+    # A table whose benchmarks have all gone would otherwise render as a heading over empty columns.
+    if not any(results.get(ours) for _, ours, _ in spec["rows"]):
+        return []
+
     columns = spec["columns"]
     headings = ["Operation", "Ours", *columns]
 
