@@ -1,7 +1,3 @@
-// Operators are declared per constrained extension with a concrete error type, never generically
-// over `C.ArithmeticError`. An associated type in a `throws` clause is a specialisation barrier: it
-// measured 3.1ns per operation, about ten times the cost of the operation itself.
-
 // MARK: - A currency fixed at compile time: arithmetic cannot fail
 
 extension MoneyOf: AdditiveArithmetic where C: CurrencyType {
@@ -85,9 +81,9 @@ public extension MoneyOf where C == AnyCurrency {
     /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if the currencies differ.
     @inlinable
     static func + (lhs: Self, rhs: Self) throws(MoneyError) -> Self {
-        let storage = try AnyCurrency.combining(lhs.storage, rhs.storage)
+        try AnyCurrency.requireMatch(lhs.storage, rhs.storage)
 
-        return Self(unchecked: lhs.minorUnits + rhs.minorUnits, storage: storage)
+        return Self(unchecked: lhs.minorUnits + rhs.minorUnits, storage: lhs.storage)
     }
 
     /// Adds the right-hand value to the left-hand value in place.
@@ -105,9 +101,9 @@ public extension MoneyOf where C == AnyCurrency {
     /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if the currencies differ.
     @inlinable
     static func - (lhs: Self, rhs: Self) throws(MoneyError) -> Self {
-        let storage = try AnyCurrency.combining(lhs.storage, rhs.storage)
+        try AnyCurrency.requireMatch(lhs.storage, rhs.storage)
 
-        return Self(unchecked: lhs.minorUnits - rhs.minorUnits, storage: storage)
+        return Self(unchecked: lhs.minorUnits - rhs.minorUnits, storage: lhs.storage)
     }
 
     /// Subtracts the right-hand value from the left-hand value in place.
@@ -160,7 +156,7 @@ public extension MoneyOf where C == AnyCurrency {
     /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if the currencies differ.
     @inlinable
     func isLessThan(_ other: Self) throws(MoneyError) -> Bool {
-        _ = try AnyCurrency.combining(storage, other.storage)
+        try AnyCurrency.requireMatch(storage, other.storage)
 
         return minorUnits < other.minorUnits
     }
@@ -173,7 +169,7 @@ public extension MoneyOf where C == AnyCurrency {
     /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if the currencies differ.
     @inlinable
     func isMultiple(of other: Self) throws(MoneyError) -> Bool {
-        _ = try AnyCurrency.combining(storage, other.storage)
+        try AnyCurrency.requireMatch(storage, other.storage)
 
         return minorUnits.isMultiple(of: other.minorUnits)
     }
