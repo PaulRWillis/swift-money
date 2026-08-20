@@ -45,45 +45,87 @@ let benchmarks: @Sendable () -> Void = {
         thresholds: defaultThresholds
     )
 
+    // MARK: - What the measurement itself costs
+
+    // Whatever keeps a result alive is inside every number below, so here is what it costs on its
+    // own. These two are the reason the cheap operations chain their results rather than handing
+    // each one to `blackHole`.
+    Benchmark("Harness floor, an integer", configuration: defaultConfiguration) { benchmark in
+        let value: Int64 = 1
+
+        for _ in benchmark.scaledIterations {
+            blackHole(value)
+        }
+    }
+
+    Benchmark("Harness floor, a struct", configuration: defaultConfiguration) { benchmark in
+        let value = GBP(minorUnits: 1)
+
+        for _ in benchmark.scaledIterations {
+            blackHole(value)
+        }
+    }
+
     // MARK: - Addition
+
+    // A result has to be kept alive or the optimiser deletes the work, and the cheapest way to do
+    // that differs by type. Handing a value to `blackHole` costs 7 instructions for an integer and
+    // 22 for a struct, which swamped operations costing 1, so the cheap types chain instead: each
+    // operation feeds the next and only the final value reaches the harness. `Decimal` keeps the
+    // barrier, because an accumulator would add a `Decimal` addition of about 7,000 instructions
+    // where the barrier costs a handful.
+    //
+    // The operands come from an array because the optimiser folds a loop adding a constant into a
+    // multiplication, and the benchmark then measures nothing: an attempt at this read zero.
+    let operands = [1, 2, 3, 5, 7, 10, 13, 17, 19, 23]
+    let doubleOperands = operands.map(Double.init)
+    let decimalOperands = operands.map { Decimal($0) }
+    let moneyOperands = operands.map { GBP(minorUnits: $0) }
 
     Benchmark("MoneyOf addition", configuration: defaultConfiguration) { benchmark in
         var accumulated = GBP(minorUnits: 0)
-        let delta = GBP(minorUnits: 1)
+        var index = 0
 
         for _ in benchmark.scaledIterations {
-            blackHole(accumulated)
-            accumulated = accumulated + delta
+            accumulated = accumulated + moneyOperands[index % moneyOperands.count]
+            index &+= 1
         }
+
+        blackHole(accumulated)
     }
 
     Benchmark("Int addition", configuration: defaultConfiguration) { benchmark in
         var accumulated = 0
-        let delta = 1
+        var index = 0
 
         for _ in benchmark.scaledIterations {
-            blackHole(accumulated)
-            accumulated = accumulated + delta
+            accumulated = accumulated + operands[index % operands.count]
+            index &+= 1
         }
+
+        blackHole(accumulated)
     }
 
     Benchmark("Double addition", configuration: defaultConfiguration) { benchmark in
         var accumulated = 0.0
-        let delta = 0.01
+        var index = 0
 
         for _ in benchmark.scaledIterations {
-            blackHole(accumulated)
-            accumulated = accumulated + delta
+            accumulated = accumulated + doubleOperands[index % doubleOperands.count]
+            index &+= 1
         }
+
+        blackHole(accumulated)
     }
 
     Benchmark("Decimal addition", configuration: defaultConfiguration) { benchmark in
         var accumulated = Decimal.zero
-        let delta = Decimal(1) / Decimal(100)
+        var index = 0
 
         for _ in benchmark.scaledIterations {
             blackHole(accumulated)
-            accumulated = accumulated + delta
+            accumulated = accumulated + decimalOperands[index % decimalOperands.count]
+            index &+= 1
         }
     }
 
@@ -91,87 +133,100 @@ let benchmarks: @Sendable () -> Void = {
 
     Benchmark("MoneyOf subtraction", configuration: defaultConfiguration) { benchmark in
         var accumulated = GBP(minorUnits: 999_999_999)
-        let delta = GBP(minorUnits: 1)
+        var index = 0
 
         for _ in benchmark.scaledIterations {
-            blackHole(accumulated)
-            accumulated = accumulated - delta
+            accumulated = accumulated - moneyOperands[index % moneyOperands.count]
+            index &+= 1
         }
+
+        blackHole(accumulated)
     }
 
     Benchmark("Int subtraction", configuration: defaultConfiguration) { benchmark in
         var accumulated = 999_999_999
-        let delta = 1
+        var index = 0
 
         for _ in benchmark.scaledIterations {
-            blackHole(accumulated)
-            accumulated = accumulated - delta
+            accumulated = accumulated - operands[index % operands.count]
+            index &+= 1
         }
+
+        blackHole(accumulated)
     }
 
     Benchmark("Double subtraction", configuration: defaultConfiguration) { benchmark in
-        var accumulated = 9_999_999.99
-        let delta = 0.01
+        var accumulated = 999_999_999.0
+        var index = 0
 
         for _ in benchmark.scaledIterations {
-            blackHole(accumulated)
-            accumulated = accumulated - delta
+            accumulated = accumulated - doubleOperands[index % doubleOperands.count]
+            index &+= 1
         }
+
+        blackHole(accumulated)
     }
 
     Benchmark("Decimal subtraction", configuration: defaultConfiguration) { benchmark in
-        var accumulated = Decimal(999_999_999) / Decimal(100)
-        let delta = Decimal(1) / Decimal(100)
+        var accumulated = Decimal(999_999_999)
+        var index = 0
 
         for _ in benchmark.scaledIterations {
             blackHole(accumulated)
-            accumulated = accumulated - delta
+            accumulated = accumulated - decimalOperands[index % decimalOperands.count]
+            index &+= 1
         }
     }
 
     // MARK: - Scalar Multiplication
 
-    // Cycling through a spread of factors rather than one, so the result cannot be hoisted.
-    let factors = [1, 2, 3, 5, 7, 10, 13, 17, 19, 23]
-
+    // Summing the products keeps each one alive without handing it to the harness, and costs every
+    // variant the same addition, which the addition benchmarks above have already priced.
     Benchmark("MoneyOf scalar multiplication", configuration: defaultConfiguration) { benchmark in
         let price = GBP(minorUnits: 12_50)
+        var accumulated = GBP(minorUnits: 0)
         var index = 0
 
         for _ in benchmark.scaledIterations {
-            blackHole(price * factors[index % factors.count])
+            accumulated = accumulated + price * operands[index % operands.count]
             index &+= 1
         }
+
+        blackHole(accumulated)
     }
 
     Benchmark("Int scalar multiplication", configuration: defaultConfiguration) { benchmark in
         let price = 12_50
+        var accumulated = 0
         var index = 0
 
         for _ in benchmark.scaledIterations {
-            blackHole(price * factors[index % factors.count])
+            accumulated = accumulated + price * operands[index % operands.count]
             index &+= 1
         }
+
+        blackHole(accumulated)
     }
 
     Benchmark("Double scalar multiplication", configuration: defaultConfiguration) { benchmark in
         let price = 12.50
-        let doubles = factors.map(Double.init)
+        var accumulated = 0.0
         var index = 0
 
         for _ in benchmark.scaledIterations {
-            blackHole(price * doubles[index % doubles.count])
+            accumulated = accumulated + price * doubleOperands[index % doubleOperands.count]
             index &+= 1
         }
+
+        blackHole(accumulated)
     }
 
     Benchmark("Decimal scalar multiplication", configuration: defaultConfiguration) { benchmark in
         let price = Decimal(1250) / Decimal(100)
-        let decimals = factors.map { Decimal($0) }
         var index = 0
 
         for _ in benchmark.scaledIterations {
-            blackHole(price * decimals[index % decimals.count])
+            blackHole(price * decimalOperands[index % decimalOperands.count])
             index &+= 1
         }
     }
@@ -184,30 +239,39 @@ let benchmarks: @Sendable () -> Void = {
 
     Benchmark("MoneyOf scaled and rounded", configuration: defaultConfiguration) { benchmark in
         let vat = Ratio(7, 40)
+        var accumulated = GBP(minorUnits: 0)
         var amount = 1
 
         for _ in benchmark.scaledIterations {
-            blackHole(GBP(minorUnits: amount).scaled(by: vat, rounding: .toNearestOrEven))
+            accumulated = accumulated + GBP(minorUnits: amount).scaled(by: vat, rounding: .toNearestOrEven)
             amount &+= 1
         }
+
+        blackHole(accumulated)
     }
 
     Benchmark("Int scaled, truncating", configuration: defaultConfiguration) { benchmark in
+        var accumulated = 0
         var amount = 1
 
         for _ in benchmark.scaledIterations {
-            blackHole(amount * 7 / 40)
+            accumulated = accumulated + amount * 7 / 40
             amount &+= 1
         }
+
+        blackHole(accumulated)
     }
 
     Benchmark("Double scaled and rounded", configuration: defaultConfiguration) { benchmark in
+        var accumulated = 0.0
         var amount = 1.0
 
         for _ in benchmark.scaledIterations {
-            blackHole((amount * 7.0 / 40.0).rounded(.toNearestOrEven))
+            accumulated = accumulated + (amount * 7.0 / 40.0).rounded(.toNearestOrEven)
             amount += 1.0
         }
+
+        blackHole(accumulated)
     }
 
     Benchmark("Decimal scaled and rounded", configuration: defaultConfiguration) { benchmark in
@@ -319,19 +383,15 @@ let benchmarks: @Sendable () -> Void = {
     // MARK: - Comparison
 
     // Two constant operands let the optimiser hoist the comparison out of the loop, leaving nothing
-    // to measure. Cycling one side through `factors` is the device the multiplication benchmarks
-    // already use, and every variant hands `blackHole` a `Bool`, so the harness costs the same in
-    // all four and what separates them is the comparison.
-    let comparableAmounts = factors.map { GBP(minorUnits: $0) }
-    let comparableDoubles = factors.map(Double.init)
-    let comparableDecimals = factors.map { Decimal($0) }
+    // to measure, so one side cycles through the shared operands. Every variant hands `blackHole` a
+    // `Bool`, so the harness costs the same in all four and what separates them is the comparison.
 
     Benchmark("MoneyOf comparison", configuration: defaultConfiguration) { benchmark in
         let threshold = GBP(minorUnits: 10)
         var index = 0
 
         for _ in benchmark.scaledIterations {
-            blackHole(comparableAmounts[index % comparableAmounts.count] < threshold)
+            blackHole(moneyOperands[index % moneyOperands.count] < threshold)
             index &+= 1
         }
     }
@@ -341,7 +401,7 @@ let benchmarks: @Sendable () -> Void = {
         var index = 0
 
         for _ in benchmark.scaledIterations {
-            blackHole(factors[index % factors.count] < threshold)
+            blackHole(operands[index % operands.count] < threshold)
             index &+= 1
         }
     }
@@ -351,7 +411,7 @@ let benchmarks: @Sendable () -> Void = {
         var index = 0
 
         for _ in benchmark.scaledIterations {
-            blackHole(comparableDoubles[index % comparableDoubles.count] < threshold)
+            blackHole(doubleOperands[index % doubleOperands.count] < threshold)
             index &+= 1
         }
     }
@@ -361,7 +421,7 @@ let benchmarks: @Sendable () -> Void = {
         var index = 0
 
         for _ in benchmark.scaledIterations {
-            blackHole(comparableDecimals[index % comparableDecimals.count] < threshold)
+            blackHole(decimalOperands[index % decimalOperands.count] < threshold)
             index &+= 1
         }
     }
