@@ -172,7 +172,7 @@ public extension MoneyOf.Unrounded where C: CurrencyType {
     }
 }
 
-// MARK: - A currency only known at runtime: combining can fail
+// MARK: - A currency only known at runtime: arithmetic can fail
 
 public extension MoneyOf.Unrounded where C == AnyCurrency {
     /// Returns the result of scaling an unrounded amount by a fraction, keeping it exact.
@@ -234,13 +234,13 @@ public extension MoneyOf.Unrounded where C == AnyCurrency {
     /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if the currencies differ.
     @inlinable
     static func + (lhs: Self, rhs: Self) throws(MoneyError) -> Self {
-        let storage = try AnyCurrency.combining(lhs.storage, rhs.storage)
+        try AnyCurrency.requireMatch(lhs.storage, rhs.storage)
 
         guard let sum = lhs.minorUnits.adding(rhs.minorUnits) else {
             preconditionFailure("Adding \(rhs) is not representable")
         }
 
-        return Self(sum, storage: storage)
+        return Self(sum, storage: lhs.storage)
     }
 
     /// Returns the difference of two unrounded amounts, keeping both exact.
@@ -250,13 +250,13 @@ public extension MoneyOf.Unrounded where C == AnyCurrency {
     /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if the currencies differ.
     @inlinable
     static func - (lhs: Self, rhs: Self) throws(MoneyError) -> Self {
-        let storage = try AnyCurrency.combining(lhs.storage, rhs.storage)
+        try AnyCurrency.requireMatch(lhs.storage, rhs.storage)
 
         guard let difference = lhs.minorUnits.subtracting(rhs.minorUnits) else {
             preconditionFailure("Subtracting \(rhs) is not representable")
         }
 
-        return Self(difference, storage: storage)
+        return Self(difference, storage: lhs.storage)
     }
 
     /// Adds one unrounded amount to another in place.
