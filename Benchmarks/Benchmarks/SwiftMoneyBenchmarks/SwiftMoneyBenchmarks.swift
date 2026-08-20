@@ -18,12 +18,23 @@ let benchmarks: @Sendable () -> Void = {
     // counters, and the runners' own noise is 5% to 16%: comparing `main` against itself reports
     // regressions at the 5% default. 20% clears that and still catches anything worth catching,
     // the regressions this library has actually seen being tenfold and worse.
+    // Allocations are judged in absolute terms and not as a percentage. On Linux the harness itself
+    // allocates around sixteen times per run and jitters by two, so a 5% relative threshold flags a
+    // difference of one, while what matters is an allocation appearing where there was none. A
+    // per-iteration allocation would show up in the thousands, so four is a sensitive tolerance.
     let defaultThresholds: [BenchmarkMetric: BenchmarkThresholds] = [
         .wallClock: BenchmarkThresholds(
             relative: [
                 .p25: 20.0,
                 .p50: 20.0,
                 .p75: 20.0,
+            ]
+        ),
+        .mallocCountTotal: BenchmarkThresholds(
+            absolute: [
+                .p25: 4,
+                .p50: 4,
+                .p75: 4,
             ]
         ),
     ]
