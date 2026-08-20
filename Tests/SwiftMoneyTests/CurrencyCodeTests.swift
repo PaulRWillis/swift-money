@@ -36,6 +36,11 @@ struct CurrencyCodeTests {
         #expect(CurrencyCode(string: "uSdT").map(String.init) == "USDT")
     }
 
+    @Test("A code of the longest accepted length is normalized and round-trips")
+    func longestCodeIsNormalized() {
+        #expect(CurrencyCode(string: "safemoon").map(String.init) == "SAFEMOON")
+    }
+
     @Test("Codes differing only by case are the same currency")
     func caseInsensitiveEquality() {
         #expect(CurrencyCode(string: "gbp") == CurrencyCode(string: "GBP"))
