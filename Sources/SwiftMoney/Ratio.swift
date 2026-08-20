@@ -30,7 +30,9 @@ public struct Ratio: Equatable, Hashable, Sendable {
     }
 
     // No reduction: only for call sites that have already established the fraction is in lowest terms.
-    private init(
+    // fileprivate for `proportion(_:of:)`, which divides both sides by their greatest common divisor
+    // and so has already done the work this would repeat.
+    fileprivate init(
         unchecked numerator: Numerator,
         _ denominator: Denominator
     ) {
@@ -38,13 +40,8 @@ public struct Ratio: Equatable, Hashable, Sendable {
         self.denominator = denominator
     }
 
-    // Euclid, on magnitudes. `abs(Int64.min)` overflows, but `Int64.min.magnitude` is 2^63 and fits in
-    // `UInt64` comfortably.
-    //
     // The result is a valid `Denominator` by construction: it divides the denominator, which is at
-    // least 1, so the result is between 1 and the denominator inclusive. That also means it can never
-    // be zero, so this needs none of the "return 1 if both inputs were zero" guard a general-purpose
-    // greatest common divisor requires.
+    // least 1, so the result is between 1 and the denominator inclusive.
     private static func greatestCommonDivisor(
         of first: Denominator,
         and second: Denominator
@@ -56,22 +53,39 @@ public struct Ratio: Equatable, Hashable, Sendable {
         of numerator: Numerator,
         and denominator: Denominator
     ) -> Denominator {
-        var a = numerator.rawValue.magnitude
-        var b = denominator.rawValue.magnitude
+        let divisor = SwiftMoney.greatestCommonDivisor(
+            of: numerator.rawValue.magnitude,
+            and: denominator.rawValue.magnitude
+        )
 
-        // Larger first, as `swift-numerics` does: starting with the smaller spends a division arriving
-        // where this already is. Worth it because every remainder starts that way, a leftover always
-        // being below its divisor. Measured at roughly a tenth of the call.
-        if a < b {
-            swap(&a, &b)
-        }
-
-        while b != 0 {
-            (a, b) = (b, a % b)
-        }
-
-        return Denominator(unchecked: Int64(a))
+        return Denominator(unchecked: Int64(divisor))
     }
+}
+
+// Euclid. On magnitudes because `abs(Int64.min)` overflows, while `Int64.min.magnitude` is 2^63 and
+// fits in a `UInt64` comfortably.
+//
+// Zero only when both inputs are zero, which is the one case with no greatest common divisor. Callers
+// holding a `Denominator` cannot reach it, that being at least one.
+fileprivate func greatestCommonDivisor(
+    of first: UInt64,
+    and second: UInt64
+) -> UInt64 {
+    var a = first
+    var b = second
+
+    // Larger first, as `swift-numerics` does: starting with the smaller spends a division arriving
+    // where this already is. Worth it because every remainder starts that way, a leftover always
+    // being below its divisor. Measured at roughly a tenth of the call.
+    if a < b {
+        swap(&a, &b)
+    }
+
+    while b != 0 {
+        (a, b) = (b, a % b)
+    }
+
+    return a
 }
 
 // MARK: - Scaling
@@ -498,4 +512,34 @@ public extension Int64 {
     init(_ denominator: Ratio.Denominator) {
         self = denominator.rawValue
     }
+}
+
+// The fraction `part / whole`, reduced. `nil` when there is none: `whole` is zero and so has no parts,
+// or the reduced fraction has no representable numerator.
+//
+// Here rather than beside ``MoneyOf`` because it builds a `Ratio` from its operand types, and reducing
+// before the range check is what keeps `Int64.min` over an even whole in range.
+@usableFromInline
+func proportion(
+    _ part: Int64,
+    of whole: Int64
+) -> Ratio? {
+    let divisor = greatestCommonDivisor(of: part.magnitude, and: whole.magnitude)
+
+    guard divisor != 0 else {
+        return nil
+    }
+
+    guard
+        let numerator = Int64(
+            magnitude: part.magnitude / divisor,
+            sign: Sign(of: part) * Sign(of: whole)
+        ),
+        let whole = Int64(exactly: whole.magnitude / divisor),
+        let denominator = Ratio.Denominator(exactly: whole)
+    else {
+        return nil
+    }
+
+    return Ratio(unchecked: Ratio.Numerator(numerator), denominator)
 }
