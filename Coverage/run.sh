@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Measure POCMoney's test coverage. The same script runs locally and in CI, so the numbers a reviewer
+# Measure SwiftMoney's test coverage. The same script runs locally and in CI, so the numbers a reviewer
 # sees are the numbers you can reproduce.
 #
 # Usage:
@@ -20,7 +20,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-TARGET_SOURCES="$REPO_DIR/Sources/POCMoney"
+TARGET_SOURCES="$REPO_DIR/Sources/SwiftMoney"
 
 SKIP_TESTS=false
 DIFF_BASE=""
@@ -84,11 +84,25 @@ else
     TEST_BINARY="$BUNDLE"
 fi
 
-# Collect the sources to report on, so the numbers describe POCMoney rather than the whole package.
+# Collect the sources to report on, so the numbers describe the library rather than the whole
+# package. The find runs in a process substitution, whose exit status the shell discards, so a
+# missing directory would otherwise leave SOURCES empty and llvm-cov would silently report every
+# file it knows: the tests and the derived test runner included. That is what a stale path here
+# did until 2026-08-20, and the badge published the result.
+if [[ ! -d "$TARGET_SOURCES" ]]; then
+    echo "Error: no sources at $TARGET_SOURCES" >&2
+    exit 1
+fi
+
 SOURCES=()
 while IFS= read -r -d '' f; do
     SOURCES+=("$f")
 done < <(find "$TARGET_SOURCES" -name '*.swift' -print0)
+
+if [[ ${#SOURCES[@]} -eq 0 ]]; then
+    echo "Error: no Swift files under $TARGET_SOURCES" >&2
+    exit 1
+fi
 
 echo
 SUMMARY="$(llvm_cov report "$TEST_BINARY" -instr-profile "$PROFDATA" "${SOURCES[@]}")"
@@ -125,17 +139,15 @@ if [[ -n "$MARKDOWN" ]]; then
         echo
         echo "| | Lines | Functions | Regions |"
         echo "|:--|------:|----------:|--------:|"
-        echo "| POCMoney | $LINES | $FUNCTIONS | $REGIONS |"
+        echo "| SwiftMoney | $LINES | $FUNCTIONS | $REGIONS |"
         if [[ -n "$DIFF_BASE" ]]; then
             echo
             python3 "$SCRIPT_DIR/diff-coverage.py" "$DIFF_BASE" "$LCOV" --format markdown
         fi
         echo
-        echo "<details><summary>Full report</summary>"
+        echo "<details><summary>Per file, least covered first</summary>"
         echo
-        echo '```'
-        echo "$SUMMARY"
-        echo '```'
+        echo "$SUMMARY" | python3 "$SCRIPT_DIR/report-table.py" --prefix "Sources/SwiftMoney/"
         echo
         echo "</details>"
     } > "$MARKDOWN"
