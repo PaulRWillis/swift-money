@@ -5,10 +5,10 @@
 /// Always positive. Any positive value is allowed, not only powers of ten: the ouguiya divides into
 /// five khoums and the ariary into five iraimbilanja, and a currency with three named tiers — such as
 /// pre-decimal sterling, at twenty shillings of twelve pence — is `240`.
-public struct MinimalQuantization: Equatable, Hashable, Sendable {
+public struct UnitScale: Equatable, Hashable, Sendable {
     fileprivate let rawValue: Int64
 
-    /// Creates a quantization from a value that may not be valid.
+    /// Creates a unit scale from a value that may not be valid.
     ///
     /// - Parameter value: The number of smallest units per major unit.
     /// - Returns: `nil` if `value` is zero or negative.
@@ -26,30 +26,30 @@ public struct MinimalQuantization: Equatable, Hashable, Sendable {
     }
 }
 
-extension MinimalQuantization: ExpressibleByIntegerLiteral {
-    /// Creates a quantization from an integer literal.
+extension UnitScale: ExpressibleByIntegerLiteral {
+    /// Creates a unit scale from an integer literal.
     ///
     /// A literal is written by a programmer rather than derived from data, so a value below one is a
     /// mistake in the source rather than bad input — it traps instead of failing gracefully. Use
     /// ``init(exactly:)`` for any value that is not a literal.
     ///
     /// ```swift
-    /// let pence: MinimalQuantization = 100    // fine
-    /// let none: MinimalQuantization = 0       // traps
+    /// let pence: UnitScale = 100    // fine
+    /// let none: UnitScale = 0       // traps
     /// ```
     ///
     /// - Parameter value: The number of smallest units per major unit.
     /// - Precondition: `value` is at least one.
     public init(integerLiteral value: Int64) {
-        precondition(value >= 1, "Quantization must be at least 1. Value: \(value)")
+        precondition(value >= 1, "A unit scale must be at least 1. Value: \(value)")
 
         self.rawValue = value
     }
 }
 
 public extension Int64 {
-    /// Creates an integer from a quantization.
-    init(_ quantization: MinimalQuantization) {
-        self = quantization.rawValue
+    /// Creates an integer from a unit scale.
+    init(_ scale: UnitScale) {
+        self = scale.rawValue
     }
 }

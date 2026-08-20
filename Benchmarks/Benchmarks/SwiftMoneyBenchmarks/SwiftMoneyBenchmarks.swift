@@ -449,8 +449,8 @@ let benchmarks: @Sendable () -> Void = {
     // currency check ever sees. Amounts decoded from a payload or read from a database carry equal
     // currencies built separately, and that is what this measures.
     let separatelyBuiltPounds = [
-        Currency(code: "GBP", minimalQuantization: 100),
-        Currency(code: "GBP", minimalQuantization: 100),
+        Currency(code: "GBP", unitScale: 100),
+        Currency(code: "GBP", unitScale: 100),
     ]
 
     Benchmark("Money addition, separately built currencies", configuration: defaultConfiguration) { benchmark in

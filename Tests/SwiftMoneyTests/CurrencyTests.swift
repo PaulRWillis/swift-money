@@ -4,7 +4,7 @@ import Testing
 // A currency defined entirely outside the library, proving no library change is needed to add one.
 // This is the guarantee `CurrencyType` exists to provide, so it is a kept test rather than a scratch.
 private enum LoyaltyPoints: CurrencyType {
-    static let currency = Currency(code: "LTY", minimalQuantization: 1)
+    static let currency = Currency(code: "LTY", unitScale: 1)
 }
 
 @Suite("Currency Tests")
@@ -12,44 +12,44 @@ struct CurrencyTests {
 
     // MARK: - The value
 
-    @Test("A currency carries its code and quantization")
-    func carriesCodeAndQuantization() {
-        let currency = Currency(code: "GBP", minimalQuantization: 100)
+    @Test("A currency carries its code and unit scale")
+    func carriesCodeAndUnitScale() {
+        let currency = Currency(code: "GBP", unitScale: 100)
 
         #expect(currency.code == "GBP")
-        #expect(currency.minimalQuantization == 100)
+        #expect(currency.unitScale == 100)
     }
 
-    @Test("Currencies with the same code and quantization are equal")
+    @Test("Currencies with the same code and unit scale are equal")
     func equality() {
         #expect(
-            Currency(code: "GBP", minimalQuantization: 100)
-                == Currency(code: "GBP", minimalQuantization: 100)
+            Currency(code: "GBP", unitScale: 100)
+                == Currency(code: "GBP", unitScale: 100)
         )
     }
 
     @Test("Currencies differing in code are not equal")
     func differingCodesAreNotEqual() {
         #expect(
-            Currency(code: "GBP", minimalQuantization: 100)
-                != Currency(code: "EUR", minimalQuantization: 100)
+            Currency(code: "GBP", unitScale: 100)
+                != Currency(code: "EUR", unitScale: 100)
         )
     }
 
-    @Test("Currencies differing in quantization are not equal")
-    func differingQuantizationsAreNotEqual() {
+    @Test("Currencies differing in unit scale are not equal")
+    func differingUnitScalesAreNotEqual() {
         #expect(
-            Currency(code: "GBP", minimalQuantization: 100)
-                != Currency(code: "GBP", minimalQuantization: 1)
+            Currency(code: "GBP", unitScale: 100)
+                != Currency(code: "GBP", unitScale: 1)
         )
     }
 
     @Test("Equal currencies hash the same")
     func hashing() {
         let currencies: Set<Currency> = [
-            Currency(code: "GBP", minimalQuantization: 100),
-            Currency(code: "GBP", minimalQuantization: 100),
-            Currency(code: "EUR", minimalQuantization: 100),
+            Currency(code: "GBP", unitScale: 100),
+            Currency(code: "GBP", unitScale: 100),
+            Currency(code: "EUR", unitScale: 100),
         ]
 
         #expect(currencies.count == 2)
@@ -58,8 +58,8 @@ struct CurrencyTests {
     @Test("A currency code is matched case-insensitively, so case does not split a currency")
     func codeCaseDoesNotSplitACurrency() {
         #expect(
-            Currency(code: "gbp", minimalQuantization: 100)
-                == Currency(code: "GBP", minimalQuantization: 100)
+            Currency(code: "gbp", unitScale: 100)
+                == Currency(code: "GBP", unitScale: 100)
         )
     }
 
@@ -67,8 +67,8 @@ struct CurrencyTests {
 
     @Test("The library's currencies expose the expected values")
     func libraryCurrencies() {
-        #expect(Currencies.GBP.currency == Currency(code: "GBP", minimalQuantization: 100))
-        #expect(Currencies.EUR.currency == Currency(code: "EUR", minimalQuantization: 100))
+        #expect(Currencies.GBP.currency == Currency(code: "GBP", unitScale: 100))
+        #expect(Currencies.EUR.currency == Currency(code: "EUR", unitScale: 100))
     }
 
     @Test("Named constants match their currency types")
@@ -91,9 +91,9 @@ struct CurrencyTests {
         #expect(GBP.min.currency == GBP.max.currency)
     }
 
-    @Test("A typed amount reaches its quantization through its currency")
-    func typedAmountReachesItsQuantization() {
-        #expect(GBP(minorUnits: 1).currency.minimalQuantization == 100)
+    @Test("A typed amount reaches its unit scale through its currency")
+    func typedAmountReachesItsUnitScale() {
+        #expect(GBP(minorUnits: 1).currency.unitScale == 100)
     }
 
     // MARK: - Caller-defined currencies
@@ -107,13 +107,13 @@ struct CurrencyTests {
 
         #expect(earned - spent == Points(minorUnits: 150))
         #expect(earned.currency.code == "LTY")
-        #expect(earned.currency.minimalQuantization == 1)
+        #expect(earned.currency.unitScale == 1)
     }
 
     @Test("A caller-defined currency is distinct from the library's")
     func callerDefinedCurrencyIsDistinct() {
         #expect(LoyaltyPoints.currency != .gbp)
         #expect(LoyaltyPoints.currency.code == "LTY")
-        #expect(LoyaltyPoints.currency.minimalQuantization == 1)
+        #expect(LoyaltyPoints.currency.unitScale == 1)
     }
 }
