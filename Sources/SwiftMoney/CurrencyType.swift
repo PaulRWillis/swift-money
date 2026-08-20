@@ -19,7 +19,7 @@ public protocol CurrencyRepresentation: Sendable {
 ///
 /// ```swift
 /// enum LoyaltyPoints: CurrencyType {
-///     static let currency = Currency(code: "LTY", minimalQuantization: 1)
+///     static let currency = Currency(code: "LTY", unitScale: 1)
 /// }
 ///
 /// typealias Points = MoneyOf<LoyaltyPoints>

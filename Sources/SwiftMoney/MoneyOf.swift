@@ -97,7 +97,7 @@ public extension MoneyOf where C == AnyCurrency {
     /// - Parameters:
     ///   - minorUnits: The number of the currency's smallest units.
     ///   - currency: The currency to denominate the amount in. Two amounts combine only when their
-    ///     currencies are equal, and that includes the quantization: `XYZ` at 100 and `XYZ` at 1 are
+    ///     currencies are equal, and that includes the scale: `XYZ` at 100 and `XYZ` at 1 are
     ///     different currencies.
     /// - Precondition: `minorUnits` is representable.
     @inlinable

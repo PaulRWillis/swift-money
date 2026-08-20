@@ -1,8 +1,8 @@
 import SwiftMoney
 import Testing
 
-@Suite("MinimalQuantization Tests")
-struct MinimalQuantizationTests {
+@Suite("UnitScale Tests")
+struct UnitScaleTests {
 
     // MARK: - Accepted
 
@@ -19,9 +19,9 @@ struct MinimalQuantizationTests {
         ]
     )
     func acceptsPositiveValues(_ raw: Int64) throws {
-        let quantization = try #require(MinimalQuantization(exactly: raw))
+        let scale = try #require(UnitScale(exactly: raw))
 
-        #expect(Int64(quantization) == raw)
+        #expect(Int64(scale) == raw)
     }
 
     // MARK: - Rejected
@@ -31,16 +31,16 @@ struct MinimalQuantizationTests {
         arguments: [0, -1, -100, Int64.min]
     )
     func rejectsNonPositiveValues(_ raw: Int64) {
-        #expect(MinimalQuantization(exactly: raw) == nil)
+        #expect(UnitScale(exactly: raw) == nil)
     }
 
     // MARK: - Equality
 
     @Test("Equal values are equal, different values are not")
     func equality() throws {
-        let hundred = try #require(MinimalQuantization(exactly: 100))
-        let alsoHundred = try #require(MinimalQuantization(exactly: 100))
-        let one = try #require(MinimalQuantization(exactly: 1))
+        let hundred = try #require(UnitScale(exactly: 100))
+        let alsoHundred = try #require(UnitScale(exactly: 100))
+        let one = try #require(UnitScale(exactly: 1))
 
         #expect(hundred == alsoHundred)
         #expect(hundred != one)
@@ -49,36 +49,36 @@ struct MinimalQuantizationTests {
 
     // MARK: - Literals
 
-    @Test("A valid integer literal creates a quantization")
+    @Test("A valid integer literal creates a unit scale")
     func validLiteral() throws {
-        let quantization: MinimalQuantization = 100
+        let scale: UnitScale = 100
 
-        #expect(quantization == (try #require(MinimalQuantization(exactly: 100))))
+        #expect(scale == (try #require(UnitScale(exactly: 100))))
     }
 
     @Test("A zero literal traps")
     func zeroLiteralTraps() async {
         await #expect(processExitsWith: .failure) {
-            let quantization: MinimalQuantization = 0
-            blackHole(quantization)
+            let scale: UnitScale = 0
+            blackHole(scale)
         }
     }
 
     @Test("A negative literal traps")
     func negativeLiteralTraps() async {
         await #expect(processExitsWith: .failure) {
-            let quantization: MinimalQuantization = -1
-            blackHole(quantization)
+            let scale: UnitScale = -1
+            blackHole(scale)
         }
     }
 
     // The failable initializer is labelled because an unlabelled one would be unreachable: with
-    // ExpressibleByIntegerLiteral present, `MinimalQuantization(0)` always resolves to the literal
+    // ExpressibleByIntegerLiteral present, `UnitScale(0)` always resolves to the literal
     // initializer, which traps rather than returning nil. Same trap as PartCount and CurrencyCode.
     @Test("The unlabelled call form is the trapping literal, not the failable initializer")
     func unlabelledFormIsTheLiteral() async {
         await #expect(processExitsWith: .failure) {
-            blackHole(MinimalQuantization(0))
+            blackHole(UnitScale(0))
         }
     }
 }

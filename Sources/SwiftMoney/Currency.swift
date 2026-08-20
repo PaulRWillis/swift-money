@@ -4,22 +4,22 @@
 /// identify it and to know how finely it divides.
 ///
 /// ```swift
-/// let currency = Currency(code: "LTY", minimalQuantization: 1)
+/// let currency = Currency(code: "LTY", unitScale: 1)
 /// ```
 public struct Currency: Equatable, Hashable, Sendable {
     /// The code identifying the currency, such as `GBP`.
     public let code: CurrencyCode
 
     /// How many of the currency's smallest units make one major unit.
-    public let minimalQuantization: MinimalQuantization
+    public let unitScale: UnitScale
 
     /// Creates a currency.
     public init(
         code: CurrencyCode,
-        minimalQuantization: MinimalQuantization
+        unitScale: UnitScale
     ) {
         self.code = code
-        self.minimalQuantization = minimalQuantization
+        self.unitScale = unitScale
     }
 }
 
@@ -50,10 +50,10 @@ extension Currency: CustomStringConvertible {
 
 public extension Currency {
     /// Pound sterling.
-    static let gbp = Currency(code: "GBP", minimalQuantization: 100)
+    static let gbp = Currency(code: "GBP", unitScale: 100)
 
     /// The euro.
-    static let eur = Currency(code: "EUR", minimalQuantization: 100)
+    static let eur = Currency(code: "EUR", unitScale: 100)
 }
 
 // MARK: - ISO4217 Currencies as types
