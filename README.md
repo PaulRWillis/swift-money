@@ -42,7 +42,7 @@ Add to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/PaulRWillis/swift-money.git", from: "0.0.1"),
+    .package(url: "https://github.com/PaulRWillis/swift-money.git", from: "0.1.0"),
 ]
 ```
 
