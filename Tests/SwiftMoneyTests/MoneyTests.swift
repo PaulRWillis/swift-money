@@ -35,23 +35,23 @@ struct MoneyTests {
         #expect(try a + b == Money(minorUnits: 12, currency: .eur))
     }
 
-    @Test("Add throws on positive overflow")
-    func addPositiveOverflow() {
-        let a = Money(minorUnits: Int64.max, currency: .gbp)
-        let b = Money(minorUnits: 1, currency: .gbp)
+    @Test("Add traps on overflow")
+    func addTrapsOnOverflow() async {
+        await #expect(processExitsWith: .failure) {
+            let a = Money(minorUnits: Int64.max, currency: .gbp)
+            let b = Money(minorUnits: 1, currency: .gbp)
 
-        #expect(throws: MoneyError.overflow) {
-            try a + b
+            blackHole(try a + b)
         }
     }
 
-    @Test("Add throws on negative overflow")
-    func addNegativeOverflow() {
-        let a = Money(minorUnits: Int64.min, currency: .gbp)
-        let b = Money(minorUnits: -1, currency: .gbp)
+    @Test("Add traps on underflow")
+    func addTrapsOnUnderflow() async {
+        await #expect(processExitsWith: .failure) {
+            let a = Money(minorUnits: Int64.min, currency: .gbp)
+            let b = Money(minorUnits: -1, currency: .gbp)
 
-        #expect(throws: MoneyError.overflow) {
-            try a + b
+            blackHole(try a + b)
         }
     }
 
@@ -88,12 +88,13 @@ struct MoneyTests {
         #expect(a == Money(minorUnits: 5, currency: .gbp))
     }
 
-    @Test("Addition in place throws on overflow")
-    func additionInPlaceOverflow() {
-        var a = Money(minorUnits: Int64.max, currency: .gbp)
-
-        #expect(throws: MoneyError.overflow) {
+    @Test("Addition in place traps on overflow")
+    func additionInPlaceTrapsOnOverflow() async {
+        await #expect(processExitsWith: .failure) {
+            var a = Money(minorUnits: Int64.max, currency: .gbp)
             try a += Money(minorUnits: 1, currency: .gbp)
+
+            blackHole(a)
         }
     }
 
@@ -107,23 +108,23 @@ struct MoneyTests {
         #expect(try a - b == Money(minorUnits: -2, currency: .eur))
     }
 
-    @Test("Subtract throws on positive overflow")
-    func subtractPositiveOverflow() {
-        let a = Money(minorUnits: Int64.max, currency: .gbp)
-        let b = Money(minorUnits: -1, currency: .gbp)
+    @Test("Subtract traps on overflow")
+    func subtractTrapsOnOverflow() async {
+        await #expect(processExitsWith: .failure) {
+            let a = Money(minorUnits: Int64.max, currency: .gbp)
+            let b = Money(minorUnits: -1, currency: .gbp)
 
-        #expect(throws: MoneyError.overflow) {
-            try a - b
+            blackHole(try a - b)
         }
     }
 
-    @Test("Subtract throws on negative overflow")
-    func subtractNegativeOverflow() {
-        let a = Money(minorUnits: Int64.min, currency: .gbp)
-        let b = Money(minorUnits: 1, currency: .gbp)
+    @Test("Subtract traps on underflow")
+    func subtractTrapsOnUnderflow() async {
+        await #expect(processExitsWith: .failure) {
+            let a = Money(minorUnits: Int64.min, currency: .gbp)
+            let b = Money(minorUnits: 1, currency: .gbp)
 
-        #expect(throws: MoneyError.overflow) {
-            try a - b
+            blackHole(try a - b)
         }
     }
 
@@ -160,12 +161,13 @@ struct MoneyTests {
         #expect(a == Money(minorUnits: 5, currency: .gbp))
     }
 
-    @Test("Subtraction in place throws on overflow")
-    func subtractionInPlaceOverflow() {
-        var a = Money(minorUnits: Int64.min, currency: .gbp)
-
-        #expect(throws: MoneyError.overflow) {
+    @Test("Subtraction in place traps on underflow")
+    func subtractionInPlaceTrapsOnUnderflow() async {
+        await #expect(processExitsWith: .failure) {
+            var a = Money(minorUnits: Int64.min, currency: .gbp)
             try a -= Money(minorUnits: 1, currency: .gbp)
+
+            blackHole(a)
         }
     }
 
@@ -175,8 +177,8 @@ struct MoneyTests {
     func integralMultiplication() throws {
         let a = Money(minorUnits: 6, currency: .gbp)
 
-        #expect(try a * 4 == Money(minorUnits: 24, currency: .gbp))
-        #expect(try 4 * a == Money(minorUnits: 24, currency: .gbp))
+        #expect(a * 4 == Money(minorUnits: 24, currency: .gbp))
+        #expect(4 * a == Money(minorUnits: 24, currency: .gbp))
     }
 
     @Test("Integral multiplication returns correct sign")
@@ -184,32 +186,32 @@ struct MoneyTests {
         let pos = Money(minorUnits: +12, currency: .gbp) // 12p; £0.12
         let neg = Money(minorUnits: -12, currency: .gbp)
 
-        #expect(try pos * 2 == Money(minorUnits: +24, currency: .gbp))
-        #expect(try neg * 2 == Money(minorUnits: -24, currency: .gbp))
+        #expect(pos * 2 == Money(minorUnits: +24, currency: .gbp))
+        #expect(neg * 2 == Money(minorUnits: -24, currency: .gbp))
 
-        #expect(try pos * -3 == Money(minorUnits: -36, currency: .gbp)) // -36p; -£0.36
-        #expect(try neg * -3 == Money(minorUnits: +36, currency: .gbp))
+        #expect(pos * -3 == Money(minorUnits: -36, currency: .gbp)) // -36p; -£0.36
+        #expect(neg * -3 == Money(minorUnits: +36, currency: .gbp))
     }
 
-    @Test("Integral multiplication throws on positive overflow")
-    func integralMultiplicationPositiveOverflow() {
-        #expect(throws: MoneyError.overflow) {
-            try Money(minorUnits: Int64.max, currency: .gbp) * 2
+    @Test("Integral multiplication traps on overflow")
+    func integralMultiplicationTrapsOnOverflow() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(Money(minorUnits: Int64.max, currency: .gbp) * 2)
         }
 
-        #expect(throws: MoneyError.overflow) {
-            try 2 * Money(minorUnits: Int64.max, currency: .gbp)
+        await #expect(processExitsWith: .failure) {
+            blackHole(2 * Money(minorUnits: Int64.max, currency: .gbp))
         }
     }
 
-    @Test("Integral multiplication throws on negative overflow")
-    func integralMultiplicationNegativeOverflow() {
-        #expect(throws: MoneyError.overflow) {
-            try Money(minorUnits: Int64.min, currency: .gbp) * 2
+    @Test("Integral multiplication traps on underflow")
+    func integralMultiplicationTrapsOnUnderflow() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(Money(minorUnits: Int64.min, currency: .gbp) * 2)
         }
 
-        #expect(throws: MoneyError.overflow) {
-            try 2 * Money(minorUnits: Int64.min, currency: .gbp)
+        await #expect(processExitsWith: .failure) {
+            blackHole(2 * Money(minorUnits: Int64.min, currency: .gbp))
         }
     }
 
@@ -220,7 +222,7 @@ struct MoneyTests {
         var a = Money(minorUnits: 2_25, currency: .gbp) // £2.25
         let b: Int = 3
 
-        try a *= b
+        a *= b
 
         #expect(a == Money(minorUnits: 6_75, currency: .gbp)) // £6.75
     }
@@ -247,7 +249,6 @@ struct MoneyTests {
             } catch {
                 switch error {
                 case let .currencyMismatch(lhs, rhs): return "mismatch \(lhs)/\(rhs)"
-                case .overflow: return "overflow"
                 }
             }
         }
@@ -255,12 +256,12 @@ struct MoneyTests {
         let mismatch = describe { () throws(MoneyError) in
             try Money(minorUnits: 1, currency: .gbp) + Money(minorUnits: 1, currency: .eur)
         }
-        let overflow = describe { () throws(MoneyError) in
-            try Money(minorUnits: Int64.max, currency: .gbp) * 2
+        let fine = describe { () throws(MoneyError) in
+            try Money(minorUnits: 1, currency: .gbp) + Money(minorUnits: 1, currency: .gbp)
         }
 
         #expect(mismatch == "mismatch GBP/EUR")
-        #expect(overflow == "overflow")
+        #expect(fine == "ok")
     }
 
     // A caller who wants an Optional still gets one, and gets a single Optional for the whole chain
@@ -329,13 +330,13 @@ struct MoneyTests {
     func scalingKeepsTheCurrency() throws {
         let sut = Money(minorUnits: 9_99, currency: .eur)
 
-        #expect(try sut.scaled(by: Ratio(1, 3)) == .exact(Money(minorUnits: 3_33, currency: .eur)))
-        #expect(try sut.scaled(by: Ratio(1, 3), rounding: .toNearestOrEven) == Money(minorUnits: 3_33, currency: .eur))
+        #expect(sut.scaled(by: Ratio(1, 3)) == .exact(Money(minorUnits: 3_33, currency: .eur)))
+        #expect(sut.scaled(by: Ratio(1, 3), rounding: .toNearestOrEven) == Money(minorUnits: 3_33, currency: .eur))
     }
 
     @Test("An inexact result keeps the currency")
     func inexactScalingKeepsTheCurrency() throws {
-        let scaled = try Money(minorUnits: 10_00, currency: .eur).scaled(by: Ratio(1, 3))
+        let scaled = Money(minorUnits: 10_00, currency: .eur).scaled(by: Ratio(1, 3))
 
         guard case let .inexact(amount, remainder) = scaled else {
             Issue.record("Expected an inexact result")
@@ -346,29 +347,50 @@ struct MoneyTests {
         #expect(Ratio(remainder) == Ratio(1, 3))
     }
 
-    @Test("Scaling past the largest amount throws, where MoneyOf traps")
-    func scalingPastTheLargestAmountThrows() {
-        let sut = Money(minorUnits: Int64.max, currency: .gbp)
-
-        #expect(throws: MoneyError.overflow) {
-            try sut.scaled(by: Ratio(2, 1))
+    @Test("Scaling traps on overflow")
+    func scalingTrapsOnOverflow() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(Money(minorUnits: Int64.max, currency: .gbp).scaled(by: Ratio(2, 1)))
         }
 
-        #expect(throws: MoneyError.overflow) {
-            try sut.scaled(by: Ratio(2, 1), rounding: .towardZero)
+        await #expect(processExitsWith: .failure) {
+            blackHole(
+                Money(minorUnits: Int64.max, currency: .gbp)
+                    .scaled(by: Ratio(2, 1), rounding: .towardZero)
+            )
+        }
+    }
+
+    @Test("Scaling traps on underflow")
+    func scalingTrapsOnUnderflow() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(Money(minorUnits: Int64.min, currency: .gbp).scaled(by: Ratio(2, 1)))
+        }
+
+        await #expect(processExitsWith: .failure) {
+            blackHole(
+                Money(minorUnits: Int64.min, currency: .gbp)
+                    .scaled(by: Ratio(2, 1), rounding: .towardZero)
+            )
         }
     }
 
     // Three halves of this is exactly the largest amount with a half left over, so truncating fits and
     // only the rounding step passes the maximum.
-    @Test("Rounding past the largest amount throws, where truncating would not")
-    func roundingPastTheLargestAmountThrows() throws {
+    @Test("Truncating reaches the largest amount exactly")
+    func truncatingReachesTheLargestAmount() throws {
         let sut = Money(minorUnits: Int64.max / 3 * 2 + 1, currency: .gbp)
 
-        #expect(try sut.scaled(by: Ratio(3, 2), rounding: .towardZero) == Money(minorUnits: Int64.max, currency: .gbp))
+        #expect(sut.scaled(by: Ratio(3, 2), rounding: .towardZero) == Money(minorUnits: Int64.max, currency: .gbp))
+    }
 
-        #expect(throws: MoneyError.overflow) {
-            try sut.scaled(by: Ratio(3, 2), rounding: .awayFromZero)
+    @Test("Rounding traps on overflow, where truncating would not")
+    func roundingTrapsOnOverflow() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(
+                Money(minorUnits: Int64.max / 3 * 2 + 1, currency: .gbp)
+                    .scaled(by: Ratio(3, 2), rounding: .awayFromZero)
+            )
         }
     }
 
@@ -404,7 +426,7 @@ struct MoneyTests {
     func chainKeepsTheCurrency() throws {
         let sut = Money(minorUnits: 10_00, currency: .eur)
 
-        let chained = try sut.unrounded * Ratio(1, 3) * Ratio(3, 1)
+        let chained = sut.unrounded * Ratio(1, 3) * Ratio(3, 1)
 
         #expect(chained.rounded(.toNearestOrEven) == Money(minorUnits: 10_00, currency: .eur))
     }
@@ -414,30 +436,33 @@ struct MoneyTests {
     func chainOfTwoRatesSettlesOnce() throws {
         let sut = Money(minorUnits: 10_000_00, currency: .gbp)
 
-        let interest = try sut.unrounded * Ratio(45, 1000) * Ratio(31, 365)
+        let interest = sut.unrounded * Ratio(45, 1000) * Ratio(31, 365)
 
         #expect(interest.rounded(.toNearestOrEven) == Money(minorUnits: 38_22, currency: .gbp))
     }
 
-    @Test("Scaling an unrounded amount past the largest throws, where MoneyOf traps")
-    func unroundedScalingPastTheLargestAmountThrows() {
-        let sut = Money(minorUnits: Int64.max, currency: .gbp)
-
-        #expect(throws: MoneyError.overflow) {
-            try sut.unrounded * Ratio(3, 1)
+    @Test("Scaling an unrounded amount traps on overflow")
+    func unroundedScalingTrapsOnOverflow() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(Money(minorUnits: Int64.max, currency: .gbp).unrounded * Ratio(3, 1))
         }
     }
 
-    @Test("Scaling an unrounded amount in place throws, leaving the value untouched")
-    func unroundedScalingInPlaceThrows() throws {
-        let sut = Money(minorUnits: Int64.max, currency: .gbp)
-        var unrounded = sut.unrounded
-
-        #expect(throws: MoneyError.overflow) {
-            try unrounded *= Ratio(3, 1)
+    @Test("Scaling an unrounded amount traps on underflow")
+    func unroundedScalingTrapsOnUnderflow() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(Money(minorUnits: Int64.min, currency: .gbp).unrounded * Ratio(3, 1))
         }
+    }
 
-        #expect(unrounded == sut.unrounded)
+    @Test("Scaling an unrounded amount in place traps on overflow")
+    func unroundedScalingInPlaceTraps() async {
+        await #expect(processExitsWith: .failure) {
+            var unrounded = Money(minorUnits: Int64.max, currency: .gbp).unrounded
+            unrounded *= Ratio(3, 1)
+
+            blackHole(unrounded)
+        }
     }
 
     // Settling cannot overflow, so it needs no `try` even at the largest amount.
@@ -450,7 +475,7 @@ struct MoneyTests {
 
     @Test("Adding unrounded amounts keeps the currency")
     func addingUnroundedKeepsTheCurrency() throws {
-        let third = try Money(minorUnits: 9_99, currency: .eur).unrounded * Ratio(1, 3)
+        let third = Money(minorUnits: 9_99, currency: .eur).unrounded * Ratio(1, 3)
 
         let whole = try third + third + third
 
@@ -485,24 +510,33 @@ struct MoneyTests {
         }
     }
 
-    @Test("Adding unrounded amounts past the largest throws")
-    func addingUnroundedPastTheLargestThrows() {
-        let largest = Money(minorUnits: Int64.max, currency: .gbp).unrounded
+    @Test("Adding unrounded amounts traps on overflow")
+    func addingUnroundedTrapsOnOverflow() async {
+        await #expect(processExitsWith: .failure) {
+            let largest = Money(minorUnits: Int64.max, currency: .gbp).unrounded
 
-        #expect(throws: MoneyError.overflow) {
-            try largest + largest
+            blackHole(try largest + largest)
         }
     }
 
-    @Test("Adding to an unrounded amount in place throws, leaving the value untouched")
-    func addingUnroundedInPlaceThrows() {
-        let largest = Money(minorUnits: Int64.max, currency: .gbp)
-        var running = largest.unrounded
+    @Test("Subtracting unrounded amounts traps on underflow")
+    func subtractingUnroundedTrapsOnUnderflow() async {
+        await #expect(processExitsWith: .failure) {
+            let largest = Money(minorUnits: Int64.max, currency: .gbp).unrounded
+            let smallest = Money(minorUnits: Int64.min, currency: .gbp).unrounded
 
-        #expect(throws: MoneyError.overflow) {
-            try running += largest
+            blackHole(try smallest - largest)
         }
+    }
 
-        #expect(running == largest.unrounded)
+    @Test("Adding to an unrounded amount in place traps on overflow")
+    func addingUnroundedInPlaceTraps() async {
+        await #expect(processExitsWith: .failure) {
+            let largest = Money(minorUnits: Int64.max, currency: .gbp)
+            var running = largest.unrounded
+            try running += largest
+
+            blackHole(running)
+        }
     }
 }

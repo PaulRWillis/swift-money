@@ -80,18 +80,14 @@ public extension MoneyOf where C: CurrencyType {
 public extension MoneyOf where C == AnyCurrency {
     /// Returns the sum of two values.
     ///
-    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if the currencies differ, or
-    ///   ``MoneyError/overflow`` if the sum is not representable.
+    /// Traps on overflow.
+    ///
+    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if the currencies differ.
     @inlinable
     static func + (lhs: Self, rhs: Self) throws(MoneyError) -> Self {
         let storage = try AnyCurrency.combining(lhs.storage, rhs.storage)
-        let (result, didOverflow) = lhs.minorUnits.addingReportingOverflow(rhs.minorUnits)
 
-        guard !didOverflow else {
-            throw .overflow
-        }
-
-        return Self(unchecked: result, storage: storage)
+        return Self(unchecked: lhs.minorUnits + rhs.minorUnits, storage: storage)
     }
 
     /// Adds the right-hand value to the left-hand value in place.
@@ -104,18 +100,14 @@ public extension MoneyOf where C == AnyCurrency {
 
     /// Returns the difference of two values.
     ///
-    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if the currencies differ, or
-    ///   ``MoneyError/overflow`` if the difference is not representable.
+    /// Traps on overflow.
+    ///
+    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if the currencies differ.
     @inlinable
     static func - (lhs: Self, rhs: Self) throws(MoneyError) -> Self {
         let storage = try AnyCurrency.combining(lhs.storage, rhs.storage)
-        let (result, didOverflow) = lhs.minorUnits.subtractingReportingOverflow(rhs.minorUnits)
 
-        guard !didOverflow else {
-            throw .overflow
-        }
-
-        return Self(unchecked: result, storage: storage)
+        return Self(unchecked: lhs.minorUnits - rhs.minorUnits, storage: storage)
     }
 
     /// Subtracts the right-hand value from the left-hand value in place.
@@ -128,32 +120,26 @@ public extension MoneyOf where C == AnyCurrency {
 
     /// Returns this amount scaled by a whole number.
     ///
-    /// - Throws: ``MoneyError/overflow`` if the product is not representable.
+    /// Traps on overflow.
     @inlinable
-    static func * (lhs: Self, rhs: some BinaryInteger) throws(MoneyError) -> Self {
-        let (result, didOverflow) = lhs.minorUnits.multipliedReportingOverflow(by: Int64(rhs))
-
-        guard !didOverflow else {
-            throw .overflow
-        }
-
-        return Self(unchecked: result, storage: lhs.storage)
+    static func * (lhs: Self, rhs: some BinaryInteger) -> Self {
+        Self(unchecked: lhs.minorUnits * Int64(rhs), storage: lhs.storage)
     }
 
     /// Returns this amount scaled by a whole number.
     ///
-    /// - Throws: ``MoneyError/overflow`` if the product is not representable.
+    /// Traps on overflow.
     @inlinable
-    static func * (lhs: some BinaryInteger, rhs: Self) throws(MoneyError) -> Self {
-        try rhs * lhs
+    static func * (lhs: some BinaryInteger, rhs: Self) -> Self {
+        rhs * lhs
     }
 
     /// Scales this amount by a whole number in place.
     ///
-    /// `lhs` is left untouched when this throws.
+    /// Traps on overflow.
     @inlinable
-    static func *= (lhs: inout Self, rhs: some BinaryInteger) throws(MoneyError) {
-        lhs = try lhs * rhs
+    static func *= (lhs: inout Self, rhs: some BinaryInteger) {
+        lhs = lhs * rhs
     }
 
     /// Returns whether this amount is less than another.

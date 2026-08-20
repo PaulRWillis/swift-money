@@ -35,8 +35,10 @@ public extension Sequence where Element == Money {
     /// try basket.total()   // £3.50
     /// ```
     ///
+    /// Traps on overflow.
+    ///
     /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if the amounts are not all in the same
-    ///   currency, or ``MoneyError/overflow`` if the sum is not representable.
+    ///   currency.
     @inlinable
     func total() throws(MoneyError) -> Money? {
         var running: Money?
@@ -61,8 +63,10 @@ public extension Sequence where Element == Money.Unrounded {
     ///
     /// An empty sequence has no total because a zero cannot exist without a currency to be zero *of*.
     ///
+    /// Traps on overflow.
+    ///
     /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if the amounts are not all in the same
-    ///   currency, or ``MoneyError/overflow`` if the sum is not representable.
+    ///   currency.
     @inlinable
     func total() throws(MoneyError) -> Money.Unrounded? {
         var running: Money.Unrounded?

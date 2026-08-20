@@ -97,11 +97,11 @@ public extension MoneyOf where C == AnyCurrency {
     /// Returns this monetary amount scaled by a fraction.
     ///
     /// - Parameter ratio: The fraction to scale by.
-    /// - Throws: ``MoneyError/overflow`` if the result is not representable.
+    /// - Precondition: The result is representable. Scaling past the largest or smallest amount traps.
     @inlinable
-    func scaled(by ratio: Ratio) throws(MoneyError) -> Scaled<Self> {
+    func scaled(by ratio: Ratio) -> Scaled<Self> {
         guard let scaled = SwiftMoney.scaled(minorUnits, by: ratio) else {
-            throw .overflow
+            preconditionFailure("Scaling by \(ratio) is not representable")
         }
 
         switch scaled {
@@ -117,18 +117,18 @@ public extension MoneyOf where C == AnyCurrency {
     /// - Parameters:
     ///   - ratio: The fraction to scale by.
     ///   - rule: How to resolve part of a unit left over.
-    /// - Throws: ``MoneyError/overflow`` if the result is not representable, including where only the
-    ///   rounding step makes it so.
+    /// - Precondition: The result is representable, including where only the rounding step passes the
+    ///   range.
     @inlinable
     func scaled(
         by ratio: Ratio,
         rounding rule: RoundingRule
-    ) throws(MoneyError) -> Self {
+    ) -> Self {
         guard
             let scaled = SwiftMoney.scaled(minorUnits, by: ratio),
             let rounded = scaled.rounded(rule)
         else {
-            throw .overflow
+            preconditionFailure("Scaling by \(ratio) is not representable")
         }
 
         return Self(unchecked: rounded, storage: storage)

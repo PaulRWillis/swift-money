@@ -64,15 +64,15 @@ struct MoneyOfTests {
         #expect(a + b == GBP(minorUnits: 12))
     }
 
-    @Test("Add traps on positive overflow")
-    func addPositiveOverflow() async {
+    @Test("Add traps on overflow")
+    func addTrapsOnOverflow() async {
         await #expect(processExitsWith: .failure) {
             blackHole(GBP.max + GBP(minorUnits: 1))
         }
     }
 
-    @Test("Add traps on negative overflow")
-    func addNegativeOverflow() async {
+    @Test("Add traps on underflow")
+    func addTrapsOnUnderflow() async {
         await #expect(processExitsWith: .failure) {
             blackHole(GBP.min + GBP(minorUnits: -1))
         }
@@ -100,15 +100,15 @@ struct MoneyOfTests {
         #expect(a - b == GBP(minorUnits: -2))
     }
 
-    @Test("Subtract traps on positive overflow")
-    func subtractPositiveOverflow() async {
+    @Test("Subtract traps on overflow")
+    func subtractTrapsOnOverflow() async {
         await #expect(processExitsWith: .failure) {
             blackHole(GBP.max - GBP(minorUnits: -1))
         }
     }
 
-    @Test("Subtract traps on negative overflow")
-    func subtractNegativeOverflow() async {
+    @Test("Subtract traps on underflow")
+    func subtractTrapsOnUnderflow() async {
         await #expect(processExitsWith: .failure) {
             blackHole(GBP.min - GBP(minorUnits: 1))
         }
@@ -148,8 +148,8 @@ struct MoneyOfTests {
         #expect(neg * -3 == GBP(minorUnits: +36))
     }
 
-    @Test("Integral multiplication traps on positive overflow")
-    func integralMultiplicationPositiveOverflow() async {
+    @Test("Integral multiplication traps on overflow")
+    func integralMultiplicationTrapsOnOverflow() async {
         await #expect(processExitsWith: .failure) {
             blackHole(GBP.max * 2)
         }
@@ -159,8 +159,8 @@ struct MoneyOfTests {
         }
     }
 
-    @Test("Integral multiplication traps on negative overflow")
-    func integralMultiplicationNegativeOverflow() async {
+    @Test("Integral multiplication traps on underflow")
+    func integralMultiplicationTrapsOnUnderflow() async {
         await #expect(processExitsWith: .failure) {
             blackHole(GBP.min * 2)
         }

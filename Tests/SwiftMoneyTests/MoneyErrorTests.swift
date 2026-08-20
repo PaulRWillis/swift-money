@@ -32,9 +32,4 @@ struct MoneyErrorTests {
                 != MoneyError.currencyMismatch(lhs: .eur, rhs: .gbp)
         )
     }
-
-    @Test("Overflow is distinct from a mismatch")
-    func overflowIsDistinct() {
-        #expect(MoneyError.overflow != MoneyError.currencyMismatch(lhs: .gbp, rhs: .eur))
-    }
 }
