@@ -13,6 +13,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      # SemVer clause 4 leaves 0.y.z undefined, so every level is shifted one right for now: a
+      # breaking change releases a minor, and a feature a patch. At 1.0.0, restore `breaking` to
+      # major and `feat` to minor, which is SemVer proper.
+      #
+      # Only the three kinds of change SemVer names release at all. A refactor or a chore that a
+      # caller cannot observe is not a version.
       - name: Semantic Release Config
         run: |
           echo "
@@ -24,14 +30,16 @@ jobs:
             - - '@semantic-release/commit-analyzer'
               - releaseRules:
                 - breaking: true
-                  release: major
+                  release: minor
+                - type: feat
+                  release: patch
+                - type: fix
+                  release: patch
+                - type: perf
+                  release: patch
                 - type: build
                   release: patch
                 - type: chore
-                  release: false
-                - type: feat
-                  release: false
-                - type: fix
                   release: false
                 - scope: 'no-release'
                   release: false
