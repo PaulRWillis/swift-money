@@ -22,6 +22,14 @@ jobs:
         sysctl -n machdep.cpu.brand_string
         echo "cores: $(sysctl -n hw.ncpu)"
 
+    # package-benchmark takes its malloc statistics from jemalloc, which the macOS image does not
+    # carry. Homebrew puts it outside the default search paths on Apple Silicon.
+    - name: Install jemalloc
+      run: |
+        brew install jemalloc
+        echo "CPATH=$(brew --prefix)/include" >> $GITHUB_ENV
+        echo "LIBRARY_PATH=$(brew --prefix)/lib" >> $GITHUB_ENV
+
     - name: Run the full suite, timed
       run: |
         started=$(date +%s)
@@ -31,6 +39,14 @@ jobs:
 
     - name: Report what was captured
       run: |
+        # A build failure produces no Instructions rows, which reads exactly like counters being
+        # unavailable. Fail on it rather than report a verdict drawn from a build log.
+        if grep -q "^error:\|error: fatalError" results.md; then
+          echo "THE RUN FAILED, so there is no verdict. First errors:"
+          grep -m 5 "error:" results.md
+          exit 1
+        fi
+
         python3 - <<'PY'
         import re
 
