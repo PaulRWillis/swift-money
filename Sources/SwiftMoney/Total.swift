@@ -7,7 +7,7 @@ public extension Sequence {
     ///
     /// - Precondition: The sum is representable. Totalling beyond ``MoneyOf/max`` traps, as `+` does.
     @inlinable
-    func total<C: StaticCurrencyType>() -> MoneyOf<C> where Element == MoneyOf<C> {
+    func total<C: CurrencyType>() -> MoneyOf<C> where Element == MoneyOf<C> {
         reduce(.zero, +)
     }
 
@@ -20,7 +20,7 @@ public extension Sequence {
     ///
     /// - Precondition: The sum is representable. Totalling beyond ``MoneyOf/max`` traps, as `+` does.
     @inlinable
-    func total<C: StaticCurrencyType>() -> MoneyOf<C>.Unrounded where Element == MoneyOf<C>.Unrounded {
+    func total<C: CurrencyType>() -> MoneyOf<C>.Unrounded where Element == MoneyOf<C>.Unrounded {
         reduce(.zero, +)
     }
 }

@@ -16,7 +16,7 @@
 /// ```swift
 /// let total = try (price * 3) + delivery - discount
 /// ```
-public struct MoneyOf<C: CurrencyType>: Equatable, Hashable, Sendable {
+public struct MoneyOf<C: CurrencyRepresentation>: Equatable, Hashable, Sendable {
     @usableFromInline
     let minorUnits: Int64
 
@@ -44,7 +44,7 @@ public struct MoneyOf<C: CurrencyType>: Equatable, Hashable, Sendable {
 
 // MARK: - Construction
 
-public extension MoneyOf where C: StaticCurrencyType {
+public extension MoneyOf where C: CurrencyType {
     /// Creates a monetary amount from a whole number of the currency's smallest
     /// (minor) units.
     ///
@@ -65,7 +65,7 @@ public extension MoneyOf where C: StaticCurrencyType {
             preconditionFailure("Not a representable amount: \(minorUnits)")
         }
 
-        self.init(unchecked: representable, storage: .empty)
+        self.init(unchecked: representable, storage: .implied)
     }
 
     /// Creates a monetary amount from a whole number of the currency's smallest (minor) units, if
@@ -83,7 +83,7 @@ public extension MoneyOf where C: StaticCurrencyType {
             return nil
         }
 
-        self.init(unchecked: representable, storage: .empty)
+        self.init(unchecked: representable, storage: .implied)
     }
 }
 
@@ -135,14 +135,14 @@ public extension MoneyOf where C == AnyCurrency {
 
 // MARK: - Min/Max
 
-public extension MoneyOf where C: StaticCurrencyType {
+public extension MoneyOf where C: CurrencyType {
     /// The smallest representable monetary amount.
     static var min: Self {
-        Self(unchecked: Int64.min, storage: .empty)
+        Self(unchecked: Int64.min, storage: .implied)
     }
 
     /// The largest representable monetary amount.
     static var max: Self {
-        Self(unchecked: Int64.max, storage: .empty)
+        Self(unchecked: Int64.max, storage: .implied)
     }
 }
