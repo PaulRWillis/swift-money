@@ -3,7 +3,7 @@ import Testing
 
 // A currency defined entirely outside the library, proving no library change is needed to add one.
 // This is the guarantee `CurrencyType` exists to provide, so it is a kept test rather than a scratch.
-private enum LoyaltyPoints: CurrencyType {
+private enum LoyaltyPoints: StaticCurrencyType {
     static let currency = Currency(code: "LTY", minimalQuantization: 1)
 }
 

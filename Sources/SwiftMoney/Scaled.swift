@@ -35,6 +35,7 @@ extension Scaled: Sendable where Amount: Sendable {}
 // trapped, which is what lets `MoneyOf` trap and `Money` throw from the same code.
 extension Scaled where Amount == Int64 {
     // The whole number this resolves to under `rule`. `nil` when that is not representable.
+    @usableFromInline
     func rounded(_ rule: RoundingRule) -> Int64? {
         switch self {
         case let .exact(whole):
