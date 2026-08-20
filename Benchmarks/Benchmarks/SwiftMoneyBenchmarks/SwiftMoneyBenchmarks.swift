@@ -14,9 +14,24 @@ let benchmarks: @Sendable () -> Void = {
         .instructions,
     ]
 
+    // Wall clock is the only metric CI can judge, since no hosted runner exposes instruction
+    // counters, and the runners' own noise is 5% to 16%: comparing `main` against itself reports
+    // regressions at the 5% default. 20% clears that and still catches anything worth catching,
+    // the regressions this library has actually seen being tenfold and worse.
+    let defaultThresholds: [BenchmarkMetric: BenchmarkThresholds] = [
+        .wallClock: BenchmarkThresholds(
+            relative: [
+                .p25: 20.0,
+                .p50: 20.0,
+                .p75: 20.0,
+            ]
+        ),
+    ]
+
     let defaultConfiguration = Benchmark.Configuration(
         metrics: defaultMetrics,
-        scalingFactor: .mega
+        scalingFactor: .mega,
+        thresholds: defaultThresholds
     )
 
     // MARK: - Addition
