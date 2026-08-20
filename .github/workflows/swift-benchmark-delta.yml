@@ -44,9 +44,17 @@ jobs:
           benchmarks-${{ runner.os }}-${{ hashFiles('Benchmarks/Package.resolved') }}-
           benchmarks-${{ runner.os }}-
 
+    # Resolution costs about half a minute and does nothing when the cache already carries the
+    # checkouts, since the build resolves anything missing anyway. The retry loop still runs on a
+    # cache miss, which is when the network flakiness it exists for can actually bite.
     - name: Resolve dependencies (with retry)
       if: ${{ env.hasBenchmark == '1' }}
       run: |
+        if [ -n "$(ls -A Benchmarks/.build/checkouts 2>/dev/null)" ]; then
+          echo "Dependencies restored from the cache"
+          exit 0
+        fi
+
         for attempt in 1 2 3; do
           echo "Resolve attempt $attempt"
           if swift package ${BENCHMARK_PACKAGE_PATH} resolve; then
@@ -91,8 +99,10 @@ jobs:
         # improvement — so a non-zero status is the normal case, not a failure. Actions runs this block
         # as `bash -e`, which would abort here before the status could be read, taking every line below
         # with it and leaving `exitStatus` unset.
+        # `--disable-sandbox` matches the two runs above. The flag is part of the plugin's build
+        # state, so alternating it rebuilds BenchmarkTool in release: 30 seconds against 5.
         set +e
-        swift package ${BENCHMARK_PACKAGE_PATH} benchmark baseline check main pull_request --format markdown > benchmark_comparison.md 2>benchmark_stderr
+        swift package ${BENCHMARK_PACKAGE_PATH} --disable-sandbox benchmark baseline check main pull_request --format markdown > benchmark_comparison.md 2>benchmark_stderr
         rawExitStatus=$?
         set -e
 
