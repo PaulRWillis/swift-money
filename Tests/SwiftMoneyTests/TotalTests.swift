@@ -58,15 +58,27 @@ struct TotalTests {
         }
     }
 
-    @Test("Totalling propagates overflow")
-    func totalPropagatesOverflow() {
-        let amounts = [
-            Money(minorUnits: Int64.max, currency: .gbp),
-            Money(minorUnits: 1, currency: .gbp),
-        ]
+    @Test("Totalling traps on overflow")
+    func totalTrapsOnOverflow() async {
+        await #expect(processExitsWith: .failure) {
+            let amounts = [
+                Money(minorUnits: Int64.max, currency: .gbp),
+                Money(minorUnits: 1, currency: .gbp),
+            ]
 
-        #expect(throws: MoneyError.overflow) {
-            try amounts.total()
+            blackHole(try amounts.total())
+        }
+    }
+
+    @Test("Totalling traps on underflow")
+    func totalTrapsOnUnderflow() async {
+        await #expect(processExitsWith: .failure) {
+            let amounts = [
+                Money(minorUnits: Int64.min, currency: .gbp),
+                Money(minorUnits: -1, currency: .gbp),
+            ]
+
+            blackHole(try amounts.total())
         }
     }
 
@@ -87,7 +99,7 @@ struct TotalTests {
 
     @Test("Totalling unrounded untyped amounts stays exact")
     func totalOfUnroundedUntypedAmounts() throws {
-        let third = try Money(minorUnits: 1, currency: .eur).unrounded * Ratio(1, 3)
+        let third = Money(minorUnits: 1, currency: .eur).unrounded * Ratio(1, 3)
 
         let summed = try [third, third, third].total()
         let total = try #require(summed)

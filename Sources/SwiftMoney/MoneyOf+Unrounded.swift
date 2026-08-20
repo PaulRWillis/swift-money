@@ -172,16 +172,16 @@ public extension MoneyOf.Unrounded where C: CurrencyType {
     }
 }
 
-// MARK: - A currency only known at runtime: scaling can fail
+// MARK: - A currency only known at runtime: combining can fail
 
 public extension MoneyOf.Unrounded where C == AnyCurrency {
     /// Returns the result of scaling an unrounded amount by a fraction, keeping it exact.
     ///
-    /// - Throws: ``MoneyError/overflow`` if the result is not representable.
+    /// Traps on overflow.
     @inlinable
-    static func * (lhs: Self, rhs: Ratio) throws(MoneyError) -> Self {
+    static func * (lhs: Self, rhs: Ratio) -> Self {
         guard let scaled = lhs.minorUnits.multiplied(by: rhs) else {
-            throw .overflow
+            preconditionFailure("Scaling by \(rhs) is not representable")
         }
 
         return Self(scaled, storage: lhs.storage)
@@ -189,50 +189,55 @@ public extension MoneyOf.Unrounded where C == AnyCurrency {
 
     /// Returns the result of scaling an unrounded amount by a fraction, keeping it exact.
     ///
-    /// - Throws: ``MoneyError/overflow`` if the result is not representable.
+    /// Traps on overflow.
     @inlinable
-    static func * (lhs: Ratio, rhs: Self) throws(MoneyError) -> Self {
-        try rhs * lhs
+    static func * (lhs: Ratio, rhs: Self) -> Self {
+        rhs * lhs
     }
 
     /// Returns the result of scaling an unrounded amount by a whole number.
     ///
-    /// - Throws: ``MoneyError/overflow`` if the result is not representable.
+    /// Traps on overflow.
     @inlinable
-    static func * (lhs: Self, rhs: some BinaryInteger) throws(MoneyError) -> Self {
-        try lhs * Ratio(Ratio.Numerator(Int64(rhs)), 1)
+    static func * (lhs: Self, rhs: some BinaryInteger) -> Self {
+        lhs * Ratio(Ratio.Numerator(Int64(rhs)), 1)
     }
 
     /// Returns the result of scaling an unrounded amount by a whole number.
     ///
-    /// - Throws: ``MoneyError/overflow`` if the result is not representable.
+    /// Traps on overflow.
     @inlinable
-    static func * (lhs: some BinaryInteger, rhs: Self) throws(MoneyError) -> Self {
-        try rhs * lhs
+    static func * (lhs: some BinaryInteger, rhs: Self) -> Self {
+        rhs * lhs
     }
 
     /// Scales an unrounded amount by a fraction in place, keeping it exact.
+    ///
+    /// Traps on overflow.
     @inlinable
-    static func *= (lhs: inout Self, rhs: Ratio) throws(MoneyError) {
-        lhs = try lhs * rhs
+    static func *= (lhs: inout Self, rhs: Ratio) {
+        lhs = lhs * rhs
     }
 
     /// Scales an unrounded amount by a whole number in place.
+    ///
+    /// Traps on overflow.
     @inlinable
-    static func *= (lhs: inout Self, rhs: some BinaryInteger) throws(MoneyError) {
-        lhs = try lhs * rhs
+    static func *= (lhs: inout Self, rhs: some BinaryInteger) {
+        lhs = lhs * rhs
     }
 
     /// Returns the sum of two unrounded amounts, keeping both exact.
     ///
-    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if the currencies differ, or
-    ///   ``MoneyError/overflow`` if the sum is not representable.
+    /// Traps on overflow.
+    ///
+    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if the currencies differ.
     @inlinable
     static func + (lhs: Self, rhs: Self) throws(MoneyError) -> Self {
         let storage = try AnyCurrency.combining(lhs.storage, rhs.storage)
 
         guard let sum = lhs.minorUnits.adding(rhs.minorUnits) else {
-            throw .overflow
+            preconditionFailure("Adding \(rhs) is not representable")
         }
 
         return Self(sum, storage: storage)
@@ -240,14 +245,15 @@ public extension MoneyOf.Unrounded where C == AnyCurrency {
 
     /// Returns the difference of two unrounded amounts, keeping both exact.
     ///
-    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if the currencies differ, or
-    ///   ``MoneyError/overflow`` if the difference is not representable.
+    /// Traps on overflow.
+    ///
+    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if the currencies differ.
     @inlinable
     static func - (lhs: Self, rhs: Self) throws(MoneyError) -> Self {
         let storage = try AnyCurrency.combining(lhs.storage, rhs.storage)
 
         guard let difference = lhs.minorUnits.subtracting(rhs.minorUnits) else {
-            throw .overflow
+            preconditionFailure("Subtracting \(rhs) is not representable")
         }
 
         return Self(difference, storage: storage)
