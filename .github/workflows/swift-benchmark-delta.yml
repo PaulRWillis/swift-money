@@ -34,7 +34,7 @@ jobs:
     # content hash says has changed, so a partial hit still saves the dependency compile.
     - name: Cache the benchmark build
       if: ${{ env.hasBenchmark == '1' }}
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: |
           Benchmarks/.build
@@ -122,7 +122,7 @@ jobs:
     # kept as an artifact, where it can be fetched and diffed.
     - name: Upload the comparison table
       if: ${{ env.hasBenchmark == '1' && env.mainHasBenchmark == '1' }}
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: benchmark-comparison
         path: benchmark_comparison.md
