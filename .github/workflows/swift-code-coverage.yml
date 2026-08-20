@@ -44,15 +44,27 @@ jobs:
     - name: Job summary
       run: cat coverage.md >> "$GITHUB_STEP_SUMMARY"
 
+    # `--edit-last` edits the last comment by this actor, and the benchmark workflow also comments as
+    # github-actions, so it was overwriting this one on every pull request. The marker gives each
+    # workflow a comment of its own.
     - name: Comment on the pull request
       if: github.event_name == 'pull_request'
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        MARKER: "<!-- coverage-report -->"
+        PR: ${{ github.event.pull_request.number }}
       run: |
-        gh pr comment "${{ github.event.pull_request.number }}" \
-          --body-file coverage.md \
-          --edit-last \
-          --create-if-none
+        body="$(printf '%s\n\n%s' "$MARKER" "$(cat coverage.md)")"
+        existing="$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
+          | jq -r --arg marker "$MARKER" \
+              '[.[] | select(.body | contains($marker))] | last | .id // empty')"
+
+        if [ -n "$existing" ]; then
+          gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$existing" -f body="$body" > /dev/null
+          echo "Updated comment $existing"
+        else
+          gh pr comment "$PR" --body "$body"
+        fi
 
     - name: Commit the badge
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
