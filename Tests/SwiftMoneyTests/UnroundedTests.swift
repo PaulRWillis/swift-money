@@ -290,7 +290,7 @@ private let everyRule: [RoundingRule] = [
 // An exact amount settles to the same whole number whichever rule is applied, and an inexact one does
 // not. Asking every rule is a stronger check on exactness than reading a remainder would be, and it is
 // the only one available: an unrounded amount reports no remainder.
-private func roundsIdentically<C: StaticCurrencyType>(
+private func roundsIdentically<C: CurrencyType>(
     _ unrounded: MoneyOf<C>.Unrounded
 ) -> MoneyOf<C>? {
     let settled = Set(everyRule.map(unrounded.rounded))

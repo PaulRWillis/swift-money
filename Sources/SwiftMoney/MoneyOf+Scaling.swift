@@ -1,6 +1,6 @@
 // MARK: - Splitting, which cannot fail for any currency
 
-public extension MoneyOf where C: StaticCurrencyType {
+public extension MoneyOf where C: CurrencyType {
     /// Returns this monetary amount split into `parts`, as evenly as possible.
     ///
     /// ```swift
@@ -11,7 +11,7 @@ public extension MoneyOf where C: StaticCurrencyType {
     @inlinable
     func split(into parts: PartCount) -> Split<Self> {
         SwiftMoney.split(minorUnits, into: parts)
-            .map { Self(unchecked: $0, storage: .empty) }
+            .map { Self(unchecked: $0, storage: .implied) }
     }
 }
 
@@ -30,7 +30,7 @@ public extension MoneyOf where C == AnyCurrency {
 
 // MARK: - Fractional scaling, a currency fixed at compile time
 
-public extension MoneyOf where C: StaticCurrencyType {
+public extension MoneyOf where C: CurrencyType {
     /// Returns this monetary amount scaled by a fraction.
     ///
     /// A monetary amount is always a whole number of the currency's smallest unit, so a fraction that
@@ -54,9 +54,9 @@ public extension MoneyOf where C: StaticCurrencyType {
         // be specialized away.
         switch scaled {
         case let .exact(whole):
-            return .exact(Self(unchecked: whole, storage: .empty))
+            return .exact(Self(unchecked: whole, storage: .implied))
         case let .inexact(whole, remainder):
-            return .inexact(Self(unchecked: whole, storage: .empty), remainder: remainder)
+            return .inexact(Self(unchecked: whole, storage: .implied), remainder: remainder)
         }
     }
 
@@ -87,7 +87,7 @@ public extension MoneyOf where C: StaticCurrencyType {
             preconditionFailure("Scaling by \(ratio) is not representable")
         }
 
-        return Self(unchecked: rounded, storage: .empty)
+        return Self(unchecked: rounded, storage: .implied)
     }
 }
 

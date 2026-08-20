@@ -23,6 +23,21 @@ public struct Currency: Equatable, Hashable, Sendable {
     }
 }
 
+public extension Currency {
+    /// The storage of an amount whose currency is fixed by its type.
+    ///
+    /// Zero-sized, so fixing a currency at compile time costs an amount nothing to carry it.
+    struct Implied: Equatable, Hashable, Sendable {
+        // Computed, not a `static let`: a stored static needs lazy initialisation through
+        // `swift_once`, and this is touched on every construction of a statically typed amount.
+        @usableFromInline
+        static var implied: Implied { Implied() }
+
+        @inlinable
+        init() {}
+    }
+}
+
 // MARK: - CustomStringConvertible
 
 extension Currency: CustomStringConvertible {
@@ -46,12 +61,12 @@ public extension Currency {
 /// A namespace for the ISO4217 currencies the library provides.
 public enum Currencies {
     /// The euro.
-    public enum EUR: StaticCurrencyType {
+    public enum EUR: CurrencyType {
         public static let currency: Currency = .eur
     }
 
     /// Great British Pounds (GBP).
-    public enum GBP: StaticCurrencyType {
+    public enum GBP: CurrencyType {
         public static let currency: Currency = .gbp
     }
 }

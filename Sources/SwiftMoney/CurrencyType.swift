@@ -1,27 +1,9 @@
-/// Storage for a currency that is already known to the type system.
+/// The means by which a monetary amount knows its currency.
 ///
-/// Zero sized, so an amount whose currency is fixed at compile time costs nothing to carry it.
-public struct NoStorage: Equatable, Hashable, Sendable {
-    // Computed, not a `static let`: a stored static needs lazy initialisation through `swift_once`,
-    // and this is touched on every construction of a statically typed amount.
-    @usableFromInline
-    static var empty: NoStorage { NoStorage() }
-
-    @usableFromInline
-    @inlinable
-    init() {}
-}
-
-/// A type that names the currency a monetary amount is denominated in.
-///
-/// Conform to ``StaticCurrencyType`` to define a currency. This protocol is what ``MoneyOf`` is
-/// generic over, and it decides two things: what an amount stores to know its currency, and whether
-/// combining two amounts can fail.
-///
-/// A currency fixed at compile time stores ``NoStorage`` and cannot fail, so its arithmetic needs no
-/// `try`. A currency only known at runtime stores the currency itself and fails when two do not
-/// match.
-public protocol CurrencyType: Sendable {
+/// Conform to ``CurrencyType`` to define a currency. Conforming here directly gives an amount no
+/// arithmetic, because the operators are declared only for the two conformances this library
+/// provides.
+public protocol CurrencyRepresentation: Sendable {
     /// What an amount carries in order to know its currency.
     associatedtype Storage: Hashable & Sendable
 
@@ -41,31 +23,31 @@ public protocol CurrencyType: Sendable {
 /// A currency fixed at compile time, so that mixing two of them is a compile error.
 ///
 /// Conforming types carry no state and are never instantiated. They exist to be used as a generic
-/// parameter, so that a currency is part of a type rather than a value it holds. A caseless `enum` is
-/// the natural shape, and a conformer supplies one property:
+/// parameter, so that a currency is part of an amount's type rather than a value it holds. A caseless
+/// `enum` is the natural shape, and a conformer supplies one property:
 ///
 /// ```swift
-/// enum LoyaltyPoints: StaticCurrencyType {
+/// enum LoyaltyPoints: CurrencyType {
 ///     static let currency = Currency(code: "LTY", minimalQuantization: 1)
 /// }
 ///
 /// typealias Points = MoneyOf<LoyaltyPoints>
 /// ```
-public protocol StaticCurrencyType: CurrencyType
-where Storage == NoStorage, ArithmeticError == Never {
+public protocol CurrencyType: CurrencyRepresentation
+where Storage == Currency.Implied, ArithmeticError == Never {
     /// The currency this type names.
     static var currency: Currency { get }
 }
 
-public extension StaticCurrencyType {
+public extension CurrencyType {
     @inlinable
-    static func currency(for _: NoStorage) -> Currency { currency }
+    static func currency(for _: Currency.Implied) -> Currency { currency }
 
     @inlinable
     static func combining(
-        _ lhs: NoStorage,
-        _ rhs: NoStorage
-    ) throws(Never) -> NoStorage {
+        _ lhs: Currency.Implied,
+        _ rhs: Currency.Implied
+    ) throws(Never) -> Currency.Implied {
         lhs
     }
 }
@@ -73,7 +55,7 @@ public extension StaticCurrencyType {
 /// A currency only known at runtime, so that amounts carry it and combining them can fail.
 ///
 /// Used through ``Money``, which is `MoneyOf<AnyCurrency>`.
-public enum AnyCurrency: CurrencyType {
+public enum AnyCurrency: CurrencyRepresentation {
     public typealias Storage = Currency
     public typealias ArithmeticError = MoneyError
 

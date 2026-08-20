@@ -4,10 +4,10 @@
 
 // MARK: - A currency fixed at compile time: arithmetic cannot fail
 
-extension MoneyOf: AdditiveArithmetic where C: StaticCurrencyType {
+extension MoneyOf: AdditiveArithmetic where C: CurrencyType {
     @inlinable
     public static var zero: Self {
-        Self(unchecked: 0, storage: .empty)
+        Self(unchecked: 0, storage: .implied)
     }
 
     /// Returns the sum of two values.
@@ -15,7 +15,7 @@ extension MoneyOf: AdditiveArithmetic where C: StaticCurrencyType {
     /// Traps on overflow.
     @inlinable
     public static func + (lhs: Self, rhs: Self) -> Self {
-        Self(unchecked: lhs.minorUnits + rhs.minorUnits, storage: .empty)
+        Self(unchecked: lhs.minorUnits + rhs.minorUnits, storage: .implied)
     }
 
     /// Returns the difference of two values.
@@ -23,24 +23,24 @@ extension MoneyOf: AdditiveArithmetic where C: StaticCurrencyType {
     /// Traps on overflow.
     @inlinable
     public static func - (lhs: Self, rhs: Self) -> Self {
-        Self(unchecked: lhs.minorUnits - rhs.minorUnits, storage: .empty)
+        Self(unchecked: lhs.minorUnits - rhs.minorUnits, storage: .implied)
     }
 }
 
-extension MoneyOf: Comparable where C: StaticCurrencyType {
+extension MoneyOf: Comparable where C: CurrencyType {
     @inlinable
     public static func < (lhs: Self, rhs: Self) -> Bool {
         lhs.minorUnits < rhs.minorUnits
     }
 }
 
-public extension MoneyOf where C: StaticCurrencyType {
+public extension MoneyOf where C: CurrencyType {
     /// Returns the result of multiplying this amount by a whole number.
     ///
     /// Traps on overflow.
     @inlinable
     static func * (lhs: Self, rhs: some BinaryInteger) -> Self {
-        Self(unchecked: lhs.minorUnits * Int64(rhs), storage: .empty)
+        Self(unchecked: lhs.minorUnits * Int64(rhs), storage: .implied)
     }
 
     /// Returns the result of multiplying a whole number by this amount.

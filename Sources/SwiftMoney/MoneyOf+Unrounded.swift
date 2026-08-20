@@ -16,7 +16,6 @@ public extension MoneyOf {
         @usableFromInline
         let storage: C.Storage
 
-        @usableFromInline
         @inlinable
         init(
             _ minorUnits: Ratio,
@@ -36,7 +35,7 @@ public extension MoneyOf {
 
 // MARK: - A currency fixed at compile time: scaling cannot fail
 
-public extension MoneyOf.Unrounded where C: StaticCurrencyType {
+public extension MoneyOf.Unrounded where C: CurrencyType {
     /// Returns the result of scaling an unrounded amount by a fraction, keeping it exact.
     ///
     /// Traps on overflow.
@@ -46,7 +45,7 @@ public extension MoneyOf.Unrounded where C: StaticCurrencyType {
             preconditionFailure("Scaling by \(rhs) is not representable")
         }
 
-        return Self(scaled, storage: .empty)
+        return Self(scaled, storage: .implied)
     }
 
     /// Returns the result of scaling an unrounded amount by a fraction, keeping it exact.
@@ -98,11 +97,11 @@ public extension MoneyOf.Unrounded where C: StaticCurrencyType {
     /// - Parameter rule: How to settle any fraction of a unit.
     @inlinable
     func rounded(_ rule: RoundingRule) -> MoneyOf<C> {
-        MoneyOf(unchecked: SwiftMoney.rounded(minorUnits, rule), storage: .empty)
+        MoneyOf(unchecked: SwiftMoney.rounded(minorUnits, rule), storage: .implied)
     }
 }
 
-extension MoneyOf.Unrounded: AdditiveArithmetic where C: StaticCurrencyType {
+extension MoneyOf.Unrounded: AdditiveArithmetic where C: CurrencyType {
     @inlinable
     public static var zero: Self {
         MoneyOf<C>.zero.unrounded
@@ -117,7 +116,7 @@ extension MoneyOf.Unrounded: AdditiveArithmetic where C: StaticCurrencyType {
             preconditionFailure("Adding \(rhs) is not representable")
         }
 
-        return Self(sum, storage: .empty)
+        return Self(sum, storage: .implied)
     }
 
     /// Returns the difference of two unrounded amounts, keeping both exact.
@@ -129,13 +128,13 @@ extension MoneyOf.Unrounded: AdditiveArithmetic where C: StaticCurrencyType {
             preconditionFailure("Subtracting \(rhs) is not representable")
         }
 
-        return Self(difference, storage: .empty)
+        return Self(difference, storage: .implied)
     }
 }
 
 // A settled amount widens to an unrounded one exactly, so these lose nothing. The expression is
 // already marked by an `.unrounded` somewhere in it, which is what keeps the opt-in visible.
-public extension MoneyOf.Unrounded where C: StaticCurrencyType {
+public extension MoneyOf.Unrounded where C: CurrencyType {
     /// Returns the sum of an unrounded amount and a settled one.
     @inlinable
     static func + (lhs: Self, rhs: MoneyOf<C>) -> Self {
