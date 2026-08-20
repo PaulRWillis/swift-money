@@ -33,7 +33,6 @@ public extension Currency {
         @usableFromInline
         static var implied: Implied { Implied() }
 
-        @usableFromInline
         @inlinable
         init() {}
     }

@@ -16,7 +16,6 @@ public extension MoneyOf {
         @usableFromInline
         let storage: C.Storage
 
-        @usableFromInline
         @inlinable
         init(
             _ minorUnits: Ratio,

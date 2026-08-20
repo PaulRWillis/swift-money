@@ -31,7 +31,6 @@ public struct MoneyOf<C: CurrencyRepresentation>: Equatable, Hashable, Sendable 
 
     // No range check: for call sites holding a value this type computed, and so already knows is
     // representable. Public construction validates; internal arithmetic must not pay for it.
-    @usableFromInline
     @inlinable
     init(
         unchecked minorUnits: Int64,
