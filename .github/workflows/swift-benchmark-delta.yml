@@ -29,6 +29,21 @@ jobs:
         [ -f Benchmarks/Package.swift ] && echo "hasBenchmark=1" >> $GITHUB_ENV
         echo "BENCHMARK_PACKAGE_PATH=--package-path Benchmarks" >> $GITHUB_ENV
 
+    # Most of this job was compiling package-benchmark and its dependencies, which change only when
+    # Package.resolved does. The restore keys deliberately match a stale build: SPM rebuilds what the
+    # content hash says has changed, so a partial hit still saves the dependency compile.
+    - name: Cache the benchmark build
+      if: ${{ env.hasBenchmark == '1' }}
+      uses: actions/cache@v4
+      with:
+        path: |
+          Benchmarks/.build
+          ~/.cache/org.swift.swiftpm
+        key: benchmarks-${{ runner.os }}-${{ hashFiles('Benchmarks/Package.resolved') }}-${{ hashFiles('Sources/**/*.swift', 'Benchmarks/Benchmarks/**/*.swift') }}
+        restore-keys: |
+          benchmarks-${{ runner.os }}-${{ hashFiles('Benchmarks/Package.resolved') }}-
+          benchmarks-${{ runner.os }}-
+
     - name: Resolve dependencies (with retry)
       if: ${{ env.hasBenchmark == '1' }}
       run: |
@@ -77,10 +92,11 @@ jobs:
         # as `bash -e`, which would abort here before the status could be read, taking every line below
         # with it and leaving `exitStatus` unset.
         set +e
-        swift package ${BENCHMARK_PACKAGE_PATH} benchmark baseline check main pull_request --format markdown >> $GITHUB_STEP_SUMMARY 2>benchmark_stderr
+        swift package ${BENCHMARK_PACKAGE_PATH} benchmark baseline check main pull_request --format markdown > benchmark_comparison.md 2>benchmark_stderr
         rawExitStatus=$?
         set -e
 
+        cat benchmark_comparison.md >> $GITHUB_STEP_SUMMARY
         cat benchmark_stderr >&2
         if [ "$rawExitStatus" -eq 0 ]; then
           echo "exitStatus=0" >> $GITHUB_ENV
@@ -91,6 +107,16 @@ jobs:
         else
           echo "exitStatus=$rawExitStatus" >> $GITHUB_ENV
         fi
+
+    # The step summary is readable only in a browser, so the table that decides the verdict is also
+    # kept as an artifact, where it can be fetched and diffed.
+    - name: Upload the comparison table
+      if: ${{ env.hasBenchmark == '1' && env.mainHasBenchmark == '1' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: benchmark-comparison
+        path: benchmark_comparison.md
+        if-no-files-found: warn
 
     - name: Build PR comment
       if: ${{ env.hasBenchmark == '1' }}

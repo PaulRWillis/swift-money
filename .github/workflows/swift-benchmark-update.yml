@@ -24,6 +24,17 @@ jobs:
     - name: Install jemalloc
       run: sudo apt-get install -y libjemalloc-dev
 
+    - name: Cache the benchmark build
+      uses: actions/cache@v4
+      with:
+        path: |
+          Benchmarks/.build
+          ~/.cache/org.swift.swiftpm
+        key: benchmarks-${{ runner.os }}-${{ hashFiles('Benchmarks/Package.resolved') }}-${{ hashFiles('Sources/**/*.swift', 'Benchmarks/Benchmarks/**/*.swift') }}
+        restore-keys: |
+          benchmarks-${{ runner.os }}-${{ hashFiles('Benchmarks/Package.resolved') }}-
+          benchmarks-${{ runner.os }}-
+
     - name: Resolve dependencies (with retry)
       run: |
         for attempt in 1 2 3; do
