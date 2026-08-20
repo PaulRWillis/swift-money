@@ -426,6 +426,71 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    // MARK: - Rendering
+
+    // `description` is what `print`, interpolation and a failing test all reach for, so it runs in
+    // places nobody profiles. Every variant hands `blackHole` a `String`, so the harness costs the
+    // same in each and what separates them is the rendering.
+    let carriedPounds = operands.map { Money(minorUnits: $0, currency: .gbp) }
+    let carriedPreDecimal = operands.map {
+        Money(minorUnits: $0, currency: Currency(code: "OLD", unitScale: 240))
+    }
+
+    Benchmark("MoneyOf description", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(moneyOperands[index % moneyOperands.count].description)
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money description", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(carriedPounds[index % carriedPounds.count].description)
+            index &+= 1
+        }
+    }
+
+    // The branch for a currency no decimal can express, which writes minor units instead.
+    Benchmark("Money description, no exact decimal", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(carriedPreDecimal[index % carriedPreDecimal.count].description)
+            index &+= 1
+        }
+    }
+
+    Benchmark("Int description", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(operands[index % operands.count].description)
+            index &+= 1
+        }
+    }
+
+    Benchmark("Double description", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(doubleOperands[index % doubleOperands.count].description)
+            index &+= 1
+        }
+    }
+
+    Benchmark("Decimal description", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(decimalOperands[index % decimalOperands.count].description)
+            index &+= 1
+        }
+    }
+
     // MARK: - What the library's own choices cost
 
     // `Money` throws where `MoneyOf` traps, so this is the price of typed throws — a currency check and
