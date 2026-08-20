@@ -445,6 +445,28 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    // The benchmark above adds two amounts sharing one `Currency.gbp`, which is the cheapest case a
+    // currency check ever sees. Amounts decoded from a payload or read from a database carry equal
+    // currencies built separately, and that is what this measures.
+    let separatelyBuiltPounds = [
+        Currency(code: "GBP", minimalQuantization: 100),
+        Currency(code: "GBP", minimalQuantization: 100),
+    ]
+
+    Benchmark("Money addition, separately built currencies", configuration: defaultConfiguration) { benchmark in
+        var accumulated = Money(minorUnits: 0, currency: separatelyBuiltPounds[0])
+        let delta = Money(minorUnits: 1, currency: separatelyBuiltPounds[1])
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(accumulated)
+                accumulated = try accumulated + delta
+            }
+        } catch {
+            fatalError("these amounts share a currency, so this cannot happen: \(error)")
+        }
+    }
+
     // Reporting a remainder means constructing a `Ratio`, which reduces to lowest terms. Against
     // `scaled(by:rounding:)`, the difference is what the report itself costs.
     Benchmark("MoneyOf scaled, reporting a remainder", configuration: defaultConfiguration) { benchmark in

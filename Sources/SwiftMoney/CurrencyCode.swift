@@ -8,7 +8,11 @@
 /// every token symbol in circulation: some contain punctuation, emoji, or non-Latin scripts, and a
 /// rule permitting those would validate nothing.
 public struct CurrencyCode: Equatable, Hashable, Sendable {
-    fileprivate let rawValue: String
+    // The eight bytes of a code, uppercased, first character in the high byte and zero padded to the
+    // right. Comparing two codes is then one integer compare rather than a call into String, which
+    // is what makes a runtime amount's arithmetic cheap, and the high-byte-first order means codes
+    // sort as they read.
+    private let storage: UInt64
 
     /// Creates a currency code from a string that may not be valid.
     ///
@@ -20,30 +24,53 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
     /// - Parameter string: The code, in any case.
     /// - Returns: `nil` unless `string` is three to eight characters of `A`–`Z`, `a`–`z` or `0`–`9`.
     public init?(string: String) {
-        guard let validated = Self.validated(string) else {
+        guard let packed = Self.packed(string) else {
             return nil
         }
 
-        self.rawValue = validated
+        self.storage = packed
     }
 
-    // No check: only for call sites that have already validated the string.
-    internal init(unchecked string: String) {
-        self.rawValue = string
+    // Each byte is checked before it is uppercased, never after. `"ß".uppercased()` is `"SS"`, so
+    // uppercasing a whole string first would let two non-ASCII characters satisfy both the character
+    // rule and the length rule.
+    private static func packed(_ string: String) -> UInt64? {
+        let bytes = string.utf8
+
+        guard (3...8).contains(bytes.count) else {
+            return nil
+        }
+
+        var packed: UInt64 = 0
+
+        for byte in bytes {
+            guard byte.isASCIIAlphanumeric else {
+                return nil
+            }
+
+            packed = packed << 8 | UInt64(byte.uppercasedASCII)
+        }
+
+        return packed << (8 * (8 - bytes.count))
     }
 
-    // Validates before uppercasing, not after. `"ß".uppercased()` is `"SS"`, so uppercasing first
-    // would let a two-character non-ASCII input satisfy both the character and the length rule.
-    private static func validated(_ string: String) -> String? {
-        guard (3...8).contains(string.count) else {
-            return nil
-        }
+    fileprivate var stringValue: String {
+        String(unsafeUninitializedCapacity: 8) { buffer in
+            var count = 0
 
-        guard string.utf8.allSatisfy(\.isASCIIAlphanumeric) else {
-            return nil
-        }
+            while count < 8 {
+                let byte = UInt8(truncatingIfNeeded: storage >> (56 - 8 * count))
 
-        return string.uppercased()
+                guard byte != 0 else {
+                    break
+                }
+
+                buffer[count] = byte
+                count += 1
+            }
+
+            return count
+        }
     }
 }
 
@@ -66,6 +93,10 @@ private extension UInt8 {
     var isASCIIAlphanumeric: Bool {
         isASCIIUppercase || isASCIILowercase || isASCIIDigit
     }
+
+    var uppercasedASCII: UInt8 {
+        isASCIILowercase ? self - (UInt8(ascii: "a") - UInt8(ascii: "A")) : self
+    }
 }
 
 extension CurrencyCode: ExpressibleByStringLiteral {
@@ -83,23 +114,23 @@ extension CurrencyCode: ExpressibleByStringLiteral {
     /// - Parameter value: The code, in any case.
     /// - Precondition: `value` is three to eight characters of `A`–`Z`, `a`–`z` or `0`–`9`.
     public init(stringLiteral value: String) {
-        guard let validated = Self.validated(value) else {
+        guard let packed = Self.packed(value) else {
             preconditionFailure("Not a valid currency code: \(value)")
         }
 
-        self.rawValue = validated
+        self.storage = packed
     }
 }
 
 extension CurrencyCode: CustomStringConvertible {
     public var description: String {
-        rawValue
+        stringValue
     }
 }
 
 public extension String {
     /// Creates a string from a currency code.
     init(_ code: CurrencyCode) {
-        self = code.rawValue
+        self = code.stringValue
     }
 }
