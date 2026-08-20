@@ -116,4 +116,21 @@ struct CurrencyTests {
         #expect(LoyaltyPoints.currency.code == "LTY")
         #expect(LoyaltyPoints.currency.unitScale == 1)
     }
+
+    // The ouguiya divides into five khoums, which ISO 4217 cannot say: its exponent field holds a
+    // power of ten, so it records 2 and footnotes the currency `divby5`. The table follows ISO,
+    // because a scale of 5 would disagree with every payment system by a factor of twenty.
+    @Test("A currency ISO cannot describe exactly follows ISO anyway")
+    func divideByFiveCurrencyFollowsTheStandard() {
+        #expect(Currency.mru.unitScale == 100)
+        #expect(Currency.mga.unitScale == 100)
+    }
+
+    @Test("A currency without a name at the top level is still usable as a type")
+    func currencyReachedThroughTheNamespace() {
+        let paid = MoneyOf<Currencies.CHF>(minorUnits: 12_50)
+
+        #expect(paid.currency == .chf)
+        #expect(paid.currency.code == "CHF")
+    }
 }
