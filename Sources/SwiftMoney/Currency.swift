@@ -46,32 +46,20 @@ extension Currency: CustomStringConvertible {
     }
 }
 
-// MARK: - ISO4217 Currencies
-
-public extension Currency {
-    /// Pound sterling.
-    static let gbp = Currency(code: "GBP", unitScale: 100)
-
-    /// The euro.
-    static let eur = Currency(code: "EUR", unitScale: 100)
-}
-
 // MARK: - ISO4217 Currencies as types
 
-/// A namespace for the ISO4217 currencies the library provides.
-public enum Currencies {
-    /// The euro.
-    public enum EUR: CurrencyType {
-        public static let currency: Currency = .eur
-    }
-
-    /// Great British Pounds (GBP).
-    public enum GBP: CurrencyType {
-        public static let currency: Currency = .gbp
-    }
-}
+/// A namespace for the ISO 4217 currencies, one caseless `enum` per code.
+///
+/// The members are generated from the list ISO's maintenance agency publishes. Use one as a generic
+/// parameter to fix a currency at compile time: `MoneyOf<Currencies.CHF>`.
+public enum Currencies {}
 
 // MARK: - Typed money
+
+// Only a handful of currencies get a name at the top level, because a typealias per code would put
+// 165 of them into every file that imports this library, among them `ALL`, `TOP` and a `TRY` that
+// reads like the keyword. Any other currency is `MoneyOf<Currencies.XYZ>`, which an adopter can
+// alias to whatever suits their own code.
 
 /// A monetary amount in pounds sterling.
 ///
@@ -82,6 +70,17 @@ public typealias GBP = MoneyOf<Currencies.GBP>
 ///
 /// Distinct from ``Currencies/EUR``, which names the currency rather than an amount in it.
 public typealias EUR = MoneyOf<Currencies.EUR>
+
+/// A monetary amount in US dollars.
+///
+/// Distinct from ``Currencies/USD``, which names the currency rather than an amount in it.
+public typealias USD = MoneyOf<Currencies.USD>
+
+/// A monetary amount in Japanese yen.
+///
+/// Distinct from ``Currencies/JPY``, which names the currency rather than an amount in it. Yen have
+/// no subdivision, so an amount of them is a whole number of yen.
+public typealias JPY = MoneyOf<Currencies.JPY>
 
 /// A monetary amount whose currency is only known at runtime.
 ///
