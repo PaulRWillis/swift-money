@@ -30,7 +30,7 @@ public extension MoneyOf where C == AnyCurrency {
     /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if the currencies differ.
     @inlinable
     func proportion(of whole: Self) throws(MoneyError) -> Ratio? {
-        _ = try AnyCurrency.combining(storage, whole.storage)
+        try AnyCurrency.requireMatch(storage, whole.storage)
 
         return SwiftMoney.proportion(minorUnits, of: whole.minorUnits)
     }

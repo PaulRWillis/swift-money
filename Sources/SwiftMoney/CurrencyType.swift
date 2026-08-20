@@ -7,17 +7,8 @@ public protocol CurrencyRepresentation: Sendable {
     /// What an amount carries in order to know its currency.
     associatedtype Storage: Hashable & Sendable
 
-    /// Why combining two amounts of this currency can fail.
-    associatedtype ArithmeticError: Error
-
     /// The currency an amount is denominated in, given what it carries.
     static func currency(for storage: Storage) -> Currency
-
-    /// The storage two amounts share, or a failure if they are not the same currency.
-    static func combining(
-        _ lhs: Storage,
-        _ rhs: Storage
-    ) throws(ArithmeticError) -> Storage
 }
 
 /// A currency fixed at compile time, so that mixing two of them is a compile error.
@@ -33,8 +24,7 @@ public protocol CurrencyRepresentation: Sendable {
 ///
 /// typealias Points = MoneyOf<LoyaltyPoints>
 /// ```
-public protocol CurrencyType: CurrencyRepresentation
-where Storage == Currency.Implied, ArithmeticError == Never {
+public protocol CurrencyType: CurrencyRepresentation where Storage == Currency.Implied {
     /// The currency this type names.
     static var currency: Currency { get }
 }
@@ -42,14 +32,6 @@ where Storage == Currency.Implied, ArithmeticError == Never {
 public extension CurrencyType {
     @inlinable
     static func currency(for _: Currency.Implied) -> Currency { currency }
-
-    @inlinable
-    static func combining(
-        _ lhs: Currency.Implied,
-        _ rhs: Currency.Implied
-    ) throws(Never) -> Currency.Implied {
-        lhs
-    }
 }
 
 /// A currency only known at runtime, so that amounts carry it and combining them can fail.
@@ -57,20 +39,17 @@ public extension CurrencyType {
 /// Used through ``Money``, which is `MoneyOf<AnyCurrency>`.
 public enum AnyCurrency: CurrencyRepresentation {
     public typealias Storage = Currency
-    public typealias ArithmeticError = MoneyError
 
     @inlinable
     public static func currency(for storage: Currency) -> Currency { storage }
 
-    @inlinable
-    public static func combining(
+    @usableFromInline
+    static func requireMatch(
         _ lhs: Currency,
         _ rhs: Currency
-    ) throws(MoneyError) -> Currency {
+    ) throws(MoneyError) {
         guard lhs == rhs else {
             throw .currencyMismatch(lhs: lhs, rhs: rhs)
         }
-
-        return lhs
     }
 }
