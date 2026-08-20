@@ -114,6 +114,46 @@ def types(found):
     return lines + ["}"]
 
 
+def packed(code):
+    """A code as the single word `CurrencyCode` stores, first character in the high byte."""
+    value = 0
+
+    for byte in code.encode():
+        value = value << 8 | byte
+
+    return value << (8 * (8 - len(code)))
+
+
+def lookup(found):
+    lines = [
+        "public extension Currency {",
+        "    /// The ISO 4217 currency a code names.",
+        "    ///",
+        "    /// ```swift",
+        '    /// Currency(iso: "GBP")   // GBP, 100 subunits',
+        '    /// Currency(iso: "LTY")   // nil',
+        "    /// ```",
+        "    init?(iso code: CurrencyCode) {",
+        "        // Switched on the packed word rather than the code, so the compiler can build a",
+        "        // search over integers. Every case is checked by the tests, which look up all of",
+        "        // these by their spelling.",
+        "        switch code.packedValue {",
+    ]
+
+    for currency in found:
+        code = currency["code"]
+        lines.append(
+            f"        case 0x{packed(code):016X}: self = .{identifier(code)}   // {code}"
+        )
+
+    return lines + [
+        "        default: return nil",
+        "        }",
+        "    }",
+        "}",
+    ]
+
+
 def generate(published, found):
     header = [
         f"// Generated from ISO 4217's list-one.xml, published {published}. Do not edit by hand:",
@@ -126,7 +166,7 @@ def generate(published, found):
         "",
     ]
 
-    return "\n".join(header + values(found) + ["", ""] + types(found)) + "\n"
+    return "\n".join(header + values(found) + ["", ""] + types(found) + ["", ""] + lookup(found)) + "\n"
 
 
 def tests(published, found):
@@ -158,6 +198,18 @@ struct CurrencyISO4217Tests {{
     func carriesItsCodeAndScale(_ currency: Currency, _ code: String, _ scale: Int64) {{
         #expect(String(currency.code) == code)
         #expect(Int64(currency.unitScale) == scale)
+    }}
+
+    @Test(
+        "Every currency in the table is found by its code",
+        arguments: [
+{rows},
+        ] as [(Currency, String, Int64)]
+    )
+    func isFoundByItsCode(_ currency: Currency, _ code: String, _: Int64) throws {{
+        let found = try #require(CurrencyCode(string: code))
+
+        #expect(Currency(iso: found) == currency)
     }}
 }}
 """

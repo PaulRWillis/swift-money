@@ -31,12 +31,23 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
         self.storage = packed
     }
 
+    // Lets a parser take the code out of a longer string without building a `String` for it.
+    init?(utf8 bytes: some Collection<UInt8>) {
+        guard let packed = Self.packed(bytes) else {
+            return nil
+        }
+
+        self.storage = packed
+    }
+
     // Each byte is checked before it is uppercased, never after. `"ß".uppercased()` is `"SS"`, so
     // uppercasing a whole string first would let two non-ASCII characters satisfy both the character
     // rule and the length rule.
     private static func packed(_ string: String) -> UInt64? {
-        let bytes = string.utf8
+        packed(string.utf8)
+    }
 
+    private static func packed(_ bytes: some Collection<UInt8>) -> UInt64? {
         guard (3...8).contains(bytes.count) else {
             return nil
         }
@@ -53,6 +64,9 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
 
         return packed << (8 * (8 - bytes.count))
     }
+
+    // The code as one word, first character in the high byte.
+    var packedValue: UInt64 { storage }
 
     // The bytes of the code, written into a buffer the caller sizes with `utf8Count`. Lets a caller
     // assemble a longer string in one pass rather than building this one and concatenating it.
