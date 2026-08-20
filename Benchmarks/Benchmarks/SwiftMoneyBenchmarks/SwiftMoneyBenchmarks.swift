@@ -292,48 +292,51 @@ let benchmarks: @Sendable () -> Void = {
 
     // MARK: - Comparison
 
+    // Two constant operands let the optimiser hoist the comparison out of the loop, leaving nothing
+    // to measure. Cycling one side through `factors` is the device the multiplication benchmarks
+    // already use, and every variant hands `blackHole` a `Bool`, so the harness costs the same in
+    // all four and what separates them is the comparison.
     Benchmark("MoneyOf comparison", configuration: defaultConfiguration) { benchmark in
-        let a = GBP(minorUnits: 10_00)
-        let b = GBP(minorUnits: 20_00)
-        var count = 0
+        let amounts = factors.map { GBP(minorUnits: $0) }
+        let threshold = GBP(minorUnits: 10)
+        var index = 0
 
-        for _ in benchmark.scaledIterations where a < b {
-            count &+= 1
+        for _ in benchmark.scaledIterations {
+            blackHole(amounts[index % amounts.count] < threshold)
+            index &+= 1
         }
-        blackHole(count)
     }
 
     Benchmark("Int comparison", configuration: defaultConfiguration) { benchmark in
-        let a = 10_00
-        let b = 20_00
-        var count = 0
+        let threshold = 10
+        var index = 0
 
-        for _ in benchmark.scaledIterations where a < b {
-            count &+= 1
+        for _ in benchmark.scaledIterations {
+            blackHole(factors[index % factors.count] < threshold)
+            index &+= 1
         }
-        blackHole(count)
     }
 
     Benchmark("Double comparison", configuration: defaultConfiguration) { benchmark in
-        let a = 10.00
-        let b = 20.00
-        var count = 0
+        let doubles = factors.map(Double.init)
+        let threshold = 10.0
+        var index = 0
 
-        for _ in benchmark.scaledIterations where a < b {
-            count &+= 1
+        for _ in benchmark.scaledIterations {
+            blackHole(doubles[index % doubles.count] < threshold)
+            index &+= 1
         }
-        blackHole(count)
     }
 
     Benchmark("Decimal comparison", configuration: defaultConfiguration) { benchmark in
-        let a = Decimal(1000) / Decimal(100)
-        let b = Decimal(2000) / Decimal(100)
-        var count = 0
+        let decimals = factors.map { Decimal($0) }
+        let threshold = Decimal(10)
+        var index = 0
 
-        for _ in benchmark.scaledIterations where a < b {
-            count &+= 1
+        for _ in benchmark.scaledIterations {
+            blackHole(decimals[index % decimals.count] < threshold)
+            index &+= 1
         }
-        blackHole(count)
     }
 
     // MARK: - What the library's own choices cost
