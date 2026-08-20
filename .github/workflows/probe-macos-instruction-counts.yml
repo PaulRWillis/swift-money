@@ -1,0 +1,77 @@
+name: PROBE macOS instruction counts
+
+# Temporary experiment, not part of the checks. Answers three questions about a hosted macOS runner:
+# whether instruction counts are captured at all, whether they are deterministic, and what the full
+# suite costs there. Delete this file once the answer is recorded.
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  probe:
+    timeout-minutes: 30
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Describe the runner
+      run: |
+        swift --version
+        sysctl -n machdep.cpu.brand_string
+        echo "cores: $(sysctl -n hw.ncpu)"
+
+    - name: Run the full suite, timed
+      run: |
+        started=$(date +%s)
+        swift package --package-path Benchmarks --disable-sandbox benchmark run \
+          --format markdown --path stdout --no-progress > results.md 2>&1 || true
+        echo "SUITE_SECONDS=$(( $(date +%s) - started ))" | tee -a $GITHUB_ENV
+
+    - name: Report what was captured
+      run: |
+        python3 - <<'PY'
+        import re
+
+        name, rows = None, []
+        for line in open("results.md"):
+            if line.startswith("### "):
+                name = line[4:].strip()
+            if line.startswith("| Instructions"):
+                cells = [c.strip() for c in line.strip().strip("|").split("|")]
+                try:
+                    p0, p50, p100 = int(cells[1]), int(cells[3]), int(cells[7])
+                except (ValueError, IndexError):
+                    continue
+                rows.append((name, p0, p50, p100))
+
+        print(f"benchmarks reporting an Instructions row: {len(rows)}")
+        if not rows:
+            print("VERDICT: instruction counts are NOT available on this runner")
+            raise SystemExit(0)
+
+        zero = [n for n, _, p50, _ in rows if p50 == 0]
+        spread = [(n, p0, p100) for n, p0, _, p100 in rows if p0 != p100]
+
+        print(f"reporting zero: {len(zero)} {zero[:5]}")
+        print(f"not deterministic (p0 != p100): {len(spread)}")
+        for n, p0, p100 in spread[:10]:
+            print(f"   {n}: p0={p0} p100={p100}")
+
+        if not zero and not spread:
+            print("VERDICT: available and fully deterministic")
+        elif not zero:
+            print("VERDICT: available, deterministic on "
+                  f"{len(rows) - len(spread)} of {len(rows)}")
+        else:
+            print("VERDICT: partially available")
+        PY
+
+        echo "full suite took ${SUITE_SECONDS}s"
+
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: macos-probe-results
+        path: results.md
