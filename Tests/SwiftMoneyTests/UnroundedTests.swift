@@ -103,15 +103,15 @@ struct UnroundedTests {
         #expect(roundsIdentically(GBP.max.unrounded * Ratio(3, largestDenominator)) == GBP(minorUnits: 3))
     }
 
-    @Test("Scaling past the largest amount traps")
-    func scalingPastTheLargestAmountTraps() async {
+    @Test("Scaling traps on overflow")
+    func scalingTrapsOnOverflow() async {
         await #expect(processExitsWith: .failure) {
             blackHole(GBP.max.unrounded * Ratio(3, 1))
         }
     }
 
-    @Test("Scaling past the smallest amount traps")
-    func scalingPastTheSmallestAmountTraps() async {
+    @Test("Scaling traps on underflow")
+    func scalingTrapsOnUnderflow() async {
         await #expect(processExitsWith: .failure) {
             blackHole(GBP.min.unrounded * Ratio(3, 1))
         }
@@ -249,15 +249,15 @@ struct UnroundedTests {
         #expect(roundsIdentically(accrued) == GBP(minorUnits: 450_00))
     }
 
-    @Test("Adding past the largest amount traps")
-    func addingPastTheLargestAmountTraps() async {
+    @Test("Adding traps on overflow")
+    func addingTrapsOnOverflow() async {
         await #expect(processExitsWith: .failure) {
             blackHole(GBP.max.unrounded + GBP.max.unrounded)
         }
     }
 
-    @Test("Subtracting past the smallest amount traps")
-    func subtractingPastTheSmallestAmountTraps() async {
+    @Test("Subtracting traps on underflow")
+    func subtractingTrapsOnUnderflow() async {
         await #expect(processExitsWith: .failure) {
             blackHole(GBP.min.unrounded - GBP.max.unrounded)
         }

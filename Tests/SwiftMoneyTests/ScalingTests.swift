@@ -201,22 +201,22 @@ struct ScalingTests {
         #expect(threeHalvesOfThisIsTheLargestAmount.scaled(by: threeHalves, rounding: .towardZero) == GBP.max)
     }
 
-    @Test("Rounding past the largest amount traps, where truncating would not")
-    func roundingPastTheLargestAmountTraps() async {
+    @Test("Rounding traps on overflow, where truncating would not")
+    func roundingTrapsOnOverflow() async {
         await #expect(processExitsWith: .failure) {
             blackHole(threeHalvesOfThisIsTheLargestAmount.scaled(by: threeHalves, rounding: .awayFromZero))
         }
     }
 
-    @Test("Scaling past the largest amount traps")
-    func scalingPastTheLargestAmountTraps() async {
+    @Test("Scaling traps on overflow")
+    func scalingTrapsOnOverflow() async {
         await #expect(processExitsWith: .failure) {
             blackHole(GBP.max.scaled(by: Ratio(2, 1)))
         }
     }
 
-    @Test("Scaling past the smallest amount traps")
-    func scalingPastTheSmallestAmountTraps() async {
+    @Test("Scaling traps on underflow")
+    func scalingTrapsOnUnderflow() async {
         await #expect(processExitsWith: .failure) {
             blackHole(GBP.min.scaled(by: Ratio(2, 1)))
         }
