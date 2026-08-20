@@ -145,17 +145,27 @@ jobs:
         fi
         echo "[Benchmark run details](${BENCHMARK_RUN_URL})" >> benchmark_comment
 
-    # The GitHub CLI is pre-installed on the runner, so this needs no action. `--edit-last` keeps one
-    # comment updated in place rather than adding another on every push, which is what the previous
-    # action's `comment-tag` was doing.
+    # One comment kept up to date rather than a new one on every push. `--edit-last` cannot do it:
+    # it edits the last comment by this actor, and the coverage workflow also comments as
+    # github-actions, so the two overwrote each other and whichever finished last won. The marker
+    # below gives this workflow a comment of its own to find.
     # Guarded on the event too: this also runs on workflow_dispatch, where there is no pull request to
     # comment on.
     - name: Comment on PR
       if: ${{ env.hasBenchmark == '1' && github.event_name == 'pull_request' }}
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        MARKER: "<!-- benchmark-delta -->"
+        PR: ${{ github.event.pull_request.number }}
       run: |
-        gh pr comment "${{ github.event.pull_request.number }}" \
-          --body-file benchmark_comment \
-          --edit-last \
-          --create-if-none
+        body="$(printf '%s\n\n%s' "$MARKER" "$(cat benchmark_comment)")"
+        existing="$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
+          | jq -r --arg marker "$MARKER" \
+              '[.[] | select(.body | contains($marker))] | last | .id // empty')"
+
+        if [ -n "$existing" ]; then
+          gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$existing" -f body="$body" > /dev/null
+          echo "Updated comment $existing"
+        else
+          gh pr comment "$PR" --body "$body"
+        fi
