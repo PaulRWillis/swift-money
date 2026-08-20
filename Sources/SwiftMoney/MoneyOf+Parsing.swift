@@ -15,7 +15,7 @@ public extension MoneyOf where C: CurrencyType {
     /// - Returns: `nil` unless the string is an amount this currency can hold exactly.
     @inlinable
     init?(string: String) {
-        guard let minorUnits = parsed(string, in: C.currency) else {
+        guard let minorUnits = parsedMinorUnits(string, in: C.currency) else {
             return nil
         }
 
@@ -41,22 +41,11 @@ public extension MoneyOf where C == AnyCurrency {
     /// - Parameter string: The amount, led by its currency code.
     /// - Returns: `nil` unless the string is an amount an ISO 4217 currency can hold exactly.
     init?(string: String) {
-        var string = string
-        let currency: Currency? = string.withUTF8 { utf8 in
-            guard let space = utf8.firstIndex(of: UInt8(ascii: " ")),
-                  let code = CurrencyCode(utf8: utf8[..<space])
-            else {
-                return nil
-            }
-
-            return Currency(iso: code)
-        }
-
-        guard let currency, let minorUnits = parsed(string, in: currency) else {
+        guard let parsed = parsedISOAmount(string) else {
             return nil
         }
 
-        self.init(unchecked: minorUnits, storage: currency)
+        self.init(unchecked: parsed.minorUnits, storage: parsed.currency)
     }
 
     /// Creates an amount from a string, in a currency the caller names.
@@ -80,7 +69,7 @@ public extension MoneyOf where C == AnyCurrency {
         string: String,
         currency: Currency
     ) {
-        guard let minorUnits = parsed(string, in: currency) else {
+        guard let minorUnits = parsedMinorUnits(string, in: currency) else {
             return nil
         }
 
@@ -88,29 +77,57 @@ public extension MoneyOf where C == AnyCurrency {
     }
 }
 
-// The amount a string holds, in the smallest units of `currency`, or `nil` for anything the currency
-// cannot hold exactly. A leading code is optional here and must match when present, which is what
-// lets a caller who already knows the currency accept both spellings.
+// The amount a string holds, in the smallest units of a currency the caller already knows. A code is
+// optional and must agree with that currency where it is given.
 @usableFromInline
-func parsed(
+func parsedMinorUnits(
     _ string: String,
     in currency: Currency
 ) -> Int64? {
     var string = string
 
     return string.withUTF8 { utf8 in
-        var digits = utf8[...]
-
-        if let space = utf8.firstIndex(of: UInt8(ascii: " ")) {
-            guard let code = CurrencyCode(utf8: utf8[..<space]), code == currency.code else {
-                return nil
-            }
-
-            digits = utf8[utf8.index(after: space)...]
+        guard let (code, digits) = codeAndDigits(utf8), code == nil || code == currency.code else {
+            return nil
         }
 
         return minorUnits(digits, scale: UInt64(Int64(currency.unitScale)))
     }
+}
+
+// The amount and currency a string holds, the code naming an ISO 4217 currency. The code is required,
+// nothing else here being able to say how finely the currency divides.
+@usableFromInline
+func parsedISOAmount(_ string: String) -> (minorUnits: Int64, currency: Currency)? {
+    var string = string
+
+    return string.withUTF8 { utf8 -> (Int64, Currency)? in
+        guard let (code, digits) = codeAndDigits(utf8),
+              let code,
+              let currency = Currency(iso: code),
+              let minorUnits = minorUnits(digits, scale: UInt64(Int64(currency.unitScale)))
+        else {
+            return nil
+        }
+
+        return (minorUnits, currency)
+    }
+}
+
+// Splits a string into the code it may lead with and the digits that follow, packing the code once.
+@usableFromInline
+func codeAndDigits(
+    _ utf8: UnsafeBufferPointer<UInt8>
+) -> (code: CurrencyCode?, digits: Slice<UnsafeBufferPointer<UInt8>>)? {
+    guard let space = utf8.firstIndex(of: UInt8(ascii: " ")) else {
+        return (nil, utf8[...])
+    }
+
+    guard let code = CurrencyCode(utf8: utf8[..<space]) else {
+        return nil
+    }
+
+    return (code, utf8[utf8.index(after: space)...])
 }
 
 @usableFromInline
