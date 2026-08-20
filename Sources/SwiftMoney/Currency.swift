@@ -41,35 +41,17 @@ public extension Currency {
     static let eur = Currency(code: "EUR", minimalQuantization: 100)
 }
 
-// MARK: - CurrencyType
-
-/// A type that names a currency at compile time.
-///
-/// Conforming types carry no state and are never instantiated. They exist to be used as a generic
-/// parameter, so that a currency is part of a type rather than a value it holds — which is what lets
-/// the compiler reject mixing two currencies. A caseless `enum` is the natural shape.
-///
-/// ```swift
-/// enum LoyaltyPoints: CurrencyType {
-///     static let currency = Currency(code: "LTY", minimalQuantization: 1)
-/// }
-///
-/// typealias Points = MoneyOf<LoyaltyPoints>
-/// ```
-public protocol CurrencyType: Sendable {
-    /// The currency this type names.
-    static var currency: Currency { get }
-}
+// MARK: - ISO4217 Currencies as types
 
 /// A namespace for the ISO4217 currencies the library provides.
 public enum Currencies {
     /// The euro.
-    public enum EUR: CurrencyType {
+    public enum EUR: StaticCurrencyType {
         public static let currency: Currency = .eur
     }
 
     /// Great British Pounds (GBP).
-    public enum GBP: CurrencyType {
+    public enum GBP: StaticCurrencyType {
         public static let currency: Currency = .gbp
     }
 }
@@ -85,3 +67,10 @@ public typealias GBP = MoneyOf<Currencies.GBP>
 ///
 /// Distinct from ``Currencies/EUR``, which names the currency rather than an amount in it.
 public typealias EUR = MoneyOf<Currencies.EUR>
+
+/// A monetary amount whose currency is only known at runtime.
+///
+/// Two amounts combine only when their currencies match, which cannot be checked at compile time, so
+/// arithmetic throws ``MoneyError`` instead. Prefer a typed amount such as ``GBP`` where the currency
+/// is known statically.
+public typealias Money = MoneyOf<AnyCurrency>

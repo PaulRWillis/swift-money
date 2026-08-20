@@ -2,43 +2,57 @@ public extension MoneyOf {
     /// An exact amount of the currency's smallest unit, which need not be a whole number of them.
     ///
     /// Scaling one leaves any fraction in place, so a chain settles once at the end rather than at
-    /// every step.
+    /// every step. Rounding at every step is what loses money: a year of daily interest on GBP 10,000
+    /// at 4.5% comes to GBP 450.00 settled once, and GBP 448.95 settled daily.
     ///
     /// ```swift
     /// let interest = GBP(minorUnits: 10_000_00).unrounded * Ratio(45, 1000) * Ratio(31, 365)
     /// interest.rounded(.toNearestOrEven)   // £38.22
     /// ```
     struct Unrounded: Equatable, Hashable, Sendable {
-        private let minorUnits: Ratio
+        @usableFromInline
+        let minorUnits: Ratio
 
-        fileprivate init(_ minorUnits: Ratio) {
+        @usableFromInline
+        let storage: C.Storage
+
+        @usableFromInline
+        @inlinable
+        init(
+            _ minorUnits: Ratio,
+            storage: C.Storage
+        ) {
             self.minorUnits = minorUnits
+            self.storage = storage
         }
     }
 
     /// This amount, ready to be scaled without settling a fraction at each step.
+    @inlinable
     var unrounded: Unrounded {
-        Unrounded(Ratio(Ratio.Numerator(minorUnits), 1))
+        Unrounded(Ratio(Ratio.Numerator(minorUnits), 1), storage: storage)
     }
 }
 
-// MARK: - Scaling
+// MARK: - A currency fixed at compile time: scaling cannot fail
 
-public extension MoneyOf.Unrounded {
+public extension MoneyOf.Unrounded where C: StaticCurrencyType {
     /// Returns the result of scaling an unrounded amount by a fraction, keeping it exact.
     ///
     /// Traps on overflow.
+    @inlinable
     static func * (lhs: Self, rhs: Ratio) -> Self {
         guard let scaled = lhs.minorUnits.multiplied(by: rhs) else {
             preconditionFailure("Scaling by \(rhs) is not representable")
         }
 
-        return Self(scaled)
+        return Self(scaled, storage: .empty)
     }
 
     /// Returns the result of scaling an unrounded amount by a fraction, keeping it exact.
     ///
     /// Traps on overflow.
+    @inlinable
     static func * (lhs: Ratio, rhs: Self) -> Self {
         rhs * lhs
     }
@@ -46,20 +60,23 @@ public extension MoneyOf.Unrounded {
     /// Returns the result of scaling an unrounded amount by a whole number.
     ///
     /// Traps on overflow.
-    static func * (lhs: Self, rhs: Int) -> Self {
+    @inlinable
+    static func * (lhs: Self, rhs: some BinaryInteger) -> Self {
         lhs * Ratio(Ratio.Numerator(Int64(rhs)), 1)
     }
 
     /// Returns the result of scaling an unrounded amount by a whole number.
     ///
     /// Traps on overflow.
-    static func * (lhs: Int, rhs: Self) -> Self {
+    @inlinable
+    static func * (lhs: some BinaryInteger, rhs: Self) -> Self {
         rhs * lhs
     }
 
     /// Scales an unrounded amount by a fraction in place, keeping it exact.
     ///
     /// Traps on overflow.
+    @inlinable
     static func *= (lhs: inout Self, rhs: Ratio) {
         lhs = lhs * rhs
     }
@@ -67,92 +84,11 @@ public extension MoneyOf.Unrounded {
     /// Scales an unrounded amount by a whole number in place.
     ///
     /// Traps on overflow.
-    static func *= (lhs: inout Self, rhs: Int) {
+    @inlinable
+    static func *= (lhs: inout Self, rhs: some BinaryInteger) {
         lhs = lhs * rhs
     }
-}
 
-// MARK: - AdditiveArithmetic
-
-extension MoneyOf.Unrounded: AdditiveArithmetic {
-    public static var zero: Self {
-        MoneyOf<C>.zero.unrounded
-    }
-
-    /// Returns the sum of two unrounded amounts, keeping both exact.
-    ///
-    /// Traps on overflow.
-    public static func + (lhs: Self, rhs: Self) -> Self {
-        guard let sum = lhs.minorUnits.adding(rhs.minorUnits) else {
-            preconditionFailure("Adding \(rhs) is not representable")
-        }
-
-        return Self(sum)
-    }
-
-    /// Returns the difference of two unrounded amounts, keeping both exact.
-    ///
-    /// Traps on overflow.
-    public static func - (lhs: Self, rhs: Self) -> Self {
-        guard let difference = lhs.minorUnits.subtracting(rhs.minorUnits) else {
-            preconditionFailure("Subtracting \(rhs) is not representable")
-        }
-
-        return Self(difference)
-    }
-}
-
-// MARK: - Mixing with settled money
-
-// A settled amount widens to an unrounded one exactly, so these lose nothing. The expression is already
-// marked by an `.unrounded` somewhere in it, which is what keeps the opt-in visible.
-public extension MoneyOf.Unrounded {
-    /// Returns the sum of an unrounded amount and a settled one.
-    ///
-    /// Traps on overflow.
-    static func + (lhs: Self, rhs: MoneyOf<C>) -> Self {
-        lhs + rhs.unrounded
-    }
-
-    /// Returns the sum of a settled amount and an unrounded one.
-    ///
-    /// Traps on overflow.
-    static func + (lhs: MoneyOf<C>, rhs: Self) -> Self {
-        lhs.unrounded + rhs
-    }
-
-    /// Returns a settled amount subtracted from an unrounded one.
-    ///
-    /// Traps on overflow.
-    static func - (lhs: Self, rhs: MoneyOf<C>) -> Self {
-        lhs - rhs.unrounded
-    }
-
-    /// Returns an unrounded amount subtracted from a settled one.
-    ///
-    /// Traps on overflow.
-    static func - (lhs: MoneyOf<C>, rhs: Self) -> Self {
-        lhs.unrounded - rhs
-    }
-
-    /// Adds a settled amount to an unrounded one in place.
-    ///
-    /// Traps on overflow.
-    static func += (lhs: inout Self, rhs: MoneyOf<C>) {
-        lhs = lhs + rhs
-    }
-
-    /// Subtracts a settled amount from an unrounded one in place.
-    ///
-    /// Traps on overflow.
-    static func -= (lhs: inout Self, rhs: MoneyOf<C>) {
-        lhs = lhs - rhs
-    }
-}
-
-// MARK: - Settling
-
-public extension MoneyOf.Unrounded {
     /// Returns this amount as a whole number of the currency's smallest unit.
     ///
     /// ```swift
@@ -160,9 +96,217 @@ public extension MoneyOf.Unrounded {
     /// ```
     ///
     /// - Parameter rule: How to settle any fraction of a unit.
+    @inlinable
     func rounded(_ rule: RoundingRule) -> MoneyOf<C> {
-        MoneyOf(unchecked: SwiftMoney.rounded(minorUnits, rule))
+        MoneyOf(unchecked: SwiftMoney.rounded(minorUnits, rule), storage: .empty)
     }
 }
 
-#warning("TODO: Signpost `Money * Ratio` at `.unrounded` and `scaled(by:rounding:)`")
+extension MoneyOf.Unrounded: AdditiveArithmetic where C: StaticCurrencyType {
+    @inlinable
+    public static var zero: Self {
+        MoneyOf<C>.zero.unrounded
+    }
+
+    /// Returns the sum of two unrounded amounts, keeping both exact.
+    ///
+    /// Traps on overflow.
+    @inlinable
+    public static func + (lhs: Self, rhs: Self) -> Self {
+        guard let sum = lhs.minorUnits.adding(rhs.minorUnits) else {
+            preconditionFailure("Adding \(rhs) is not representable")
+        }
+
+        return Self(sum, storage: .empty)
+    }
+
+    /// Returns the difference of two unrounded amounts, keeping both exact.
+    ///
+    /// Traps on overflow.
+    @inlinable
+    public static func - (lhs: Self, rhs: Self) -> Self {
+        guard let difference = lhs.minorUnits.subtracting(rhs.minorUnits) else {
+            preconditionFailure("Subtracting \(rhs) is not representable")
+        }
+
+        return Self(difference, storage: .empty)
+    }
+}
+
+// A settled amount widens to an unrounded one exactly, so these lose nothing. The expression is
+// already marked by an `.unrounded` somewhere in it, which is what keeps the opt-in visible.
+public extension MoneyOf.Unrounded where C: StaticCurrencyType {
+    /// Returns the sum of an unrounded amount and a settled one.
+    @inlinable
+    static func + (lhs: Self, rhs: MoneyOf<C>) -> Self {
+        lhs + rhs.unrounded
+    }
+
+    /// Returns the sum of a settled amount and an unrounded one.
+    @inlinable
+    static func + (lhs: MoneyOf<C>, rhs: Self) -> Self {
+        lhs.unrounded + rhs
+    }
+
+    /// Returns a settled amount subtracted from an unrounded one.
+    @inlinable
+    static func - (lhs: Self, rhs: MoneyOf<C>) -> Self {
+        lhs - rhs.unrounded
+    }
+
+    /// Returns an unrounded amount subtracted from a settled one.
+    @inlinable
+    static func - (lhs: MoneyOf<C>, rhs: Self) -> Self {
+        lhs.unrounded - rhs
+    }
+
+    /// Adds a settled amount to an unrounded one in place.
+    @inlinable
+    static func += (lhs: inout Self, rhs: MoneyOf<C>) {
+        lhs = lhs + rhs
+    }
+
+    /// Subtracts a settled amount from an unrounded one in place.
+    @inlinable
+    static func -= (lhs: inout Self, rhs: MoneyOf<C>) {
+        lhs = lhs - rhs
+    }
+}
+
+// MARK: - A currency only known at runtime: scaling can fail
+
+public extension MoneyOf.Unrounded where C == AnyCurrency {
+    /// Returns the result of scaling an unrounded amount by a fraction, keeping it exact.
+    ///
+    /// - Throws: ``MoneyError/overflow`` if the result is not representable.
+    @inlinable
+    static func * (lhs: Self, rhs: Ratio) throws(MoneyError) -> Self {
+        guard let scaled = lhs.minorUnits.multiplied(by: rhs) else {
+            throw .overflow
+        }
+
+        return Self(scaled, storage: lhs.storage)
+    }
+
+    /// Returns the result of scaling an unrounded amount by a fraction, keeping it exact.
+    ///
+    /// - Throws: ``MoneyError/overflow`` if the result is not representable.
+    @inlinable
+    static func * (lhs: Ratio, rhs: Self) throws(MoneyError) -> Self {
+        try rhs * lhs
+    }
+
+    /// Returns the result of scaling an unrounded amount by a whole number.
+    ///
+    /// - Throws: ``MoneyError/overflow`` if the result is not representable.
+    @inlinable
+    static func * (lhs: Self, rhs: some BinaryInteger) throws(MoneyError) -> Self {
+        try lhs * Ratio(Ratio.Numerator(Int64(rhs)), 1)
+    }
+
+    /// Returns the result of scaling an unrounded amount by a whole number.
+    ///
+    /// - Throws: ``MoneyError/overflow`` if the result is not representable.
+    @inlinable
+    static func * (lhs: some BinaryInteger, rhs: Self) throws(MoneyError) -> Self {
+        try rhs * lhs
+    }
+
+    /// Scales an unrounded amount by a fraction in place, keeping it exact.
+    @inlinable
+    static func *= (lhs: inout Self, rhs: Ratio) throws(MoneyError) {
+        lhs = try lhs * rhs
+    }
+
+    /// Scales an unrounded amount by a whole number in place.
+    @inlinable
+    static func *= (lhs: inout Self, rhs: some BinaryInteger) throws(MoneyError) {
+        lhs = try lhs * rhs
+    }
+
+    /// Returns the sum of two unrounded amounts, keeping both exact.
+    ///
+    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if the currencies differ, or
+    ///   ``MoneyError/overflow`` if the sum is not representable.
+    @inlinable
+    static func + (lhs: Self, rhs: Self) throws(MoneyError) -> Self {
+        let storage = try AnyCurrency.combining(lhs.storage, rhs.storage)
+
+        guard let sum = lhs.minorUnits.adding(rhs.minorUnits) else {
+            throw .overflow
+        }
+
+        return Self(sum, storage: storage)
+    }
+
+    /// Returns the difference of two unrounded amounts, keeping both exact.
+    ///
+    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if the currencies differ, or
+    ///   ``MoneyError/overflow`` if the difference is not representable.
+    @inlinable
+    static func - (lhs: Self, rhs: Self) throws(MoneyError) -> Self {
+        let storage = try AnyCurrency.combining(lhs.storage, rhs.storage)
+
+        guard let difference = lhs.minorUnits.subtracting(rhs.minorUnits) else {
+            throw .overflow
+        }
+
+        return Self(difference, storage: storage)
+    }
+
+    /// Adds one unrounded amount to another in place.
+    @inlinable
+    static func += (lhs: inout Self, rhs: Self) throws(MoneyError) {
+        lhs = try lhs + rhs
+    }
+
+    /// Subtracts one unrounded amount from another in place.
+    @inlinable
+    static func -= (lhs: inout Self, rhs: Self) throws(MoneyError) {
+        lhs = try lhs - rhs
+    }
+
+    /// Returns the sum of an unrounded amount and a settled one.
+    @inlinable
+    static func + (lhs: Self, rhs: Money) throws(MoneyError) -> Self {
+        try lhs + rhs.unrounded
+    }
+
+    /// Returns the sum of a settled amount and an unrounded one.
+    @inlinable
+    static func + (lhs: Money, rhs: Self) throws(MoneyError) -> Self {
+        try lhs.unrounded + rhs
+    }
+
+    /// Returns a settled amount subtracted from an unrounded one.
+    @inlinable
+    static func - (lhs: Self, rhs: Money) throws(MoneyError) -> Self {
+        try lhs - rhs.unrounded
+    }
+
+    /// Returns an unrounded amount subtracted from a settled one.
+    @inlinable
+    static func - (lhs: Money, rhs: Self) throws(MoneyError) -> Self {
+        try lhs.unrounded - rhs
+    }
+
+    /// Adds a settled amount to an unrounded one in place.
+    @inlinable
+    static func += (lhs: inout Self, rhs: Money) throws(MoneyError) {
+        lhs = try lhs + rhs
+    }
+
+    /// Subtracts a settled amount from an unrounded one in place.
+    @inlinable
+    static func -= (lhs: inout Self, rhs: Money) throws(MoneyError) {
+        lhs = try lhs - rhs
+    }
+
+    /// Returns this amount as a whole number of the currency's smallest unit.
+    ///
+    /// - Parameter rule: How to settle any fraction of a unit.
+    @inlinable
+    func rounded(_ rule: RoundingRule) -> Money {
+        Money(unchecked: SwiftMoney.rounded(minorUnits, rule), storage: storage)
+    }
+}

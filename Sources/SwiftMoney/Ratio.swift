@@ -85,6 +85,7 @@ public struct Ratio: Equatable, Hashable, Sendable {
 // Here rather than beside ``Scaled`` — where its sibling `split(_:into:)` sits beside `Split` — because
 // it needs this file's private storage, and needs to build a `FractionalRemainder`, whose initializer
 // is deliberately reachable from nowhere else.
+@usableFromInline
 func scaled(
     _ amount: Int64,
     by ratio: Ratio
@@ -137,6 +138,7 @@ private extension Ratio {
 //
 // Here rather than beside ``RoundingRule`` because it needs a `FractionalRemainder`, whose initializer
 // is deliberately reachable from nowhere else.
+@usableFromInline
 func rounded(
     _ exact: Ratio,
     _ rule: RoundingRule
@@ -159,6 +161,7 @@ internal extension Ratio {
     // Multiplies first and reduces the product, which spends one greatest common divisor rather than
     // two. Only if that overflows does it cancel across the two fractions instead, which succeeds
     // wherever the reduced product would have fitted all along.
+    @usableFromInline
     func multiplied(by other: Ratio) -> Ratio? {
         let (numerator, numeratorOverflowed) = self.numerator.rawValue
             .multipliedReportingOverflow(by: other.numerator.rawValue)
@@ -177,6 +180,7 @@ internal extension Ratio {
 
 internal extension Ratio {
     // This ratio plus another, in lowest terms. `nil` when the sum is not representable.
+    @usableFromInline
     func adding(_ other: Ratio) -> Ratio? {
         guard let restated = overCommonDenominator(other) else {
             return nil
@@ -192,6 +196,7 @@ internal extension Ratio {
     }
 
     // This ratio minus another, in lowest terms. `nil` when the difference is not representable.
+    @usableFromInline
     func subtracting(_ other: Ratio) -> Ratio? {
         guard let restated = overCommonDenominator(other) else {
             return nil
