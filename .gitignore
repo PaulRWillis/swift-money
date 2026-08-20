@@ -10,3 +10,4 @@ DerivedData/
 release-plan.md
 settings.json
 __pycache__/
+Benchmarks/.benchmarkBaselines
