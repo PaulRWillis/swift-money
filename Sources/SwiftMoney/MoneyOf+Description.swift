@@ -10,22 +10,45 @@ extension MoneyOf: CustomStringConvertible {
     /// currency's does. Where it does not, the currency's smallest units, no exact decimal being
     /// available: a pound of 240 pence cannot write seven of them.
     public var description: String {
-        let code = currency.code
+        // Held rather than read twice: reaching it goes through the currency representation.
+        let currency = self.currency
         let scale = UInt64(Int64(currency.unitScale))
         let magnitude = minorUnits.magnitude
-
-        guard scale > 1, let places = scale.exactDecimalPlaces else {
-            return "\(code) \(minorUnits)"
-        }
+        let places = scale > 1 ? scale.exactDecimalPlaces ?? 0 : 0
 
         // Dividing before multiplying is what keeps this inside a `UInt64`: the scale divides
-        // `10 ^ places` exactly, so the multiplier is whole, and the product stays under `10 ^ places`.
-        let digits = String(magnitude % scale * (UInt64.powerOfTen(places) / scale))
-        let sign = minorUnits < 0 ? "-" : ""
+        // `10 ^ places` exactly, so the multiplier is whole and the product stays under `10 ^ places`.
+        let whole = places == 0 ? magnitude : magnitude / scale
+        let fraction = places == 0 ? 0 : magnitude % scale * (UInt64.powerOfTen(places) / scale)
 
-        return "\(code) \(sign)\(magnitude / scale)."
-            + String(repeating: "0", count: places - digits.count)
-            + digits
+        let sign = minorUnits < 0 ? 1 : 0
+        let point = places == 0 ? 0 : 1 + places
+        let length = currency.code.utf8Count + 1 + sign + whole.digitCount + point
+
+        // Sized exactly rather than generously, because a request over fifteen bytes gives up the
+        // small-string form and takes a heap allocation with it. Ordinary amounts stay well inside.
+        return String(unsafeUninitializedCapacity: length) { buffer in
+            var offset = 0
+
+            currency.code.write(into: buffer, at: &offset)
+            buffer[offset] = UInt8(ascii: " ")
+            offset += 1
+
+            if sign == 1 {
+                buffer[offset] = UInt8(ascii: "-")
+                offset += 1
+            }
+
+            whole.writeDigits(into: buffer, at: &offset, count: whole.digitCount)
+
+            if places > 0 {
+                buffer[offset] = UInt8(ascii: ".")
+                offset += 1
+                fraction.writeDigits(into: buffer, at: &offset, count: places)
+            }
+
+            return offset
+        }
     }
 }
 
@@ -54,6 +77,36 @@ private extension UInt64 {
         let places = Swift.max(twos, fives)
 
         return remaining == 1 && places <= 18 ? places : nil
+    }
+
+    var digitCount: Int {
+        var digits = 1
+        var remaining = self
+
+        while remaining >= 10 {
+            remaining /= 10
+            digits += 1
+        }
+
+        return digits
+    }
+
+    // Written most significant digit first, zero padded to `count`, so a caller composing a longer
+    // string never has to reverse or pad afterwards.
+    func writeDigits(
+        into buffer: UnsafeMutableBufferPointer<UInt8>,
+        at offset: inout Int,
+        count: Int
+    ) {
+        var divisor = UInt64.powerOfTen(count - 1)
+        var remaining = self
+
+        while divisor > 0 {
+            buffer[offset] = UInt8(remaining / divisor) &+ UInt8(ascii: "0")
+            offset += 1
+            remaining %= divisor
+            divisor /= 10
+        }
     }
 
     static func powerOfTen(_ exponent: Int) -> UInt64 {

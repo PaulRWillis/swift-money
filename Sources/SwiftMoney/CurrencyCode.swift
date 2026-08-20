@@ -54,6 +54,32 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
         return packed << (8 * (8 - bytes.count))
     }
 
+    // The bytes of the code, written into a buffer the caller sizes with `utf8Count`. Lets a caller
+    // assemble a longer string in one pass rather than building this one and concatenating it.
+    func write(into buffer: UnsafeMutableBufferPointer<UInt8>, at offset: inout Int) {
+        for shift in stride(from: 56, through: 0, by: -8) {
+            let byte = UInt8(truncatingIfNeeded: storage >> shift)
+
+            guard byte != 0 else {
+                return
+            }
+
+            buffer[offset] = byte
+            offset += 1
+        }
+    }
+
+    // How many bytes `write(into:at:)` will write.
+    var utf8Count: Int {
+        var count = 0
+
+        while count < 8, UInt8(truncatingIfNeeded: storage >> (56 - 8 * count)) != 0 {
+            count += 1
+        }
+
+        return count
+    }
+
     fileprivate var stringValue: String {
         String(unsafeUninitializedCapacity: 8) { buffer in
             var count = 0
