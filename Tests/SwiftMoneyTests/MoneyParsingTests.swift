@@ -72,6 +72,24 @@ struct MoneyParsingTests {
         #expect(Money(string: "LTY 250") == nil)
     }
 
+    @Test(
+        "Something that is not a code where a code belongs is refused",
+        arguments: ["GB 4.99", "GBPGBPGBP 4.99", "G-P 4.99", "gbp! 4.99"]
+    )
+    func malformedCode(_ text: String) {
+        #expect(GBP(string: text) == nil)
+        #expect(Money(string: text) == nil)
+        #expect(Money(string: text, currency: loyaltyPoints) == nil)
+    }
+
+    @Test("A lowercase code names the same currency as an uppercase one")
+    func lowercaseCode() throws {
+        #expect(try #require(GBP(string: "gbp 4.99")) == GBP(minorUnits: 4_99))
+        #expect(try #require(Money(string: "gbp 4.99")) == Money(minorUnits: 4_99, currency: .gbp))
+        #expect(try #require(Money(string: "lty 250", currency: loyaltyPoints))
+            == Money(minorUnits: 250, currency: loyaltyPoints))
+    }
+
     // MARK: - Precision the currency cannot hold
 
     // The rule is one test, not two: a decimal is accepted exactly when it converts to a whole

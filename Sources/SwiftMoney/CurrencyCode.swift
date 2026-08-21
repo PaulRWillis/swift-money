@@ -31,23 +31,12 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
         self.storage = packed
     }
 
-    // Lets a parser take the code out of a longer string without building a `String` for it.
-    init?(utf8 bytes: some Collection<UInt8>) {
-        guard let packed = Self.packed(bytes) else {
-            return nil
-        }
-
-        self.storage = packed
-    }
-
     // Each byte is checked before it is uppercased, never after. `"ß".uppercased()` is `"SS"`, so
     // uppercasing a whole string first would let two non-ASCII characters satisfy both the character
     // rule and the length rule.
     private static func packed(_ string: String) -> UInt64? {
-        packed(string.utf8)
-    }
+        let bytes = string.utf8
 
-    private static func packed(_ bytes: some Collection<UInt8>) -> UInt64? {
         guard (3...8).contains(bytes.count) else {
             return nil
         }
@@ -63,6 +52,40 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
         }
 
         return packed << (8 * (8 - bytes.count))
+    }
+
+    private init(packed: UInt64) {
+        self.storage = packed
+    }
+
+    // The code a run of bytes leads with, and the index just past the space ending it. `nil` covers
+    // both a run with no code and one whose leading bytes are not a code.
+    static func leading(
+        in utf8: UnsafeBufferPointer<UInt8>
+    ) -> (code: CurrencyCode, after: Int)? {
+        var packed: UInt64 = 0
+        var count = 0
+
+        for index in utf8.indices {
+            let byte = utf8[index]
+
+            if byte == UInt8(ascii: " ") {
+                guard count >= 3 else {
+                    return nil
+                }
+
+                return (CurrencyCode(packed: packed << (8 * (8 - count))), index + 1)
+            }
+
+            guard count < 8, byte.isASCIIAlphanumeric else {
+                return nil
+            }
+
+            packed = packed << 8 | UInt64(byte.uppercasedASCII)
+            count += 1
+        }
+
+        return nil
     }
 
     // The code as one word, first character in the high byte.

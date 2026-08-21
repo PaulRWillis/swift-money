@@ -87,7 +87,9 @@ func parsedMinorUnits(
     var string = string
 
     return string.withUTF8 { utf8 in
-        guard let (code, digits) = codeAndDigits(utf8), code == nil || code == currency.code else {
+        let (code, digits) = codeAndDigits(utf8)
+
+        guard code == nil || code == currency.code else {
             return nil
         }
 
@@ -102,8 +104,9 @@ func parsedISOAmount(_ string: String) -> (minorUnits: Int64, currency: Currency
     var string = string
 
     return string.withUTF8 { utf8 -> (Int64, Currency)? in
-        guard let (code, digits) = codeAndDigits(utf8),
-              let code,
+        let (code, digits) = codeAndDigits(utf8)
+
+        guard let code,
               let currency = Currency(iso: code),
               let minorUnits = minorUnits(digits, scale: UInt64(Int64(currency.unitScale)))
         else {
@@ -114,20 +117,17 @@ func parsedISOAmount(_ string: String) -> (minorUnits: Int64, currency: Currency
     }
 }
 
-// Splits a string into the code it may lead with and the digits that follow, packing the code once.
+// The code a string leads with and the digits that follow. Where no code is found the whole string
+// is digits, which is the spelling a caller who already knows the currency may use.
 @usableFromInline
 func codeAndDigits(
     _ utf8: UnsafeBufferPointer<UInt8>
-) -> (code: CurrencyCode?, digits: Slice<UnsafeBufferPointer<UInt8>>)? {
-    guard let space = utf8.firstIndex(of: UInt8(ascii: " ")) else {
+) -> (code: CurrencyCode?, digits: Slice<UnsafeBufferPointer<UInt8>>) {
+    guard let leading = CurrencyCode.leading(in: utf8) else {
         return (nil, utf8[...])
     }
 
-    guard let code = CurrencyCode(utf8: utf8[..<space]) else {
-        return nil
-    }
-
-    return (code, utf8[utf8.index(after: space)...])
+    return (leading.code, utf8[leading.after...])
 }
 
 // The amount a run of bytes holds, in the smallest units of a currency of `scale`. One pass: the
