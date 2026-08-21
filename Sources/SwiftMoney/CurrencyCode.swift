@@ -197,3 +197,44 @@ public extension String {
         self = code.stringValue
     }
 }
+
+extension CurrencyCode: Codable {
+    /// Writes the code as a string.
+    ///
+    /// ```swift
+    /// let code = CurrencyCode(string: "gbp")
+    /// try JSONEncoder().encode(code)   // "GBP"
+    /// ```
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+
+        try container.encode(stringValue)
+    }
+
+    /// Reads a code from a string.
+    ///
+    /// ```swift
+    /// struct Payment: Decodable {
+    ///     let currency: CurrencyCode   // "GBP"
+    ///     let amount: Int64
+    /// }
+    /// ```
+    ///
+    /// - Throws: `DecodingError.dataCorrupted` if the string is not a valid code.
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let string = try container.decode(String.self)
+
+        guard let code = CurrencyCode(string: string) else {
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: """
+                    Not a valid currency code: "\(string)". \
+                    A code is three to eight characters of A-Z, a-z or 0-9.
+                    """
+            )
+        }
+
+        self = code
+    }
+}
