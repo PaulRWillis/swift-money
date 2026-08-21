@@ -199,10 +199,12 @@ public extension String {
 }
 
 extension CurrencyCode: Codable {
-    /// Writes the code as a string, uppercased.
+    /// Writes the code as a string, in upper case.
     ///
     /// ```swift
-    /// CurrencyCode(string: "gbp")   // "GBP"
+    /// let code: CurrencyCode = "gbp"
+    ///
+    /// try encoder.encode(code)   // "GBP"
     /// ```
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.singleValueContainer()
@@ -212,12 +214,14 @@ extension CurrencyCode: Codable {
 
     /// Reads a code from a string.
     ///
-    /// Use it where an API sends the currency in a field of its own.
+    /// Use this for a type of your own that carries a code. An amount that carries its own currency
+    /// needs nothing here, and ``MoneyCodingFormat/fields`` reads a currency field beside an amount.
     ///
     /// ```swift
-    /// struct Payment: Decodable {
-    ///     let currency: CurrencyCode
-    ///     let amount: Money
+    /// struct ExchangeRate: Decodable {
+    ///     let from: CurrencyCode
+    ///     let to: CurrencyCode
+    ///     let rate: String
     /// }
     /// ```
     ///
