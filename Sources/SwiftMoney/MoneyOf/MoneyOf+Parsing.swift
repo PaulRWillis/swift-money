@@ -113,15 +113,68 @@ func parsedISOAmount(_ string: String) -> (minorUnits: Int64, currency: Currency
     }
 }
 
+// Why a coded string is not an amount. Reported rather than collapsed into `nil`, because the three
+// have three remedies, and telling a caller to write fewer decimals when their currency is the
+// problem sends them the wrong way.
+enum CodedStringError: Error, Equatable {
+    // Nothing named a currency, and this representation cannot supply one.
+    case unnamedCurrency
+
+    // The code names a currency this representation cannot be.
+    case unresolvedCurrency(CurrencyCode)
+
+    // The digits are not a whole number of the smallest units of the currency they are in.
+    case inexactAmount(Currency)
+}
+
+extension MoneyOf {
+    // The amount a coded string holds, the currency coming from the code where the string names one
+    // and from the representation where it does not. One implementation for both money types, since
+    // `Codable` may be conformed to only once.
+    init(codedString text: String) throws(CodedStringError) {
+        switch Self.parsed(codedString: text) {
+        case let .success(amount):
+            self.init(unchecked: amount.minorUnits, storage: amount.storage)
+
+        case let .failure(error):
+            throw error
+        }
+    }
+
+    private static func parsed(
+        codedString text: String
+    ) -> Result<(minorUnits: Int64, storage: C.Storage), CodedStringError> {
+        text.withUTF8Buffer { utf8 in
+            let (code, digits) = codeAndDigits(utf8)
+
+            guard let storage = C.storage(forCode: code) else {
+                return .failure(code.map { .unresolvedCurrency($0) } ?? .unnamedCurrency)
+            }
+
+            let currency = C.currency(for: storage)
+
+            // Qualified, because the stored property of the same name shadows the function here.
+            guard let amount = SwiftMoney.minorUnits(
+                digits,
+                scale: UInt64(Int64(currency.unitScale))
+            ) else {
+                return .failure(.inexactAmount(currency))
+            }
+
+            return .success((amount, storage))
+        }
+    }
+}
+
 private extension String {
     // The bytes, lent where they are already contiguous UTF-8 and copied where they are not.
-    func withUTF8Buffer<T>(_ body: (UnsafeBufferPointer<UInt8>) -> T?) -> T? {
+    func withUTF8Buffer<T>(_ body: (UnsafeBufferPointer<UInt8>) -> T) -> T {
         utf8.withContiguousStorageIfAvailable(body) ?? Array(utf8).withUnsafeBufferPointer(body)
     }
 }
 
 // The code a string leads with and the digits that follow. Where no code is found the whole string
-// is digits, which is the spelling a caller who already knows the currency may use.
+// is digits, which is the form a caller who already knows the currency may use.
 private func codeAndDigits(
     _ utf8: UnsafeBufferPointer<UInt8>
 ) -> (code: CurrencyCode?, digits: Slice<UnsafeBufferPointer<UInt8>>) {
@@ -204,12 +257,9 @@ private func minorUnits(
         return Int64(magnitude: whole, sign: isNegative ? .negative : .positive)
     }
 
-    guard let scaled = fraction.multipliedExactly(by: scale),
-          // A remainder means the string is finer than the currency divides, as "GBP 4.999" is, and
-          // rounding it away here would be losing money quietly.
-          scaled.isMultiple(of: power),
+    guard let scaledFraction = fraction.scaled(by: scale, over: power),
           let major = whole.multipliedExactly(by: scale),
-          let magnitude = major.addedExactly(scaled / power)
+          let magnitude = major.addedExactly(scaledFraction)
     else {
         return nil
     }
@@ -218,6 +268,41 @@ private func minorUnits(
 }
 
 private extension UInt64 {
+    // `self * scale / power`, where `self` is a fraction below `power`. `nil` where the division
+    // leaves a remainder, the string then being finer than the currency divides, as "GBP 4.999" is:
+    // rounding it away here would be losing money quietly.
+    //
+    // Multiplying first is right until it overflows, which eighteen fraction digits reach. That is
+    // not an exotic input: a sender padding "4.99" to eighteen places is writing an amount sterling
+    // holds exactly, and it used to be refused.
+    func scaled(
+        by scale: UInt64,
+        over power: UInt64
+    ) -> UInt64? {
+        let (product, overflow) = multipliedReportingOverflow(by: scale)
+
+        guard overflow else {
+            return product.isMultiple(of: power) ? product / power : nil
+        }
+
+        return reduced(by: scale, over: power)
+    }
+
+    // Out of line so that the caller above stays small enough to inline: holding this beside it cost
+    // every parse sixteen instructions, for a branch almost nothing takes.
+    @inline(never)
+    func reduced(
+        by scale: UInt64,
+        over power: UInt64
+    ) -> UInt64? {
+        // Reducing the two before multiplying holds every intermediate below `scale`, the fraction
+        // being below `power`.
+        let common = greatestCommonDivisor(of: power, and: scale)
+        let divisor = power / common
+
+        return isMultiple(of: divisor) ? self / divisor * (scale / common) : nil
+    }
+
     func multipliedExactly(by other: UInt64) -> UInt64? {
         let (product, overflow) = multipliedReportingOverflow(by: other)
 

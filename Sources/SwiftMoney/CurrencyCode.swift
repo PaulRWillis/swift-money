@@ -197,3 +197,49 @@ public extension String {
         self = code.stringValue
     }
 }
+
+extension CurrencyCode: Codable {
+    /// Writes the code as a string, in upper case.
+    ///
+    /// ```swift
+    /// let code: CurrencyCode = "gbp"
+    ///
+    /// try encoder.encode(code)   // "GBP"
+    /// ```
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+
+        try container.encode(stringValue)
+    }
+
+    /// Reads a code from a string.
+    ///
+    /// Use this for a type of your own that carries a code. An amount that carries its own currency
+    /// needs nothing here, and ``MoneyCodingFormat/fields`` reads a currency field beside an amount.
+    ///
+    /// ```swift
+    /// struct ExchangeRate: Decodable {
+    ///     let from: CurrencyCode
+    ///     let to: CurrencyCode
+    ///     let rate: String
+    /// }
+    /// ```
+    ///
+    /// - Throws: `DecodingError.dataCorrupted` if the string is not a valid code.
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let string = try container.decode(String.self)
+
+        guard let code = CurrencyCode(string: string) else {
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: """
+                    Not a valid currency code: "\(string)". \
+                    A code is three to eight characters of A-Z, a-z or 0-9.
+                    """
+            )
+        }
+
+        self = code
+    }
+}

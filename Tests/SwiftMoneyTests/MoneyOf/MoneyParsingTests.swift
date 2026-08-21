@@ -9,6 +9,11 @@ private enum Khoums: CurrencyType {
     static let currency = Currency(code: "KHO", unitScale: 5)
 }
 
+// Seventeen decimal places, near the finest a scale can name.
+private enum Seventeen: CurrencyType {
+    static let currency = Currency(code: "FIN", unitScale: 100_000_000_000_000_000)
+}
+
 private let loyaltyPoints = Currency(code: "LTY", unitScale: 1)
 
 @Suite("Money Parsing Tests")
@@ -113,6 +118,35 @@ struct MoneyParsingTests {
         #expect(sevenPence == MoneyOf<OldSterling>(minorUnits: 7))
         #expect(MoneyOf<OldSterling>(string: "0.03") == nil)
         #expect(try #require(MoneyOf<OldSterling>(string: "1.0")) == MoneyOf<OldSterling>(minorUnits: 240))
+    }
+
+    // A sender formatting to a fixed width pads with zeros, and eighteen places is what a system
+    // built around wei emits. The amount is still exactly £4.99, so refusing it would be wrong.
+    @Test(
+        "Zeros padding an amount out to any width do not change it",
+        arguments: [
+            "4.99",
+            "4.990",
+            "4.99000000000000000",    // seventeen places
+            "4.990000000000000000",   // eighteen, where the scaled fraction outgrows a UInt64
+            "4.9900000000000000000",  // nineteen
+        ]
+    )
+    func paddingZeros(_ text: String) throws {
+        #expect(try #require(GBP(string: text)) == GBP(minorUnits: 4_99))
+    }
+
+    @Test("Padding does not make an amount the currency cannot hold acceptable")
+    func paddingDoesNotWidenPrecision() {
+        #expect(GBP(string: "4.999000000000000000") == nil)
+        #expect(MoneyOf<OldSterling>(string: "0.030000000000000000") == nil)
+    }
+
+    @Test("A currency far finer than sterling parses its own smallest units")
+    func veryFineCurrency() throws {
+        let amount = try #require(MoneyOf<Seventeen>(string: "0.00000000000012345"))
+
+        #expect(amount == MoneyOf<Seventeen>(minorUnits: 12345))
     }
 
     @Test("A currency dividing by five takes the decimals it can hold")

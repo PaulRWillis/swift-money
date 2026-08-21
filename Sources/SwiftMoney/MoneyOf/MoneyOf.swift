@@ -17,8 +17,15 @@
 /// let total = try (price * 3) + delivery - discount
 /// ```
 public struct MoneyOf<C: CurrencyRepresentation>: Equatable, Hashable, Sendable {
+    // The width an amount is stored in, named once so that widening it is one line. An alias rather
+    // than a type, and never public: construction stays generic over `BinaryInteger` so that no
+    // caller depends on the width. Every width from `Int8` to `Int128` is a `Decoder` primitive, so
+    // `Codable` follows this without naming a width of its own.
     @usableFromInline
-    let minorUnits: Int64
+    typealias MinorUnits = Int64
+
+    @usableFromInline
+    let minorUnits: MinorUnits
 
     @usableFromInline
     let storage: C.Storage

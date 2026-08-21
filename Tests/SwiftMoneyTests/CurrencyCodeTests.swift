@@ -1,3 +1,4 @@
+import Foundation
 import SwiftMoney
 import Testing
 
@@ -139,6 +140,42 @@ struct CurrencyCodeTests {
     func unlabelledFormIsTheLiteral() async {
         await #expect(processExitsWith: .failure) {
             blackHole(CurrencyCode("nope!"))
+        }
+    }
+
+    // MARK: - Codable
+
+    @Test("A code is written as a string, uppercased")
+    func encodesAsString() throws {
+        let encoded = try JSONEncoder().encode(try #require(CurrencyCode(string: "gbp")))
+
+        #expect(String(decoding: encoded, as: UTF8.self) == "\"GBP\"")
+    }
+
+    @Test("A code reads back from a string")
+    func decodesFromString() throws {
+        let decoded = try JSONDecoder().decode(CurrencyCode.self, from: Data("\"GBP\"".utf8))
+
+        #expect(decoded == "GBP")
+    }
+
+    @Test(
+        "A string that is not a code is refused",
+        arguments: ["\"GB\"", "\"GBPGBPGBP\"", "\"G-P\"", "\"\"", "\"£\""]
+    )
+    func decodingRefusesAnInvalidCode(_ json: String) {
+        #expect(throws: DecodingError.self) {
+            try JSONDecoder().decode(CurrencyCode.self, from: Data(json.utf8))
+        }
+    }
+
+    @Test("Every ISO code this library knows survives a round trip")
+    func roundTripsEveryISOCode() throws {
+        for code in ["AED", "GBP", "JPY", "KWD", "MRU", "USD", "ZWG"] {
+            let original: CurrencyCode = CurrencyCode(string: code) ?? "XXX"
+            let encoded = try JSONEncoder().encode(original)
+
+            #expect(try JSONDecoder().decode(CurrencyCode.self, from: encoded) == original)
         }
     }
 }
