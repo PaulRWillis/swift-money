@@ -434,16 +434,18 @@ private extension String {
         var whole = String(digits[digits.startIndex ..< point])
         var fraction = point == digits.endIndex ? "" : String(digits[digits.index(after: point)...])
 
+        // Each slice becomes a `String` before it is joined. Some toolchains resolve a `String` and a
+        // `Substring` added together and some refuse it, so nothing here relies on that.
         if places >= 0 {
             let carried = min(places, fraction.count)
 
-            whole += fraction.prefix(carried) + String(repeating: "0", count: places - carried)
+            whole += String(fraction.prefix(carried)) + String(repeating: "0", count: places - carried)
             fraction = String(fraction.dropFirst(carried))
         } else {
             let carried = min(-places, whole.count)
 
             fraction = String(repeating: "0", count: -places - carried)
-                + whole.suffix(carried)
+                + String(whole.suffix(carried))
                 + fraction
             whole = String(whole.dropLast(carried))
         }
