@@ -436,18 +436,17 @@ struct MoneyCodableTests {
     }
 
     @Test("A number never reads back as a different amount, at any scale")
-    func neverReadsBackADifferentAmount() throws {
+    func neverReadsBackADifferentAmount() {
         // Yen at 1, sterling at 100, bitcoin at 100,000,000, and a scale with no exact decimal.
-        var swept = (crossed: 0, refused: 0)
-
-        try sweepingNumbers(JPY.self, into: &swept)
-        try sweepingNumbers(GBP.self, into: &swept)
-        try sweepingNumbers(MoneyOf<Bitcoin>.self, into: &swept)
-        try sweepingNumbers(MoneyOf<OldSterling>.self, into: &swept)
+        let swept = [sweepingNumbers(JPY.self),
+                     sweepingNumbers(GBP.self),
+                     sweepingNumbers(MoneyOf<Bitcoin>.self),
+                     sweepingNumbers(MoneyOf<Seventeen>.self),
+                     sweepingNumbers(MoneyOf<OldSterling>.self)]
 
         // The sweep proves nothing if everything was skipped, or if nothing reached the bound.
-        #expect(swept.crossed > 40)
-        #expect(swept.refused > 0)
+        #expect(swept.map(\.crossed).reduce(0, +) > 40)
+        #expect(swept.map(\.refused).reduce(0, +) > 0)
     }
 
     // MARK: - Round trip
@@ -540,30 +539,25 @@ struct MoneyCodableTests {
     }
 }
 
-// Every magnitude worth trying, written as a major units number and read back. The only outcomes
-// allowed are the amount that was written and a refusal, never a neighbouring amount.
-private func sweepingNumbers<C: CurrencyType>(
-    _ type: MoneyOf<C>.Type,
-    into counts: inout (crossed: Int, refused: Int)
-) throws {
+private let sweptMagnitudes: [Int64] = [0, 1, 2, 7, 99, 100, 12345, 999_999, 1_000_000_007,
+                                        999_999_999_999, exactNumberBound - 1, exactNumberBound,
+                                        exactNumberBound + 1, Int64.max]
+
+// Every magnitude worth trying, written as a major units number and read back. `nil` is a refusal,
+// which is always allowed; anything that crosses must come home as itself and never as a neighbour.
+private func sweepingNumbers<C: CurrencyType>(_ type: MoneyOf<C>.Type) -> (crossed: Int, refused: Int) {
     let format = MoneyCodingFormat.amountOnly(.number(.majorUnits))
-    let magnitudes: [Int64] = [0, 1, 2, 7, 99, 100, 12345, 999_999, 1_000_000_007,
-                               999_999_999_999, exactNumberBound - 1, exactNumberBound,
-                               exactNumberBound + 1, Int64.max]
 
-    for magnitude in magnitudes {
-        for amount in [MoneyOf<C>(minorUnits: magnitude), MoneyOf<C>(minorUnits: -magnitude)] {
-            guard let encoded = try? encoder(format).encode(amount) else {
-                counts.refused += 1
-
-                continue
-            }
-
-            counts.crossed += 1
-
-            #expect(try decoder(format).decode(MoneyOf<C>.self, from: encoded) == amount)
+    let outcomes = sweptMagnitudes
+        .flatMap { [MoneyOf<C>(minorUnits: $0), MoneyOf<C>(minorUnits: -$0)] }
+        .map { amount in
+            (try? encoder(format).encode(amount))
+                .map { (try? decoder(format).decode(MoneyOf<C>.self, from: $0)) == amount }
         }
-    }
+
+    outcomes.compactMap { $0 }.forEach { #expect($0) }
+
+    return (outcomes.compactMap { $0 }.count, outcomes.filter { $0 == nil }.count)
 }
 
 private func encodingRefusalMessage(_ encode: () throws -> Data) throws -> String {

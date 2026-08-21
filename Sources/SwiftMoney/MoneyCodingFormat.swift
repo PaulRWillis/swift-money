@@ -149,11 +149,8 @@ public extension CodingUserInfoKey {
 extension MoneyCodingFormat.Amount {
     var units: MoneyCodingFormat.Units {
         switch self {
-        case let .number(units):
-            return units
-
-        case let .string(units):
-            return units
+        case let .number(units): units
+        case let .string(units): units
         }
     }
 }
@@ -163,14 +160,9 @@ extension MoneyCodingFormat {
     // writing, a number being the one form that cannot say for itself.
     var units: Units {
         switch shape {
-        case let .codedString(units):
-            return units
-
-        case let .fields(_, _, amount):
-            return amount.units
-
-        case let .amountOnly(amount):
-            return amount.units
+        case let .codedString(units): units
+        case let .fields(_, _, amount): amount.units
+        case let .amountOnly(amount): amount.units
         }
     }
 
