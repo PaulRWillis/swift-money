@@ -738,4 +738,128 @@ let benchmarks: @Sendable () -> Void = {
             index &+= 1
         }
     }
+
+    // MARK: - Coding
+
+    // `JSONEncoder` and `JSONDecoder` cost thousands of instructions, so a round trip through them
+    // says almost nothing about this library. Three measurements separate the two costs:
+    //
+    // 1. A round trip through JSON, which is the number a caller pays and the only one comparable
+    //    with another library.
+    // 2. The same round trip for a bare `String` of the same content, so the difference is what the
+    //    money conformance adds.
+    // 3. `encode(to:)` alone, through `RecordingEncoder`, with no JSON in the number at all.
+    let jsonEncoder = JSONEncoder()
+    let jsonDecoder = JSONDecoder()
+
+    let fieldsEncoder = JSONEncoder()
+    let fieldsDecoder = JSONDecoder()
+
+    fieldsEncoder.userInfo[.moneyCodingFormat] = MoneyCodingFormat.fields
+    fieldsDecoder.userInfo[.moneyCodingFormat] = MoneyCodingFormat.fields
+
+    // The same bytes for both the money row and the control row, so only the type they decode into
+    // differs. The operands are whole pence, so each amount writes as "GBP 1" and reads back as one.
+    let codedStringPayloads = operands.map { Data("\"GBP \($0)\"".utf8) }
+    let fieldPayloads = operands.map { Data(#"{"currency":"GBP","amount":\#($0)}"#.utf8) }
+
+    Benchmark("Money JSON encode", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(try jsonEncoder.encode(moneyOperands[index % moneyOperands.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money JSON decode", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(try jsonDecoder.decode(GBP.self, from: codedStringPayloads[index % codedStringPayloads.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money JSON encode, two fields", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(try fieldsEncoder.encode(moneyOperands[index % moneyOperands.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money JSON decode, two fields", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(try fieldsDecoder.decode(GBP.self, from: fieldPayloads[index % fieldPayloads.count]))
+            index &+= 1
+        }
+    }
+
+    // The control. `ControlAmount` takes the same route through the coder as money and does no money
+    // work, so the difference between the two rows is what this library contributes.
+    Benchmark("Control JSON encode", configuration: defaultConfiguration) { benchmark in
+        let controls = operands.map { ControlAmount("GBP \($0)") }
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(try jsonEncoder.encode(controls[index % controls.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Control JSON decode", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(try jsonDecoder.decode(ControlAmount.self, from: codedStringPayloads[index % codedStringPayloads.count]))
+            index &+= 1
+        }
+    }
+
+    // The peer measurement, in this harness rather than quoted from another suite.
+    Benchmark("Decimal JSON encode", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(try jsonEncoder.encode(decimalOperands[index % decimalOperands.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Decimal JSON decode", configuration: defaultConfiguration) { benchmark in
+        let payloads = operands.map { Data("\($0)".utf8) }
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(try jsonDecoder.decode(Decimal.self, from: payloads[index % payloads.count]))
+            index &+= 1
+        }
+    }
+
+    // What the conformance costs with no coder around it.
+    Benchmark("Money encode, no coder", configuration: defaultConfiguration) { benchmark in
+        let recorder = RecordingEncoder()
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            try moneyOperands[index % moneyOperands.count].encode(to: recorder)
+            blackHole(recorder.text)
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money encode, no coder, two fields", configuration: defaultConfiguration) { benchmark in
+        let recorder = RecordingEncoder(format: .fields)
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            try moneyOperands[index % moneyOperands.count].encode(to: recorder)
+            blackHole(recorder.integer)
+            index &+= 1
+        }
+    }
 }
