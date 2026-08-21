@@ -15,6 +15,10 @@ public struct MoneyCodingFormat: Sendable, Equatable, Hashable {
     /// .minorUnits   // 499
     /// .majorUnits   // 4.99
     /// ```
+    ///
+    /// A string says which it is for itself, a `.` meaning major units, so this decides only what a
+    /// number means. A number cannot say: `400` and `400.00` are one JSON number, and reading the
+    /// fraction as a hint would make the same payload mean two amounts a hundredfold apart.
     public enum Units: Sendable, Equatable, Hashable {
         /// The currency's smallest units, so pence rather than pounds.
         case minorUnits
@@ -28,8 +32,8 @@ public struct MoneyCodingFormat: Sendable, Equatable, Hashable {
 
     /// How the amount itself is written.
     public enum Amount: Sendable, Equatable, Hashable {
-        /// `499`, a JSON number of the currency's smallest units.
-        case number
+        /// `499` or `4.99`, a JSON number in the units named.
+        case number(Units)
 
         /// `"499"` or `"4.99"`, a JSON string in the units named.
         case string(Units)
@@ -65,6 +69,7 @@ public struct MoneyCodingFormat: Sendable, Equatable, Hashable {
     ///
     /// ```swift
     /// .fields()                                        // {"currency": "GBP", "amount": 499}
+    /// .fields(amount: .number(.majorUnits))            // {"currency": "GBP", "amount": 4.99}
     /// .fields(amount: .string(.majorUnits))            // {"currency": "GBP", "amount": "4.99"}
     /// .fields(currencyKey: "ccy", amountKey: "value")  // {"ccy": "GBP", "value": 499}
     /// ```
@@ -76,7 +81,7 @@ public struct MoneyCodingFormat: Sendable, Equatable, Hashable {
     public static func fields(
         currencyKey: String = "currency",
         amountKey: String = "amount",
-        amount: Amount = .number
+        amount: Amount = .number(.minorUnits)
     ) -> MoneyCodingFormat {
         MoneyCodingFormat(shape: .fields(currencyKey: currencyKey, amountKey: amountKey, amount: amount))
     }
@@ -91,11 +96,12 @@ public struct MoneyCodingFormat: Sendable, Equatable, Hashable {
     ///
     /// Nothing written this way says which currency it is in, so the type has to. Asking a ``Money``
     /// for this shape throws, its currency being known only at runtime.
-    public static let amountOnly = MoneyCodingFormat(shape: .amountOnly(.number))
+    public static let amountOnly = MoneyCodingFormat(shape: .amountOnly(.number(.minorUnits)))
 
     /// The amount alone, written as a number or a string.
     ///
     /// ```swift
+    /// .amountOnly(.number(.majorUnits))   // 4.99
     /// .amountOnly(.string(.minorUnits))   // "499"
     /// .amountOnly(.string(.majorUnits))   // "4.99"
     /// ```
@@ -140,7 +146,34 @@ public extension CodingUserInfoKey {
     }()
 }
 
+extension MoneyCodingFormat.Amount {
+    var units: MoneyCodingFormat.Units {
+        switch self {
+        case let .number(units):
+            return units
+
+        case let .string(units):
+            return units
+        }
+    }
+}
+
 extension MoneyCodingFormat {
+    // Which units a number on the wire counts. Reading needs this whatever shape was set for
+    // writing, a number being the one form that cannot say for itself.
+    var units: Units {
+        switch shape {
+        case let .codedString(units):
+            return units
+
+        case let .fields(_, _, amount):
+            return amount.units
+
+        case let .amountOnly(amount):
+            return amount.units
+        }
+    }
+
     // The keys a field payload uses. Reading needs these whatever shape was set for writing, since
     // nothing but the format can say what an API calls them.
     var fieldKeys: (currency: MoneyCodingKey, amount: MoneyCodingKey) {

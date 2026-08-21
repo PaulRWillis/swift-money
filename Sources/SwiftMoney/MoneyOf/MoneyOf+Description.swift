@@ -75,7 +75,7 @@ extension MoneyOf {
     }
 }
 
-private extension UInt64 {
+extension UInt64 {
     // Two and five are the only prime factors a decimal can absorb, so a scale keeping any other has
     // no exact decimal at all: 240 keeps a 3, and seven of its subunits is 0.0291666…
     //
@@ -101,7 +101,9 @@ private extension UInt64 {
 
         return remaining == 1 && places <= 18 ? places : nil
     }
+}
 
+private extension UInt64 {
     var digitCount: Int {
         var digits = 1
         var remaining = self

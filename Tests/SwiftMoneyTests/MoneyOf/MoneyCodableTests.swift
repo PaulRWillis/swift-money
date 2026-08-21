@@ -6,6 +6,20 @@ private enum OldSterling: CurrencyType {
     static let currency = Currency(code: "OLD", unitScale: 240)
 }
 
+// Eight decimal places, so it reaches the exponent notation and the `Double` spacing that two
+// decimal places never do.
+private enum Bitcoin: CurrencyType {
+    static let currency = Currency(code: "BTC", unitScale: 100_000_000)
+}
+
+// Fine enough to hold seventeen decimal places, and so fine that a `Double` cannot tell one of its
+// smallest units from the next.
+private enum Seventeen: CurrencyType {
+    static let currency = Currency(code: "FIN", unitScale: 100_000_000_000_000_000)
+}
+
+private let exactNumberBound: Int64 = 1 << 52
+
 // Keys are sorted because `JSONEncoder` does not otherwise fix their order, and a test asserting
 // the whole of an object's JSON then passes about five times in six.
 private func encoder(_ format: MoneyCodingFormat? = nil) -> JSONEncoder {
@@ -120,6 +134,7 @@ struct MoneyCodableTests {
         let price = GBP(minorUnits: 4_99)
 
         #expect(try json(price, .fields) == #"{"amount":499,"currency":"GBP"}"#)
+        #expect(try json(price, .fields(amount: .number(.majorUnits))) == #"{"amount":4.99,"currency":"GBP"}"#)
         #expect(try json(price, .fields(amount: .string(.minorUnits))) == #"{"amount":"499","currency":"GBP"}"#)
         #expect(try json(price, .fields(amount: .string(.majorUnits))) == #"{"amount":"4.99","currency":"GBP"}"#)
         #expect(
@@ -168,6 +183,13 @@ struct MoneyCodableTests {
         #expect(try decoded(GBP.self, from: "\"GBP 499\"", .fields) == expected)
     }
 
+    @Test("An amount field that is neither a string nor a number reports what the coder found")
+    func refusesAnAmountFieldOfTheWrongType() {
+        #expect(throws: DecodingError.self) {
+            try decoded(GBP.self, from: #"{"currency":"GBP","amount":true}"#, .fields)
+        }
+    }
+
     @Test("A field amount the currency cannot hold is refused, naming the currency")
     func refusesAnInexactFieldAmount() throws {
         let message = try refusalMessage {
@@ -213,6 +235,7 @@ struct MoneyCodableTests {
         let price = GBP(minorUnits: 4_99)
 
         #expect(try json(price, .amountOnly) == "499")
+        #expect(try json(price, .amountOnly(.number(.majorUnits))) == "4.99")
         #expect(try json(price, .amountOnly(.string(.minorUnits))) == "\"499\"")
         #expect(try json(price, .amountOnly(.string(.majorUnits))) == "\"4.99\"")
     }
@@ -276,6 +299,155 @@ struct MoneyCodableTests {
 
             #expect(try decoder(format).decode(GBP.self, from: encoder(format).encode(typed)) == typed)
         }
+    }
+
+    // MARK: - Numbers
+
+    @Test("A number counts the units the format names, never the units it happens to be written in")
+    func readsANumberInTheUnitsConfigured() throws {
+        let minor = MoneyCodingFormat.amountOnly
+        let major = MoneyCodingFormat.amountOnly(.number(.majorUnits))
+
+        #expect(try decoded(GBP.self, from: "400", minor) == GBP(minorUnits: 4_00))
+        #expect(try decoded(GBP.self, from: "400", major) == GBP(minorUnits: 400_00))
+    }
+
+    @Test("A fraction of zero is the same number, so it reads the same either way")
+    func readsAWholeNumberWrittenWithAFraction() throws {
+        let minor = MoneyCodingFormat.amountOnly
+        let major = MoneyCodingFormat.amountOnly(.number(.majorUnits))
+
+        #expect(try decoded(GBP.self, from: "400.00", minor) == GBP(minorUnits: 4_00))
+        #expect(try decoded(GBP.self, from: "400.00", major) == GBP(minorUnits: 400_00))
+    }
+
+    @Test("A string says its own units, whatever the format names")
+    func readsAStringInItsOwnUnits() throws {
+        let major = MoneyCodingFormat.amountOnly(.number(.majorUnits))
+
+        #expect(try decoded(GBP.self, from: "\"4.00\"", major) == GBP(minorUnits: 4_00))
+        #expect(try decoded(GBP.self, from: "\"400\"", major) == GBP(minorUnits: 400))
+    }
+
+    @Test("A fraction is refused where the number counts smallest units, and taken where it counts major")
+    func readsAFractionOnlyInMajorUnits() throws {
+        let message = try refusalMessage { try decoded(GBP.self, from: "4.99", .amountOnly) }
+
+        #expect(message.contains("4.99"))
+        #expect(message.contains("GBP's smallest units"))
+
+        let major = MoneyCodingFormat.amountOnly(.number(.majorUnits))
+
+        #expect(try decoded(GBP.self, from: "4.99", major) == GBP(minorUnits: 4_99))
+    }
+
+    @Test("A fraction is taken exactly, rather than through arithmetic that would lose a penny")
+    func readsAFractionExactly() throws {
+        let major = MoneyCodingFormat.amountOnly(.number(.majorUnits))
+
+        // 8.87 * 100 is 886.9999999999999 in binary, so anything multiplying would land on 886.
+        #expect(try decoded(GBP.self, from: "8.87", major) == GBP(minorUnits: 8_87))
+        #expect(try decoded(GBP.self, from: "0.07", major) == GBP(minorUnits: 7))
+        #expect(try decoded(GBP.self, from: "-8.87", major) == GBP(minorUnits: -8_87))
+    }
+
+    @Test("Accumulated float error is refused rather than rounded away")
+    func refusesAccumulatedFloatError() throws {
+        let major = MoneyCodingFormat.amountOnly(.number(.majorUnits))
+        let message = try refusalMessage { try decoded(GBP.self, from: "0.30000000000000004", major) }
+
+        #expect(message.contains("GBP can hold exactly"))
+    }
+
+    @Test("A currency finer than a Double can step through is refused, however few digits arrive")
+    func refusesACurrencyFinerThanADoubleCanStep() throws {
+        let major = MoneyCodingFormat.amountOnly(.number(.majorUnits))
+        let message = try refusalMessage { try decoded(MoneyOf<Seventeen>.self, from: "0.3", major) }
+
+        #expect(message.contains("too large to cross as a number"))
+    }
+
+    @Test("A currency with no exact decimal cannot cross as a major units number at all")
+    func refusesAMajorUnitsNumberWithoutAnExactDecimal() throws {
+        let sevenPence = MoneyOf<OldSterling>(minorUnits: 7)
+        let major = MoneyCodingFormat.amountOnly(.number(.majorUnits))
+        let message = try encodingRefusalMessage { try encoder(major).encode(sevenPence) }
+
+        // Writing 7 and reading it as major units would give 1680, a wholly different amount.
+        #expect(message.contains("OLD divides into no exact decimal"))
+        #expect(try json(sevenPence, .amountOnly) == "7")
+    }
+
+    // MARK: - Bitcoin, at eight decimal places
+
+    @Test(
+        "Every bitcoin amount crosses as a number exactly, exponent notation included",
+        arguments: [1, 2, 12_345_678, 100_000_000, 2_099_999_976_900_000] as [Int64]
+    )
+    func roundTripsBitcoinAsANumber(_ satoshis: Int64) throws {
+        let major = MoneyCodingFormat.amountOnly(.number(.majorUnits))
+        let amount = MoneyOf<Bitcoin>(minorUnits: satoshis)
+        let encoded = try encoder(major).encode(amount)
+
+        #expect(try decoder(major).decode(MoneyOf<Bitcoin>.self, from: encoded) == amount)
+    }
+
+    @Test("One satoshi describes itself in exponent notation, and still reads back")
+    func readsExponentNotation() throws {
+        let major = MoneyCodingFormat.amountOnly(.number(.majorUnits))
+
+        #expect(Double(1e-08).description == "1e-08")
+        #expect(try decoded(MoneyOf<Bitcoin>.self, from: "1e-08", major) == MoneyOf<Bitcoin>(minorUnits: 1))
+        #expect(try decoded(MoneyOf<Bitcoin>.self, from: "0.00000001", major) == MoneyOf<Bitcoin>(minorUnits: 1))
+    }
+
+    // MARK: - The range a number can name
+
+    @Test("An amount below the bound crosses as a number, and one at it does not")
+    func boundsWhatCrossesAsANumber() throws {
+        let major = MoneyCodingFormat.amountOnly(.number(.majorUnits))
+        let inside = GBP(minorUnits: exactNumberBound - 1)
+        let outside = GBP(minorUnits: exactNumberBound)
+
+        #expect(try decoder(major).decode(GBP.self, from: encoder(major).encode(inside)) == inside)
+
+        let message = try encodingRefusalMessage { try encoder(major).encode(outside) }
+
+        #expect(message.contains("too large to cross as a number"))
+        #expect(message.contains("Send it as a string"))
+    }
+
+    @Test("An amount at the bound still crosses as a string")
+    func writesABoundedAmountAsAString() throws {
+        let outside = GBP(minorUnits: exactNumberBound)
+
+        #expect(try decoded(GBP.self, from: try json(outside)) == outside)
+        #expect(try json(outside, .amountOnly(.string(.majorUnits))) == "\"45035996273704.96\"")
+    }
+
+    @Test("A number past the bound is refused on the way in, rather than read as its neighbour")
+    func refusesANumberPastTheBound() throws {
+        let major = MoneyCodingFormat.amountOnly(.number(.majorUnits))
+        let message = try refusalMessage {
+            try decoded(GBP.self, from: "89319949424986.46", major)
+        }
+
+        #expect(message.contains("too large to cross as a number"))
+    }
+
+    @Test("A number never reads back as a different amount, at any scale")
+    func neverReadsBackADifferentAmount() throws {
+        // Yen at 1, sterling at 100, bitcoin at 100,000,000, and a scale with no exact decimal.
+        var swept = (crossed: 0, refused: 0)
+
+        try sweepingNumbers(JPY.self, into: &swept)
+        try sweepingNumbers(GBP.self, into: &swept)
+        try sweepingNumbers(MoneyOf<Bitcoin>.self, into: &swept)
+        try sweepingNumbers(MoneyOf<OldSterling>.self, into: &swept)
+
+        // The sweep proves nothing if everything was skipped, or if nothing reached the bound.
+        #expect(swept.crossed > 40)
+        #expect(swept.refused > 0)
     }
 
     // MARK: - Round trip
@@ -365,6 +537,32 @@ struct MoneyCodableTests {
 
         #expect(message.contains("No currency named"))
         #expect(!message.contains("hold exactly"))
+    }
+}
+
+// Every magnitude worth trying, written as a major units number and read back. The only outcomes
+// allowed are the amount that was written and a refusal, never a neighbouring amount.
+private func sweepingNumbers<C: CurrencyType>(
+    _ type: MoneyOf<C>.Type,
+    into counts: inout (crossed: Int, refused: Int)
+) throws {
+    let format = MoneyCodingFormat.amountOnly(.number(.majorUnits))
+    let magnitudes: [Int64] = [0, 1, 2, 7, 99, 100, 12345, 999_999, 1_000_000_007,
+                               999_999_999_999, exactNumberBound - 1, exactNumberBound,
+                               exactNumberBound + 1, Int64.max]
+
+    for magnitude in magnitudes {
+        for amount in [MoneyOf<C>(minorUnits: magnitude), MoneyOf<C>(minorUnits: -magnitude)] {
+            guard let encoded = try? encoder(format).encode(amount) else {
+                counts.refused += 1
+
+                continue
+            }
+
+            counts.crossed += 1
+
+            #expect(try decoder(format).decode(MoneyOf<C>.self, from: encoded) == amount)
+        }
     }
 }
 
