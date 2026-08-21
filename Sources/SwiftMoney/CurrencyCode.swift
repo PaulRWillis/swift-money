@@ -54,6 +54,69 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
         return packed << (8 * (8 - bytes.count))
     }
 
+    private init(packed: UInt64) {
+        self.storage = packed
+    }
+
+    // The code a run of bytes leads with, and the index just past the space ending it. `nil` covers
+    // both a run with no code and one whose leading bytes are not a code.
+    static func leading(
+        in utf8: UnsafeBufferPointer<UInt8>
+    ) -> (code: CurrencyCode, after: Int)? {
+        var packed: UInt64 = 0
+        var count = 0
+
+        for index in utf8.indices {
+            let byte = utf8[index]
+
+            if byte == UInt8(ascii: " ") {
+                guard count >= 3 else {
+                    return nil
+                }
+
+                return (CurrencyCode(packed: packed << (8 * (8 - count))), index + 1)
+            }
+
+            guard count < 8, byte.isASCIIAlphanumeric else {
+                return nil
+            }
+
+            packed = packed << 8 | UInt64(byte.uppercasedASCII)
+            count += 1
+        }
+
+        return nil
+    }
+
+    // The code as one word, first character in the high byte.
+    var packedValue: UInt64 { storage }
+
+    // The bytes of the code, written into a buffer the caller sizes with `utf8Count`. Lets a caller
+    // assemble a longer string in one pass rather than building this one and concatenating it.
+    func write(into buffer: UnsafeMutableBufferPointer<UInt8>, at offset: inout Int) {
+        for shift in stride(from: 56, through: 0, by: -8) {
+            let byte = UInt8(truncatingIfNeeded: storage >> shift)
+
+            guard byte != 0 else {
+                return
+            }
+
+            buffer[offset] = byte
+            offset += 1
+        }
+    }
+
+    // How many bytes `write(into:at:)` will write.
+    var utf8Count: Int {
+        var count = 0
+
+        while count < 8, UInt8(truncatingIfNeeded: storage >> (56 - 8 * count)) != 0 {
+            count += 1
+        }
+
+        return count
+    }
+
     fileprivate var stringValue: String {
         String(unsafeUninitializedCapacity: 8) { buffer in
             var count = 0

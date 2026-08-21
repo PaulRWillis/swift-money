@@ -426,6 +426,142 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    // MARK: - Rendering
+
+    // `description` is what `print`, interpolation and a failing test all reach for, so it runs in
+    // places nobody profiles. Every variant hands `blackHole` a `String`, so the harness costs the
+    // same in each and what separates them is the rendering.
+    let carriedPounds = operands.map { Money(minorUnits: $0, currency: .gbp) }
+    let carriedPreDecimal = operands.map {
+        Money(minorUnits: $0, currency: Currency(code: "OLD", unitScale: 240))
+    }
+
+    Benchmark("MoneyOf description", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(moneyOperands[index % moneyOperands.count].description)
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money description", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(carriedPounds[index % carriedPounds.count].description)
+            index &+= 1
+        }
+    }
+
+    // The branch for a currency no decimal can express, which writes minor units instead.
+    Benchmark("Money description, no exact decimal", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(carriedPreDecimal[index % carriedPreDecimal.count].description)
+            index &+= 1
+        }
+    }
+
+    Benchmark("Int description", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(operands[index % operands.count].description)
+            index &+= 1
+        }
+    }
+
+    Benchmark("Double description", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(doubleOperands[index % doubleOperands.count].description)
+            index &+= 1
+        }
+    }
+
+    Benchmark("Decimal description", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(decimalOperands[index % decimalOperands.count].description)
+            index &+= 1
+        }
+    }
+
+    // MARK: - Parsing
+
+    // Every variant hands `blackHole` a `Bool`, so the harness costs the same in each and what
+    // separates them is the parse.
+    //
+    // Every variant also reads the same three digits, since parsing costs more the more digits it
+    // is given: `Int64` reads 91 over three and 70 over one or two.
+    let amountStrings = operands.map { "GBP 4.\($0 < 10 ? "0" : "")\($0)" }
+    let bareStrings = operands.map { "4.\($0 < 10 ? "0" : "")\($0)" }
+    let minorUnitStrings = operands.map { "4\($0 < 10 ? "0" : "")\($0)" }
+
+    Benchmark("Money parsing", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Money(string: amountStrings[index % amountStrings.count]) != nil)
+            index &+= 1
+        }
+    }
+
+    Benchmark("MoneyOf parsing", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(GBP(string: bareStrings[index % bareStrings.count]) != nil)
+            index &+= 1
+        }
+    }
+
+    Benchmark("Int parsing", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Int64(minorUnitStrings[index % minorUnitStrings.count]) != nil)
+            index &+= 1
+        }
+    }
+
+    Benchmark("Double parsing", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Double(bareStrings[index % bareStrings.count]) != nil)
+            index &+= 1
+        }
+    }
+
+    Benchmark("Decimal parsing", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Decimal(string: bareStrings[index % bareStrings.count]) != nil)
+            index &+= 1
+        }
+    }
+
+    // MARK: - Currency lookup
+
+    // A spread across the alphabet, because the table is searched in order: AED is the first case
+    // and ZWG the last.
+    let lookupCodes: [CurrencyCode] = ["AED", "EUR", "GBP", "JPY", "MRU", "USD", "ZWG"]
+
+    Benchmark("ISO currency lookup", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Currency(iso: lookupCodes[index % lookupCodes.count]))
+            index &+= 1
+        }
+    }
+
     // MARK: - What the library's own choices cost
 
     // `Money` throws where `MoneyOf` traps, so this is the price of typed throws — a currency check and

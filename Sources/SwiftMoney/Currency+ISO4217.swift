@@ -1346,3 +1346,186 @@ public extension Currencies {
         public static let currency: Currency = .zwg
     }
 }
+
+
+public extension Currency {
+    /// The ISO 4217 currency a code names.
+    ///
+    /// ```swift
+    /// Currency(iso: "GBP")   // GBP, 100 subunits
+    /// Currency(iso: "LTY")   // nil
+    /// ```
+    init?(iso code: CurrencyCode) {
+        // Switched on the packed word rather than the code, so the compiler can build a
+        // search over integers. Every case is checked by the tests, which look up all of
+        // these by their spelling.
+        switch code.packedValue {
+        case 0x4145440000000000: self = .aed   // AED
+        case 0x41464E0000000000: self = .afn   // AFN
+        case 0x414C4C0000000000: self = .all   // ALL
+        case 0x414D440000000000: self = .amd   // AMD
+        case 0x414F410000000000: self = .aoa   // AOA
+        case 0x4152530000000000: self = .ars   // ARS
+        case 0x4155440000000000: self = .aud   // AUD
+        case 0x4157470000000000: self = .awg   // AWG
+        case 0x415A4E0000000000: self = .azn   // AZN
+        case 0x42414D0000000000: self = .bam   // BAM
+        case 0x4242440000000000: self = .bbd   // BBD
+        case 0x4244540000000000: self = .bdt   // BDT
+        case 0x4248440000000000: self = .bhd   // BHD
+        case 0x4249460000000000: self = .bif   // BIF
+        case 0x424D440000000000: self = .bmd   // BMD
+        case 0x424E440000000000: self = .bnd   // BND
+        case 0x424F420000000000: self = .bob   // BOB
+        case 0x424F560000000000: self = .bov   // BOV
+        case 0x42524C0000000000: self = .brl   // BRL
+        case 0x4253440000000000: self = .bsd   // BSD
+        case 0x42544E0000000000: self = .btn   // BTN
+        case 0x4257500000000000: self = .bwp   // BWP
+        case 0x42594E0000000000: self = .byn   // BYN
+        case 0x425A440000000000: self = .bzd   // BZD
+        case 0x4341440000000000: self = .cad   // CAD
+        case 0x4344460000000000: self = .cdf   // CDF
+        case 0x4348450000000000: self = .che   // CHE
+        case 0x4348460000000000: self = .chf   // CHF
+        case 0x4348570000000000: self = .chw   // CHW
+        case 0x434C460000000000: self = .clf   // CLF
+        case 0x434C500000000000: self = .clp   // CLP
+        case 0x434E590000000000: self = .cny   // CNY
+        case 0x434F500000000000: self = .cop   // COP
+        case 0x434F550000000000: self = .cou   // COU
+        case 0x4352430000000000: self = .crc   // CRC
+        case 0x4355500000000000: self = .cup   // CUP
+        case 0x4356450000000000: self = .cve   // CVE
+        case 0x435A4B0000000000: self = .czk   // CZK
+        case 0x444A460000000000: self = .djf   // DJF
+        case 0x444B4B0000000000: self = .dkk   // DKK
+        case 0x444F500000000000: self = .dop   // DOP
+        case 0x445A440000000000: self = .dzd   // DZD
+        case 0x4547500000000000: self = .egp   // EGP
+        case 0x45524E0000000000: self = .ern   // ERN
+        case 0x4554420000000000: self = .etb   // ETB
+        case 0x4555520000000000: self = .eur   // EUR
+        case 0x464A440000000000: self = .fjd   // FJD
+        case 0x464B500000000000: self = .fkp   // FKP
+        case 0x4742500000000000: self = .gbp   // GBP
+        case 0x47454C0000000000: self = .gel   // GEL
+        case 0x4748530000000000: self = .ghs   // GHS
+        case 0x4749500000000000: self = .gip   // GIP
+        case 0x474D440000000000: self = .gmd   // GMD
+        case 0x474E460000000000: self = .gnf   // GNF
+        case 0x4754510000000000: self = .gtq   // GTQ
+        case 0x4759440000000000: self = .gyd   // GYD
+        case 0x484B440000000000: self = .hkd   // HKD
+        case 0x484E4C0000000000: self = .hnl   // HNL
+        case 0x4854470000000000: self = .htg   // HTG
+        case 0x4855460000000000: self = .huf   // HUF
+        case 0x4944520000000000: self = .idr   // IDR
+        case 0x494C530000000000: self = .ils   // ILS
+        case 0x494E520000000000: self = .inr   // INR
+        case 0x4951440000000000: self = .iqd   // IQD
+        case 0x4952520000000000: self = .irr   // IRR
+        case 0x49534B0000000000: self = .isk   // ISK
+        case 0x4A4D440000000000: self = .jmd   // JMD
+        case 0x4A4F440000000000: self = .jod   // JOD
+        case 0x4A50590000000000: self = .jpy   // JPY
+        case 0x4B45530000000000: self = .kes   // KES
+        case 0x4B47530000000000: self = .kgs   // KGS
+        case 0x4B48520000000000: self = .khr   // KHR
+        case 0x4B4D460000000000: self = .kmf   // KMF
+        case 0x4B50570000000000: self = .kpw   // KPW
+        case 0x4B52570000000000: self = .krw   // KRW
+        case 0x4B57440000000000: self = .kwd   // KWD
+        case 0x4B59440000000000: self = .kyd   // KYD
+        case 0x4B5A540000000000: self = .kzt   // KZT
+        case 0x4C414B0000000000: self = .lak   // LAK
+        case 0x4C42500000000000: self = .lbp   // LBP
+        case 0x4C4B520000000000: self = .lkr   // LKR
+        case 0x4C52440000000000: self = .lrd   // LRD
+        case 0x4C534C0000000000: self = .lsl   // LSL
+        case 0x4C59440000000000: self = .lyd   // LYD
+        case 0x4D41440000000000: self = .mad   // MAD
+        case 0x4D444C0000000000: self = .mdl   // MDL
+        case 0x4D47410000000000: self = .mga   // MGA
+        case 0x4D4B440000000000: self = .mkd   // MKD
+        case 0x4D4D4B0000000000: self = .mmk   // MMK
+        case 0x4D4E540000000000: self = .mnt   // MNT
+        case 0x4D4F500000000000: self = .mop   // MOP
+        case 0x4D52550000000000: self = .mru   // MRU
+        case 0x4D55520000000000: self = .mur   // MUR
+        case 0x4D56520000000000: self = .mvr   // MVR
+        case 0x4D574B0000000000: self = .mwk   // MWK
+        case 0x4D584E0000000000: self = .mxn   // MXN
+        case 0x4D58560000000000: self = .mxv   // MXV
+        case 0x4D59520000000000: self = .myr   // MYR
+        case 0x4D5A4E0000000000: self = .mzn   // MZN
+        case 0x4E41440000000000: self = .nad   // NAD
+        case 0x4E474E0000000000: self = .ngn   // NGN
+        case 0x4E494F0000000000: self = .nio   // NIO
+        case 0x4E4F4B0000000000: self = .nok   // NOK
+        case 0x4E50520000000000: self = .npr   // NPR
+        case 0x4E5A440000000000: self = .nzd   // NZD
+        case 0x4F4D520000000000: self = .omr   // OMR
+        case 0x5041420000000000: self = .pab   // PAB
+        case 0x50454E0000000000: self = .pen   // PEN
+        case 0x50474B0000000000: self = .pgk   // PGK
+        case 0x5048500000000000: self = .php   // PHP
+        case 0x504B520000000000: self = .pkr   // PKR
+        case 0x504C4E0000000000: self = .pln   // PLN
+        case 0x5059470000000000: self = .pyg   // PYG
+        case 0x5141520000000000: self = .qar   // QAR
+        case 0x524F4E0000000000: self = .ron   // RON
+        case 0x5253440000000000: self = .rsd   // RSD
+        case 0x5255420000000000: self = .rub   // RUB
+        case 0x5257460000000000: self = .rwf   // RWF
+        case 0x5341520000000000: self = .sar   // SAR
+        case 0x5342440000000000: self = .sbd   // SBD
+        case 0x5343520000000000: self = .scr   // SCR
+        case 0x5344470000000000: self = .sdg   // SDG
+        case 0x53454B0000000000: self = .sek   // SEK
+        case 0x5347440000000000: self = .sgd   // SGD
+        case 0x5348500000000000: self = .shp   // SHP
+        case 0x534C450000000000: self = .sle   // SLE
+        case 0x534F530000000000: self = .sos   // SOS
+        case 0x5352440000000000: self = .srd   // SRD
+        case 0x5353500000000000: self = .ssp   // SSP
+        case 0x53544E0000000000: self = .stn   // STN
+        case 0x5356430000000000: self = .svc   // SVC
+        case 0x5359500000000000: self = .syp   // SYP
+        case 0x535A4C0000000000: self = .szl   // SZL
+        case 0x5448420000000000: self = .thb   // THB
+        case 0x544A530000000000: self = .tjs   // TJS
+        case 0x544D540000000000: self = .tmt   // TMT
+        case 0x544E440000000000: self = .tnd   // TND
+        case 0x544F500000000000: self = .top   // TOP
+        case 0x5452590000000000: self = .`try`   // TRY
+        case 0x5454440000000000: self = .ttd   // TTD
+        case 0x5457440000000000: self = .twd   // TWD
+        case 0x545A530000000000: self = .tzs   // TZS
+        case 0x5541480000000000: self = .uah   // UAH
+        case 0x5547580000000000: self = .ugx   // UGX
+        case 0x5553440000000000: self = .usd   // USD
+        case 0x55534E0000000000: self = .usn   // USN
+        case 0x5559490000000000: self = .uyi   // UYI
+        case 0x5559550000000000: self = .uyu   // UYU
+        case 0x5559570000000000: self = .uyw   // UYW
+        case 0x555A530000000000: self = .uzs   // UZS
+        case 0x5645440000000000: self = .ved   // VED
+        case 0x5645530000000000: self = .ves   // VES
+        case 0x564E440000000000: self = .vnd   // VND
+        case 0x5655560000000000: self = .vuv   // VUV
+        case 0x5753540000000000: self = .wst   // WST
+        case 0x5841440000000000: self = .xad   // XAD
+        case 0x5841460000000000: self = .xaf   // XAF
+        case 0x5843440000000000: self = .xcd   // XCD
+        case 0x5843470000000000: self = .xcg   // XCG
+        case 0x584F460000000000: self = .xof   // XOF
+        case 0x5850460000000000: self = .xpf   // XPF
+        case 0x5945520000000000: self = .yer   // YER
+        case 0x5A41520000000000: self = .zar   // ZAR
+        case 0x5A4D570000000000: self = .zmw   // ZMW
+        case 0x5A57470000000000: self = .zwg   // ZWG
+        default: return nil
+        }
+    }
+}
