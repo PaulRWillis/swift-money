@@ -84,9 +84,7 @@ func parsedMinorUnits(
     _ string: String,
     in currency: Currency
 ) -> Int64? {
-    var string = string
-
-    return string.withUTF8 { utf8 in
+    string.withUTF8Buffer { utf8 in
         let (code, digits) = codeAndDigits(utf8)
 
         guard code == nil || code == currency.code else {
@@ -101,9 +99,7 @@ func parsedMinorUnits(
 // nothing else here being able to say how finely the currency divides.
 @usableFromInline
 func parsedISOAmount(_ string: String) -> (minorUnits: Int64, currency: Currency)? {
-    var string = string
-
-    return string.withUTF8 { utf8 -> (Int64, Currency)? in
+    string.withUTF8Buffer { utf8 -> (Int64, Currency)? in
         let (code, digits) = codeAndDigits(utf8)
 
         guard let code,
@@ -114,6 +110,13 @@ func parsedISOAmount(_ string: String) -> (minorUnits: Int64, currency: Currency
         }
 
         return (minorUnits, currency)
+    }
+}
+
+private extension String {
+    // The bytes, lent where they are already contiguous UTF-8 and copied where they are not.
+    func withUTF8Buffer<T>(_ body: (UnsafeBufferPointer<UInt8>) -> T?) -> T? {
+        utf8.withContiguousStorageIfAvailable(body) ?? Array(utf8).withUnsafeBufferPointer(body)
     }
 }
 
