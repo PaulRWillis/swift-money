@@ -35,14 +35,14 @@ extension MoneyOf: Codable {
         let container = try decoder.singleValueContainer()
         let text = try container.decode(String.self)
 
-        guard let amount = MoneyOf(codedString: text) else {
+        do {
+            self = try MoneyOf(codedString: text)
+        } catch {
             throw DecodingError.dataCorruptedError(
                 in: container,
-                debugDescription: Self.refusal(for: text)
+                debugDescription: Self.refusal(of: text, because: error)
             )
         }
-
-        self = amount
     }
 
     // The currency every amount of this type is in, where its representation fixes one.
@@ -50,17 +50,40 @@ extension MoneyOf: Codable {
         C.storage(forCode: nil).map(C.currency(for:))
     }
 
-    private static func refusal(for text: String) -> String {
-        guard let implied = impliedCurrency else {
+    // Three failures with three remedies. A currency that cannot be resolved is nothing like an
+    // amount written too finely, and telling a caller to write fewer decimals when their currency
+    // is the problem sends them the wrong way.
+    private static func refusal(
+        of text: String,
+        because error: CodedStringError
+    ) -> String {
+        switch error {
+        case .unnamedCurrency:
             return """
-                Not an amount an ISO 4217 currency can hold exactly: "\(text)". \
-                Write the code and the amount, as in "GBP 499" or "GBP 4.99".
+                No currency named in "\(text)", and this amount can only take one from what it \
+                reads. Write the code with the amount, as in "GBP 499", or decode into a type that \
+                names the currency.
+                """
+
+        case let .unresolvedCurrency(code):
+            guard let implied = impliedCurrency else {
+                return """
+                    Unknown currency code "\(code)" in "\(text)". Decode into a type that names the \
+                    currency, or read the code and the amount separately and use \
+                    Money(string:currency:).
+                    """
+            }
+
+            return """
+                Expected \(implied.code) but read "\(code)" in "\(text)". \
+                Leave the code out, or write the one this type names.
+                """
+
+        case let .inexactAmount(currency):
+            return """
+                Not an amount \(currency.code) can hold exactly: "\(text)". \
+                Write it to the precision \(currency.code) divides into, as in "499" or "4.99".
                 """
         }
-
-        return """
-            Not an amount \(implied.code) can hold exactly: "\(text)". \
-            Write "499" or "4.99", or name the currency, as in "\(implied.code) 4.99".
-            """
     }
 }

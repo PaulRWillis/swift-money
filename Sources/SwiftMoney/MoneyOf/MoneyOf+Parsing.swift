@@ -113,16 +113,42 @@ func parsedISOAmount(_ string: String) -> (minorUnits: Int64, currency: Currency
     }
 }
 
+// Why a coded string is not an amount. Reported rather than collapsed into `nil`, because the three
+// have three remedies, and telling a caller to write fewer decimals when their currency is the
+// problem sends them the wrong way.
+enum CodedStringError: Error, Equatable {
+    // Nothing named a currency, and this representation cannot supply one.
+    case unnamedCurrency
+
+    // The code names a currency this representation cannot be.
+    case unresolvedCurrency(CurrencyCode)
+
+    // The digits are not a whole number of the smallest units of the currency they are in.
+    case inexactAmount(Currency)
+}
+
 extension MoneyOf {
     // The amount a coded string holds, the currency coming from the code where the string names one
     // and from the representation where it does not. One implementation for both money types, since
     // `Codable` may be conformed to only once.
-    init?(codedString text: String) {
-        guard let parsed = text.withUTF8Buffer({ utf8 -> (Int64, C.Storage)? in
+    init(codedString text: String) throws(CodedStringError) {
+        switch Self.parsed(codedString: text) {
+        case let .success(amount):
+            self.init(unchecked: amount.minorUnits, storage: amount.storage)
+
+        case let .failure(error):
+            throw error
+        }
+    }
+
+    private static func parsed(
+        codedString text: String
+    ) -> Result<(minorUnits: Int64, storage: C.Storage), CodedStringError> {
+        text.withUTF8Buffer { utf8 in
             let (code, digits) = codeAndDigits(utf8)
 
             guard let storage = C.storage(forCode: code) else {
-                return nil
+                return .failure(code.map { .unresolvedCurrency($0) } ?? .unnamedCurrency)
             }
 
             let currency = C.currency(for: storage)
@@ -132,21 +158,17 @@ extension MoneyOf {
                 digits,
                 scale: UInt64(Int64(currency.unitScale))
             ) else {
-                return nil
+                return .failure(.inexactAmount(currency))
             }
 
-            return (amount, storage)
-        }) else {
-            return nil
+            return .success((amount, storage))
         }
-
-        self.init(unchecked: parsed.0, storage: parsed.1)
     }
 }
 
 private extension String {
     // The bytes, lent where they are already contiguous UTF-8 and copied where they are not.
-    func withUTF8Buffer<T>(_ body: (UnsafeBufferPointer<UInt8>) -> T?) -> T? {
+    func withUTF8Buffer<T>(_ body: (UnsafeBufferPointer<UInt8>) -> T) -> T {
         utf8.withContiguousStorageIfAvailable(body) ?? Array(utf8).withUnsafeBufferPointer(body)
     }
 }

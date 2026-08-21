@@ -17,6 +17,7 @@ extension MoneyOf: CustomStringConvertible {
 extension MoneyOf {
     // The code and the amount in one string, which `description` and `Codable` both write. Major
     // units where the scale divides a power of ten, and the smallest units where it does not.
+    @inline(__always)
     func codedString(_ units: MoneyCodingFormat.Units) -> String {
         // Held rather than read twice: reaching it goes through the currency representation.
         let currency = self.currency

@@ -160,24 +160,57 @@ struct MoneyCodableTests {
 
     // MARK: - Errors
 
-    @Test("A refusal says what was wrong and what to write instead")
-    func errorNamesTheRemedy() throws {
-        let error = #expect(throws: DecodingError.self) {
-            try decoded(GBP.self, from: "\"nonsense\"")
-        }
+    // Three failures with three remedies. A caller told to write fewer decimals when their currency
+    // is the problem is sent the wrong way, so each says which thing went wrong.
 
-        let description = String(describing: try #require(error))
+    @Test("An amount the currency cannot hold says so, and names the currency")
+    func refusalForAnInexactAmount() throws {
+        let message = try refusalMessage { try decoded(GBP.self, from: "\"4.999\"") }
 
-        #expect(description.contains("nonsense"))
-        #expect(description.contains("GBP"))
+        #expect(message.contains("4.999"))
+        #expect(message.contains("GBP can hold exactly"))
     }
 
-    @Test("A runtime amount's refusal names the coded form")
-    func runtimeErrorNamesTheCodedForm() throws {
-        let error = #expect(throws: DecodingError.self) {
-            try decoded(Money.self, from: "\"4.99\"")
-        }
+    @Test("A runtime amount names the currency it resolved, rather than saying 'its currency'")
+    func refusalForAnInexactRuntimeAmount() throws {
+        let message = try refusalMessage { try decoded(Money.self, from: "\"GBP 4.999\"") }
 
-        #expect(String(describing: try #require(error)).contains("GBP 499"))
+        #expect(message.contains("GBP can hold exactly"))
     }
+
+    @Test("A code the runtime type cannot resolve says it is unknown, not that the amount is wrong")
+    func refusalForAnUnknownCode() throws {
+        let message = try refusalMessage { try decoded(Money.self, from: "\"LTY 250\"") }
+
+        #expect(message.contains("Unknown currency code \"LTY\""))
+        #expect(!message.contains("hold exactly"))
+    }
+
+    @Test("A code that is not the type's own names both currencies")
+    func refusalForAMismatchedCode() throws {
+        let message = try refusalMessage { try decoded(GBP.self, from: "\"USD 4.99\"") }
+
+        #expect(message.contains("Expected GBP"))
+        #expect(message.contains("\"USD\""))
+    }
+
+    @Test("An amount with no currency at all says that, rather than blaming the digits")
+    func refusalForAnUnnamedCurrency() throws {
+        let message = try refusalMessage { try decoded(Money.self, from: "\"4.99\"") }
+
+        #expect(message.contains("No currency named"))
+        #expect(!message.contains("hold exactly"))
+    }
+}
+
+private func refusalMessage(_ decode: () throws -> some Decodable) throws -> String {
+    let error = #expect(throws: DecodingError.self) { _ = try decode() }
+
+    guard case let .dataCorrupted(context) = try #require(error) else {
+        Issue.record("Expected a dataCorrupted error")
+
+        return ""
+    }
+
+    return context.debugDescription
 }
