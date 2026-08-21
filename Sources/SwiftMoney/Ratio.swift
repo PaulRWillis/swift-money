@@ -67,7 +67,7 @@ public struct Ratio: Equatable, Hashable, Sendable {
 //
 // Zero only when both inputs are zero, which is the one case with no greatest common divisor. Callers
 // holding a `Denominator` cannot reach it, that being at least one.
-fileprivate func greatestCommonDivisor(
+func greatestCommonDivisor(
     of first: UInt64,
     and second: UInt64
 ) -> UInt64 {

@@ -257,12 +257,9 @@ private func minorUnits(
         return Int64(magnitude: whole, sign: isNegative ? .negative : .positive)
     }
 
-    guard let scaled = fraction.multipliedExactly(by: scale),
-          // A remainder means the string is finer than the currency divides, as "GBP 4.999" is, and
-          // rounding it away here would be losing money quietly.
-          scaled.isMultiple(of: power),
+    guard let scaledFraction = fraction.scaled(by: scale, over: power),
           let major = whole.multipliedExactly(by: scale),
-          let magnitude = major.addedExactly(scaled / power)
+          let magnitude = major.addedExactly(scaledFraction)
     else {
         return nil
     }
@@ -271,6 +268,41 @@ private func minorUnits(
 }
 
 private extension UInt64 {
+    // `self * scale / power`, where `self` is a fraction below `power`. `nil` where the division
+    // leaves a remainder, the string then being finer than the currency divides, as "GBP 4.999" is:
+    // rounding it away here would be losing money quietly.
+    //
+    // Multiplying first is right until it overflows, which eighteen fraction digits reach. That is
+    // not an exotic input: a sender padding "4.99" to eighteen places is writing an amount sterling
+    // holds exactly, and it used to be refused.
+    func scaled(
+        by scale: UInt64,
+        over power: UInt64
+    ) -> UInt64? {
+        let (product, overflow) = multipliedReportingOverflow(by: scale)
+
+        guard overflow else {
+            return product.isMultiple(of: power) ? product / power : nil
+        }
+
+        return reduced(by: scale, over: power)
+    }
+
+    // Out of line so that the caller above stays small enough to inline: holding this beside it cost
+    // every parse sixteen instructions, for a branch almost nothing takes.
+    @inline(never)
+    func reduced(
+        by scale: UInt64,
+        over power: UInt64
+    ) -> UInt64? {
+        // Reducing the two before multiplying holds every intermediate below `scale`, the fraction
+        // being below `power`.
+        let common = greatestCommonDivisor(of: power, and: scale)
+        let divisor = power / common
+
+        return isMultiple(of: divisor) ? self / divisor * (scale / common) : nil
+    }
+
     func multipliedExactly(by other: UInt64) -> UInt64? {
         let (product, overflow) = multipliedReportingOverflow(by: other)
 
