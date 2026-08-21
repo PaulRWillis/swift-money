@@ -26,7 +26,7 @@ public struct MoneyCodingFormat: Sendable, Equatable, Hashable {
         case majorUnits
     }
 
-    /// How the amount is written in the field form.
+    /// How the amount itself is written.
     public enum Amount: Sendable, Equatable, Hashable {
         /// `499`, a JSON number of the currency's smallest units.
         case number
@@ -38,6 +38,7 @@ public struct MoneyCodingFormat: Sendable, Equatable, Hashable {
     enum Shape: Sendable, Equatable, Hashable {
         case codedString(Units)
         case fields(currencyKey: String, amountKey: String, amount: Amount)
+        case amountOnly(Amount)
     }
 
     let shape: Shape
@@ -78,6 +79,30 @@ public struct MoneyCodingFormat: Sendable, Equatable, Hashable {
         amount: Amount = .number
     ) -> MoneyCodingFormat {
         MoneyCodingFormat(shape: .fields(currencyKey: currencyKey, amountKey: amountKey, amount: amount))
+    }
+
+    /// The amount alone, `499`, for a currency the type already names.
+    ///
+    /// ```swift
+    /// struct Product: Codable { let price: GBP }
+    ///
+    /// try encoder.encode(product)   // {"price": 499}
+    /// ```
+    ///
+    /// Nothing written this way says which currency it is in, so the type has to. Asking a ``Money``
+    /// for this shape throws, its currency being known only at runtime.
+    public static let amountOnly = MoneyCodingFormat(shape: .amountOnly(.number))
+
+    /// The amount alone, written as a number or a string.
+    ///
+    /// ```swift
+    /// .amountOnly(.string(.minorUnits))   // "499"
+    /// .amountOnly(.string(.majorUnits))   // "4.99"
+    /// ```
+    ///
+    /// - Parameter amount: How the amount is written.
+    public static func amountOnly(_ amount: Amount) -> MoneyCodingFormat {
+        MoneyCodingFormat(shape: .amountOnly(amount))
     }
 }
 

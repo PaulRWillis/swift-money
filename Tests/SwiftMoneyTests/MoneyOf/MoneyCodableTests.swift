@@ -206,6 +206,78 @@ struct MoneyCodableTests {
         }
     }
 
+    // MARK: - The amount alone
+
+    @Test("An amount alone is written as named, and carries no currency")
+    func encodesAsAnAmountAlone() throws {
+        let price = GBP(minorUnits: 4_99)
+
+        #expect(try json(price, .amountOnly) == "499")
+        #expect(try json(price, .amountOnly(.string(.minorUnits))) == "\"499\"")
+        #expect(try json(price, .amountOnly(.string(.majorUnits))) == "\"4.99\"")
+    }
+
+    @Test("An amount alone sits under a key belonging to the model around it")
+    func roundTripsAnAmountAloneWithinAModel() throws {
+        struct Product: Codable, Equatable {
+            let price: GBP
+        }
+
+        let product = Product(price: GBP(minorUnits: 4_00))
+        let encoded = try encoder(.amountOnly).encode(product)
+
+        #expect(String(decoding: encoded, as: UTF8.self) == #"{"price":400}"#)
+        #expect(try decoder(.amountOnly).decode(Product.self, from: encoded) == product)
+    }
+
+    @Test("A bare amount reads as the currency's smallest units, whatever is configured")
+    func decodesABareAmount() throws {
+        #expect(try decoded(GBP.self, from: "499", .amountOnly) == GBP(minorUnits: 4_99))
+        #expect(try decoded(GBP.self, from: "499") == GBP(minorUnits: 4_99))
+        #expect(try decoded(GBP.self, from: "499", .fields) == GBP(minorUnits: 4_99))
+        #expect(try decoded(GBP.self, from: "-499") == GBP(minorUnits: -4_99))
+    }
+
+    @Test("A currency with no exact decimal writes its smallest units alone")
+    func encodesAnAmountAloneWithoutAnExactDecimal() throws {
+        let sevenPence = MoneyOf<OldSterling>(minorUnits: 7)
+
+        #expect(try json(sevenPence, .amountOnly(.string(.majorUnits))) == "\"7\"")
+    }
+
+    @Test("A runtime amount refuses to write an amount alone, naming the remedy")
+    func refusesToEncodeARuntimeAmountAlone() throws {
+        let message = try encodingRefusalMessage {
+            try encoder(.amountOnly).encode(Money(minorUnits: 4_99, currency: .gbp))
+        }
+
+        #expect(message.contains("does not say which currency"))
+        #expect(message.contains("codedString or fields"))
+    }
+
+    @Test("A runtime amount refuses to read an amount alone, naming the remedy")
+    func refusesToDecodeARuntimeAmountAlone() throws {
+        let message = try refusalMessage { try decoded(Money.self, from: "499", .amountOnly) }
+
+        #expect(message.contains("No currency named"))
+        #expect(!message.contains("hold exactly"))
+    }
+
+    @Test("An amount alone round trips both spellings")
+    func roundTripsAnAmountAlone() throws {
+        let formats: [MoneyCodingFormat] = [
+            .amountOnly,
+            .amountOnly(.string(.minorUnits)),
+            .amountOnly(.string(.majorUnits)),
+        ]
+
+        for format in formats {
+            let typed = GBP(minorUnits: -4_99)
+
+            #expect(try decoder(format).decode(GBP.self, from: encoder(format).encode(typed)) == typed)
+        }
+    }
+
     // MARK: - Round trip
 
     @Test("Every amount this library writes, it reads back")
@@ -294,6 +366,18 @@ struct MoneyCodableTests {
         #expect(message.contains("No currency named"))
         #expect(!message.contains("hold exactly"))
     }
+}
+
+private func encodingRefusalMessage(_ encode: () throws -> Data) throws -> String {
+    let error = #expect(throws: EncodingError.self) { _ = try encode() }
+
+    guard case let .invalidValue(_, context) = try #require(error) else {
+        Issue.record("Expected an invalidValue error")
+
+        return ""
+    }
+
+    return context.debugDescription
 }
 
 private func refusalMessage(_ decode: () throws -> some Decodable) throws -> String {
