@@ -10,11 +10,19 @@ extension MoneyOf: CustomStringConvertible {
     /// currency's does. Where it does not, the currency's smallest units, no exact decimal being
     /// available: a pound of 240 pence cannot write seven of them.
     public var description: String {
+        codedString(.majorUnits)
+    }
+}
+
+extension MoneyOf {
+    // The code and the amount in one string, which `description` and `Codable` both write. Major
+    // units where the scale divides a power of ten, and the smallest units where it does not.
+    func codedString(_ units: MoneyCodingFormat.Units) -> String {
         // Held rather than read twice: reaching it goes through the currency representation.
         let currency = self.currency
         let scale = UInt64(Int64(currency.unitScale))
         let magnitude = minorUnits.magnitude
-        let places = scale > 1 ? scale.exactDecimalPlaces ?? 0 : 0
+        let places = units == .majorUnits && scale > 1 ? scale.exactDecimalPlaces ?? 0 : 0
 
         // Dividing before multiplying is what keeps this inside a `UInt64`: the scale divides
         // `10 ^ places` exactly, so the multiplier is whole and the product stays under `10 ^ places`.
