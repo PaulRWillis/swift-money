@@ -122,8 +122,7 @@ private extension String {
 
 // The code a string leads with and the digits that follow. Where no code is found the whole string
 // is digits, which is the spelling a caller who already knows the currency may use.
-@usableFromInline
-func codeAndDigits(
+private func codeAndDigits(
     _ utf8: UnsafeBufferPointer<UInt8>
 ) -> (code: CurrencyCode?, digits: Slice<UnsafeBufferPointer<UInt8>>) {
     guard let leading = CurrencyCode.leading(in: utf8) else {
@@ -136,8 +135,7 @@ func codeAndDigits(
 // The amount a run of bytes holds, in the smallest units of a currency of `scale`. One pass: the
 // decimal point is met rather than searched for, and the power of ten it implies is accumulated
 // alongside the digits it counts.
-@usableFromInline
-func minorUnits(
+private func minorUnits(
     _ utf8: Slice<UnsafeBufferPointer<UInt8>>,
     scale: UInt64
 ) -> Int64? {
@@ -219,33 +217,16 @@ func minorUnits(
     return Int64(magnitude: magnitude, sign: isNegative ? .negative : .positive)
 }
 
-extension UInt64 {
-    @usableFromInline
+private extension UInt64 {
     func multipliedExactly(by other: UInt64) -> UInt64? {
         let (product, overflow) = multipliedReportingOverflow(by: other)
 
         return overflow ? nil : product
     }
 
-    @usableFromInline
     func addedExactly(_ other: UInt64) -> UInt64? {
         let (sum, overflow) = addingReportingOverflow(other)
 
         return overflow ? nil : sum
-    }
-
-    @usableFromInline
-    static func powerOfTen(exactly exponent: Int) -> UInt64? {
-        var power: UInt64 = 1
-
-        for _ in 0 ..< exponent {
-            guard let raised = power.multipliedExactly(by: 10) else {
-                return nil
-            }
-
-            power = raised
-        }
-
-        return power
     }
 }
