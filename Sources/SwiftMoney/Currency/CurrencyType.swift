@@ -10,22 +10,19 @@ public protocol CurrencyRepresentation: Sendable {
     /// The currency an amount is denominated in, given what it carries.
     static func currency(for storage: Storage) -> Currency
 
-    /// The currency an amount is in when nothing else names one, or `nil` where only a name can say.
+    /// What an amount carries in order to be in the currency a code names, or `nil` where this
+    /// representation cannot be that currency.
     ///
-    /// A currency fixed at compile time answers with itself, so `"4.99"` is a complete amount. One
-    /// only known at runtime answers `nil`, so the same string is not.
-    static var impliedCurrency: Currency? { get }
-
-    /// What an amount carries in order to be denominated in `currency`, or `nil` if it cannot be.
+    /// The inverse of ``currency(for:)``. ``CurrencyType`` supplies it, so defining a currency does
+    /// not mean writing one.
     ///
-    /// The inverse of ``currency(for:)``. A currency fixed at compile time accepts only its own.
-    static func storage(for currency: Currency) -> Storage?
+    /// - Parameter code: The code naming the currency, or `nil` where nothing named one, in which
+    ///   case only a representation that fixes a currency of its own can answer.
+    static func storage(forCode code: CurrencyCode?) -> Storage?
 }
 
 public extension CurrencyRepresentation {
-    static var impliedCurrency: Currency? { nil }
-
-    static func storage(for _: Currency) -> Storage? { nil }
+    static func storage(forCode _: CurrencyCode?) -> Storage? { nil }
 }
 
 /// A currency fixed at compile time, so that mixing two of them is a compile error.
@@ -50,10 +47,9 @@ public extension CurrencyType {
     @inlinable
     static func currency(for _: Currency.Implied) -> Currency { currency }
 
-    static var impliedCurrency: Currency? { currency }
-
-    static func storage(for currency: Currency) -> Currency.Implied? {
-        currency == Self.currency ? .implied : nil
+    @inlinable
+    static func storage(forCode code: CurrencyCode?) -> Currency.Implied? {
+        code == nil || code == currency.code ? .implied : nil
     }
 }
 
@@ -66,7 +62,10 @@ public enum AnyCurrency: CurrencyRepresentation {
     @inlinable
     public static func currency(for storage: Currency) -> Currency { storage }
 
-    public static func storage(for currency: Currency) -> Currency? { currency }
+    @inlinable
+    public static func storage(forCode code: CurrencyCode?) -> Currency? {
+        code.flatMap(Currency.init(iso:))
+    }
 
     @usableFromInline
     static func requireMatch(

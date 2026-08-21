@@ -1,25 +1,32 @@
 /// The shape an amount takes on the wire.
 ///
-/// Set it on a coder to change what is written. Anything this library can write, it can also read,
-/// and it reads the other shapes too, so a format is needed only where the default is not wanted.
+/// Nothing has to set one. An amount writes `"GBP 499"` and reads back every shape this library
+/// writes, so a format is only for matching an API that wants something else.
 ///
 /// ```swift
-/// let encoder = JSONEncoder()
-/// encoder.userInfo[.moneyCodingFormat] = MoneyCodingFormat.codedString(.majorUnits)
+/// coder.userInfo[.moneyCodingFormat] = MoneyCodingFormat.codedString(.majorUnits)
 ///
-/// try encoder.encode(GBP(minorUnits: 4_99))   // "GBP 4.99"
+/// GBP(minorUnits: 4_99)   // "GBP 4.99" rather than "GBP 499"
 /// ```
-public struct MoneyCodingFormat: Sendable, Equatable {
+public struct MoneyCodingFormat: Sendable, Equatable, Hashable {
     /// Which units the digits count.
-    public enum Units: Sendable, Equatable {
-        /// `499`, the currency's smallest units.
+    ///
+    /// ```swift
+    /// .minorUnits   // 499
+    /// .majorUnits   // 4.99
+    /// ```
+    public enum Units: Sendable, Equatable, Hashable {
+        /// The currency's smallest units, so pence rather than pounds.
         case minorUnits
 
-        /// `4.99`, whole units and a fraction.
+        /// Whole units and a fraction, so pounds and pence.
+        ///
+        /// A currency whose scale writes no exact decimal, such as a pound of 240 pence, falls back
+        /// to its smallest units.
         case majorUnits
     }
 
-    enum Shape: Sendable, Equatable {
+    enum Shape: Sendable, Equatable, Hashable {
         case codedString(Units)
     }
 

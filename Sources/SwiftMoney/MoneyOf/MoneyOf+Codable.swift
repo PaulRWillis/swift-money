@@ -2,10 +2,11 @@ extension MoneyOf: Codable {
     /// Writes the amount and its currency as one string.
     ///
     /// ```swift
-    /// try JSONEncoder().encode(GBP(minorUnits: 4_99))   // "GBP 499"
+    /// GBP(minorUnits: 4_99)                        // "GBP 499"
+    /// Money(minorUnits: 499, currency: .jpy)       // "JPY 499"
     /// ```
     ///
-    /// Set ``CodingUserInfoKey/moneyCodingFormat`` on the encoder to write another shape.
+    /// Give the encoder a ``MoneyCodingFormat`` to write a different shape.
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.singleValueContainer()
 
@@ -15,17 +16,18 @@ extension MoneyOf: Codable {
         }
     }
 
-    /// Reads an amount from a string.
+    /// Reads an amount from a string, in any form this library writes.
     ///
     /// ```swift
-    /// try JSONDecoder().decode(GBP.self, from: Data(#""GBP 499""#.utf8))    // £4.99
-    /// try JSONDecoder().decode(GBP.self, from: Data(#""4.99""#.utf8))       // £4.99
-    /// try JSONDecoder().decode(Money.self, from: Data(#""GBP 4.99""#.utf8)) // £4.99
+    /// "GBP 499"    // £4.99, into GBP or into Money
+    /// "GBP 4.99"   // £4.99, into GBP or into Money
+    /// "499"        // £4.99, into GBP only
+    /// "4.99"       // £4.99, into GBP only
     /// ```
     ///
-    /// Either spelling is read whatever the encoder was told to write. A `.` means major units and
-    /// no `.` means the currency's smallest units. The code may be left out only where the type
-    /// names the currency, and must match where it is given.
+    /// A `.` means major units and no `.` means the currency's smallest units, so no format has to
+    /// be set to read either. The code may be left out only where the type names the currency, and
+    /// must match where it is given.
     ///
     /// - Throws: `DecodingError.dataCorrupted` if the string is not an amount this currency can
     ///   hold exactly.
@@ -43,29 +45,13 @@ extension MoneyOf: Codable {
         self = amount
     }
 
-    // The currency comes from the type where it names one, and from the string where it does not.
-    init?(codedString text: String) {
-        if let implied = C.impliedCurrency {
-            guard let minorUnits = parsedMinorUnits(text, in: implied),
-                  let storage = C.storage(for: implied)
-            else {
-                return nil
-            }
-
-            self.init(unchecked: minorUnits, storage: storage)
-        } else {
-            guard let parsed = parsedISOAmount(text),
-                  let storage = C.storage(for: parsed.currency)
-            else {
-                return nil
-            }
-
-            self.init(unchecked: parsed.minorUnits, storage: storage)
-        }
+    // The currency every amount of this type is in, where its representation fixes one.
+    private static var impliedCurrency: Currency? {
+        C.storage(forCode: nil).map(C.currency(for:))
     }
 
-    static func refusal(for text: String) -> String {
-        guard let implied = C.impliedCurrency else {
+    private static func refusal(for text: String) -> String {
+        guard let implied = impliedCurrency else {
             return """
                 Not an amount an ISO 4217 currency can hold exactly: "\(text)". \
                 Write the code and the amount, as in "GBP 499" or "GBP 4.99".

@@ -113,6 +113,37 @@ func parsedISOAmount(_ string: String) -> (minorUnits: Int64, currency: Currency
     }
 }
 
+extension MoneyOf {
+    // The amount a coded string holds, the currency coming from the code where the string names one
+    // and from the representation where it does not. One implementation for both money types, since
+    // `Codable` may be conformed to only once.
+    init?(codedString text: String) {
+        guard let parsed = text.withUTF8Buffer({ utf8 -> (Int64, C.Storage)? in
+            let (code, digits) = codeAndDigits(utf8)
+
+            guard let storage = C.storage(forCode: code) else {
+                return nil
+            }
+
+            let currency = C.currency(for: storage)
+
+            // Qualified, because the stored property of the same name shadows the function here.
+            guard let amount = SwiftMoney.minorUnits(
+                digits,
+                scale: UInt64(Int64(currency.unitScale))
+            ) else {
+                return nil
+            }
+
+            return (amount, storage)
+        }) else {
+            return nil
+        }
+
+        self.init(unchecked: parsed.0, storage: parsed.1)
+    }
+}
+
 private extension String {
     // The bytes, lent where they are already contiguous UTF-8 and copied where they are not.
     func withUTF8Buffer<T>(_ body: (UnsafeBufferPointer<UInt8>) -> T?) -> T? {
@@ -121,7 +152,7 @@ private extension String {
 }
 
 // The code a string leads with and the digits that follow. Where no code is found the whole string
-// is digits, which is the spelling a caller who already knows the currency may use.
+// is digits, which is the form a caller who already knows the currency may use.
 private func codeAndDigits(
     _ utf8: UnsafeBufferPointer<UInt8>
 ) -> (code: CurrencyCode?, digits: Slice<UnsafeBufferPointer<UInt8>>) {

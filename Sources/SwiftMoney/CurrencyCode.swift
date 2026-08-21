@@ -199,11 +199,10 @@ public extension String {
 }
 
 extension CurrencyCode: Codable {
-    /// Writes the code as a string.
+    /// Writes the code as a string, uppercased.
     ///
     /// ```swift
-    /// let code = CurrencyCode(string: "gbp")
-    /// try JSONEncoder().encode(code)   // "GBP"
+    /// CurrencyCode(string: "gbp")   // "GBP"
     /// ```
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.singleValueContainer()
@@ -213,10 +212,12 @@ extension CurrencyCode: Codable {
 
     /// Reads a code from a string.
     ///
+    /// Use it where an API sends the currency in a field of its own.
+    ///
     /// ```swift
     /// struct Payment: Decodable {
-    ///     let currency: CurrencyCode   // "GBP"
-    ///     let amount: Int64
+    ///     let currency: CurrencyCode
+    ///     let amount: Money
     /// }
     /// ```
     ///
