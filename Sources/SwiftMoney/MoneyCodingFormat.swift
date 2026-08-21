@@ -26,8 +26,18 @@ public struct MoneyCodingFormat: Sendable, Equatable, Hashable {
         case majorUnits
     }
 
+    /// How the amount is written in the field form.
+    public enum Amount: Sendable, Equatable, Hashable {
+        /// `499`, a JSON number of the currency's smallest units.
+        case number
+
+        /// `"499"` or `"4.99"`, a JSON string in the units named.
+        case string(Units)
+    }
+
     enum Shape: Sendable, Equatable, Hashable {
         case codedString(Units)
+        case fields(currencyKey: String, amountKey: String, amount: Amount)
     }
 
     let shape: Shape
@@ -46,6 +56,48 @@ public struct MoneyCodingFormat: Sendable, Equatable, Hashable {
     public static func codedString(_ units: Units) -> MoneyCodingFormat {
         MoneyCodingFormat(shape: .codedString(units))
     }
+
+    /// The code and the amount in two fields, `{"currency": "GBP", "amount": 499}`.
+    public static let fields = MoneyCodingFormat.fields()
+
+    /// The code and the amount in two fields, under the keys an API uses.
+    ///
+    /// ```swift
+    /// .fields()                                        // {"currency": "GBP", "amount": 499}
+    /// .fields(amount: .string(.majorUnits))            // {"currency": "GBP", "amount": "4.99"}
+    /// .fields(currencyKey: "ccy", amountKey: "value")  // {"ccy": "GBP", "value": 499}
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - currencyKey: The key the currency code is written under.
+    ///   - amountKey: The key the amount is written under.
+    ///   - amount: How the amount is written.
+    public static func fields(
+        currencyKey: String = "currency",
+        amountKey: String = "amount",
+        amount: Amount = .number
+    ) -> MoneyCodingFormat {
+        MoneyCodingFormat(shape: .fields(currencyKey: currencyKey, amountKey: amountKey, amount: amount))
+    }
+}
+
+// A key an API names, rather than one this library fixes.
+struct MoneyCodingKey: CodingKey {
+    let stringValue: String
+
+    var intValue: Int? { nil }
+
+    init(_ stringValue: String) {
+        self.stringValue = stringValue
+    }
+
+    init?(stringValue: String) {
+        self.init(stringValue)
+    }
+
+    init?(intValue _: Int) {
+        nil
+    }
 }
 
 public extension CodingUserInfoKey {
@@ -61,6 +113,18 @@ public extension CodingUserInfoKey {
 
         return key
     }()
+}
+
+extension MoneyCodingFormat {
+    // The keys a field payload uses. Reading needs these whatever shape was set for writing, since
+    // nothing but the format can say what an API calls them.
+    var fieldKeys: (currency: MoneyCodingKey, amount: MoneyCodingKey) {
+        guard case let .fields(currencyKey, amountKey, _) = shape else {
+            return (MoneyCodingKey("currency"), MoneyCodingKey("amount"))
+        }
+
+        return (MoneyCodingKey(currencyKey), MoneyCodingKey(amountKey))
+    }
 }
 
 extension Decoder {

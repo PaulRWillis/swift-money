@@ -113,6 +113,99 @@ struct MoneyCodableTests {
         #expect(try decoded(GBP.self, from: "\"GBP 4.99\"", .codedString) == GBP(minorUnits: 4_99))
     }
 
+    // MARK: - The field form
+
+    @Test("Two fields are written under the keys the format names")
+    func encodesAsFields() throws {
+        let price = GBP(minorUnits: 4_99)
+
+        #expect(try json(price, .fields) == #"{"amount":499,"currency":"GBP"}"#)
+        #expect(try json(price, .fields(amount: .string(.minorUnits))) == #"{"amount":"499","currency":"GBP"}"#)
+        #expect(try json(price, .fields(amount: .string(.majorUnits))) == #"{"amount":"4.99","currency":"GBP"}"#)
+        #expect(
+            try json(price, .fields(currencyKey: "ccy", amountKey: "value")) == #"{"ccy":"GBP","value":499}"#
+        )
+    }
+
+    @Test("A runtime amount writes its own currency into the field")
+    func encodesARuntimeAmountAsFields() throws {
+        let price = Money(minorUnits: 499, currency: .jpy)
+
+        #expect(try json(price, .fields) == #"{"amount":499,"currency":"JPY"}"#)
+    }
+
+    @Test(
+        "An amount field reads as a number or as a string, in either units",
+        arguments: [#"{"currency":"GBP","amount":499}"#,
+                    #"{"currency":"GBP","amount":"499"}"#,
+                    #"{"currency":"GBP","amount":"4.99"}"#]
+    )
+    func decodesFields(_ text: String) throws {
+        #expect(try decoded(GBP.self, from: text, .fields) == GBP(minorUnits: 4_99))
+        #expect(try decoded(Money.self, from: text, .fields) == Money(minorUnits: 4_99, currency: .gbp))
+    }
+
+    @Test("A currency field may be left out where the type names the currency")
+    func decodesFieldsWithoutACurrency() throws {
+        #expect(try decoded(GBP.self, from: #"{"amount":499}"#, .fields) == GBP(minorUnits: 4_99))
+        #expect(throws: DecodingError.self) {
+            try decoded(Money.self, from: #"{"amount":499}"#, .fields)
+        }
+    }
+
+    @Test("Non-default keys read back")
+    func decodesNonDefaultKeys() throws {
+        let format = MoneyCodingFormat.fields(currencyKey: "ccy", amountKey: "value")
+
+        #expect(try decoded(GBP.self, from: #"{"ccy":"GBP","value":499}"#, format) == GBP(minorUnits: 4_99))
+    }
+
+    @Test("Each shape reads whichever the other was configured for")
+    func readsTheShapeItWasNotConfiguredFor() throws {
+        let expected = GBP(minorUnits: 4_99)
+
+        #expect(try decoded(GBP.self, from: #"{"currency":"GBP","amount":499}"#, .codedString) == expected)
+        #expect(try decoded(GBP.self, from: "\"GBP 499\"", .fields) == expected)
+    }
+
+    @Test("A field amount the currency cannot hold is refused, naming the currency")
+    func refusesAnInexactFieldAmount() throws {
+        let message = try refusalMessage {
+            try decoded(GBP.self, from: #"{"currency":"GBP","amount":"4.999"}"#, .fields)
+        }
+
+        #expect(message.contains("GBP can hold exactly"))
+    }
+
+    @Test("A field currency that is not the type's own is refused")
+    func refusesAMismatchedFieldCurrency() throws {
+        let message = try refusalMessage {
+            try decoded(GBP.self, from: #"{"currency":"USD","amount":499}"#, .fields)
+        }
+
+        #expect(message.contains("Expected GBP"))
+    }
+
+    @Test("Both shapes round trip both money types, whichever is configured")
+    func roundTripsEveryShape() throws {
+        let formats: [MoneyCodingFormat] = [
+            .codedString,
+            .codedString(.majorUnits),
+            .fields,
+            .fields(amount: .string(.minorUnits)),
+            .fields(amount: .string(.majorUnits)),
+            .fields(currencyKey: "ccy", amountKey: "value"),
+        ]
+
+        for format in formats {
+            let typed = GBP(minorUnits: -4_99)
+            let runtime = Money(minorUnits: 1, currency: .kwd)
+
+            #expect(try decoder(format).decode(GBP.self, from: encoder(format).encode(typed)) == typed)
+            #expect(try decoder(format).decode(Money.self, from: encoder(format).encode(runtime)) == runtime)
+        }
+    }
+
     // MARK: - Round trip
 
     @Test("Every amount this library writes, it reads back")

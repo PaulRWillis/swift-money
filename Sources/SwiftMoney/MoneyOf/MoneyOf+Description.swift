@@ -17,6 +17,9 @@ extension MoneyOf: CustomStringConvertible {
 extension MoneyOf {
     // The code and the amount in one string, which `description` and `Codable` both write. Major
     // units where the scale divides a power of ten, and the smallest units where it does not.
+    //
+    // Inlined because both callers pass a literal, which lets the units test fold away entirely.
+    // Without this it costs `description` nine instructions.
     @inline(__always)
     func codedString(_ units: MoneyCodingFormat.Units) -> String {
         // Held rather than read twice: reaching it goes through the currency representation.
@@ -58,6 +61,17 @@ extension MoneyOf {
 
             return offset
         }
+    }
+
+    // The amount alone, for a wire form carrying the currency in a field of its own.
+    //
+    // Trimmed from the coded string rather than written by a second buffer pass. Three attempts at
+    // sharing one writer between the two, a flag, a layout struct, and an inlined layout struct,
+    // each cost `description` between 9 and 95 instructions, because what they share sits inside the
+    // buffer closure where a constant does not reach. This costs one extra allocation on a path that
+    // runs inside a coder costing twenty thousand instructions, and leaves `description` untouched.
+    func amountText(_ units: MoneyCodingFormat.Units) -> String {
+        String(codedString(units).dropFirst(currency.code.utf8Count + 1))
     }
 }
 
