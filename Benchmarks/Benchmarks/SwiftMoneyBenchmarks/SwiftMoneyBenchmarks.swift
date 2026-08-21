@@ -495,9 +495,12 @@ let benchmarks: @Sendable () -> Void = {
 
     // Every variant hands `blackHole` a `Bool`, so the harness costs the same in each and what
     // separates them is the parse.
+    //
+    // Every variant also reads the same three digits, since parsing costs more the more digits it
+    // is given: `Int64` reads 91 over three and 70 over one or two.
     let amountStrings = operands.map { "GBP 4.\($0 < 10 ? "0" : "")\($0)" }
     let bareStrings = operands.map { "4.\($0 < 10 ? "0" : "")\($0)" }
-    let operandStrings = operands.map(String.init)
+    let minorUnitStrings = operands.map { "4\($0 < 10 ? "0" : "")\($0)" }
 
     Benchmark("Money parsing", configuration: defaultConfiguration) { benchmark in
         var index = 0
@@ -521,7 +524,7 @@ let benchmarks: @Sendable () -> Void = {
         var index = 0
 
         for _ in benchmark.scaledIterations {
-            blackHole(Int64(operandStrings[index % operandStrings.count]) != nil)
+            blackHole(Int64(minorUnitStrings[index % minorUnitStrings.count]) != nil)
             index &+= 1
         }
     }
