@@ -4,7 +4,9 @@
 Two things go in, between marker comments the document already carries: the raw per-benchmark tables,
 and a summary pairing each operation against the alternative it is competing with.
 
-Usage:
+`BENCHMARKS.md` lives on the orphan `assets` branch, so fetch a copy before folding into it:
+
+    git show origin/assets:BENCHMARKS.md > BENCHMARKS.md
     swift package --package-path Benchmarks benchmark run --format markdown --path stdout \
         > results.md
     python3 Benchmarks/summarise.py results.md BENCHMARKS.md

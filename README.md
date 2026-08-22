@@ -4,7 +4,7 @@
 [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2FPaulRWillis%2Fswift-money%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/PaulRWillis/swift-money)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![CI](https://github.com/PaulRWillis/swift-money/actions/workflows/swift-macos-build.yml/badge.svg)](https://github.com/PaulRWillis/swift-money/actions/workflows/swift-macos-build.yml)
-[![coverage](.github/badges/coverage.svg)](https://github.com/PaulRWillis/swift-money/actions/workflows/swift-code-coverage.yml)
+[![coverage](https://raw.githubusercontent.com/PaulRWillis/swift-money/assets/coverage.svg)](https://github.com/PaulRWillis/swift-money/actions/workflows/swift-code-coverage.yml)
 
 Type-safe money for Swift. `SwiftMoney` stores monetary values as integer minor units (`Int64`)
 with the currency locked at compile time, eliminating floating-point rounding errors entirely.
@@ -356,7 +356,7 @@ SwiftMoney's `Int64` minor-unit arithmetic is significantly faster than `Foundat
 - **JSON encoding**: faster with `.minorUnits` strategy (bare integer vs string round-trip)
 - **Formatting**: comparable — both delegate to Foundation's ICU number formatter
 
-See **[BENCHMARKS.md](BENCHMARKS.md)** for the full side-by-side comparison, analysis, and detailed
+See **[BENCHMARKS.md](https://github.com/PaulRWillis/swift-money/blob/assets/BENCHMARKS.md)** for the full side-by-side comparison, analysis, and detailed
 percentile tables.
 
 Run benchmarks locally:

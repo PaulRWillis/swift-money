@@ -18,8 +18,13 @@ jobs:
 
     steps:
     - uses: actions/checkout@v6
+
+    # `BENCHMARKS.md` lives on the orphan `assets` branch, so updating it never touches main and
+    # the default GITHUB_TOKEN is enough.
+    - uses: actions/checkout@v6
       with:
-        token: ${{ secrets.BENCHMARK_PAT }}
+        ref: assets
+        path: assets-branch
 
     - name: Install jemalloc
       run: sudo apt-get install -y libjemalloc-dev
@@ -59,22 +64,21 @@ jobs:
           exit 0
         fi
 
-        python3 Benchmarks/summarise.py benchmark_results.md BENCHMARKS.md
-
-    - name: Check for changes
-      id: changes
-      run: |
-        if git diff --quiet BENCHMARKS.md; then
-          echo "changed=false" >> $GITHUB_OUTPUT
-        else
-          echo "changed=true" >> $GITHUB_OUTPUT
-        fi
+        python3 Benchmarks/summarise.py benchmark_results.md assets-branch/BENCHMARKS.md
 
     - name: Commit and push
-      if: steps.changes.outputs.changed == 'true'
       run: |
+        cd assets-branch
+
+        if git diff --quiet; then
+          echo "Benchmark results unchanged."
+          exit 0
+        fi
+
         git config user.name "github-actions[bot]"
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
         git add BENCHMARKS.md
-        git commit -m "docs(benchmarks): update benchmark results [skip ci]"
+        git commit -m "docs(benchmarks): update benchmark results"
+        # The coverage workflow pushes to the same branch, so pick up its commit first.
+        git pull --rebase
         git push
