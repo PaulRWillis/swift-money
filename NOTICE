@@ -1,0 +1,16 @@
+SwiftMoney
+Copyright (c) 2025-2026 Tyneside Tech Ltd
+
+Licensed under the Apache License, Version 2.0.
+
+This product includes implementation techniques adapted from FixedPoint
+(https://github.com/ordo-one/FixedPoint), licensed under the Apache
+License, Version 2.0.
+
+Parts of the string parsing follow the Swift standard library
+(https://github.com/swiftlang/swift), Copyright (c) Apple Inc. and the
+Swift project authors, licensed under the Apache License, Version 2.0
+with Runtime Library Exception (https://swift.org/LICENSE.txt).
+
+The ISO 4217 currency data is generated from list-one.xml, published by
+SIX Group AG in its role as the ISO 4217 maintenance agency.
