@@ -11,3 +11,6 @@ release-plan.md
 settings.json
 __pycache__/
 Benchmarks/.benchmarkBaselines
+
+# Coverage/run.sh --badge writes here locally; CI publishes it to the assets branch.
+.github/badges/

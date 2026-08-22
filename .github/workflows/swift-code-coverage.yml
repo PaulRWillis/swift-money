@@ -17,11 +17,8 @@ jobs:
     timeout-minutes: 60
 
     steps:
-    # A PAT rather than GITHUB_TOKEN, because the badge commit below pushes to main. Same token the
-    # benchmark results commit uses.
     - uses: actions/checkout@v6
       with:
-        token: ${{ secrets.BENCHMARK_PAT }}
         # Diff coverage needs the base branch, so the default shallow clone will not do.
         fetch-depth: 0
 
@@ -66,16 +63,29 @@ jobs:
           gh pr comment "$PR" --body "$body"
         fi
 
-    - name: Commit the badge
+    # The badge lives on the orphan `assets` branch, so publishing it never touches main and the
+    # default GITHUB_TOKEN is enough. No `[skip ci]` needed: nothing triggers on `assets`.
+    - uses: actions/checkout@v6
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      with:
+        ref: assets
+        path: assets-branch
+
+    - name: Publish the badge
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       run: |
-        if git diff --quiet .github/badges/coverage.svg; then
+        cp .github/badges/coverage.svg assets-branch/coverage.svg
+        cd assets-branch
+
+        if git diff --quiet; then
           echo "Badge unchanged."
           exit 0
         fi
 
         git config user.name "github-actions[bot]"
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-        git add .github/badges/coverage.svg
-        git commit -m "docs(coverage): update coverage badge [skip ci]"
+        git add coverage.svg
+        git commit -m "docs(coverage): update coverage badge"
+        # The benchmark workflow pushes to the same branch, so pick up its commit first.
+        git pull --rebase
         git push
