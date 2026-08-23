@@ -564,7 +564,7 @@ let benchmarks: @Sendable () -> Void = {
 
     // MARK: - What the library's own choices cost
 
-    // `Money` throws where `MoneyOf` traps, so this is the price of typed throws — a currency check and
+    // `Money` throws where `MoneyOf` traps, so this is the price of typed throws: a currency check and
     // an error return path that never fires. `BenchmarkClosure` cannot throw, hence the surrounding
     // `do`; the `catch` is unreachable with matching currencies.
     Benchmark("Money addition, throwing", configuration: defaultConfiguration) { benchmark in
@@ -661,7 +661,7 @@ let benchmarks: @Sendable () -> Void = {
     }
 
     // The same split on the runtime-currency type. Both run the same algorithm, so a gap between them
-    // is not arithmetic — it is what `MoneyOf` pays for being generic.
+    // is not arithmetic: it is what `MoneyOf` pays for being generic.
     Benchmark("Money split into 3", configuration: defaultConfiguration) { benchmark in
         var amount = 1
 
