@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Measure SwiftMoney's test coverage. The same script runs locally and in CI, so the numbers a reviewer
+# Measure the package's test coverage. The same script runs locally and in CI, so the numbers a reviewer
 # sees are the numbers you can reproduce.
 #
 # Usage:
@@ -9,7 +9,7 @@
 #   bash Coverage/run.sh --badge               # + write .github/badges/coverage.svg
 #   bash Coverage/run.sh --diff origin/main --markdown summary.md
 #
-# Requirements: Swift 6.2+, python3, and llvm-cov — via xcrun on macOS, on PATH on Linux.
+# Requirements: Swift 6.2+, python3, and llvm-cov: via xcrun on macOS, on PATH on Linux.
 #
 # A caveat that matters when reading the output: every trap test uses
 # `#expect(processExitsWith: .failure)`, which runs its body in a child process. The child's profile is
@@ -20,7 +20,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-TARGET_SOURCES="$REPO_DIR/Sources/SwiftMoney"
+TARGET_SOURCES="$REPO_DIR/Sources"
 
 SKIP_TESTS=false
 DIFF_BASE=""
@@ -39,7 +39,7 @@ done
 
 cd "$REPO_DIR"
 
-# llvm-cov lives inside the Xcode toolchain on macOS, and beside `swift` on Linux — where it is not
+# llvm-cov lives inside the Xcode toolchain on macOS, and beside `swift` on Linux, where it is not
 # always on PATH, so fall back to resolving the toolchain through the symlink.
 llvm_cov() {
     if command -v xcrun >/dev/null 2>&1; then
@@ -139,7 +139,7 @@ if [[ -n "$MARKDOWN" ]]; then
         echo
         echo "| | Lines | Functions | Regions |"
         echo "|:--|------:|----------:|--------:|"
-        echo "| SwiftMoney | $LINES | $FUNCTIONS | $REGIONS |"
+        echo "| All targets | $LINES | $FUNCTIONS | $REGIONS |"
         if [[ -n "$DIFF_BASE" ]]; then
             echo
             python3 "$SCRIPT_DIR/diff-coverage.py" "$DIFF_BASE" "$LCOV" --format markdown
@@ -147,7 +147,7 @@ if [[ -n "$MARKDOWN" ]]; then
         echo
         echo "<details><summary>Per file, least covered first</summary>"
         echo
-        echo "$SUMMARY" | python3 "$SCRIPT_DIR/report-table.py" --prefix "Sources/SwiftMoney/"
+        echo "$SUMMARY" | python3 "$SCRIPT_DIR/report-table.py" --prefix "Sources/"
         echo
         echo "</details>"
     } > "$MARKDOWN"
