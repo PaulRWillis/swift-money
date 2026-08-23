@@ -31,6 +31,11 @@ struct MoneyDecimalTests {
         #expect(GBP(majorUnits: tooFine) == nil)
         #expect(GBP(majorUnits: beyondStorage) == nil)
         #expect(GBP(majorUnits: .nan) == nil)
+
+        // Near `Decimal`'s own ceiling, multiplying by the scale overflows `Decimal` itself,
+        // which is a refusal on a different branch from `beyondStorage` above.
+        #expect(GBP(majorUnits: .greatestFiniteMagnitude) == nil)
+        #expect(Money(majorUnits: .greatestFiniteMagnitude, currency: .gbp) == nil)
     }
 
     @Test("A currency that does not divide decimally converts in neither direction")
