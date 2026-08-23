@@ -47,23 +47,18 @@ func exactMajorUnits(
     // `UInt64`.
     let multiplier = UInt64.powerOfTen(places) / scale
 
-    var magnitude = Decimal(minorUnits.magnitude)
-    var decimalMultiplier = Decimal(multiplier)
-    var product = Decimal()
-
     // Multiplied in `Decimal` because the product can pass `UInt64`: a scale of 2 with an amount
-    // near `Int64.max` needs twenty digits, and `Decimal` holds thirty-eight.
-    guard NSDecimalMultiply(&product, &magnitude, &decimalMultiplier, .plain) == .noError else {
-        return nil
-    }
+    // near `Int64.max` needs twenty digits. It cannot trap `Decimal`'s `*`: the multiplier peaks
+    // at `5 ^ 18`, thirteen digits, for a scale of `2 ^ 18`, so the product holds at most
+    // thirty-two digits of the thirty-eight `Decimal` can, and the exponent of `-places` is at
+    // worst -18 against a floor of -128.
+    let scaled = Decimal(minorUnits.magnitude) * Decimal(multiplier)
 
-    var value = Decimal()
-
-    guard NSDecimalMultiplyByPowerOf10(&value, &product, Int16(-places), .plain) == .noError else {
-        return nil
-    }
-
-    // Negated last, the magnitude having carried the digits, so that `Int64.min` never needs an
+    // Signed last, the magnitude having carried the digits, so that `Int64.min` never needs an
     // `Int64` of its own to sit in.
-    return minorUnits < 0 ? -value : value
+    return Decimal(
+        sign: minorUnits < 0 ? .minus : .plus,
+        exponent: -places,
+        significand: scaled
+    )
 }

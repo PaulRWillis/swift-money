@@ -58,6 +58,26 @@ struct MoneyDecimalTests {
         #expect(GBP(majorUnits: greatest) == GBP.max)
     }
 
+    @Test("The widest products a currency can make stay inside Decimal")
+    func roundTripsTheWidestProducts() throws {
+        // Scale 2^18 makes the largest multiplier, 5^18, so its extremes are the 32-digit
+        // products nearest Decimal's 38-digit ceiling. Scale 2 pairs the extremes with a
+        // fractional half, whose products need twenty digits and so pass UInt64.
+        let finest = Currency(code: "FIN", unitScale: 262_144)
+        let halves = Currency(code: "HLV", unitScale: 2)
+
+        for currency in [finest, halves] {
+            let greatest = Money(minorUnits: Int64.max, currency: currency)
+            let least = Money(minorUnits: Int64.min, currency: currency)
+
+            let greatestDecimal = try #require(Decimal(exactly: greatest))
+            let leastDecimal = try #require(Decimal(exactly: least))
+
+            #expect(Money(majorUnits: greatestDecimal, currency: currency) == greatest)
+            #expect(Money(majorUnits: leastDecimal, currency: currency) == least)
+        }
+    }
+
     @Test("A decimal that constructs an amount reads back as the same value")
     func roundTripsADecimalValue() throws {
         let listed = try #require(Decimal(string: "4.990"))
