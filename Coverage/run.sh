@@ -9,7 +9,7 @@
 #   bash Coverage/run.sh --badge               # + write .github/badges/coverage.svg
 #   bash Coverage/run.sh --diff origin/main --markdown summary.md
 #
-# Requirements: Swift 6.2+, python3, and llvm-cov — via xcrun on macOS, on PATH on Linux.
+# Requirements: Swift 6.2+, python3, and llvm-cov: via xcrun on macOS, on PATH on Linux.
 #
 # A caveat that matters when reading the output: every trap test uses
 # `#expect(processExitsWith: .failure)`, which runs its body in a child process. The child's profile is
@@ -39,7 +39,7 @@ done
 
 cd "$REPO_DIR"
 
-# llvm-cov lives inside the Xcode toolchain on macOS, and beside `swift` on Linux — where it is not
+# llvm-cov lives inside the Xcode toolchain on macOS, and beside `swift` on Linux, where it is not
 # always on PATH, so fall back to resolving the toolchain through the symlink.
 llvm_cov() {
     if command -v xcrun >/dev/null 2>&1; then
