@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Measure SwiftMoney's test coverage. The same script runs locally and in CI, so the numbers a reviewer
+# Measure the package's test coverage. The same script runs locally and in CI, so the numbers a reviewer
 # sees are the numbers you can reproduce.
 #
 # Usage:
@@ -20,7 +20,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-TARGET_SOURCES="$REPO_DIR/Sources/SwiftMoney"
+TARGET_SOURCES="$REPO_DIR/Sources"
 
 SKIP_TESTS=false
 DIFF_BASE=""
@@ -139,7 +139,7 @@ if [[ -n "$MARKDOWN" ]]; then
         echo
         echo "| | Lines | Functions | Regions |"
         echo "|:--|------:|----------:|--------:|"
-        echo "| SwiftMoney | $LINES | $FUNCTIONS | $REGIONS |"
+        echo "| All targets | $LINES | $FUNCTIONS | $REGIONS |"
         if [[ -n "$DIFF_BASE" ]]; then
             echo
             python3 "$SCRIPT_DIR/diff-coverage.py" "$DIFF_BASE" "$LCOV" --format markdown
@@ -147,7 +147,7 @@ if [[ -n "$MARKDOWN" ]]; then
         echo
         echo "<details><summary>Per file, least covered first</summary>"
         echo
-        echo "$SUMMARY" | python3 "$SCRIPT_DIR/report-table.py" --prefix "Sources/SwiftMoney/"
+        echo "$SUMMARY" | python3 "$SCRIPT_DIR/report-table.py" --prefix "Sources/"
         echo
         echo "</details>"
     } > "$MARKDOWN"

@@ -6,7 +6,7 @@ lines far too long to read without scrolling sideways. This keeps the three perc
 of missed lines, which is what a reviewer acts on, and drops the path prefix every row shares.
 
 Usage:
-    llvm-cov report ... | python3 Coverage/report-table.py --prefix Sources/SwiftMoney/
+    llvm-cov report ... | python3 Coverage/report-table.py --prefix Sources/
 """
 
 import argparse
