@@ -1,6 +1,7 @@
 import Benchmark
 import Foundation
 import SwiftMoney
+import SwiftMoneyFoundation
 
 // Three baselines, because one number on its own says nothing. `Int` is what the type safety costs,
 // `Double` is the fast answer that is wrong at scale, and `Decimal` is the exact answer that is slow.
@@ -547,6 +548,52 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    // MARK: - Decimal interop
+
+    // The Foundation bridge between `Decimal` and money. `MoneyOf parsing` and `MoneyOf
+    // description` are the string peers: the gap between a pair is what the `Decimal` route costs
+    // against the string route. Every variant hands `blackHole` a `Bool`, so the harness costs the
+    // same in each.
+    let decimalAmounts = bareStrings.compactMap { Decimal(string: $0) }
+    let preDecimalCurrency = Currency(code: "OLD", unitScale: 240)
+
+    Benchmark("MoneyOf from Decimal", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(GBP(majorUnits: decimalAmounts[index % decimalAmounts.count]) != nil)
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money from Decimal", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Money(majorUnits: decimalAmounts[index % decimalAmounts.count], currency: .gbp) != nil)
+            index &+= 1
+        }
+    }
+
+    // The refusal for a currency no decimal can express, which answers before any multiplication.
+    Benchmark("Money from Decimal, no exact decimal", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Money(majorUnits: decimalAmounts[index % decimalAmounts.count], currency: preDecimalCurrency) != nil)
+            index &+= 1
+        }
+    }
+
+    Benchmark("Decimal from MoneyOf", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Decimal(exactly: moneyOperands[index % moneyOperands.count]) != nil)
+            index &+= 1
+        }
+    }
+
     // MARK: - Currency lookup
 
     // A spread across the alphabet, because the table is searched in order: AED is the first case
@@ -564,7 +611,7 @@ let benchmarks: @Sendable () -> Void = {
 
     // MARK: - What the library's own choices cost
 
-    // `Money` throws where `MoneyOf` traps, so this is the price of typed throws — a currency check and
+    // `Money` throws where `MoneyOf` traps, so this is the price of typed throws: a currency check and
     // an error return path that never fires. `BenchmarkClosure` cannot throw, hence the surrounding
     // `do`; the `catch` is unreachable with matching currencies.
     Benchmark("Money addition, throwing", configuration: defaultConfiguration) { benchmark in
@@ -661,7 +708,7 @@ let benchmarks: @Sendable () -> Void = {
     }
 
     // The same split on the runtime-currency type. Both run the same algorithm, so a gap between them
-    // is not arithmetic — it is what `MoneyOf` pays for being generic.
+    // is not arithmetic: it is what `MoneyOf` pays for being generic.
     Benchmark("Money split into 3", configuration: defaultConfiguration) { benchmark in
         var amount = 1
 
