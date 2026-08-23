@@ -81,7 +81,8 @@ extension UInt64 {
     //
     // Beyond eighteen places the digits outgrow a `UInt64`. Only a scale such as `2 ^ 30` reaches
     // that, and it settles for minor units.
-    var exactDecimalPlaces: Int? {
+    @usableFromInline
+    package var exactDecimalPlaces: Int? {
         var remaining = self
         var twos = 0
         var fives = 0
@@ -100,6 +101,11 @@ extension UInt64 {
         let places = Swift.max(twos, fives)
 
         return remaining == 1 && places <= 18 ? places : nil
+    }
+
+    @usableFromInline
+    package static func powerOfTen(_ exponent: Int) -> UInt64 {
+        (0 ..< exponent).reduce(into: UInt64(1)) { power, _ in power *= 10 }
     }
 }
 
@@ -132,9 +138,5 @@ private extension UInt64 {
             remaining %= divisor
             divisor /= 10
         }
-    }
-
-    static func powerOfTen(_ exponent: Int) -> UInt64 {
-        (0 ..< exponent).reduce(into: UInt64(1)) { power, _ in power *= 10 }
     }
 }

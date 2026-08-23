@@ -22,10 +22,10 @@ public struct MoneyOf<C: CurrencyRepresentation>: Equatable, Hashable, Sendable 
     // caller depends on the width. Every width from `Int8` to `Int128` is a `Decoder` primitive, so
     // `Codable` follows this without naming a width of its own.
     @usableFromInline
-    typealias MinorUnits = Int64
+    package typealias MinorUnits = Int64
 
     @usableFromInline
-    let minorUnits: MinorUnits
+    package let minorUnits: MinorUnits
 
     @usableFromInline
     let storage: C.Storage
