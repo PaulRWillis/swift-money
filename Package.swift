@@ -16,14 +16,26 @@ let package = Package(
             name: "SwiftMoney",
             targets: ["SwiftMoney"]
         ),
+        .library(
+            name: "SwiftMoneyFoundation",
+            targets: ["SwiftMoneyFoundation"]
+        ),
     ],
     targets: [
         .target(
             name: "SwiftMoney"
         ),
+        .target(
+            name: "SwiftMoneyFoundation",
+            dependencies: ["SwiftMoney"]
+        ),
         .testTarget(
             name: "SwiftMoneyTests",
             dependencies: ["SwiftMoney"]
+        ),
+        .testTarget(
+            name: "SwiftMoneyFoundationTests",
+            dependencies: ["SwiftMoneyFoundation"]
         ),
     ]
 )
