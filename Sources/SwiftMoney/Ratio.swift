@@ -497,13 +497,17 @@ private let decimalRadix: UInt64 = 10
 // What a whole number sits over once it is written as a fraction.
 private let wholeDenominator: UInt64 = 1
 
+// What a percent is a part of.
+private let percentDenominator: UInt64 = 100
+
 public extension Ratio {
     /// Creates a ratio from a string that may not be valid.
     ///
-    /// Two forms are accepted, each converted exactly, with no rounding:
+    /// Three forms are accepted, each converted exactly, with no rounding:
     ///
     /// ```swift
     /// Ratio(string: "1/3")      // one third, exactly
+    /// Ratio(string: "17.5%")    // 7/40
     /// Ratio(string: "1.2345")   // 2469/2000
     /// Ratio(string: "-0.5")     // -1/2
     /// Ratio(string: "1/0")      // nil
@@ -513,7 +517,7 @@ public extension Ratio {
     /// whitespace. Each number as written must fit in 64 bits, so a decimal reaches at most
     /// nineteen places, even where the reduced value would fit.
     ///
-    /// - Parameter string: The ratio, as a fraction or a decimal.
+    /// - Parameter string: The ratio, as a fraction, a percent, or a decimal.
     /// - Returns: `nil` unless the string is a ratio this type can hold exactly, written within
     ///   the limits above.
     init?(string: String) {
@@ -541,6 +545,16 @@ private extension Ratio {
 
             return Self(numerator: numerator / divisor, denominator: denominator / divisor)
         }
+
+        // The same value divided by one hundred. Reduces first, so a denominator near the top of its
+        // range still has room for the hundred. `nil` when even the reduced denominator has none.
+        var perHundred: Self? {
+            let base = reduced
+
+            return base.denominator.multiplied(by: percentDenominator).map {
+                Self(numerator: base.numerator, denominator: $0)
+            }
+        }
     }
 
     // The ratio a run of bytes writes. `nil` unless the whole run is one ratio this type holds
@@ -561,8 +575,25 @@ private extension Ratio {
         }
     }
 
-    // The terms a body writes. `nil` unless the whole body is one fraction or one decimal.
+    // The terms a body writes. `nil` unless the whole body is one fraction, one percent, or one
+    // decimal.
     static func terms(in body: Bytes) -> Terms? {
+        guard body.last != UInt8(ascii: "%") else {
+            return percentTerms(in: body.dropLast())
+        }
+
+        return unscaledTerms(in: body)
+    }
+
+    // The terms a percent writes: the decimal in front of the percent sign, over one hundred. Only
+    // a decimal may carry the percent sign, so "1/3%", which writes a part of a part, is not a
+    // ratio.
+    static func percentTerms(in decimal: Bytes) -> Terms? {
+        decimalTerms(in: decimal).flatMap(\.perHundred)
+    }
+
+    // The terms a body with no percent sign writes, which is either a fraction or a decimal.
+    static func unscaledTerms(in body: Bytes) -> Terms? {
         guard let slash = body.firstIndex(of: UInt8(ascii: "/")) else {
             return decimalTerms(in: body)
         }

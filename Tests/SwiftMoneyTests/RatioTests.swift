@@ -252,4 +252,48 @@ struct RatioTests {
     func invalidDecimalStringMakesNoRatio(_ string: String) {
         #expect(Ratio(string: string) == nil)
     }
+
+    @Test(
+        "A percent string is an exact fraction, in lowest terms",
+        arguments: [
+            ("17.5%", "7/40"),
+            ("50%", "1/2"),
+            ("100%", "1/1"),
+            ("200%", "2/1"),
+            ("-50%", "-1/2"),
+            ("0.5%", "1/200"),
+            (".5%", "1/200"),
+            ("12.34%", "617/5000"),
+            ("0%", "0/1"),
+        ]
+    )
+    func percentStringParsesExactly(_ string: String, _ expected: String) throws {
+        let parsed = try #require(Ratio(string: string))
+
+        #expect(String(describing: parsed) == expected)
+    }
+
+    @Test("The string and integer faces build the same ratio")
+    func stringAndIntegerFacesAgree() throws {
+        let fromString = try #require(Ratio(string: "17.5%"))
+        let fromIntegers = try #require(Ratio(exactly: 7, over: 40))
+
+        #expect(fromString == fromIntegers)
+    }
+
+    @Test(
+        "A string that is not a percent makes no ratio",
+        arguments: [
+            "%",
+            "5%%",
+            "1/3%",
+            "17.5% ",
+            "% 5",
+            "5 %",
+            "0.00000000000000001%",   // 1/10^19, past what an Int64 denominator holds
+        ]
+    )
+    func invalidPercentStringMakesNoRatio(_ string: String) {
+        #expect(Ratio(string: string) == nil)
+    }
 }
