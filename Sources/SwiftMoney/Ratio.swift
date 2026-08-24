@@ -494,22 +494,26 @@ public extension Ratio {
 // The base a ratio string is written in.
 private let decimalRadix: UInt64 = 10
 
+// What a whole number sits over once it is written as a fraction.
+private let wholeDenominator: UInt64 = 1
+
 public extension Ratio {
     /// Creates a ratio from a string that may not be valid.
     ///
-    /// A fraction is converted exactly, with no rounding:
+    /// Two forms are accepted, each converted exactly, with no rounding:
     ///
     /// ```swift
-    /// Ratio(string: "1/3")     // one third, exactly
-    /// Ratio(string: "-7/40")   // minus seven fortieths
-    /// Ratio(string: "1/0")     // nil
+    /// Ratio(string: "1/3")      // one third, exactly
+    /// Ratio(string: "1.2345")   // 2469/2000
+    /// Ratio(string: "-0.5")     // -1/2
+    /// Ratio(string: "1/0")      // nil
     /// ```
     ///
-    /// The whole string must be one fraction: ASCII digits, one optional leading `+` or `-`,
-    /// and no whitespace. Each number as written must fit in 64 bits, even where the reduced
-    /// value would fit.
+    /// The whole string must be one ratio: ASCII digits, one optional leading `+` or `-`, and no
+    /// whitespace. Each number as written must fit in 64 bits, so a decimal reaches at most
+    /// nineteen places, even where the reduced value would fit.
     ///
-    /// - Parameter string: The ratio, as a fraction.
+    /// - Parameter string: The ratio, as a fraction or a decimal.
     /// - Returns: `nil` unless the string is a ratio this type can hold exactly, written within
     ///   the limits above.
     init?(string: String) {
@@ -557,10 +561,10 @@ private extension Ratio {
         }
     }
 
-    // The terms a body writes. `nil` unless the whole body is one fraction.
+    // The terms a body writes. `nil` unless the whole body is one fraction or one decimal.
     static func terms(in body: Bytes) -> Terms? {
         guard let slash = body.firstIndex(of: UInt8(ascii: "/")) else {
-            return nil
+            return decimalTerms(in: body)
         }
 
         return fractionTerms(in: body, dividedAt: slash)
@@ -581,6 +585,41 @@ private extension Ratio {
         }
 
         return Terms(numerator: numerator.value, denominator: denominator.value)
+    }
+
+    // The terms a decimal writes. A body with no point is a whole number, which is itself over one.
+    static func decimalTerms(in body: Bytes) -> Terms? {
+        guard let point = body.firstIndex(of: UInt8(ascii: ".")) else {
+            return digits(in: body).map { Terms(numerator: $0.value, denominator: wholeDenominator) }
+        }
+
+        return decimalTerms(in: body, pointedAt: point)
+    }
+
+    // The digits either side of the point read as one number, over the power of ten the places after
+    // the point stand for. The digits before the point may be missing, so ".5" is a half, but a point
+    // with no digit after it writes no number.
+    static func decimalTerms(
+        in body: Bytes,
+        pointedAt point: Bytes.Index
+    ) -> Terms? {
+        guard
+            let whole = number(in: body[..<point]),
+            let places = digits(in: body[body.index(after: point)...]),
+            let denominator = powerOfTen(places.count),
+            let numerator = whole.multiplied(by: denominator)?.adding(places.value)
+        else {
+            return nil
+        }
+
+        return Terms(numerator: numerator, denominator: denominator)
+    }
+
+    // Ten raised to `places`. `nil` past what a `UInt64` holds, which is any power above nineteen.
+    static func powerOfTen(_ places: Int) -> UInt64? {
+        (0..<places).reduce(UInt64?.some(1)) { power, _ in
+            power?.multiplied(by: decimalRadix)
+        }
     }
 
     // The number a run of digits writes, and how many digits wrote it. `nil` unless the run holds at

@@ -196,4 +196,60 @@ struct RatioTests {
 
         #expect(Ratio(string: String(describing: parsed)) == parsed)
     }
+
+    @Test(
+        "A decimal string is an exact fraction, in lowest terms",
+        arguments: [
+            ("1.2345", "2469/2000"),
+            ("0.1", "1/10"),
+            ("0.5", "1/2"),
+            (".5", "1/2"),
+            ("-0.25", "-1/4"),
+            ("2", "2/1"),
+            ("-2", "-2/1"),
+            ("-9223372036854775808", "-9223372036854775808/1"),   // Int64.min
+            ("0", "0/1"),
+            ("-0", "0/1"),
+            ("1.50", "3/2"),
+            ("0.000000000000000001", "1/1000000000000000000"),   // eighteen places
+            ("0.0000000000000000005", "1/2000000000000000000"),  // nineteen, reducing into range
+        ]
+    )
+    func decimalStringParsesExactly(_ string: String, _ expected: String) throws {
+        let parsed = try #require(Ratio(string: string))
+
+        #expect(String(describing: parsed) == expected)
+    }
+
+    // The classic floating-point trap, exact here: 0.1 is one tenth, and a truncated third is
+    // itself rather than the fraction it approximates.
+    @Test("A truncated decimal is itself, never the fraction it approximates")
+    func truncatedDecimalIsExact() throws {
+        let parsed = try #require(Ratio(string: "0.333333"))
+        let third = try #require(Ratio(exactly: 1, over: 3))
+
+        #expect(parsed != third)
+        #expect(String(describing: parsed) == "333333/1000000")
+    }
+
+    @Test(
+        "A string that is not a decimal makes no ratio",
+        arguments: [
+            "4.",
+            ".",
+            "1.2.3",
+            "1..2",
+            "-",
+            "+",
+            "--1",
+            "1.2a",
+            "1,5",
+            "0.５",                     // a fullwidth digit
+            "0.00000000000000000051",   // twenty places, and 51/10^20 has no Int64 form
+            "99999999999999999999",     // past Int64.max, and irreducible
+        ]
+    )
+    func invalidDecimalStringMakesNoRatio(_ string: String) {
+        #expect(Ratio(string: string) == nil)
+    }
 }
