@@ -33,4 +33,13 @@ struct MoneyFormatStyleTests {
         #expect(try style.parseStrategy.parse(style.format(amount)) == amount)
         #expect(try style.parseStrategy.parse("£1,234.56") == GBP(minorUnits: 1_234_56))
     }
+
+    @Test("A runtime parse needs the caller to name the currency")
+    func parsesRuntimeTextWithNamedCurrency() throws {
+        let strategy = Money.FormatStyle()
+            .locale(Self.britishEnglish)
+            .parseStrategy(for: .gbp)
+
+        #expect(try strategy.parse("£4.99") == Money(minorUnits: 4_99, currency: .gbp))
+    }
 }

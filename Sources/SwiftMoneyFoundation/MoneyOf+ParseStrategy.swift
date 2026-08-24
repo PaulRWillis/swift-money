@@ -4,7 +4,8 @@ import SwiftMoney
 public extension MoneyOf {
     /// A strategy that turns localized text back into the amount it renders.
     ///
-    /// Created from the style whose output it inverts, through `parseStrategy`. There
+    /// Created from the style whose output it inverts: `parseStrategy` where the type names
+    /// the currency, or ``FormatStyle/parseStrategy(for:)`` where only the caller can. There
     /// is no public initializer, so a strategy cannot exist without the currency that gives
     /// the digits their meaning, and a typed strategy cannot carry a currency other than its
     /// type's. Those are the states this type forbids.
@@ -99,6 +100,21 @@ extension MoneyOf.ParseStrategy: Foundation.ParseStrategy where C: CurrencyType 
     }
 }
 
+public extension MoneyOf.ParseStrategy where C == AnyCurrency {
+    /// The amount the localized text holds, in the currency this strategy carries.
+    ///
+    /// - Parameter value: Text in the form the strategy's format style produces.
+    func parse(_ value: String) throws(MoneyParsingError) -> Money {
+        let minorUnits = try smallestUnits(in: value)
+
+        guard let money = Money(exactly: minorUnits, currency: currency) else {
+            throw MoneyParsingError.unrepresentableAmount(currency)
+        }
+
+        return money
+    }
+}
+
 // MARK: - Reading the digits
 
 private extension MoneyOf.ParseStrategy {
@@ -151,5 +167,19 @@ extension MoneyOf.FormatStyle: ParseableFormatStyle where C: CurrencyType {
     /// to none of them, ICU refuses to guess and the text is reported as unrecognized.
     public var parseStrategy: MoneyOf<C>.ParseStrategy {
         MoneyOf<C>.ParseStrategy(formatStyle: self, currency: C.currency)
+    }
+}
+
+public extension MoneyOf.FormatStyle where C == AnyCurrency {
+    /// The strategy that turns this style's output back into an amount, in a currency the
+    /// caller names, nothing else being able to say how finely a runtime currency divides.
+    ///
+    /// One form does not come back. A narrow presentation writes the shortest symbol, and a
+    /// short symbol such as `$` is shared by many currencies. Where the locale binds that symbol
+    /// to none of them, ICU refuses to guess and the text is reported as unrecognized.
+    ///
+    /// - Parameter currency: The currency the text is an amount of.
+    func parseStrategy(for currency: Currency) -> Money.ParseStrategy {
+        Money.ParseStrategy(formatStyle: self, currency: currency)
     }
 }

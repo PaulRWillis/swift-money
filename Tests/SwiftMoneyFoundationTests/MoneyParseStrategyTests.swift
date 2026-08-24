@@ -105,6 +105,18 @@ struct MoneyParseStrategyTests {
         }
     }
 
+    @Test("A runtime strategy reads what a runtime style writes, in the currency it is given")
+    func roundTripsARuntimeAmount() throws {
+        let style = Money.FormatStyle().locale(Self.britishEnglish)
+
+        for currency in [Currency.gbp, .chf, .jpy, .bhd] {
+            let amount = Money(minorUnits: 1_234, currency: currency)
+            let strategy = style.parseStrategy(for: currency)
+
+            #expect(try strategy.parse(style.format(amount)) == amount)
+        }
+    }
+
     // MARK: - Rounding is a display choice, never a parsing one
 
     @Test("What a style with a coarser precision shows still parses exactly as shown")
@@ -152,6 +164,18 @@ struct MoneyParseStrategyTests {
         #expect(yen.format(JPY.min) == "-JP¥9,223,372,036,854,775,808")
         #expect(try yen.parseStrategy.parse(yen.format(JPY.max)) == JPY.max)
         #expect(try yen.parseStrategy.parse(yen.format(JPY.min)) == JPY.min)
+    }
+
+    @Test("A runtime amount reaches the same ends of the range")
+    func roundTripsTheEndsOfTheRangeAtRuntime() throws {
+        let style = Money.FormatStyle().locale(Self.britishEnglish)
+        let strategy = style.parseStrategy(for: .gbp)
+
+        for minorUnits in [Int64.max, Int64.min] {
+            let amount = Money(minorUnits: minorUnits, currency: .gbp)
+
+            #expect(try strategy.parse(style.format(amount)) == amount)
+        }
     }
 
     // MARK: - Helpers
