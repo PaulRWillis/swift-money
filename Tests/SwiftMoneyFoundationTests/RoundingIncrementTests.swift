@@ -33,12 +33,14 @@ struct RoundingIncrementTests {
     // MARK: - Literals
 
     @Test("A valid integer literal creates an increment")
-    func validLiteral() throws {
+    func acceptsAValidLiteral() throws {
         let increment: RoundingIncrement = 25
 
         #expect(increment == (try #require(RoundingIncrement(exactly: 25))))
     }
 
+    // Two tests rather than one parameterized over [0, -5]: a capture clause in an exit-test
+    // closure is a newer swift-testing feature, and CI's pinned toolchain refuses it.
     @Test("A zero literal traps")
     func zeroLiteralTraps() async {
         await #expect(processExitsWith: .failure) {
