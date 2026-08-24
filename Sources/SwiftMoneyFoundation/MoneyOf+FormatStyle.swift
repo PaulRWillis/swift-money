@@ -77,3 +77,23 @@ public extension MoneyOf {
         FormatStyle().format(self)
     }
 }
+
+// MARK: - Dot syntax
+
+public extension Foundation.FormatStyle {
+    /// A style that renders an amount for people, in the digits and symbols of a locale.
+    ///
+    /// ```swift
+    /// GBP(minorUnits: 4_99).formatted(.currency())
+    /// ```
+    ///
+    /// No currency code to pass, unlike the `Decimal` and `BinaryInteger` styles beside it: the
+    /// amount carries its own currency, so naming a second one here could only disagree with it.
+    ///
+    /// - Parameter locale: The locale to render in. Follows the user's setting by default.
+    static func currency<C: CurrencyRepresentation>(
+        locale: Locale = .autoupdatingCurrent
+    ) -> Self where Self == MoneyOf<C>.FormatStyle {
+        MoneyOf<C>.FormatStyle(locale: locale)
+    }
+}

@@ -5,6 +5,8 @@ import Testing
 
 @Suite("Money Formatted Tests")
 struct MoneyFormattedTests {
+    private static let britishEnglish = Locale(identifier: "en_GB")
+
     @Test("An amount with no style named renders through the default style")
     func rendersThroughTheDefaultStyle() throws {
         let amount = GBP(minorUnits: 4_99)
@@ -28,5 +30,16 @@ struct MoneyFormattedTests {
             .format(try #require(Decimal(string: "1.234")))
 
         #expect(amount.formatted() == expected)
+    }
+
+    @Test("The dot syntax names the same style, with no currency code to disagree with")
+    func rendersThroughTheDotSyntax() {
+        let amount = GBP(minorUnits: 4_99)
+
+        #expect(amount.formatted(.currency(locale: Self.britishEnglish)) == "£4.99")
+        #expect(
+            Money(minorUnits: 4_99, currency: .gbp)
+                .formatted(.currency(locale: Self.britishEnglish)) == "£4.99"
+        )
     }
 }
