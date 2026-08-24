@@ -67,4 +67,13 @@ public extension MoneyOf {
     ) -> F.FormatOutput where F.FormatInput == Self {
         format.format(self)
     }
+
+    /// The amount, rendered for the locale the user has set.
+    ///
+    /// ```swift
+    /// GBP(minorUnits: 4_99).formatted()   // "£4.99" for a reader in Britain
+    /// ```
+    func formatted() -> String {
+        FormatStyle().format(self)
+    }
 }
