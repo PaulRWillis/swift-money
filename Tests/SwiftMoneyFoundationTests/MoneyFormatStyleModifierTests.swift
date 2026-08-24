@@ -22,6 +22,14 @@ struct MoneyFormatStyleModifierTests {
         #expect(GBP.FormatStyle().locale(Self.germanGerman).format(amount) == "1.234,56\u{00A0}£")
     }
 
+    @Test("Grouping can be turned off")
+    func grouping() {
+        let amount = GBP(minorUnits: 1_234_56)
+
+        #expect(Self.sterling.format(amount) == "£1,234.56")
+        #expect(Self.sterling.grouping(.never).format(amount) == "£1234.56")
+    }
+
     @Test("A plus sign can be asked for on an amount that would not carry one")
     func sign() {
         let amount = GBP(minorUnits: 4_99)
@@ -51,5 +59,29 @@ struct MoneyFormatStyleModifierTests {
 
         #expect(style.format(MGA(minorUnits: 1_40)) == "MGA\u{00A0}1.40")
         #expect(style.format(MGA(minorUnits: 1_234_56)) == "MGA\u{00A0}1,234.56")
+    }
+
+    @Test("Grouping turned off beside a second option loses the currency symbol")
+    func groupingOffBesideASecondOptionLosesTheSymbol() {
+        // Foundation's own currency style drops the symbol from this pairing, and ours can only
+        // pass the pairing on. Recorded rather than hidden, because losing the symbol from an
+        // amount of money is the worst thing a money formatter can quietly do. Setting an option
+        // to its own default does not trigger it, which is why the default style stays right.
+        // Verified on Swift 6.3.2.
+        let sut = Self.sterling.grouping(.never).sign(strategy: .always())
+
+        withKnownIssue("Foundation drops the currency symbol") {
+            #expect(sut.format(GBP(minorUnits: 1_234_56)) == "+£1234.56")
+        }
+
+        let foundationStyle = Decimal.FormatStyle.Currency(code: "GBP", locale: Self.britishEnglish)
+            .grouping(.never)
+            .sign(strategy: .always())
+
+        withKnownIssue("Foundation's own currency style has the same defect") {
+            let value = try #require(Decimal(string: "1234.56"))
+
+            #expect(foundationStyle.format(value) == "+£1234.56")
+        }
     }
 }

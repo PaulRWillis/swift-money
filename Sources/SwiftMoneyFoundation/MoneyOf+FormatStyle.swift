@@ -20,6 +20,7 @@ public extension MoneyOf {
 
         private var locale: Locale
         private var presentation: Configuration.Presentation
+        private var grouping: Configuration.Grouping
         private var sign: Configuration.SignDisplayStrategy
         private var decimalSeparator: Configuration.DecimalSeparatorDisplayStrategy
 
@@ -29,6 +30,7 @@ public extension MoneyOf {
         public init(locale: Locale = .autoupdatingCurrent) {
             self.locale = locale
             self.presentation = .standard
+            self.grouping = .automatic
             self.sign = .automatic
             self.decimalSeparator = .automatic
         }
@@ -52,6 +54,15 @@ public extension MoneyOf {
         public func presentation(_ presentation: Configuration.Presentation) -> Self {
             var copy = self
             copy.presentation = presentation
+            return copy
+        }
+
+        /// Returns a copy of this style that groups the digits in the given way.
+        ///
+        /// - Parameter grouping: Whether to separate thousands. `.automatic` by default.
+        public func grouping(_ grouping: Configuration.Grouping) -> Self {
+            var copy = self
+            copy.grouping = grouping
             return copy
         }
 
@@ -99,14 +110,19 @@ extension MoneyOf.FormatStyle {
     // style shows 1234.56 as "1,235". A money amount must never lose a unit to display.
     //
     // Everything else is passed on only where the caller changed it, because setting an option
-    // to its own default is not free. Verified on Swift 6.3.2, against
-    // `Decimal.FormatStyle.Currency` itself.
+    // to its own default is not free: Foundation drops the currency symbol from a style that has
+    // grouping turned off and a sign, a separator or a rounding rule set beside it. Verified on
+    // Swift 6.3.2, against `Decimal.FormatStyle.Currency` itself.
     func decimalStyle(for currency: Currency) -> Decimal.FormatStyle.Currency {
         var style = Decimal.FormatStyle.Currency(code: String(currency.code), locale: locale)
             .precision(.fractionLength(currency.unitScale.decimalPlaces))
 
         if presentation != .standard {
             style = style.presentation(presentation)
+        }
+
+        if grouping != .automatic {
+            style = style.grouping(grouping)
         }
 
         if sign != .automatic {
