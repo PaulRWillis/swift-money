@@ -14,7 +14,7 @@ public extension Sequence {
     /// Returns the sum of every amount, or zero if there are none, keeping every fraction exact.
     ///
     /// ```swift
-    /// let daily = balance.unrounded * Ratio(45, 365_000)
+    /// let daily = balance.unrounded * "45/365000"
     /// Array(repeating: daily, count: 365).total()   // a year, with nothing lost to rounding
     /// ```
     ///

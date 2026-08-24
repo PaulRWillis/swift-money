@@ -6,7 +6,7 @@ public extension MoneyOf {
     /// at 4.5% comes to GBP 450.00 settled once, and GBP 448.95 settled daily.
     ///
     /// ```swift
-    /// let interest = GBP(minorUnits: 10_000_00).unrounded * Ratio(45, 1000) * Ratio(31, 365)
+    /// let interest = GBP(minorUnits: 10_000_00).unrounded * "45/1000" * "31/365"
     /// interest.rounded(.toNearestOrEven)   // £38.22
     /// ```
     struct Unrounded: Equatable, Hashable, Sendable {
@@ -32,8 +32,6 @@ public extension MoneyOf {
         Unrounded(Ratio(Ratio.Numerator(minorUnits), 1), storage: storage)
     }
 }
-
-// MARK: - A currency fixed at compile time: scaling cannot fail
 
 public extension MoneyOf.Unrounded where C: CurrencyType {
     /// Returns the result of scaling an unrounded amount by a fraction, keeping it exact.
@@ -91,7 +89,7 @@ public extension MoneyOf.Unrounded where C: CurrencyType {
     /// Returns this amount as a whole number of the currency's smallest unit.
     ///
     /// ```swift
-    /// (GBP(minorUnits: 10_00).unrounded * Ratio(1, 3)).rounded(.toNearestOrEven)   // £3.33
+    /// (GBP(minorUnits: 10_00).unrounded * "1/3").rounded(.toNearestOrEven)   // £3.33
     /// ```
     ///
     /// - Parameter rule: How to settle any fraction of a unit.
@@ -171,8 +169,6 @@ public extension MoneyOf.Unrounded where C: CurrencyType {
         lhs = lhs - rhs
     }
 }
-
-// MARK: - A currency only known at runtime: arithmetic can fail
 
 public extension MoneyOf.Unrounded where C == AnyCurrency {
     /// Returns the result of scaling an unrounded amount by a fraction, keeping it exact.

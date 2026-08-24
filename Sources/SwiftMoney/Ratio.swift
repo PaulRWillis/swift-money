@@ -1,25 +1,26 @@
 /// An exact fraction, used to scale a monetary amount.
 ///
 /// Stored in lowest terms with the sign on the numerator, so equivalent fractions are the same value:
-/// `Ratio(22, 200)` and `Ratio(11, 100)` are equal.
+/// `"22/200"` and `"11/100"` are equal.
 ///
 /// ```swift
-/// let vat = Ratio(7, 40)   // 17.5%
+/// let vat: Ratio = "17.5%"
 /// ```
 ///
-/// Exact, unlike a decimal or floating-point rate — one third is `Ratio(1, 3)` and stays one third.
+/// Exact, unlike a decimal or floating-point rate. One third is `"1/3"` and stays one third.
 public struct Ratio: Equatable, Hashable, Sendable {
     // fileprivate rather than private so that `scaled(_:by:)`, a free function further down this file,
     // can read them. Both stay invisible outside it.
     fileprivate let numerator: Numerator
     fileprivate let denominator: Denominator
 
-    /// Creates a ratio, reduced to lowest terms.
-    ///
-    /// - Parameters:
-    ///   - numerator: The signed part. Any value is valid.
-    ///   - denominator: The part below the line. Always positive, which the type guarantees.
-    public init(
+    // Creates a ratio, reduced to lowest terms. The operand types carry the invariants, so nothing
+    // here can be invalid: any numerator is valid, and a denominator is positive by construction.
+    //
+    // `@usableFromInline` because `MoneyOf.unrounded` and the whole-number `*` are `@inlinable` and
+    // call it.
+    @usableFromInline
+    init(
         _ numerator: Numerator,
         _ denominator: Denominator
     ) {
@@ -27,6 +28,29 @@ public struct Ratio: Equatable, Hashable, Sendable {
 
         self.numerator = numerator.reduced(by: divisor)
         self.denominator = denominator.reduced(by: divisor)
+    }
+
+    /// Creates a ratio from two integers, reduced to lowest terms.
+    ///
+    /// ```swift
+    /// Ratio(exactly: 7, over: 40)     // 7/40
+    /// Ratio(exactly: 22, over: 200)   // 11/100
+    /// Ratio(exactly: 1, over: 0)      // nil
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - numerator: The signed part. Any value is valid.
+    ///   - denominator: The part below the line.
+    /// - Returns: `nil` if `denominator` is less than one.
+    public init?(
+        exactly numerator: Int64,
+        over denominator: Int64
+    ) {
+        guard let denominator = Denominator(exactly: denominator) else {
+            return nil
+        }
+
+        self.init(Numerator(numerator), denominator)
     }
 
     // No reduction: only for call sites that have already established the fraction is in lowest terms.
@@ -88,8 +112,6 @@ func greatestCommonDivisor(
     return a
 }
 
-// MARK: - Scaling
-
 // The whole part of `amount` multiplied by `ratio`, truncated toward zero, together with whatever
 // fraction is left over. The remainder carries the same sign as the whole part, so the two account for
 // the exact product between them.
@@ -143,8 +165,6 @@ private extension Ratio {
     }
 }
 
-// MARK: - Settling an exact count of units
-
 // The whole number `exact` settles to under `rule`.
 //
 // Total, unlike `scaled(_:by:)`: a denominator of one leaves nothing to settle, and any larger
@@ -167,8 +187,6 @@ func rounded(
     return nearZero + remainder.step(under: rule, from: nearZero)
 }
 
-// MARK: - Multiplication
-
 internal extension Ratio {
     // This ratio multiplied by another, in lowest terms. `nil` when the product is not representable.
     //
@@ -189,8 +207,6 @@ internal extension Ratio {
         return Ratio(Numerator(numerator), Denominator(unchecked: denominator))
     }
 }
-
-// MARK: - Addition
 
 internal extension Ratio {
     // This ratio plus another, in lowest terms. `nil` when the sum is not representable.
@@ -269,8 +285,6 @@ private extension Ratio {
     }
 }
 
-// MARK: - Fractional Remainder
-
 public extension Ratio {
     /// The part of one unit left over by a division.
     ///
@@ -296,8 +310,6 @@ public extension Ratio {
         self = remainder.value
     }
 }
-
-// MARK: - Resolving a remainder
 
 internal extension Ratio.FractionalRemainder {
     // How far `nearZero` moves once this leftover is resolved by `rule`: either nothing, or one whole
@@ -392,8 +404,6 @@ private extension Ratio.FractionalRemainder {
     }
 }
 
-// MARK: - Reduction
-
 private extension Ratio.Numerator {
     // Every integer is a valid numerator, so dividing can never produce an invalid one. Dividing by a
     // positive value also means `Int64.min / -1` — the one trapping integer division — cannot arise.
@@ -410,50 +420,47 @@ private extension Ratio.Denominator {
     }
 }
 
-// MARK: - CustomStringConvertible
-
 extension Ratio: CustomStringConvertible {
     public var description: String {
         "\(numerator)/\(denominator)"
     }
 }
 
-// MARK: - Operands
-
-public extension Ratio {
-    /// The signed part of a ratio.
-    ///
-    /// Every integer is a valid numerator, so this cannot fail to be created — including from a
-    /// literal, unlike ``Ratio/Denominator``.
+internal extension Ratio {
+    // The signed part of a ratio. Every integer is a valid numerator, so this cannot fail to be
+    // created, including from a literal, unlike `Denominator`.
+    //
+    // `@usableFromInline` because `MoneyOf.unrounded` and the whole-number `*` are `@inlinable` and
+    // build a ratio from one.
+    @usableFromInline
     struct Numerator: Equatable, Hashable, Sendable, CustomStringConvertible {
         fileprivate let rawValue: Int64
 
-        public var description: String {
+        @usableFromInline
+        var description: String {
             "\(rawValue)"
         }
 
-        /// Creates a numerator.
-        public init(_ value: Int64) {
+        @usableFromInline
+        init(_ value: Int64) {
             self.rawValue = value
         }
     }
 
-    /// A positive integer, used as the denominator of a ratio.
-    ///
-    /// A ratio's sign is carried entirely by its numerator, so a denominator is never zero or
-    /// negative. Those values cannot be constructed.
+    // A positive integer, used as the denominator of a ratio. A ratio's sign is carried entirely by
+    // its numerator, so a denominator is never zero or negative. Those values cannot be constructed.
+    @usableFromInline
     struct Denominator: Equatable, Hashable, Sendable, CustomStringConvertible {
         fileprivate let rawValue: Int64
 
-        public var description: String {
+        @usableFromInline
+        var description: String {
             "\(rawValue)"
         }
 
-        /// Creates a denominator from a value that may not be valid.
-        ///
-        /// - Parameter value: The denominator.
-        /// - Returns: `nil` if `value` is less than one.
-        public init?(exactly value: Int64) {
+        // `nil` if `value` is less than one. The one place the below-one invariant is enforced, so
+        // `Ratio(exactly:over:)` does not repeat it.
+        init?(exactly value: Int64) {
             guard value >= 1 else {
                 return nil
             }
@@ -462,55 +469,280 @@ public extension Ratio {
         }
 
         // No check: only for call sites that have already established the value is positive.
-        internal init(unchecked value: Int64) {
+        init(unchecked value: Int64) {
             self.rawValue = value
         }
     }
 }
 
-// MARK: - Literals
+// The base a ratio string is written in.
+private let decimalRadix: UInt64 = 10
 
-extension Ratio.Numerator: ExpressibleByIntegerLiteral {
-    /// Creates a numerator from an integer literal.
+// What a whole number sits over once it is written as a fraction.
+private let wholeDenominator: UInt64 = 1
+
+// What a percent is a part of.
+private let percentDenominator: UInt64 = 100
+
+public extension Ratio {
+    /// Creates a ratio from a string that may not be valid.
     ///
-    /// - Parameter value: The numerator.
-    public init(integerLiteral value: Int64) {
-        self.rawValue = value
+    /// Three forms are accepted, each converted exactly, with no rounding:
+    ///
+    /// ```swift
+    /// Ratio(string: "1/3")      // one third, exactly
+    /// Ratio(string: "17.5%")    // 7/40
+    /// Ratio(string: "1.2345")   // 2469/2000
+    /// Ratio(string: "-0.5")     // -1/2
+    /// Ratio(string: "1/0")      // nil
+    /// ```
+    ///
+    /// The whole string must be one ratio: ASCII digits, one optional leading `+` or `-`, and no
+    /// whitespace. Each number as written must fit in 64 bits, so a decimal reaches at most
+    /// nineteen places, even where the reduced value would fit.
+    ///
+    /// - Parameter string: The ratio, as a fraction, a percent, or a decimal.
+    /// - Returns: `nil` unless the string is a ratio this type can hold exactly, written within
+    ///   the limits above.
+    init?(string: String) {
+        guard let parsed = Self.parsed(string.utf8[...]) else {
+            return nil
+        }
+
+        self = parsed
+    }
+}
+
+private extension Ratio {
+    typealias Bytes = String.UTF8View.SubSequence
+
+    // The two magnitudes a parsed ratio is built from. Unsigned because a string carries its sign at
+    // the front, where a ratio carries it on the numerator.
+    struct Terms {
+        let numerator: UInt64
+        let denominator: UInt64
+
+        // The same value with every common factor taken out. A denominator is at least one, so the
+        // two magnitudes always have a greatest common divisor.
+        var reduced: Self {
+            let divisor = SwiftMoney.greatestCommonDivisor(of: numerator, and: denominator)
+
+            return Self(numerator: numerator / divisor, denominator: denominator / divisor)
+        }
+
+        // The same value divided by one hundred. Reduces first, so a denominator near the top of its
+        // range still has room for the hundred. `nil` when even the reduced denominator has none.
+        var perHundred: Self? {
+            let base = reduced
+
+            return base.denominator.multiplied(by: percentDenominator).map {
+                Self(numerator: base.numerator, denominator: $0)
+            }
+        }
+    }
+
+    // The ratio a run of bytes writes. `nil` unless the whole run is one ratio this type holds
+    // exactly. Nothing is rounded: a string that does not convert exactly does not parse.
+    static func parsed(_ bytes: Bytes) -> Ratio? {
+        let (sign, body) = signed(bytes)
+
+        return terms(in: body).flatMap { ratio(from: $0, sign: sign) }
+    }
+
+    // The sign a run of bytes leads with, and the body that follows it. A body with no sign of its
+    // own is positive.
+    static func signed(_ bytes: Bytes) -> (sign: Sign, body: Bytes) {
+        switch bytes.first {
+        case UInt8(ascii: "+"): (.positive, bytes.dropFirst())
+        case UInt8(ascii: "-"): (.negative, bytes.dropFirst())
+        default: (.positive, bytes)
+        }
+    }
+
+    // The terms a body writes. `nil` unless the whole body is one fraction, one percent, or one
+    // decimal.
+    static func terms(in body: Bytes) -> Terms? {
+        guard body.last != UInt8(ascii: "%") else {
+            return percentTerms(in: body.dropLast())
+        }
+
+        return unscaledTerms(in: body)
+    }
+
+    // The terms a percent writes: the decimal in front of the percent sign, over one hundred. Only
+    // a decimal may carry the percent sign, so "1/3%", which writes a part of a part, is not a
+    // ratio.
+    static func percentTerms(in decimal: Bytes) -> Terms? {
+        decimalTerms(in: decimal).flatMap(\.perHundred)
+    }
+
+    // The terms a body with no percent sign writes, which is either a fraction or a decimal.
+    static func unscaledTerms(in body: Bytes) -> Terms? {
+        guard let slash = body.firstIndex(of: UInt8(ascii: "/")) else {
+            return decimalTerms(in: body)
+        }
+
+        return fractionTerms(in: body, dividedAt: slash)
+    }
+
+    // The terms `digits "/" digits` writes. Digits only on both sides: a sign belongs at the front of
+    // the string, and a denominator has no sign of its own.
+    static func fractionTerms(
+        in body: Bytes,
+        dividedAt slash: Bytes.Index
+    ) -> Terms? {
+        guard
+            let numerator = digits(in: body[..<slash]),
+            let denominator = digits(in: body[body.index(after: slash)...]),
+            denominator.value >= 1
+        else {
+            return nil
+        }
+
+        return Terms(numerator: numerator.value, denominator: denominator.value)
+    }
+
+    // The terms a decimal writes. A body with no point is a whole number, which is itself over one.
+    static func decimalTerms(in body: Bytes) -> Terms? {
+        guard let point = body.firstIndex(of: UInt8(ascii: ".")) else {
+            return digits(in: body).map { Terms(numerator: $0.value, denominator: wholeDenominator) }
+        }
+
+        return decimalTerms(in: body, pointedAt: point)
+    }
+
+    // The digits either side of the point read as one number, over the power of ten the places after
+    // the point stand for. The digits before the point may be missing, so ".5" is a half, but a point
+    // with no digit after it writes no number.
+    static func decimalTerms(
+        in body: Bytes,
+        pointedAt point: Bytes.Index
+    ) -> Terms? {
+        guard
+            let whole = number(in: body[..<point]),
+            let places = digits(in: body[body.index(after: point)...]),
+            let denominator = powerOfTen(places.count),
+            let numerator = whole.multiplied(by: denominator)?.adding(places.value)
+        else {
+            return nil
+        }
+
+        return Terms(numerator: numerator, denominator: denominator)
+    }
+
+    // Ten raised to `places`. `nil` past what a `UInt64` holds, which is any power above nineteen.
+    static func powerOfTen(_ places: Int) -> UInt64? {
+        (0..<places).reduce(UInt64?.some(1)) { power, _ in
+            power?.multiplied(by: decimalRadix)
+        }
+    }
+
+    // The number a run of digits writes, and how many digits wrote it. `nil` unless the run holds at
+    // least one byte, holds nothing but ASCII digits, and writes a number a `UInt64` holds.
+    static func digits(in bytes: Bytes) -> (value: UInt64, count: Int)? {
+        guard !bytes.isEmpty, let value = number(in: bytes) else {
+            return nil
+        }
+
+        return (value, bytes.count)
+    }
+
+    // The number a run of digits writes, and zero where the run is empty. `nil` where a byte is
+    // not an ASCII digit, or where the number grows past what a `UInt64` holds.
+    static func number(in bytes: Bytes) -> UInt64? {
+        bytes.reduce(UInt64?.some(0)) { number, byte in
+            number?.appending(digit: byte)
+        }
+    }
+
+    // The ratio `terms` writes, with `sign` applied. Reduces before it checks the range, as
+    // `proportion(_:of:)` does: a fraction can be past what an `Int64` holds until it is reduced.
+    static func ratio(
+        from terms: Terms,
+        sign: Sign
+    ) -> Ratio? {
+        let reduced = terms.reduced
+
+        guard
+            let numerator = Int64(magnitude: reduced.numerator, sign: sign),
+            let whole = Int64(exactly: reduced.denominator),
+            let denominator = Denominator(exactly: whole)
+        else {
+            return nil
+        }
+
+        return Ratio(unchecked: Numerator(numerator), denominator)
+    }
+}
+
+private extension UInt64 {
+    // This number with one more digit written after it. `nil` when the byte is not an ASCII digit, or
+    // when the number has grown past what a `UInt64` holds.
+    func appending(digit byte: UInt8) -> UInt64? {
+        byte.asciiDigitValue.flatMap { digit in
+            multiplied(by: decimalRadix)?.adding(UInt64(digit))
+        }
+    }
+
+    // `nil` where `*` would trap.
+    func multiplied(by other: UInt64) -> UInt64? {
+        let (product, overflowed) = multipliedReportingOverflow(by: other)
+
+        return overflowed ? nil : product
+    }
+
+    // `nil` where `+` would trap.
+    func adding(_ other: UInt64) -> UInt64? {
+        let (sum, overflowed) = addingReportingOverflow(other)
+
+        return overflowed ? nil : sum
+    }
+}
+
+// Deliberately byte level rather than `Character.isNumber`, which is true for the digits of many
+// other scripts. A ratio string is ASCII, so no other script writes a number this parser reads.
+private extension UInt8 {
+    var asciiDigitValue: UInt8? {
+        let zero = UInt8(ascii: "0")
+
+        return (zero...UInt8(ascii: "9")).contains(self) ? self - zero : nil
+    }
+}
+
+extension Ratio: ExpressibleByStringLiteral {
+    /// Creates a ratio from a string literal.
+    ///
+    /// A literal is written by a programmer rather than derived from data, so an invalid one is a
+    /// mistake in the source rather than bad input: it traps instead of failing gracefully. Use
+    /// ``init(string:)`` for any string that is not a literal.
+    ///
+    /// ```swift
+    /// let vat: Ratio = "17.5%"   // fine
+    /// let oops: Ratio = "1/0"    // traps
+    /// ```
+    ///
+    /// - Parameter value: The ratio, as a fraction, a percent, or a decimal.
+    /// - Precondition: `value` is a ratio that ``init(string:)`` accepts.
+    public init(stringLiteral value: String) {
+        guard let ratio = Self(string: value) else {
+            preconditionFailure("Not a valid ratio: \(value)")
+        }
+
+        self = ratio
     }
 }
 
 extension Ratio.Denominator: ExpressibleByIntegerLiteral {
-    /// Creates a denominator from an integer literal.
-    ///
-    /// A literal is written by a programmer rather than derived from data, so a value below one is a
-    /// mistake in the source rather than bad input — it traps instead of failing gracefully. Use
-    /// ``init(exactly:)`` for any value that is not a literal.
-    ///
-    /// ```swift
-    /// let fortieths: Ratio.Denominator = 40   // fine
-    /// let none: Ratio.Denominator = 0         // traps
-    /// ```
-    ///
-    /// - Parameter value: The denominator.
-    /// - Precondition: `value` is at least one.
-    public init(integerLiteral value: Int64) {
+    // A literal is written here in the library rather than derived from data, so a value below one is
+    // a mistake in this source rather than bad input: it traps instead of failing gracefully.
+    //
+    // `@usableFromInline` because `MoneyOf.unrounded` and the whole-number `*` are `@inlinable` and
+    // write a denominator of one.
+    @usableFromInline
+    init(integerLiteral value: Int64) {
         precondition(value >= 1, "A denominator must be at least 1. Value: \(value)")
 
         self.rawValue = value
-    }
-}
-
-// MARK: - Conversions
-
-public extension Int64 {
-    /// Creates an integer from a ratio's numerator.
-    init(_ numerator: Ratio.Numerator) {
-        self = numerator.rawValue
-    }
-
-    /// Creates an integer from a ratio's denominator.
-    init(_ denominator: Ratio.Denominator) {
-        self = denominator.rawValue
     }
 }
 

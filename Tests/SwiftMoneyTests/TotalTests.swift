@@ -4,8 +4,6 @@ import Testing
 @Suite("Total Tests")
 struct TotalTests {
 
-    // MARK: - MoneyOf
-
     @Test("Totalling typed amounts sums them")
     func totalOfTypedAmounts() {
         #expect([GBP(minorUnits: 1_00), GBP(minorUnits: 2_50), GBP(minorUnits: 0_49)].total() == GBP(minorUnits: 3_99))
@@ -21,8 +19,6 @@ struct TotalTests {
     func totalOfOneTypedAmount() {
         #expect([GBP(minorUnits: 4_99)].total() == GBP(minorUnits: 4_99))
     }
-
-    // MARK: - Money
 
     @Test("Totalling untyped amounts of one currency sums them")
     func totalOfUntypedAmounts() throws {
@@ -82,12 +78,10 @@ struct TotalTests {
         }
     }
 
-    // MARK: - Unrounded
-
     // Three thirds of a penny total a penny. Settling each one first would total nothing.
     @Test("Totalling unrounded typed amounts stays exact")
     func totalOfUnroundedTypedAmounts() {
-        let third = GBP(minorUnits: 1).unrounded * Ratio(1, 3)
+        let third = GBP(minorUnits: 1).unrounded * "1/3"
 
         #expect([third, third, third].total().rounded(.towardZero) == GBP(minorUnits: 1))
     }
@@ -99,7 +93,7 @@ struct TotalTests {
 
     @Test("Totalling unrounded untyped amounts stays exact")
     func totalOfUnroundedUntypedAmounts() throws {
-        let third = Money(minorUnits: 1, currency: .eur).unrounded * Ratio(1, 3)
+        let third = Money(minorUnits: 1, currency: .eur).unrounded * "1/3"
 
         let summed = try [third, third, third].total()
         let total = try #require(summed)
@@ -123,8 +117,6 @@ struct TotalTests {
             try amounts.total()
         }
     }
-
-    // MARK: - Any Sequence
 
     @Test("Totalling works on any sequence, not only arrays")
     func totalOfAnySequence() throws {

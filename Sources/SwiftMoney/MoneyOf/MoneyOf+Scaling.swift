@@ -1,5 +1,3 @@
-// MARK: - Splitting, which cannot fail for any currency
-
 public extension MoneyOf where C: CurrencyType {
     /// Returns this monetary amount split into `parts`, as evenly as possible.
     ///
@@ -28,8 +26,6 @@ public extension MoneyOf where C == AnyCurrency {
     }
 }
 
-// MARK: - Fractional scaling, a currency fixed at compile time
-
 public extension MoneyOf where C: CurrencyType {
     /// Returns this monetary amount scaled by a fraction.
     ///
@@ -37,8 +33,8 @@ public extension MoneyOf where C: CurrencyType {
     /// does not divide exactly leaves part of a unit for the caller to resolve.
     ///
     /// ```swift
-    /// GBP(minorUnits: 9_99).scaled(by: Ratio(1, 3))    // .exact(£3.33)
-    /// GBP(minorUnits: 10_00).scaled(by: Ratio(1, 3))   // .inexact(£3.33, remainder: 1/3)
+    /// GBP(minorUnits: 9_99).scaled(by: "1/3")    // .exact(£3.33)
+    /// GBP(minorUnits: 10_00).scaled(by: "1/3")   // .inexact(£3.33, remainder: 1/3)
     /// ```
     ///
     /// - Parameter ratio: The fraction to scale by.
@@ -66,8 +62,8 @@ public extension MoneyOf where C: CurrencyType {
     /// ``scaled(by:)`` to find out whether there was one.
     ///
     /// ```swift
-    /// GBP(minorUnits: 10).scaled(by: Ratio(1, 4), rounding: .toNearestOrEven)   // 2p, from 2.5p
-    /// GBP(minorUnits: 10).scaled(by: Ratio(1, 4), rounding: .up)                // 3p
+    /// GBP(minorUnits: 10).scaled(by: "1/4", rounding: .toNearestOrEven)   // 2p, from 2.5p
+    /// GBP(minorUnits: 10).scaled(by: "1/4", rounding: .up)                // 3p
     /// ```
     ///
     /// - Parameters:
@@ -90,8 +86,6 @@ public extension MoneyOf where C: CurrencyType {
         return Self(unchecked: rounded, storage: .implied)
     }
 }
-
-// MARK: - Fractional scaling, a currency only known at runtime
 
 public extension MoneyOf where C == AnyCurrency {
     /// Returns this monetary amount scaled by a fraction.
