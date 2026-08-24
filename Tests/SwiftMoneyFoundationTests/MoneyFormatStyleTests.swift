@@ -24,4 +24,13 @@ struct MoneyFormatStyleTests {
         #expect(style.format(Money(minorUnits: 1_234_56, currency: .gbp)) == "£1,234.56")
         #expect(style.format(Money(minorUnits: -4_99, currency: .gbp)) == "-£4.99")
     }
+
+    @Test("A localized string parses back to the amount it came from")
+    func parsesLocalizedTextBack() throws {
+        let style = GBP.FormatStyle().locale(Self.britishEnglish)
+        let amount = GBP(minorUnits: 12_34)
+
+        #expect(try style.parseStrategy.parse(style.format(amount)) == amount)
+        #expect(try style.parseStrategy.parse("£1,234.56") == GBP(minorUnits: 1_234_56))
+    }
 }

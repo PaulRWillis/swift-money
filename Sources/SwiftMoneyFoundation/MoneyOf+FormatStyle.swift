@@ -228,7 +228,7 @@ extension MoneyOf.FormatStyle: Foundation.FormatStyle {
 // MARK: - The Foundation style underneath
 
 extension MoneyOf.FormatStyle {
-    // The style this one renders through, settled for one currency.
+    // The style this one renders and parses through, settled for one currency.
     //
     // Precision is pinned rather than left to ICU, whose per-currency defaults round: a yen
     // style shows 1234.56 as "1,235". A money amount must never lose a unit to display.
