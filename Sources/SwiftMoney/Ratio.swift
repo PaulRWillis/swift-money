@@ -29,6 +29,29 @@ public struct Ratio: Equatable, Hashable, Sendable {
         self.denominator = denominator.reduced(by: divisor)
     }
 
+    /// Creates a ratio from two integers, reduced to lowest terms.
+    ///
+    /// ```swift
+    /// Ratio(exactly: 7, over: 40)     // 7/40
+    /// Ratio(exactly: 22, over: 200)   // 11/100
+    /// Ratio(exactly: 1, over: 0)      // nil
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - numerator: The signed part. Any value is valid.
+    ///   - denominator: The part below the line.
+    /// - Returns: `nil` if `denominator` is less than one.
+    public init?(
+        exactly numerator: Int64,
+        over denominator: Int64
+    ) {
+        guard let denominator = Denominator(exactly: denominator) else {
+            return nil
+        }
+
+        self.init(Numerator(numerator), denominator)
+    }
+
     // No reduction: only for call sites that have already established the fraction is in lowest terms.
     // fileprivate for `proportion(_:of:)`, which divides both sides by their greatest common divisor
     // and so has already done the work this would repeat.

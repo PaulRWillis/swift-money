@@ -88,4 +88,48 @@ struct RatioTests {
 
         #expect(ratio == Ratio(7, 40))
     }
+
+    @Test(
+        "Every numerator makes a ratio over one",
+        arguments: [0, 1, -1, 7, -7, Int64.max, Int64.min]
+    )
+    func everyNumeratorMakesARatio(_ raw: Int64) throws {
+        let ratio = try #require(Ratio(exactly: raw, over: 1))
+
+        #expect(String(describing: ratio) == "\(raw)/1")
+    }
+
+    @Test(
+        "Every positive denominator makes a ratio",
+        arguments: [1, 2, 40, 100, 1_000, Int64.max]
+    )
+    func everyPositiveDenominatorMakesARatio(_ raw: Int64) throws {
+        let ratio = try #require(Ratio(exactly: 1, over: raw))
+
+        #expect(String(describing: ratio) == "1/\(raw)")
+    }
+
+    @Test(
+        "A denominator below one makes no ratio",
+        arguments: [0, -1, -40, Int64.min]
+    )
+    func denominatorBelowOneMakesNoRatio(_ raw: Int64) {
+        #expect(Ratio(exactly: 1, over: raw) == nil)
+    }
+
+    @Test("Creation from integers reduces to lowest terms")
+    func creationFromIntegersReduces() throws {
+        let ratio = try #require(Ratio(exactly: 22, over: 200))
+
+        #expect(String(describing: ratio) == "11/100")
+    }
+
+    @Test("A zero numerator is valid, where a zero denominator is not")
+    func zeroNumeratorIsValidZeroDenominatorIsNot() throws {
+        let zero = try #require(Ratio(exactly: 0, over: 40))
+
+        #expect(String(describing: zero) == "0/1")
+        #expect(Ratio(exactly: 40, over: 0) == nil)
+    }
+
 }
