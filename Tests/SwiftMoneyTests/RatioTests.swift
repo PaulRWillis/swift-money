@@ -10,43 +10,46 @@ struct RatioTests {
     // the point: a caller cannot depend on the representation, only on the value.
     @Test("Equivalent fractions are equal")
     func equivalentFractionsAreEqual() {
-        #expect(Ratio(22, 200) == Ratio(11, 100))
-        #expect(Ratio(6, 4) == Ratio(3, 2))
-        #expect(Ratio(-22, 200) == Ratio(-11, 100))
+        #expect("22/200" as Ratio == "11/100")
+        #expect("6/4" as Ratio == "3/2")
+        #expect("-22/200" as Ratio == "-11/100")
     }
 
     @Test("Equivalent fractions hash alike")
     func equivalentFractionsHashAlike() {
-        #expect(Set([Ratio(22, 200), Ratio(11, 100), Ratio(3, 2)]).count == 2)
+        #expect(Set<Ratio>(["22/200", "11/100", "3/2"]).count == 2)
     }
 
     @Test("Different fractions are not equal")
     func differentFractionsAreNotEqual() {
-        #expect(Ratio(1, 3) != Ratio(1, 2))
-        #expect(Ratio(1, 3) != Ratio(-1, 3))
+        #expect("1/3" as Ratio != "1/2")
+        #expect("1/3" as Ratio != "-1/3")
     }
 
     @Test("Reduction is visible in the description")
     func reductionIsVisibleInDescription() {
-        #expect(String(describing: Ratio(22, 200)) == "11/100")
-        #expect(String(describing: Ratio(6, 4)) == "3/2")
+        #expect(String(describing: "22/200" as Ratio) == "11/100")
+        #expect(String(describing: "6/4" as Ratio) == "3/2")
     }
 
     // MARK: - Zero
 
     @Test("Every representation of zero is the same ratio")
     func zeroIsCanonical() {
-        #expect(Ratio(0, 5) == Ratio(0, 1))
-        #expect(Ratio(0, 997) == Ratio(0, 1))
-        #expect(String(describing: Ratio(0, 5)) == "0/1")
+        #expect("0/5" as Ratio == "0/1")
+        #expect("0/997" as Ratio == "0/1")
+        #expect(String(describing: "0/5" as Ratio) == "0/1")
     }
 
     // MARK: - Sign
 
     @Test("The sign is carried by the numerator")
-    func signIsCarriedByTheNumerator() {
-        #expect(String(describing: Ratio(-7, 40)) == "-7/40")
-        #expect(String(describing: Ratio(7, 40)) == "7/40")
+    func signIsCarriedByTheNumerator() throws {
+        let negative = try #require(Ratio(exactly: -7, over: 40))
+        let positive = try #require(Ratio(exactly: 7, over: 40))
+
+        #expect(String(describing: negative) == "-7/40")
+        #expect(String(describing: positive) == "7/40")
     }
 
     // MARK: - Extremes
