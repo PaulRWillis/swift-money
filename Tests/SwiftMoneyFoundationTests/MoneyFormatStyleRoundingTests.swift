@@ -84,10 +84,19 @@ struct MoneyFormatStyleRoundingTests {
         #expect(style.format(CHF(minorUnits: 4_98)) == "CHF\u{00A0}4.98")
     }
 
-    @Test("A step below one traps, being a mistake in the source", arguments: [0, -5])
-    func stepsBelowOneTrap(increment: Int) async {
-        await #expect(processExitsWith: .failure) { [increment] in
-            blackHole(CHF.FormatStyle().rounded(increment: increment))
+    // Two tests rather than one parameterized over [0, -5]: a capture clause in an exit-test
+    // closure is a newer swift-testing feature, and CI's pinned toolchain refuses it.
+    @Test("A step of zero traps, being a mistake in the source")
+    func aStepOfZeroTraps() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(CHF.FormatStyle().rounded(increment: 0))
+        }
+    }
+
+    @Test("A negative step traps, being a mistake in the source")
+    func aNegativeStepTraps() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(CHF.FormatStyle().rounded(increment: -5))
         }
     }
 
