@@ -29,6 +29,41 @@ struct RoundingIncrementTests {
         #expect(RoundingIncrement(exactly: -5) == nil)
     }
 
+    // MARK: - Literals
+
+    @Test("A valid integer literal creates an increment")
+    func validLiteral() throws {
+        let increment: RoundingIncrement = 25
+
+        #expect(increment == (try #require(RoundingIncrement(exactly: 25))))
+    }
+
+    @Test("A zero literal traps")
+    func zeroLiteralTraps() async {
+        await #expect(processExitsWith: .failure) {
+            let increment: RoundingIncrement = 0
+            blackHole(increment)
+        }
+    }
+
+    @Test("A negative literal traps")
+    func negativeLiteralTraps() async {
+        await #expect(processExitsWith: .failure) {
+            let increment: RoundingIncrement = -5
+            blackHole(increment)
+        }
+    }
+
+    // The failable initializer is labeled because an unlabeled one would be unreachable: with
+    // ExpressibleByIntegerLiteral present, `RoundingIncrement(0)` always resolves to the literal
+    // initializer, which traps rather than returning nil. Same trap as PartCount and CurrencyCode.
+    @Test("The unlabeled call form is the trapping literal, not the failable initializer")
+    func unlabeledFormIsTheLiteral() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(RoundingIncrement(0))
+        }
+    }
+
     // MARK: - Conversion
 
     @Test("An increment converts back to the integer it was built from")

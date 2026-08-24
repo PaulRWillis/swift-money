@@ -19,6 +19,29 @@ public struct RoundingIncrement: Equatable, Hashable, Sendable {
     }
 }
 
+extension RoundingIncrement: ExpressibleByIntegerLiteral {
+    /// Creates a rounding increment from an integer literal.
+    ///
+    /// A literal is written by a programmer rather than derived from data, so a literal below
+    /// one is a mistake in the source rather than bad input: it traps instead of failing
+    /// gracefully. Use ``init(exactly:)`` for any value that is not a literal.
+    ///
+    /// ```swift
+    /// let step: RoundingIncrement = 5    // fine
+    /// let none: RoundingIncrement = 0    // traps
+    /// ```
+    ///
+    /// - Parameter value: The step, counted in the currency's smallest units.
+    /// - Precondition: `value` is at least one.
+    public init(integerLiteral value: Int64) {
+        guard let increment = Self(exactly: value) else {
+            preconditionFailure("A rounding increment must be at least 1. Value: \(value)")
+        }
+
+        self = increment
+    }
+}
+
 public extension Int64 {
     /// Creates an integer from a rounding increment.
     ///
