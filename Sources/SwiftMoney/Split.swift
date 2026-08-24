@@ -1,7 +1,7 @@
 /// The result of splitting a monetary amount into a number of parts.
 ///
 /// The parts always sum to the original amount, and no two parts differ by more than one minor
-/// unit — a split does not lose or invent money.
+/// unit: a split does not lose or invent money.
 public enum Split<Amount: Equatable> {
     /// Every part receives the same amount.
     case even(Group)
@@ -70,7 +70,7 @@ extension Split {
     ///   part. Implementing `underestimatedCount` also makes `Array(split.amounts)` roughly twice as
     ///   fast as the equivalent `RandomAccessCollection`, because capacity is reserved exactly.
     ///
-    /// - Note: Iterating does not consume the sequence — it can be traversed repeatedly — though
+    /// - Note: Iterating does not consume the sequence (it can be traversed repeatedly), though
     ///   `Sequence` does not promise that to generic code.
     public var amounts: some Sequence<Amount> {
         Amounts(self)
@@ -92,7 +92,7 @@ extension Split {
         }
 
         // Everything about the split is settled once, in the initializer. Reading it out of the enum
-        // per element meant recomputing `count` — itself a switch, two conversions and an addition —
+        // per element meant recomputing `count` (itself a switch, two conversions and an addition)
         // on every call to `next()`, for a value that cannot change while iterating.
         struct Iterator: IteratorProtocol {
             private let larger: Amount
@@ -205,7 +205,7 @@ func split(
 // Unchecked because a non-zero value has a magnitude of at least one.
 //
 // Narrowing to `Int` is safe here even though the value is an `Int64`: every caller passes a remainder,
-// whose magnitude is always below the divisor — itself a `PartCount`, and so already within `Int`.
+// whose magnitude is always below the divisor, itself a `PartCount`, and so already within `Int`.
 func abs(_ value: NonZeroInt64) -> PartCount {
     PartCount(unchecked: Int(abs(value.rawValue)))
 }

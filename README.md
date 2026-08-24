@@ -9,7 +9,7 @@
 Type-safe money for Swift. `SwiftMoney` stores monetary values as integer minor units (`Int64`)
 with the currency locked at compile time, eliminating floating-point rounding errors entirely.
 Cross-currency arithmetic is a compile error, fractional operations use exact rational numbers,
-and multi-currency exchange-rate conversions apply a single rounding step at the end — no matter how
+and multi-currency exchange-rate conversions apply a single rounding step at the end, no matter how
 many currencies are in the bag.
 
 ```swift
@@ -19,22 +19,22 @@ let price = Money<GBP>(minorUnits: 1250)    // £12.50
 let vatRate = Rate(numerator: 1, denominator: 5)!  // 20%
 let vat = price.multiplied(by: vatRate, rounding: .toNearestOrAwayFromZero)
 
-vat.amount      // Money<GBP>(minorUnits: 250) — £2.50
-vat.effectiveRate  // Rate(1/5) — exact, no precision lost
+vat.amount      // Money<GBP>(minorUnits: 250), £2.50
+vat.effectiveRate  // Rate(1/5): exact, no precision lost
 ```
 
 ## Features
 
-- **Integer minor-unit storage** — `Int64` backing; no `Decimal` overhead on the hot path
-- **Compile-time currency safety** — `Money<GBP> + Money<USD>` is a compile error
-- **Exact fractional multiplication** — `Rate` (GCD-reduced rational) with round-trip invariant
-- **Single-rounding exchange** — `MoneyBag.total(in:using:rounding:)` accumulates exact fractions, then rounds once
-- **No `Numeric` conformance** — `Money * Money` is intentionally impossible
-- **Floating-point blocked** — `Money * Double` and `Money * Float` are `@available(*, unavailable)` compile errors
-- **`Sendable` throughout** — all types are `Sendable`
-- **Configurable Codable** — per-type encoding strategies (`.minorUnits`, `.majorUnits`, `.object`, `.string`, `.dictionary`)
-- **`ParseableFormatStyle`** — locale-aware formatting and parsing with round-trip guarantee
-- **Pure Swift core** — Foundation only required for `Decimal` conversions, formatting, parsing, and Codable
+- **Integer minor-unit storage**: `Int64` backing; no `Decimal` overhead on the hot path
+- **Compile-time currency safety**: `Money<GBP> + Money<USD>` is a compile error
+- **Exact fractional multiplication**: `Rate` (GCD-reduced rational) with round-trip invariant
+- **Single-rounding exchange**: `MoneyBag.total(in:using:rounding:)` accumulates exact fractions, then rounds once
+- **No `Numeric` conformance**: `Money * Money` is intentionally impossible
+- **Floating-point blocked**: `Money * Double` and `Money * Float` are `@available(*, unavailable)` compile errors
+- **`Sendable` throughout**: all types are `Sendable`
+- **Configurable Codable**: per-type encoding strategies (`.minorUnits`, `.majorUnits`, `.object`, `.string`, `.dictionary`)
+- **`ParseableFormatStyle`**: locale-aware formatting and parsing with round-trip guarantee
+- **Pure Swift core**: Foundation only required for `Decimal` conversions, formatting, parsing, and Codable
 
 ## Installation
 
@@ -63,7 +63,7 @@ Then add the dependency to your target:
 
 | Type | Description |
 |---|---|
-| `Currency` | Protocol — adopt to define a custom currency |
+| `Currency` | Protocol: adopt to define a custom currency |
 | `CurrencyCode` | Validated non-empty currency code string |
 | `MinimalQuantisation` | Positive `Int64`: minor units per major unit (100 for GBP, 1 for JPY) |
 | `Money<C>` | Typed monetary amount stored as `Int64` minor units |
@@ -75,7 +75,7 @@ Then add the dependency to your target:
 | `RateCalculation<C>` | Result of fractional multiplication: `amount` + `effectiveRate` |
 | `ExchangeRate<From, To>` | Typed conversion rate between two currencies |
 | `Conversion<From, To>` | Result of exchange-rate conversion: `amount` + `effectiveRate` |
-| `ExchangeRateProvider` | Protocol — implement to supply rates from any source |
+| `ExchangeRateProvider` | Protocol: implement to supply rates from any source |
 | `UnitRate<C, U>` | Price per unit of measure (e.g. £0.000023/kWh) |
 
 ## Usage
@@ -91,7 +91,7 @@ enum BTC: Currency {
 }
 ```
 
-`minimalQuantisation` is the number of minor units in one major unit — 100 for pence/cents,
+`minimalQuantisation` is the number of minor units in one major unit: 100 for pence/cents,
 1 for yen, 1000 for Kuwaiti dinar, 100 000 000 for satoshis.
 
 ### Creating Values
@@ -120,7 +120,7 @@ total -= tax             // £10.00
 -price                   // -£10.00
 ```
 
-`Money * Double` and `Money * Float` are compile errors — use `Rate` for
+`Money * Double` and `Money * Float` are compile errors: use `Rate` for
 fractional operations.
 
 ### Distribution
@@ -153,8 +153,8 @@ let price = Money<GBP>(minorUnits: 1000)   // £10.00
 let vatRate = Rate(numerator: 1, denominator: 5)!  // 20%
 
 let vat = price.multiplied(by: vatRate, rounding: .toNearestOrAwayFromZero)
-vat.amount      // Money<GBP>(minorUnits: 200) — £2.00
-vat.effectiveRate  // Rate(1/5) — exact rate applied
+vat.amount      // Money<GBP>(minorUnits: 200), £2.00
+vat.effectiveRate  // Rate(1/5): exact rate applied
 ```
 
 `Money * Decimal` returns an optional `RateCalculation?` (fails if the `Decimal`
@@ -205,12 +205,12 @@ bag.balances               // [AnyMoney] sorted by code
 
 // Convert everything to one currency (single rounding step)
 let result = bag.total(in: USD.self, using: MyRates(), rounding: .toNearestOrEven)
-result?.total               // Money<USD> — the rounded sum
+result?.total               // Money<USD>: the rounded sum
 ```
 
 ### Unit Rates
 
-`UnitRate<C, U>` represents a price per unit of measure — ideal for energy billing,
+`UnitRate<C, U>` represents a price per unit of measure: ideal for energy billing,
 commodity pricing, and any scenario where a monetary rate is expressed per physical
 or custom unit.
 
@@ -223,7 +223,7 @@ let rate = UnitRate<GBP, String>(
 
 // Calculate cost for 2,000,000 kWh
 let cost = rate.price(forQuantity: 2_000_000, rounding: .toNearestOrAwayFromZero)
-cost.amount  // Money<GBP>(minorUnits: 4600) — £46.00
+cost.amount  // Money<GBP>(minorUnits: 4600), £46.00
 ```
 
 #### With Foundation `Dimension` units
@@ -256,10 +256,10 @@ let kjRate = energyRate.converted(to: .kilojoules, factor: 3600)
 let locale = Locale(identifier: "en_GB")
 
 rate.formatted(.init(locale: locale))
-// "£0.000023/kWh" (String unit — slash separator)
+// "£0.000023/kWh" (String unit: slash separator)
 
 energyRate.formatted(.init(locale: locale))
-// "£0.000023 kWh" (Dimension unit — Foundation spacing)
+// "£0.000023 kWh" (Dimension unit: Foundation spacing)
 
 energyRate.formatted(.init(locale: locale, unitWidth: .wide))
 // "£0.000023 kilowatt-hours"
@@ -306,17 +306,17 @@ format.parseStrategy.parse(format.format(parsed)) == parsed  // true
 Each type has configurable encoding/decoding strategies:
 
 ```swift
-// Money<C> — default: .object → {"currencyCode":"GBP","amount":125}
+// Money<C>, default: .object → {"currencyCode":"GBP","amount":125}
 let encoder = JSONEncoder()
 encoder.moneyEncodingStrategy = .minorUnits   // bare 125
 encoder.moneyEncodingStrategy = .majorUnits   // bare 1.25
 encoder.moneyEncodingStrategy = .string       // "£1.25"
 
-// AnyMoney — default: .full → {"currencyCode":"GBP","minimalQuantisation":100,"minorUnits":125}
+// AnyMoney, default: .full → {"currencyCode":"GBP","minimalQuantisation":100,"minorUnits":125}
 encoder.anyMoneyEncodingStrategy = .object(amount: .majorUnits)
 // → {"currencyCode":"GBP","amount":1.25}
 
-// MoneyBag — default: .full → {"entries":[...]}
+// MoneyBag, default: .full → {"entries":[...]}
 encoder.moneyBagEncodingStrategy = .dictionary(amount: .majorUnits)
 // → {"GBP":1.25,"USD":10.00}
 ```
@@ -335,11 +335,11 @@ decoder.anyMoneyDecodingStrategy = .object(
 
 ## Safety
 
-- **Overflow** — `+`, `-`, `*` trap on overflow, matching Swift `Int` behaviour
-- **Type safety** — `Money<GBP> + Money<USD>` is a compile error; no runtime currency checks needed
-- **Floating-point blocked** — `Money * Double` and `Money * Float` are `@available(*, unavailable)` with descriptive error messages
-- **No `Numeric`** — `Money` does not conform to `Numeric`, preventing `money * money`
-- **Foundation optional** — formatting, parsing, `Decimal` conversions, and Codable require Foundation; core arithmetic does not (`#if canImport(Foundation)` guards)
+- **Overflow**: `+`, `-`, `*` trap on overflow, matching Swift `Int` behaviour
+- **Type safety**: `Money<GBP> + Money<USD>` is a compile error; no runtime currency checks needed
+- **Floating-point blocked**: `Money * Double` and `Money * Float` are `@available(*, unavailable)` with descriptive error messages
+- **No `Numeric`**: `Money` does not conform to `Numeric`, preventing `money * money`
+- **Foundation optional**: formatting, parsing, `Decimal` conversions, and Codable require Foundation; core arithmetic does not (`#if canImport(Foundation)` guards)
 
 ## Building and Testing
 
@@ -354,7 +354,7 @@ SwiftMoney's `Int64` minor-unit arithmetic is significantly faster than `Foundat
 
 - **Core arithmetic** (`+`, `-`, `*`, `<`): orders of magnitude faster, zero heap allocations
 - **JSON encoding**: faster with `.minorUnits` strategy (bare integer vs string round-trip)
-- **Formatting**: comparable — both delegate to Foundation's ICU number formatter
+- **Formatting**: comparable, because both delegate to Foundation's ICU number formatter
 
 See **[BENCHMARKS.md](https://github.com/PaulRWillis/swift-money/blob/assets/BENCHMARKS.md)** for the full side-by-side comparison, analysis, and detailed
 percentile tables.

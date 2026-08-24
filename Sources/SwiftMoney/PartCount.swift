@@ -47,7 +47,7 @@ extension PartCount: ExpressibleByIntegerLiteral {
     /// ```swift
     /// let parts: PartCount = 3    // fine
     /// let none: PartCount = 0     // traps
-    /// let same = PartCount(0)     // traps — also a literal, despite the call syntax
+    /// let same = PartCount(0)     // traps: also a literal, despite the call syntax
     /// ```
     ///
     /// - Parameter value: The number of parts.

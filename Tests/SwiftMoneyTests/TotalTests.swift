@@ -31,7 +31,7 @@ struct TotalTests {
         #expect(try amounts.total() == Money(minorUnits: 3_99, currency: .gbp))
     }
 
-    // Money has no zero — one cannot exist without a currency — so an empty sequence has no total.
+    // Money has no zero (one cannot exist without a currency), so an empty sequence has no total.
     @Test("Totalling no untyped amounts is nil")
     func totalOfNoUntypedAmounts() throws {
         #expect(try [Money]().total() == nil)

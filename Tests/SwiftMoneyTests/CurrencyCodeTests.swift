@@ -16,7 +16,7 @@ struct CurrencyCodeTests {
             "BTC",       // crypto, 3
             "USDT",      // crypto, 4
             "MATIC",     // crypto, 5
-            "SAFEMOON",  // crypto, 8 — the longest accepted
+            "SAFEMOON",  // crypto, 8: the longest accepted
             "1INCH",     // leading digit
             "401K",      // digits throughout
             "LTY",       // in-app currency

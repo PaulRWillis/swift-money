@@ -1,6 +1,6 @@
 /// A currency a monetary amount can be denominated in.
 ///
-/// A currency is a code and the number of its smallest units that make one major unit — enough to
+/// A currency is a code and the number of its smallest units that make one major unit: enough to
 /// identify it and to know how finely it divides.
 ///
 /// ```swift

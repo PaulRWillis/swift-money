@@ -109,7 +109,7 @@ def as_markdown(rows, covered, total):
     print("|:-----|--------:|----:|:----------------|")
 
     for path, hit, count, missed in rows:
-        lines = ", ".join(map(str, missed)) if missed else "—"
+        lines = ", ".join(map(str, missed)) if missed else "n/a"
         print(f"| `{path}` | {hit}/{count} | {100.0 * hit / count:.1f}% | {lines} |")
 
     if any(missed for *_, missed in rows):

@@ -4,7 +4,7 @@
 /// and normalized, so `"gbp"` and `"GBP"` are the same currency.
 ///
 /// The rule is deliberately wider than ISO 4217's three letters, so that currencies outside the
-/// standard — `USDT`, `SAFEMOON`, or an in-app `GEMS` — are expressible. It is not wide enough for
+/// standard (`USDT`, `SAFEMOON`, or an in-app `GEMS`) are expressible. It is not wide enough for
 /// every token symbol in circulation: some contain punctuation, emoji, or non-Latin scripts, and a
 /// rule permitting those would validate nothing.
 public struct CurrencyCode: Equatable, Hashable, Sendable {
@@ -16,7 +16,7 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
 
     /// Creates a currency code from a string that may not be valid.
     ///
-    /// Use this for codes that come from outside the program — user input, a database, an API
+    /// Use this for codes that come from outside the program: user input, a database, an API
     /// response.
     ///
     /// Lowercase input is normalized, so the code created is not always the string passed in.
@@ -166,7 +166,7 @@ extension CurrencyCode: ExpressibleByStringLiteral {
     /// Creates a currency code from a string literal.
     ///
     /// A literal is written by a programmer rather than derived from data, so an invalid one is a
-    /// mistake in the source rather than bad input — it traps instead of failing gracefully. Use
+    /// mistake in the source rather than bad input, so it traps instead of failing gracefully. Use
     /// ``init(string:)`` for any string that is not a literal.
     ///
     /// ```swift

@@ -96,7 +96,7 @@ struct ScalingTests {
         #expect(GBP.min.scaled(by: "1/2") == .exact(GBP(minorUnits: Int64.min / 2)))
     }
 
-    // A quarter of 10 is 2.5 — exactly between two whole units, which is where the rules differ most.
+    // A quarter of 10 is 2.5: exactly between two whole units, which is where the rules differ most.
     @Test(
         "Every rule resolves an exact half",
         arguments: [
@@ -145,7 +145,7 @@ struct ScalingTests {
     }
 
     // A quarter of -10 is -2.5. This is where `.down` and `.towardZero` part company, and where
-    // `.awayFromZero` and `.up` do — a sign error in a rule shows up here and nowhere else.
+    // `.awayFromZero` and `.up` do: a sign error in a rule shows up here and nowhere else.
     @Test(
         "Every rule resolves a negative exact half",
         arguments: [
@@ -213,13 +213,13 @@ struct ScalingTests {
 
 private let threeHalves: Ratio = "3/2"
 
-// Three halves of this amount is exactly the largest amount, with a half left over — so truncating fits
+// Three halves of this amount is exactly the largest amount, with a half left over, so truncating fits
 // and only the rounding step passes the maximum. At file scope because an exit test runs in a child
 // process, so its closure cannot capture a local.
 private let threeHalvesOfThisIsTheLargestAmount = GBP(minorUnits: Int64.max / 3 * 2 + 1)
 
-// An inexact result cannot be built from outside the module — that is what stops one claiming a
-// remainder it does not have — so these tests read the parts back out rather than comparing against a
+// An inexact result cannot be built from outside the module (that is what stops one claiming a
+// remainder it does not have), so these tests read the parts back out rather than comparing against a
 // constructed value.
 private func inexactParts<Amount>(
     _ scaled: Scaled<Amount>
