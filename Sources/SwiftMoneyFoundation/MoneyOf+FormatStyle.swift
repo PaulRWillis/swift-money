@@ -30,9 +30,8 @@ public extension MoneyOf {
         // shows every unit the currency divides into and no more, so nothing is rounded away.
         private var precision: Configuration.Precision?
 
-        // Counted in the currency's smallest units, so a five-centime rounding is `5` whatever
-        // the currency's scale turns out to be. `nil` leaves the amount alone.
-        private var roundingIncrement: Int?
+        // `nil` leaves the amount alone.
+        private var roundingIncrement: RoundingIncrement?
 
         /// Creates a style for the given locale.
         ///
@@ -131,19 +130,10 @@ public extension MoneyOf {
         ///   - increment: The step to round to, counted in the currency's smallest units. `nil`
         ///     by default, which rounds nothing. A step of one rounds nothing either, an amount
         ///     already being a whole count of the currency's smallest units.
-        /// - Precondition: `increment` is at least one. A step of zero or less is a mistake in
-        ///   the source rather than bad input, so it traps, as a bad literal does.
         public func rounded(
             rule: Configuration.RoundingRule = .toNearestOrEven,
-            increment: Int? = nil
+            increment: RoundingIncrement? = nil
         ) -> Self {
-            if let increment {
-                precondition(
-                    increment >= 1,
-                    "A rounding increment must be at least 1. Value: \(increment)"
-                )
-            }
-
             var copy = self
             copy.roundingRule = rule
             copy.roundingIncrement = increment
@@ -155,6 +145,8 @@ public extension MoneyOf {
 // MARK: - Codable
 
 extension MoneyOf.FormatStyle {
+    // Both Codable halves are the compiler's: `RoundingIncrement` refuses a below-one value on
+    // decode itself. The keys stay declared so a property rename cannot silently change the wire.
     private enum CodingKeys: String, CodingKey {
         case locale
         case presentation
@@ -164,53 +156,6 @@ extension MoneyOf.FormatStyle {
         case roundingRule
         case precision
         case roundingIncrement
-    }
-
-    /// Reads a style.
-    ///
-    /// `encode(to:)` is the compiler's, this one is not: a rounding increment that
-    /// ``rounded(rule:increment:)`` would refuse must not arrive through a decoder either. A
-    /// literal is a mistake in the source and traps, but decoded data is data, so it throws.
-    ///
-    /// - Parameter decoder: The decoder to read from.
-    /// - Throws: `DecodingError.dataCorrupted` if the rounding increment is below one.
-    public init(from decoder: any Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-
-        self.locale = try container.decode(Locale.self, forKey: .locale)
-        self.presentation = try container.decode(
-            Configuration.Presentation.self,
-            forKey: .presentation
-        )
-        self.grouping = try container.decode(Configuration.Grouping.self, forKey: .grouping)
-        self.sign = try container.decode(Configuration.SignDisplayStrategy.self, forKey: .sign)
-        self.decimalSeparator = try container.decode(
-            Configuration.DecimalSeparatorDisplayStrategy.self,
-            forKey: .decimalSeparator
-        )
-        self.roundingRule = try container.decode(
-            Configuration.RoundingRule.self,
-            forKey: .roundingRule
-        )
-        self.precision = try container.decodeIfPresent(
-            Configuration.Precision.self,
-            forKey: .precision
-        )
-
-        let roundingIncrement = try container.decodeIfPresent(Int.self, forKey: .roundingIncrement)
-
-        if let roundingIncrement, roundingIncrement < 1 {
-            throw DecodingError.dataCorruptedError(
-                forKey: .roundingIncrement,
-                in: container,
-                debugDescription: """
-                    Not a valid rounding increment: \(roundingIncrement). \
-                    An increment is at least one, counted in the currency's smallest units.
-                    """
-            )
-        }
-
-        self.roundingIncrement = roundingIncrement
     }
 }
 
@@ -275,10 +220,13 @@ private extension MoneyOf.FormatStyle {
     // units and drops the currency symbol when one is set beside a fraction length. Counting in
     // smallest units is also exact, where a fractional step would not be.
     func majorUnits(of value: MoneyOf<C>) -> Decimal {
-        guard let increment = roundingIncrement,
-              let step = Money.MinorUnits(exactly: increment),
-              step > 1
-        else {
+        guard let increment = roundingIncrement else {
+            return Decimal(value)
+        }
+
+        let step = Money.MinorUnits(increment)
+
+        guard step > 1 else {
             return Decimal(value)
         }
 
