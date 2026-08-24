@@ -12,13 +12,21 @@ public extension MoneyOf {
     /// By default the style shows the exact amount: precision comes from the currency's
     /// own scale, never from ICU's defaults.
     struct FormatStyle: Codable, Equatable, Hashable, Sendable {
+        /// The options a currency style is built from, named as Foundation names them.
+        ///
+        /// The same vocabulary `Decimal.FormatStyle.Currency` takes, so a reader who knows one
+        /// knows the other.
+        public typealias Configuration = CurrencyFormatStyleConfiguration
+
         private var locale: Locale
+        private var presentation: Configuration.Presentation
 
         /// Creates a style for the given locale.
         ///
         /// - Parameter locale: The locale to render in. Follows the user's setting by default.
         public init(locale: Locale = .autoupdatingCurrent) {
             self.locale = locale
+            self.presentation = .standard
         }
 
         /// Returns a copy of this style that renders in the given locale.
@@ -27,6 +35,19 @@ public extension MoneyOf {
         public func locale(_ locale: Locale) -> Self {
             var copy = self
             copy.locale = locale
+            return copy
+        }
+
+        /// Returns a copy of this style that names the currency in the given way.
+        ///
+        /// ```swift
+        /// style.presentation(.isoCode).format(USD(minorUnits: 4_99))   // "USD 4.99"
+        /// ```
+        ///
+        /// - Parameter presentation: How to name the currency. `.standard` by default.
+        public func presentation(_ presentation: Configuration.Presentation) -> Self {
+            var copy = self
+            copy.presentation = presentation
             return copy
         }
     }
@@ -50,9 +71,19 @@ extension MoneyOf.FormatStyle {
     //
     // Precision is pinned rather than left to ICU, whose per-currency defaults round: a yen
     // style shows 1234.56 as "1,235". A money amount must never lose a unit to display.
+    //
+    // Everything else is passed on only where the caller changed it, because setting an option
+    // to its own default is not free. Verified on Swift 6.3.2, against
+    // `Decimal.FormatStyle.Currency` itself.
     func decimalStyle(for currency: Currency) -> Decimal.FormatStyle.Currency {
-        Decimal.FormatStyle.Currency(code: String(currency.code), locale: locale)
+        var style = Decimal.FormatStyle.Currency(code: String(currency.code), locale: locale)
             .precision(.fractionLength(currency.unitScale.decimalPlaces))
+
+        if presentation != .standard {
+            style = style.presentation(presentation)
+        }
+
+        return style
     }
 }
 
