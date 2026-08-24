@@ -4,8 +4,6 @@ import Testing
 @Suite("Scaling Tests")
 struct ScalingTests {
 
-    // MARK: - Exact
-
     @Test("A fraction that divides exactly reports no remainder")
     func exactDivision() {
         #expect(GBP(minorUnits: 9_99).scaled(by: "1/3") == .exact(GBP(minorUnits: 3_33)))
@@ -25,8 +23,6 @@ struct ScalingTests {
     func zeroAmount() {
         #expect(GBP.zero.scaled(by: "1/3") == .exact(GBP.zero))
     }
-
-    // MARK: - Inexact
 
     @Test("A fraction that does not divide exactly reports the part left over")
     func inexactDivision() throws {
@@ -52,8 +48,6 @@ struct ScalingTests {
 
         #expect(String(describing: scaled).contains("1/3"))
     }
-
-    // MARK: - Sign
 
     // The amount truncates toward zero and the remainder takes the same sign, so the two together
     // account for the exact product: -333 and -1/3, never -334 and 2/3.
@@ -81,8 +75,6 @@ struct ScalingTests {
         #expect(remainder == "1/3")
     }
 
-    // MARK: - Extremes
-
     // Doubling the largest amount does not fit, but two thirds of it does. Scaling multiplies at double
     // width, so this is exact rather than a reported overflow.
     //
@@ -103,8 +95,6 @@ struct ScalingTests {
         #expect(GBP.min.scaled(by: "1/1") == .exact(GBP.min))
         #expect(GBP.min.scaled(by: "1/2") == .exact(GBP(minorUnits: Int64.min / 2)))
     }
-
-    // MARK: - Rounding
 
     // A quarter of 10 is 2.5 — exactly between two whole units, which is where the rules differ most.
     @Test(
@@ -193,8 +183,6 @@ struct ScalingTests {
     func exactResultsAreUnchanged(rule: RoundingRule) {
         #expect(GBP(minorUnits: 8).scaled(by: "1/4", rounding: rule) == GBP(minorUnits: 2))
     }
-
-    // MARK: - Overflow
 
     @Test("Truncating reaches the largest amount exactly")
     func truncatingReachesTheLargestAmount() {

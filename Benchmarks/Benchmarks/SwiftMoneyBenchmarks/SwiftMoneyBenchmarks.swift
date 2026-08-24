@@ -46,8 +46,6 @@ let benchmarks: @Sendable () -> Void = {
         thresholds: defaultThresholds
     )
 
-    // MARK: - What the measurement itself costs
-
     // Whatever keeps a result alive is inside every number below, so here is what it costs on its
     // own. These two are the reason the cheap operations chain their results rather than handing
     // each one to `blackHole`.
@@ -66,8 +64,6 @@ let benchmarks: @Sendable () -> Void = {
             blackHole(value)
         }
     }
-
-    // MARK: - Addition
 
     // A result has to be kept alive or the optimiser deletes the work, and the cheapest way to do
     // that differs by type. Handing a value to `blackHole` costs 7 instructions for an integer and
@@ -130,8 +126,6 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
-    // MARK: - Subtraction
-
     Benchmark("MoneyOf subtraction", configuration: defaultConfiguration) { benchmark in
         var accumulated = GBP(minorUnits: 999_999_999)
         var index = 0
@@ -178,8 +172,6 @@ let benchmarks: @Sendable () -> Void = {
             index &+= 1
         }
     }
-
-    // MARK: - Scalar Multiplication
 
     // Summing the products keeps each one alive without handing it to the harness, and costs every
     // variant the same addition, which the addition benchmarks above have already priced.
@@ -231,8 +223,6 @@ let benchmarks: @Sendable () -> Void = {
             index &+= 1
         }
     }
-
-    // MARK: - Scale and Round
 
     // 17.5% of an amount, resolved to a whole unit. The operation this library exists for, and the one
     // where the three baselines diverge most: `Int` cannot round at all, `Double` rounds a value it
@@ -288,8 +278,6 @@ let benchmarks: @Sendable () -> Void = {
             amount &+= 1
         }
     }
-
-    // MARK: - Chained Scaling
 
     // A 10% discount, then 20% VAT, then 31 days of a year. Only the unrounded chain is exact: the
     // others settle, truncate or drift at every step, so the timings carry a correctness result too.
@@ -381,8 +369,6 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
-    // MARK: - Comparison
-
     // Two constant operands let the optimiser hoist the comparison out of the loop, leaving nothing
     // to measure, so one side cycles through the shared operands. Every variant hands `blackHole` a
     // `Bool`, so the harness costs the same in all four and what separates them is the comparison.
@@ -426,8 +412,6 @@ let benchmarks: @Sendable () -> Void = {
             index &+= 1
         }
     }
-
-    // MARK: - Rendering
 
     // `description` is what `print`, interpolation and a failing test all reach for, so it runs in
     // places nobody profiles. Every variant hands `blackHole` a `String`, so the harness costs the
@@ -478,8 +462,6 @@ let benchmarks: @Sendable () -> Void = {
             index &+= 1
         }
     }
-
-    // MARK: - Parsing
 
     // Every variant hands `blackHole` a `Bool`, so the harness costs the same in each and what
     // separates them is the parse.
@@ -535,8 +517,6 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
-    // MARK: - Decimal interop
-
     // The Foundation bridge between `Decimal` and money. `MoneyOf parsing` and `MoneyOf
     // description` are the string peers: the gap between a pair is what the `Decimal` route costs
     // against the string route. Every variant hands `blackHole` a `Bool`, so the harness costs the
@@ -571,8 +551,6 @@ let benchmarks: @Sendable () -> Void = {
             index &+= 1
         }
     }
-
-    // MARK: - Localized rendering and parsing
 
     // The `FormatStyle` and `ParseStrategy` surface delegates to Foundation's
     // `Decimal.FormatStyle.Currency`, so the `Decimal` rows here run the exact engine underneath:
@@ -654,8 +632,6 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
-    // MARK: - Currency lookup
-
     // A spread across the alphabet, because the table is searched in order: AED is the first case
     // and ZWG the last.
     let lookupCodes: [CurrencyCode] = ["AED", "EUR", "GBP", "JPY", "MRU", "USD", "ZWG"]
@@ -668,8 +644,6 @@ let benchmarks: @Sendable () -> Void = {
             index &+= 1
         }
     }
-
-    // MARK: - What the library's own choices cost
 
     // `Money` throws where `MoneyOf` traps, so this is the price of typed throws: a currency check and
     // an error return path that never fires. `BenchmarkClosure` cannot throw, hence the surrounding
@@ -846,8 +820,6 @@ let benchmarks: @Sendable () -> Void = {
             index &+= 1
         }
     }
-
-    // MARK: - Coding
 
     // `JSONEncoder` and `JSONDecoder` cost thousands of instructions, so a round trip through them
     // says almost nothing about this library. Three measurements separate the two costs:

@@ -112,8 +112,6 @@ func greatestCommonDivisor(
     return a
 }
 
-// MARK: - Scaling
-
 // The whole part of `amount` multiplied by `ratio`, truncated toward zero, together with whatever
 // fraction is left over. The remainder carries the same sign as the whole part, so the two account for
 // the exact product between them.
@@ -167,8 +165,6 @@ private extension Ratio {
     }
 }
 
-// MARK: - Settling an exact count of units
-
 // The whole number `exact` settles to under `rule`.
 //
 // Total, unlike `scaled(_:by:)`: a denominator of one leaves nothing to settle, and any larger
@@ -191,8 +187,6 @@ func rounded(
     return nearZero + remainder.step(under: rule, from: nearZero)
 }
 
-// MARK: - Multiplication
-
 internal extension Ratio {
     // This ratio multiplied by another, in lowest terms. `nil` when the product is not representable.
     //
@@ -213,8 +207,6 @@ internal extension Ratio {
         return Ratio(Numerator(numerator), Denominator(unchecked: denominator))
     }
 }
-
-// MARK: - Addition
 
 internal extension Ratio {
     // This ratio plus another, in lowest terms. `nil` when the sum is not representable.
@@ -293,8 +285,6 @@ private extension Ratio {
     }
 }
 
-// MARK: - Fractional Remainder
-
 public extension Ratio {
     /// The part of one unit left over by a division.
     ///
@@ -320,8 +310,6 @@ public extension Ratio {
         self = remainder.value
     }
 }
-
-// MARK: - Resolving a remainder
 
 internal extension Ratio.FractionalRemainder {
     // How far `nearZero` moves once this leftover is resolved by `rule`: either nothing, or one whole
@@ -416,8 +404,6 @@ private extension Ratio.FractionalRemainder {
     }
 }
 
-// MARK: - Reduction
-
 private extension Ratio.Numerator {
     // Every integer is a valid numerator, so dividing can never produce an invalid one. Dividing by a
     // positive value also means `Int64.min / -1` — the one trapping integer division — cannot arise.
@@ -434,15 +420,11 @@ private extension Ratio.Denominator {
     }
 }
 
-// MARK: - CustomStringConvertible
-
 extension Ratio: CustomStringConvertible {
     public var description: String {
         "\(numerator)/\(denominator)"
     }
 }
-
-// MARK: - Operands
 
 internal extension Ratio {
     // The signed part of a ratio. Every integer is a valid numerator, so this cannot fail to be
@@ -726,8 +708,6 @@ private extension UInt8 {
         return (zero...UInt8(ascii: "9")).contains(self) ? self - zero : nil
     }
 }
-
-// MARK: - Literals
 
 extension Ratio: ExpressibleByStringLiteral {
     /// Creates a ratio from a string literal.

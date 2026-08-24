@@ -4,8 +4,6 @@ import Testing
 @Suite("Money Tests")
 struct MoneyTests {
 
-    // MARK: - Construction
-
     @Test("when constructed exactly from representable value should hold same amount")
     func whenConstructedExactlyFromRepresentableValue_shouldHoldSameAmount() {
         let sut = Money(exactly: Int128(4_99), currency: .gbp)
@@ -24,8 +22,6 @@ struct MoneyTests {
             blackHole(Money(minorUnits: Int128.max, currency: .gbp))
         }
     }
-
-    // MARK: - Addition
 
     @Test("Add same currency succeeds")
     func addSameCurrency() throws {
@@ -65,8 +61,6 @@ struct MoneyTests {
         }
     }
 
-    // MARK: - Addition In Place
-
     @Test("Addition in place succeeds for same currency")
     func additionInPlaceSameCurrency() throws {
         var a = Money(minorUnits: 5, currency: .gbp)
@@ -97,8 +91,6 @@ struct MoneyTests {
             blackHole(a)
         }
     }
-
-    // MARK: - Subtraction
 
     @Test("Subtract same currency succeeds")
     func subtractSameCurrency() throws {
@@ -138,8 +130,6 @@ struct MoneyTests {
         }
     }
 
-    // MARK: - Subtraction In Place
-
     @Test("Subtraction in place succeeds for same currency")
     func subtractionInPlaceSameCurrency() throws {
         var a = Money(minorUnits: 5, currency: .gbp)
@@ -170,8 +160,6 @@ struct MoneyTests {
             blackHole(a)
         }
     }
-
-    // MARK: - Integral Multiplication
 
     @Test("Integral multiplication succeeds")
     func integralMultiplication() throws {
@@ -215,8 +203,6 @@ struct MoneyTests {
         }
     }
 
-    // MARK: - Integral Multiplication In Place
-
     @Test("Integral multiplication in place succeeds")
     func integralMultiplicationInPlace() throws {
         var a = Money(minorUnits: 2_25, currency: .gbp) // £2.25
@@ -226,8 +212,6 @@ struct MoneyTests {
 
         #expect(a == Money(minorUnits: 6_75, currency: .gbp)) // £6.75
     }
-
-    // MARK: - Chaining
 
     @Test("One try covers a whole chain")
     func oneTryCoversAWholeChain() throws {
@@ -275,8 +259,6 @@ struct MoneyTests {
         #expect(succeeded == Money(minorUnits: 12_50, currency: .gbp))
     }
 
-    // MARK: - isMultiple(of:)
-
     @Test("Is multiple of money where euclidean remainder is zero")
     func isMultipleOnZeroRemainder() throws {
         let a = Money(minorUnits: 3_33, currency: .gbp)
@@ -320,8 +302,6 @@ struct MoneyTests {
             try a.isMultiple(of: b)
         }
     }
-
-    // MARK: - Fractional Scaling
 
     // The algorithm itself is covered by ScalingTests, which drives it through GBP. These check the
     // steps unique to Money: re-attaching the currency, and throwing where MoneyOf traps.
@@ -394,8 +374,6 @@ struct MoneyTests {
         }
     }
 
-    // MARK: - Split
-
     // The algorithm itself is covered by SplitTests. These two check the step that
     // is unique to Money: re-attaching the currency to every share.
 
@@ -416,8 +394,6 @@ struct MoneyTests {
 
         #expect(Array(result.amounts) == [Money(minorUnits: 2, currency: .gbp), Money(minorUnits: 1, currency: .gbp),])
     }
-
-    // MARK: - Unrounded
 
     // The chaining itself is covered by UnroundedTests, which drives it through GBP. These check the
     // steps unique to Money: keeping the currency, and throwing where MoneyOf traps.

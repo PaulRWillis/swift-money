@@ -33,8 +33,6 @@ public extension MoneyOf {
     }
 }
 
-// MARK: - A currency fixed at compile time: scaling cannot fail
-
 public extension MoneyOf.Unrounded where C: CurrencyType {
     /// Returns the result of scaling an unrounded amount by a fraction, keeping it exact.
     ///
@@ -171,8 +169,6 @@ public extension MoneyOf.Unrounded where C: CurrencyType {
         lhs = lhs - rhs
     }
 }
-
-// MARK: - A currency only known at runtime: arithmetic can fail
 
 public extension MoneyOf.Unrounded where C == AnyCurrency {
     /// Returns the result of scaling an unrounded amount by a fraction, keeping it exact.

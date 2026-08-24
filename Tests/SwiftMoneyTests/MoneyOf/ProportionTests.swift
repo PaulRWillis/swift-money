@@ -4,8 +4,6 @@ import Testing
 @Suite("Proportion Tests")
 struct ProportionTests {
 
-    // MARK: - A currency fixed at compile time
-
     @Test("A part of a whole is the fraction between them")
     func partOfWhole() throws {
         let part = GBP(minorUnits: 20_00)
@@ -74,8 +72,6 @@ struct ProportionTests {
         #expect(part.proportion(of: whole) == "1/5")
     }
 
-    // MARK: - The extremes
-
     @Test("The largest and smallest amounts are each all of themselves")
     func extremesOfThemselves() {
         #expect(GBP.max.proportion(of: .max) == "1/1")
@@ -95,8 +91,6 @@ struct ProportionTests {
     func reducedBeforeJudged() {
         #expect(GBP.min.proportion(of: GBP(minorUnits: -2)) != nil)
     }
-
-    // MARK: - A currency only known at runtime
 
     @Test("A part of a whole in the same currency is the fraction between them")
     func runtimePartOfWhole() throws {

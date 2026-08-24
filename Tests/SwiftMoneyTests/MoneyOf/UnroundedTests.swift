@@ -4,8 +4,6 @@ import Testing
 @Suite("Unrounded Tests")
 struct UnroundedTests {
 
-    // MARK: - The reason the type exists
-
     @Test("A chain settles once, where scaling settles at every step")
     func aChainSettlesOnce() {
         let chained = GBP(minorUnits: 10_00).unrounded * "1/3" * "3/1"
@@ -25,16 +23,12 @@ struct UnroundedTests {
         #expect(interest.rounded(.toNearestOrEven) == GBP(minorUnits: 38_22))
     }
 
-    // MARK: - Entry
-
     @Test("An amount survives a round trip", arguments: everyRule)
     func roundTrip(rule: RoundingRule) {
         #expect(GBP(minorUnits: 12_34).unrounded.rounded(rule) == GBP(minorUnits: 12_34))
         #expect(GBP(minorUnits: -12_34).unrounded.rounded(rule) == GBP(minorUnits: -12_34))
         #expect(GBP.zero.unrounded.rounded(rule) == GBP.zero)
     }
-
-    // MARK: - Multiplication
 
     @Test("A ratio scales an amount")
     func ratioScales() {
@@ -80,8 +74,6 @@ struct UnroundedTests {
         #expect(third.rounded(.awayFromZero) == GBP(minorUnits: 3_34))
     }
 
-    // MARK: - Exactness
-
     @Test("An exact chain rounds the same way under every rule")
     func anExactChainIsIndifferentToRule() {
         #expect(roundsIdentically(GBP(minorUnits: 30_00).unrounded * "18/30" * "11/18") == GBP(minorUnits: 11_00))
@@ -91,8 +83,6 @@ struct UnroundedTests {
     func anInexactChainIsNotIndifferentToRule() {
         #expect(roundsIdentically(GBP(minorUnits: 10_00).unrounded * "1/3") == nil)
     }
-
-    // MARK: - Overflow
 
     // Naively this multiplies the largest amount by three, which does not fit. Cancelling it against
     // the denominator first leaves three over one.
@@ -138,8 +128,6 @@ struct UnroundedTests {
         #expect(smallest.rounded(.towardZero) == GBP(minorUnits: Int64.min / 3))
         #expect(smallest.rounded(.awayFromZero) == GBP(minorUnits: Int64.min / 3 - 1))
     }
-
-    // MARK: - Addition and subtraction
 
     @Test("Amounts over the same denominator add")
     func sameDenominatorAdds() {
@@ -190,8 +178,6 @@ struct UnroundedTests {
         #expect(subtracted == GBP.Unrounded.zero)
     }
 
-    // MARK: - Mixing with settled money
-
     @Test("A settled amount can join a chain from either side")
     func settledMoneyJoinsAChain() {
         let third = GBP(minorUnits: 9_99).unrounded * "1/3"
@@ -219,8 +205,6 @@ struct UnroundedTests {
 
         #expect(Array(shares.amounts) == [GBP(minorUnits: 1_34), GBP(minorUnits: 1_33)])
     }
-
-    // MARK: - Zero
 
     // Written out rather than as `.zero`: with a settled amount addable to an unrounded one, a leading
     // dot cannot tell which type's zero is meant. That is a compile error rather than a wrong answer,
@@ -263,8 +247,6 @@ struct UnroundedTests {
             blackHole(GBP.min.unrounded - GBP.max.unrounded)
         }
     }
-
-    // MARK: - Equatable and Hashable
 
     @Test("Equal chains are equal however they were reached")
     func equalChainsAreEqual() {

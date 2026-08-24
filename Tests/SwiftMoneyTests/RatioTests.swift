@@ -4,8 +4,6 @@ import Testing
 @Suite("Ratio Tests")
 struct RatioTests {
 
-    // MARK: - Canonical form
-
     // Storage is private, so reduction is observable only through equality and description. That is
     // the point: a caller cannot depend on the representation, only on the value.
     @Test("Equivalent fractions are equal")
@@ -32,16 +30,12 @@ struct RatioTests {
         #expect(String(describing: "6/4" as Ratio) == "3/2")
     }
 
-    // MARK: - Zero
-
     @Test("Every representation of zero is the same ratio")
     func zeroIsCanonical() {
         #expect("0/5" as Ratio == "0/1")
         #expect("0/997" as Ratio == "0/1")
         #expect(String(describing: "0/5" as Ratio) == "0/1")
     }
-
-    // MARK: - Sign
 
     @Test("The sign is carried by the numerator")
     func signIsCarriedByTheNumerator() throws {
@@ -51,8 +45,6 @@ struct RatioTests {
         #expect(String(describing: negative) == "-7/40")
         #expect(String(describing: positive) == "7/40")
     }
-
-    // MARK: - Extremes
 
     // Int64.min would overflow a naive `abs`-based reduction. Computing the greatest common divisor on
     // magnitudes avoids that, and a positive denominator means the numerator is never negated.

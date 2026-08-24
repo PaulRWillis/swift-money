@@ -1,5 +1,3 @@
-// MARK: - Splitting, which cannot fail for any currency
-
 public extension MoneyOf where C: CurrencyType {
     /// Returns this monetary amount split into `parts`, as evenly as possible.
     ///
@@ -27,8 +25,6 @@ public extension MoneyOf where C == AnyCurrency {
             .map { Self(unchecked: $0, storage: currency) }
     }
 }
-
-// MARK: - Fractional scaling, a currency fixed at compile time
 
 public extension MoneyOf where C: CurrencyType {
     /// Returns this monetary amount scaled by a fraction.
@@ -90,8 +86,6 @@ public extension MoneyOf where C: CurrencyType {
         return Self(unchecked: rounded, storage: .implied)
     }
 }
-
-// MARK: - Fractional scaling, a currency only known at runtime
 
 public extension MoneyOf where C == AnyCurrency {
     /// Returns this monetary amount scaled by a fraction.
