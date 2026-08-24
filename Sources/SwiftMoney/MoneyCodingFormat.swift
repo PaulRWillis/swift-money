@@ -24,9 +24,6 @@ public struct MoneyCodingFormat: Sendable, Equatable, Hashable {
         case minorUnits
 
         /// Whole units and a fraction, so pounds and pence.
-        ///
-        /// A currency whose scale writes no exact decimal, such as a pound of 240 pence, falls back
-        /// to its smallest units.
         case majorUnits
     }
 

@@ -10,8 +10,7 @@ extension MoneyOf: Codable {
     ///
     /// - Throws: `EncodingError.invalidValue` where the shape cannot carry this amount: one leaving
     ///   the currency out, where the currency is known only at runtime, or a major units number,
-    ///   where the amount is too large for a number to name exactly or its currency divides into no
-    ///   exact decimal.
+    ///   where the amount is too large for a number to name exactly.
     public func encode(to encoder: any Encoder) throws {
         switch encoder.moneyCodingFormat.shape {
         case let .codedString(units):
@@ -61,27 +60,14 @@ extension MoneyOf: Codable {
 
     // The amount in major units, as the only fractional primitive a coder takes.
     private func majorUnitsNumber(at encoder: any Encoder) throws -> Double {
-        func refuse(_ reason: String) -> EncodingError {
-            EncodingError.invalidValue(self, EncodingError.Context(
+        guard minorUnits.magnitude < exactNumberBound else {
+            throw EncodingError.invalidValue(self, EncodingError.Context(
                 codingPath: encoder.codingPath,
-                debugDescription: reason
+                debugDescription: Self.refusalBeyondExactRange(codedString(.minorUnits))
             ))
         }
 
-        guard minorUnits.magnitude < exactNumberBound else {
-            throw refuse(Self.refusalBeyondExactRange(codedString(.minorUnits)))
-        }
-
-        // Where the scale writes no exact decimal, the string forms fall back to smallest units and
-        // say so by carrying no `.`. A number has no such mark, so a reader told to expect major
-        // units would scale it a second time and read a wholly different amount.
-        let scale = Int64(currency.unitScale)
-
-        guard UInt64(scale).exactDecimalPlaces != nil else {
-            throw refuse(Self.refusalWithoutAnExactDecimal(currency))
-        }
-
-        return Double(minorUnits) / Double(scale)
+        return Double(minorUnits) / Double(Int64(currency.unitScale))
     }
 
     /// Reads an amount, in any form this library writes.
@@ -227,13 +213,6 @@ extension MoneyOf: Codable {
         case let .beyondExactRange(currency, text):
             return refusalBeyondExactRange("\(currency.code) \(text)")
         }
-    }
-
-    private static func refusalWithoutAnExactDecimal(_ currency: Currency) -> String {
-        """
-        \(currency.code) divides into no exact decimal, so its amounts cannot cross as a major \
-        units number. Ask for its smallest units, or write it as a string.
-        """
     }
 
     // Shared by both directions, an amount being unable to cross as a number for the same reason

@@ -13,13 +13,8 @@ public extension MoneyOf where C: CurrencyType {
     /// Nothing is rounded. A number finer than the currency divides is refused, so `4.999` in
     /// sterling is `nil` rather than a penny either way.
     ///
-    /// A currency has an exact decimal form only where its scale is `2 ^ a * 5 ^ b` and reaches no
-    /// further than eighteen decimal places. Every ISO 4217 currency qualifies. A pound of 240 pence
-    /// does not, one penny of it being 0.0041666…, and this returns `nil` for any amount in it.
-    ///
     /// - Parameter majorUnits: The amount, counted in the currency's major units.
-    /// - Returns: `nil` unless the currency has an exact decimal form and can hold this amount
-    ///   exactly.
+    /// - Returns: `nil` unless the currency can hold this amount exactly.
     @inlinable
     init?(majorUnits: Decimal) {
         guard let minorUnits = exactMinorUnits(majorUnits, in: C.currency) else {
@@ -41,15 +36,10 @@ public extension MoneyOf where C == AnyCurrency {
     /// Nothing is rounded. A number finer than the currency divides is refused, so `4.999` in
     /// sterling is `nil` rather than a penny either way.
     ///
-    /// A currency has an exact decimal form only where its scale is `2 ^ a * 5 ^ b` and reaches no
-    /// further than eighteen decimal places. Every ISO 4217 currency qualifies. A pound of 240 pence
-    /// does not, one penny of it being 0.0041666…, and this returns `nil` for any amount in it.
-    ///
     /// - Parameters:
     ///   - majorUnits: The amount, counted in the currency's major units.
     ///   - currency: The currency to denominate the amount in.
-    /// - Returns: `nil` unless the currency has an exact decimal form and can hold this amount
-    ///   exactly.
+    /// - Returns: `nil` unless the currency can hold this amount exactly.
     init?(
         majorUnits: Decimal,
         currency: Currency
@@ -63,23 +53,19 @@ public extension MoneyOf where C == AnyCurrency {
 }
 
 // The smallest units a decimal number of major units holds, in a currency the caller already knows.
-// `nil` where the currency has no exact decimal form, where the number is finer than the currency
-// divides, and where the count is too large to store.
+// `nil` where the number is finer than the currency divides, and where the count is too large to
+// store.
 @usableFromInline
 func exactMinorUnits(
     _ majorUnits: Decimal,
     in currency: Currency
 ) -> Money.MinorUnits? {
-    let scale = UInt64(Int64(currency.unitScale))
-
-    guard majorUnits.isFinite,
-          scale.exactDecimalPlaces != nil
-    else {
+    guard majorUnits.isFinite else {
         return nil
     }
 
     var value = majorUnits
-    var multiplier = Decimal(scale)
+    var multiplier = Decimal(UInt64(Int64(currency.unitScale)))
     var product = Decimal()
 
     // Through `NSDecimalMultiply` rather than `*`, because the operator traps on overflow and this
