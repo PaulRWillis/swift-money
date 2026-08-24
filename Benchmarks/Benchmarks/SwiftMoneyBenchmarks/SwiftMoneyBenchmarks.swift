@@ -572,15 +572,16 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
-    // MARK: - Localized rendering
+    // MARK: - Localized rendering and parsing
 
-    // The `FormatStyle` surface delegates to Foundation's `Decimal.FormatStyle.Currency`, so the
-    // `Decimal` row here runs the exact engine underneath: the gap between a pair is what the
-    // library adds on top of ICU. Part of that gap is a rebuild: the library builds the
-    // underlying `Decimal` style again on every format call. The locale is pinned to `en_GB`, so
-    // the numbers do not depend on the machine's locale setting. Styles are built once, outside
-    // the loops, because the rows measure the call and not the setup. Every variant reads the
-    // same digits as `decimalAmounts`, 4.01 to 4.23.
+    // The `FormatStyle` and `ParseStrategy` surface delegates to Foundation's
+    // `Decimal.FormatStyle.Currency`, so the `Decimal` rows here run the exact engine underneath:
+    // the gap between a pair is what the library adds on top of ICU. Part of that gap is a
+    // rebuild: the library builds the underlying `Decimal` style again on every format call, and
+    // its parse strategy again on every parse call. The locale is pinned to `en_GB`, so the
+    // numbers do not depend on the machine's locale setting. Styles and strategies are built
+    // once, outside the loops, because the rows measure the call and not the setup. Every variant
+    // reads the same digits as `decimalAmounts`, 4.01 to 4.23.
     let britishEnglish = Locale(identifier: "en_GB")
     let typedCurrencyStyle = GBP.FormatStyle().locale(britishEnglish)
     let runtimeCurrencyStyle = Money.FormatStyle().locale(britishEnglish)
@@ -616,6 +617,39 @@ let benchmarks: @Sendable () -> Void = {
 
         for _ in benchmark.scaledIterations {
             blackHole(decimalCurrencyStyle.format(decimalAmounts[index % decimalAmounts.count]))
+            index &+= 1
+        }
+    }
+
+    // Every parse variant hands `blackHole` a `Bool`, so the harness costs the same in each. Both
+    // variants read the same strings, `bareStrings` behind a pound sign. The runtime route,
+    // `parseStrategy(for:)`, has no row: it shares the typed parse path, and only the final
+    // construction differs.
+    let poundStrings = bareStrings.map { "£" + $0 }
+    let typedCurrencyStrategy = typedCurrencyStyle.parseStrategy
+    let decimalCurrencyStrategy = decimalCurrencyStyle.parseStrategy
+
+    // A failed parse also walks ICU and reports a plausible number, so the zero scan cannot catch
+    // a fixture that stops parsing. These pin the success path once, at registration.
+    precondition((try? typedCurrencyStrategy.parse(poundStrings[0])) != nil,
+                 "the typed strategy must parse the fixtures")
+    precondition((try? decimalCurrencyStrategy.parse(poundStrings[0])) != nil,
+                 "the Decimal strategy must parse the fixtures")
+
+    Benchmark("MoneyOf currency parsing, en_GB", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole((try? typedCurrencyStrategy.parse(poundStrings[index % poundStrings.count])) != nil)
+            index &+= 1
+        }
+    }
+
+    Benchmark("Decimal currency parsing, en_GB", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole((try? decimalCurrencyStrategy.parse(poundStrings[index % poundStrings.count])) != nil)
             index &+= 1
         }
     }
