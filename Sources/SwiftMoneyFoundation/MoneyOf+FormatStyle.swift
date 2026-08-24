@@ -20,6 +20,7 @@ public extension MoneyOf {
 
         private var locale: Locale
         private var presentation: Configuration.Presentation
+        private var sign: Configuration.SignDisplayStrategy
 
         /// Creates a style for the given locale.
         ///
@@ -27,6 +28,7 @@ public extension MoneyOf {
         public init(locale: Locale = .autoupdatingCurrent) {
             self.locale = locale
             self.presentation = .standard
+            self.sign = .automatic
         }
 
         /// Returns a copy of this style that renders in the given locale.
@@ -48,6 +50,16 @@ public extension MoneyOf {
         public func presentation(_ presentation: Configuration.Presentation) -> Self {
             var copy = self
             copy.presentation = presentation
+            return copy
+        }
+
+        /// Returns a copy of this style that shows the sign in the given way.
+        ///
+        /// - Parameter strategy: When to write a sign. `.automatic` by default, which writes one
+        ///   only for a negative amount.
+        public func sign(strategy: Configuration.SignDisplayStrategy) -> Self {
+            var copy = self
+            copy.sign = strategy
             return copy
         }
     }
@@ -81,6 +93,10 @@ extension MoneyOf.FormatStyle {
 
         if presentation != .standard {
             style = style.presentation(presentation)
+        }
+
+        if sign != .automatic {
+            style = style.sign(strategy: sign)
         }
 
         return style
