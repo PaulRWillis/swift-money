@@ -61,6 +61,15 @@ struct MoneyFormatStyleModifierTests {
         #expect(style.format(MGA(minorUnits: 1_234_56)) == "MGA\u{00A0}1,234.56")
     }
 
+    @Test("Precision is the opt-in to rounding what is shown")
+    func precision() {
+        let amount = GBP(minorUnits: 4_99)
+
+        #expect(Self.sterling.format(amount) == "£4.99")
+        #expect(Self.sterling.precision(.fractionLength(0)).format(amount) == "£5")
+        #expect(Self.sterling.precision(.significantDigits(2)).format(amount) == "£5.0")
+    }
+
     @Test("Grouping turned off beside a second option loses the currency symbol")
     func groupingOffBesideASecondOptionLosesTheSymbol() {
         // Foundation's own currency style drops the symbol from this pairing, and ours can only

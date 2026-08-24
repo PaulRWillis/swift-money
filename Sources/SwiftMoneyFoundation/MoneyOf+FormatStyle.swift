@@ -10,7 +10,8 @@ public extension MoneyOf {
     /// That is the state this type forbids.
     ///
     /// By default the style shows the exact amount: precision comes from the currency's
-    /// own scale, never from ICU's defaults.
+    /// own scale, never from ICU's defaults. It rounds the displayed digits only when the
+    /// caller asks it to, through `precision(_:)`.
     struct FormatStyle: Codable, Equatable, Hashable, Sendable {
         /// The options a currency style is built from, named as Foundation names them.
         ///
@@ -24,6 +25,10 @@ public extension MoneyOf {
         private var sign: Configuration.SignDisplayStrategy
         private var decimalSeparator: Configuration.DecimalSeparatorDisplayStrategy
 
+        // `nil` means the currency decides, which is the whole point of the default: the style
+        // shows every unit the currency divides into and no more, so nothing is rounded away.
+        private var precision: Configuration.Precision?
+
         /// Creates a style for the given locale.
         ///
         /// - Parameter locale: The locale to render in. Follows the user's setting by default.
@@ -33,6 +38,7 @@ public extension MoneyOf {
             self.grouping = .automatic
             self.sign = .automatic
             self.decimalSeparator = .automatic
+            self.precision = nil
         }
 
         /// Returns a copy of this style that renders in the given locale.
@@ -87,6 +93,19 @@ public extension MoneyOf {
             copy.decimalSeparator = strategy
             return copy
         }
+
+        /// Returns a copy of this style that shows the given number of digits.
+        ///
+        /// This is the opt-in to display rounding. The default shows every unit the currency
+        /// divides into, so `4.99` in sterling stays `4.99`; asking for fewer digits than that
+        /// rounds what is shown, and the text no longer parses back to the amount it came from.
+        ///
+        /// - Parameter precision: How many digits to show.
+        public func precision(_ precision: Configuration.Precision) -> Self {
+            var copy = self
+            copy.precision = precision
+            return copy
+        }
     }
 }
 
@@ -115,7 +134,7 @@ extension MoneyOf.FormatStyle {
     // Swift 6.3.2, against `Decimal.FormatStyle.Currency` itself.
     func decimalStyle(for currency: Currency) -> Decimal.FormatStyle.Currency {
         var style = Decimal.FormatStyle.Currency(code: String(currency.code), locale: locale)
-            .precision(.fractionLength(currency.unitScale.decimalPlaces))
+            .precision(precision ?? .fractionLength(currency.unitScale.decimalPlaces))
 
         if presentation != .standard {
             style = style.presentation(presentation)
