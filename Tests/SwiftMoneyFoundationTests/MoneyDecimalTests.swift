@@ -19,8 +19,8 @@ struct MoneyDecimalTests {
     func readsBackAsDecimal() throws {
         let expected = try #require(Decimal(string: "-4.99"))
 
-        #expect(Decimal(exactly: GBP(minorUnits: -4_99)) == expected)
-        #expect(Decimal(exactly: JPY(minorUnits: 499)) == 499)
+        #expect(Decimal(GBP(minorUnits: -4_99)) == expected)
+        #expect(Decimal(JPY(minorUnits: 499)) == 499)
     }
 
     @Test("What the currency cannot hold exactly is refused, never rounded")
@@ -39,16 +39,13 @@ struct MoneyDecimalTests {
     }
 
     @Test("Every amount a currency can hold round-trips losslessly")
-    func roundTripsTheFullRange() throws {
-        let least = try #require(Decimal(exactly: GBP.min))
-        let greatest = try #require(Decimal(exactly: GBP.max))
-
-        #expect(GBP(majorUnits: least) == GBP.min)
-        #expect(GBP(majorUnits: greatest) == GBP.max)
+    func roundTripsTheFullRange() {
+        #expect(GBP(majorUnits: Decimal(GBP.min)) == GBP.min)
+        #expect(GBP(majorUnits: Decimal(GBP.max)) == GBP.max)
     }
 
     @Test("The widest products a currency can make stay inside Decimal")
-    func roundTripsTheWidestProducts() throws {
+    func roundTripsTheWidestProducts() {
         // Scale 2^18 makes the largest multiplier, 5^18, so its extremes are the 32-digit
         // products nearest Decimal's 38-digit ceiling. Scale 2 pairs the extremes with a
         // fractional half, whose products need twenty digits and so pass UInt64.
@@ -59,11 +56,8 @@ struct MoneyDecimalTests {
             let greatest = Money(minorUnits: Int64.max, currency: currency)
             let least = Money(minorUnits: Int64.min, currency: currency)
 
-            let greatestDecimal = try #require(Decimal(exactly: greatest))
-            let leastDecimal = try #require(Decimal(exactly: least))
-
-            #expect(Money(majorUnits: greatestDecimal, currency: currency) == greatest)
-            #expect(Money(majorUnits: leastDecimal, currency: currency) == least)
+            #expect(Money(majorUnits: Decimal(greatest), currency: currency) == greatest)
+            #expect(Money(majorUnits: Decimal(least), currency: currency) == least)
         }
     }
 
@@ -72,6 +66,6 @@ struct MoneyDecimalTests {
         let listed = try #require(Decimal(string: "4.990"))
         let amount = try #require(Money(majorUnits: listed, currency: .gbp))
 
-        #expect(Decimal(exactly: amount) == listed)
+        #expect(Decimal(amount) == listed)
     }
 }
