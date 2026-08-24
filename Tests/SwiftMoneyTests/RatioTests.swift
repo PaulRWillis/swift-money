@@ -293,13 +293,19 @@ struct RatioTests {
 
     // Malformed, zero denominator, negative denominator: all one trap, in the literal's delegation
     // to `init(string:)`.
-    @Test(
-        "A literal that is not a ratio traps",
-        arguments: ["not a ratio", "1/0", "1/-3"]
-    )
-    func invalidLiteralTraps(_ string: String) async {
-        await #expect(processExitsWith: .failure) { [string] in
-            blackHole(Ratio(stringLiteral: string))
+    @Test("A literal that is not a ratio traps")
+    func invalidLiteralTraps() async {
+        await #expect(processExitsWith: .failure) {
+            let malformed: Ratio = "not a ratio"
+            blackHole(malformed)
+        }
+        await #expect(processExitsWith: .failure) {
+            let zeroDenominator: Ratio = "1/0"
+            blackHole(zeroDenominator)
+        }
+        await #expect(processExitsWith: .failure) {
+            let negativeDenominator: Ratio = "1/-3"
+            blackHole(negativeDenominator)
         }
     }
 }
