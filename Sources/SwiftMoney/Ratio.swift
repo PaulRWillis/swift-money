@@ -727,6 +727,29 @@ private extension UInt8 {
 
 // MARK: - Literals
 
+extension Ratio: ExpressibleByStringLiteral {
+    /// Creates a ratio from a string literal.
+    ///
+    /// A literal is written by a programmer rather than derived from data, so an invalid one is a
+    /// mistake in the source rather than bad input: it traps instead of failing gracefully. Use
+    /// ``init(string:)`` for any string that is not a literal.
+    ///
+    /// ```swift
+    /// let vat: Ratio = "17.5%"   // fine
+    /// let oops: Ratio = "1/0"    // traps
+    /// ```
+    ///
+    /// - Parameter value: The ratio, as a fraction, a percent, or a decimal.
+    /// - Precondition: `value` is a ratio that ``init(string:)`` accepts.
+    public init(stringLiteral value: String) {
+        guard let ratio = Self(string: value) else {
+            preconditionFailure("Not a valid ratio: \(value)")
+        }
+
+        self = ratio
+    }
+}
+
 extension Ratio.Numerator: ExpressibleByIntegerLiteral {
     /// Creates a numerator from an integer literal.
     ///

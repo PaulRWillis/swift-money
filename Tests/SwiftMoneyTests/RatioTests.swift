@@ -296,4 +296,24 @@ struct RatioTests {
     func invalidPercentStringMakesNoRatio(_ string: String) {
         #expect(Ratio(string: string) == nil)
     }
+
+    @Test("A valid string literal creates a ratio")
+    func validStringLiteral() throws {
+        let vat: Ratio = "17.5%"
+        let expected = try #require(Ratio(string: "17.5%"))
+
+        #expect(vat == expected)
+    }
+
+    // Malformed, zero denominator, negative denominator: all one trap, in the literal's delegation
+    // to `init(string:)`.
+    @Test(
+        "A literal that is not a ratio traps",
+        arguments: ["not a ratio", "1/0", "1/-3"]
+    )
+    func invalidLiteralTraps(_ string: String) async {
+        await #expect(processExitsWith: .failure) { [string] in
+            blackHole(Ratio(stringLiteral: string))
+        }
+    }
 }
