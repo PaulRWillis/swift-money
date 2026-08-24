@@ -572,6 +572,54 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    // MARK: - Localized rendering
+
+    // The `FormatStyle` surface delegates to Foundation's `Decimal.FormatStyle.Currency`, so the
+    // `Decimal` row here runs the exact engine underneath: the gap between a pair is what the
+    // library adds on top of ICU. Part of that gap is a rebuild: the library builds the
+    // underlying `Decimal` style again on every format call. The locale is pinned to `en_GB`, so
+    // the numbers do not depend on the machine's locale setting. Styles are built once, outside
+    // the loops, because the rows measure the call and not the setup. Every variant reads the
+    // same digits as `decimalAmounts`, 4.01 to 4.23.
+    let britishEnglish = Locale(identifier: "en_GB")
+    let typedCurrencyStyle = GBP.FormatStyle().locale(britishEnglish)
+    let runtimeCurrencyStyle = Money.FormatStyle().locale(britishEnglish)
+    // `fractionLength(2)` mirrors the precision the library pins internally, so the peer style is
+    // configuration-identical to the one the library builds. It is not redundant: dropping it
+    // silently unmatches the peer.
+    let decimalCurrencyStyle = Decimal.FormatStyle.Currency(code: "GBP", locale: britishEnglish)
+        .precision(.fractionLength(2))
+    let fourPoundAmounts = operands.map { GBP(minorUnits: 4_00 + $0) }
+    let carriedFourPoundAmounts = operands.map { Money(minorUnits: 4_00 + $0, currency: .gbp) }
+
+    // Every format variant hands `blackHole` a `String`, so the harness costs the same in each.
+    Benchmark("MoneyOf currency formatting, en_GB", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(typedCurrencyStyle.format(fourPoundAmounts[index % fourPoundAmounts.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money currency formatting, en_GB", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(runtimeCurrencyStyle.format(carriedFourPoundAmounts[index % carriedFourPoundAmounts.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Decimal currency formatting, en_GB", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(decimalCurrencyStyle.format(decimalAmounts[index % decimalAmounts.count]))
+            index &+= 1
+        }
+    }
+
     // MARK: - Currency lookup
 
     // A spread across the alphabet, because the table is searched in order: AED is the first case
