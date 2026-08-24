@@ -84,7 +84,7 @@ struct UnroundedTests {
         #expect(roundsIdentically(GBP(minorUnits: 10_00).unrounded * "1/3") == nil)
     }
 
-    // Naively this multiplies the largest amount by three, which does not fit. Cancelling it against
+    // Naively this multiplies the largest amount by three, which does not fit. Canceling it against
     // the denominator first leaves three over one.
     @Test("A product that cancels does not overflow")
     func aProductThatCancelsDoesNotOverflow() throws {
@@ -198,7 +198,7 @@ struct UnroundedTests {
     }
 
     // The whole library in one expression, and the one place `split` belongs.
-    @Test("A discounted, taxed line apportions across cost centres")
+    @Test("A discounted, taxed line apportions across cost centers")
     func aDiscountedTaxedLineApportions() {
         let net = GBP(minorUnits: 5_00).unrounded * "1/3" + GBP(minorUnits: 2_00) - GBP(minorUnits: 1_00)
         let shares = net.rounded(.toNearestOrEven).split(into: 2)

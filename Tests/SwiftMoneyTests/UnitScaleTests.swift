@@ -112,11 +112,11 @@ struct UnitScaleTests {
         }
     }
 
-    // The failable initializer is labelled because an unlabelled one would be unreachable: with
+    // The failable initializer is labeled because an unlabeled one would be unreachable: with
     // ExpressibleByIntegerLiteral present, `UnitScale(0)` always resolves to the literal
     // initializer, which traps rather than returning nil. Same trap as PartCount and CurrencyCode.
-    @Test("The unlabelled call form is the trapping literal, not the failable initializer")
-    func unlabelledFormIsTheLiteral() async {
+    @Test("The unlabeled call form is the trapping literal, not the failable initializer")
+    func unlabeledFormIsTheLiteral() async {
         await #expect(processExitsWith: .failure) {
             blackHole(UnitScale(0))
         }

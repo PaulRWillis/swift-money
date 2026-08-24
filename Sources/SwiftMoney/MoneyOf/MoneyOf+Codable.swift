@@ -220,7 +220,7 @@ extension MoneyOf: Codable {
     private static func refusalBeyondExactRange(_ amount: String) -> String {
         """
         \(amount) is too large to cross as a number: at or past \(exactNumberBound) of a currency's \
-        smallest units, a number names a neighbouring amount instead. Send it as a string.
+        smallest units, a number names a neighboring amount instead. Send it as a string.
         """
     }
 
@@ -327,7 +327,7 @@ extension MoneyOf {
 
             // Only a value a `Double` carried is at risk. Its spacing at a value is about that value
             // times 2^-52, so past the bound two amounts one smallest unit apart are the same
-            // `Double`, and the wire quietly names the neighbour.
+            // `Double`, and the wire quietly names the neighbor.
             if case .fractional = self, amount.magnitude >= exactNumberBound {
                 throw .beyondExactRange(currency, text: text)
             }

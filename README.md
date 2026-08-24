@@ -65,12 +65,12 @@ Then add the dependency to your target:
 |---|---|
 | `Currency` | Protocol: adopt to define a custom currency |
 | `CurrencyCode` | Validated non-empty currency code string |
-| `MinimalQuantisation` | Positive `Int64`: minor units per major unit (100 for GBP, 1 for JPY) |
+| `MinimalQuantization` | Positive `Int64`: minor units per major unit (100 for GBP, 1 for JPY) |
 | `Money<C>` | Typed monetary amount stored as `Int64` minor units |
 | `AnyMoney` | Type-erased money carrying currency info at runtime |
 | `MoneyBag` | Multi-currency accumulator keyed by `CurrencyCode` |
 | `Distribution<C>` | Result of splitting money into equal-or-near-equal parts |
-| `CurrencyRegistry` | Maps currency codes to their minimal quantisation; ships with all ISO 4217 currencies |
+| `CurrencyRegistry` | Maps currency codes to their minimal quantization; ships with all ISO 4217 currencies |
 | `Rate` | Exact rational number (GCD-reduced `numerator/denominator`) |
 | `RateCalculation<C>` | Result of fractional multiplication: `amount` + `effectiveRate` |
 | `ExchangeRate<From, To>` | Typed conversion rate between two currencies |
@@ -87,11 +87,11 @@ Five currencies are built in: `EUR`, `GBP`, `USD`, `JPY`, `CHF`. Define your own
 ```swift
 enum BTC: Currency {
     static let code: CurrencyCode = "BTC"
-    static let minimalQuantisation: MinimalQuantisation = 100_000_000  // satoshis
+    static let minimalQuantization: MinimalQuantization = 100_000_000  // satoshis
 }
 ```
 
-`minimalQuantisation` is the number of minor units in one major unit: 100 for pence/cents,
+`minimalQuantization` is the number of minor units in one major unit: 100 for pence/cents,
 1 for yen, 1000 for Kuwaiti dinar, 100 000 000 for satoshis.
 
 ### Creating Values
@@ -312,7 +312,7 @@ encoder.moneyEncodingStrategy = .minorUnits   // bare 125
 encoder.moneyEncodingStrategy = .majorUnits   // bare 1.25
 encoder.moneyEncodingStrategy = .string       // "£1.25"
 
-// AnyMoney, default: .full → {"currencyCode":"GBP","minimalQuantisation":100,"minorUnits":125}
+// AnyMoney, default: .full → {"currencyCode":"GBP","minimalQuantization":100,"minorUnits":125}
 encoder.anyMoneyEncodingStrategy = .object(amount: .majorUnits)
 // → {"currencyCode":"GBP","amount":1.25}
 
@@ -322,7 +322,7 @@ encoder.moneyBagEncodingStrategy = .dictionary(amount: .majorUnits)
 ```
 
 `AnyMoney` and `MoneyBag` `.object`/`.dictionary` decoding strategies require a resolver closure
-to map currency codes back to `MinimalQuantisation` values. Use
+to map currency codes back to `MinimalQuantization` values. Use
 `CurrencyRegistry.isoStandard.asResolver()` for all standard currencies:
 
 ```swift
@@ -335,7 +335,7 @@ decoder.anyMoneyDecodingStrategy = .object(
 
 ## Safety
 
-- **Overflow**: `+`, `-`, `*` trap on overflow, matching Swift `Int` behaviour
+- **Overflow**: `+`, `-`, `*` trap on overflow, matching Swift `Int` behavior
 - **Type safety**: `Money<GBP> + Money<USD>` is a compile error; no runtime currency checks needed
 - **Floating-point blocked**: `Money * Double` and `Money * Float` are `@available(*, unavailable)` with descriptive error messages
 - **No `Numeric`**: `Money` does not conform to `Numeric`, preventing `money * money`

@@ -123,7 +123,7 @@ struct SplitTests {
         }
     }
 
-    @Test("A part count too large to materialise still reports its count")
+    @Test("A part count too large to materialize still reports its count")
     func largePartCountReportsItsCount() throws {
         let parts = try #require(PartCount(exactly: Int.max))
 
@@ -132,7 +132,7 @@ struct SplitTests {
         #expect(split.count == parts)
     }
 
-    @Test("A part count too large to materialise can still be iterated")
+    @Test("A part count too large to materialize can still be iterated")
     func largePartCountCanBeIterated() throws {
         let parts = try #require(PartCount(exactly: Int.max))
 

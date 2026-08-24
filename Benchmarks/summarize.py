@@ -9,7 +9,7 @@ and a summary pairing each operation against the alternative it is competing wit
     git show origin/assets:BENCHMARKS.md > BENCHMARKS.md
     swift package --package-path Benchmarks benchmark run --format markdown --path stdout \
         > results.md
-    python3 Benchmarks/summarise.py results.md BENCHMARKS.md
+    python3 Benchmarks/summarize.py results.md BENCHMARKS.md
 
 Lives here rather than inside the workflow so that it can be run and read on a laptop. It was 131 lines
 of Python inside a YAML string, which is why its pairing table had drifted out of step with the
@@ -190,7 +190,7 @@ def table(spec, results):
     return "\n".join(lines)
 
 
-def summarise(results, warn):
+def summarize(results, warn):
     """A markdown summary, and a warning for every benchmark named here but missing from the run."""
     named = {
         name
@@ -243,7 +243,7 @@ def main():
         warn("no benchmarks parsed out of the results. Has the output format changed?")
 
     document = inject(document, RAW_MARKERS, raw, warn)
-    document = inject(document, SUMMARY_MARKERS, summarise(results, warn), warn)
+    document = inject(document, SUMMARY_MARKERS, summarize(results, warn), warn)
 
     with open(args.document, "w") as document_file:
         document_file.write(document)

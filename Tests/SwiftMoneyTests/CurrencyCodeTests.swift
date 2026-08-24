@@ -125,11 +125,11 @@ struct CurrencyCodeTests {
         }
     }
 
-    // The failable initializer is labelled because an unlabelled one would be unreachable: with
+    // The failable initializer is labeled because an unlabeled one would be unreachable: with
     // ExpressibleByStringLiteral present, `CurrencyCode("...")` always resolves to the literal
     // initializer, which traps rather than returning nil. Same trap as PartCount.
-    @Test("The unlabelled call form is the trapping literal, not the failable initializer")
-    func unlabelledFormIsTheLiteral() async {
+    @Test("The unlabeled call form is the trapping literal, not the failable initializer")
+    func unlabeledFormIsTheLiteral() async {
         await #expect(processExitsWith: .failure) {
             blackHole(CurrencyCode("nope!"))
         }

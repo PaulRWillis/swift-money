@@ -59,7 +59,7 @@ extension Split {
     /// ```swift
     /// let split = GBP(minorUnits: 100_00).split(into: 3)
     /// for amount in split.amounts { … }        // £33.34, £33.33, £33.33
-    /// let all = Array(split.amounts)           // materialises, one element per part
+    /// let all = Array(split.amounts)           // materializes, one element per part
     /// ```
     ///
     /// - Note: This is a `Sequence` rather than a `Collection`, deliberately. `Collection` would

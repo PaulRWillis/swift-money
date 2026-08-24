@@ -416,7 +416,7 @@ struct MoneyCodableTests {
         #expect(try json(outside, .amountOnly(.string(.majorUnits))) == "\"45035996273704.96\"")
     }
 
-    @Test("A number past the bound is refused on the way in, rather than read as its neighbour")
+    @Test("A number past the bound is refused on the way in, rather than read as its neighbor")
     func refusesANumberPastTheBound() throws {
         let major = MoneyCodingFormat.amountOnly(.number(.majorUnits))
         let message = try refusalMessage {
@@ -534,7 +534,7 @@ private let sweptMagnitudes: [Int64] = [0, 1, 2, 7, 99, 100, 12345, 999_999, 1_0
                                         exactNumberBound + 1, Int64.max]
 
 // Every magnitude worth trying, written as a major units number and read back. `nil` is a refusal,
-// which is always allowed; anything that crosses must come home as itself and never as a neighbour.
+// which is always allowed; anything that crosses must come home as itself and never as a neighbor.
 private func sweepingNumbers<C: CurrencyType>(_ type: MoneyOf<C>.Type) -> (crossed: Int, refused: Int) {
     let format = MoneyCodingFormat.amountOnly(.number(.majorUnits))
 

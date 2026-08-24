@@ -201,7 +201,7 @@ internal extension Ratio {
             .multipliedReportingOverflow(by: other.denominator.rawValue)
 
         guard !numeratorOverflowed, !denominatorOverflowed else {
-            return cancelled(against: other)
+            return canceled(against: other)
         }
 
         return Ratio(Numerator(numerator), Denominator(unchecked: denominator))
@@ -268,7 +268,7 @@ private extension Ratio {
 
     // Cancels each numerator against the other's denominator before multiplying, so common factors go
     // before anything grows. Both fractions are already in lowest terms, so the result is too.
-    func cancelled(against other: Ratio) -> Ratio? {
+    func canceled(against other: Ratio) -> Ratio? {
         let ours = Self.greatestCommonDivisor(of: numerator, and: other.denominator)
         let theirs = Self.greatestCommonDivisor(of: other.numerator, and: denominator)
 

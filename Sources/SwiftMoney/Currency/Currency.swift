@@ -28,7 +28,7 @@ public extension Currency {
     ///
     /// Zero-sized, so fixing a currency at compile time costs an amount nothing to carry it.
     struct Implied: Equatable, Hashable, Sendable {
-        // Computed, not a `static let`: a stored static needs lazy initialisation through
+        // Computed, not a `static let`: a stored static needs lazy initialization through
         // `swift_once`, and this is touched on every construction of a statically typed amount.
         @usableFromInline
         static var implied: Implied { Implied() }

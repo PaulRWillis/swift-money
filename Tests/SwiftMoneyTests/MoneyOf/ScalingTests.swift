@@ -161,7 +161,7 @@ struct ScalingTests {
         #expect(GBP(minorUnits: -10).scaled(by: "1/4", rounding: rule) == expected)
     }
 
-    // Banker's rounding breaks a tie toward the even neighbour, so 2.5 and 3.5 both settle on an even
+    // Banker's rounding breaks a tie toward the even neighbor, so 2.5 and 3.5 both settle on an even
     // number rather than both going the same direction.
     @Test("An exact half rounds to even in both directions")
     func exactHalfRoundsToEven() {
