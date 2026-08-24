@@ -48,8 +48,6 @@ public struct MoneyOf<C: CurrencyRepresentation>: Equatable, Hashable, Sendable 
     }
 }
 
-// MARK: - Construction
-
 public extension MoneyOf where C: CurrencyType {
     /// Creates a monetary amount from a whole number of the currency's smallest
     /// (minor) units.
@@ -138,8 +136,6 @@ public extension MoneyOf where C == AnyCurrency {
         self.init(unchecked: representable, storage: currency)
     }
 }
-
-// MARK: - Min/Max
 
 public extension MoneyOf where C: CurrencyType {
     /// The smallest representable monetary amount.

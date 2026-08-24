@@ -15,8 +15,6 @@ public extension MoneyOf {
     }
 }
 
-// MARK: - Codable
-
 extension MoneyOf.ParseStrategy: Codable {
     private enum CodingKeys: String, CodingKey {
         case formatStyle
@@ -83,8 +81,6 @@ extension MoneyOf.ParseStrategy: Codable {
     }
 }
 
-// MARK: - Foundation.ParseStrategy
-
 extension MoneyOf.ParseStrategy: Foundation.ParseStrategy where C: CurrencyType {
     /// The amount the localized text holds, in the currency this strategy's type names.
     ///
@@ -114,8 +110,6 @@ public extension MoneyOf.ParseStrategy where C == AnyCurrency {
         return money
     }
 }
-
-// MARK: - Reading the digits
 
 private extension MoneyOf.ParseStrategy {
     // The smallest units the text holds. Nothing is rounded, whatever the style that wrote the
@@ -156,8 +150,6 @@ private extension MoneyOf.ParseStrategy {
             : .inexactAmount(currency)
     }
 }
-
-// MARK: - ParseableFormatStyle
 
 extension MoneyOf.FormatStyle: ParseableFormatStyle where C: CurrencyType {
     /// The strategy that turns this style's output back into the amount it came from.

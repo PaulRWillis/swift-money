@@ -15,8 +15,6 @@ private let loyaltyPoints = Currency(code: "LTY", unitScale: 1)
 @Suite("Money Parsing Tests")
 struct MoneyParsingTests {
 
-    // MARK: - Both spellings
-
     @Test(
         "A dot means major units and no dot means the smallest units",
         arguments: [
@@ -43,8 +41,6 @@ struct MoneyParsingTests {
         #expect(try #require(GBP(string: "-4.99")) == GBP(minorUnits: -4_99))
         #expect(try #require(GBP(string: "-499")) == GBP(minorUnits: -4_99))
     }
-
-    // MARK: - Where the currency comes from
 
     @Test("A code may be left out where the type names the currency, and must match where given")
     func codeOptionalForATypedAmount() throws {
@@ -90,8 +86,6 @@ struct MoneyParsingTests {
         #expect(try #require(Money(string: "lty 250", currency: loyaltyPoints))
             == Money(minorUnits: 250, currency: loyaltyPoints))
     }
-
-    // MARK: - Precision the currency cannot hold
 
     // The rule is one test, not two: a decimal is accepted exactly when it converts to a whole
     // number of the currency's smallest units.
@@ -144,8 +138,6 @@ struct MoneyParsingTests {
         #expect(MoneyOf<Khoums>(string: "0.7") == nil)
     }
 
-    // MARK: - Rejected
-
     @Test(
         "Anything that is not an amount is refused",
         arguments: ["", " ", "GBP", "GBP ", "four", "4.9.9", "4,99", "£4.99", "4 99", "0x10"]
@@ -166,8 +158,6 @@ struct MoneyParsingTests {
         #expect(try #require(GBP(string: "-92233720368547758.08")) == GBP.min)
         #expect(try #require(GBP(string: "92233720368547758.07")) == GBP.max)
     }
-
-    // MARK: - Round trip
 
     @Test("Every amount this library writes, it reads back")
     func roundTrip() throws {

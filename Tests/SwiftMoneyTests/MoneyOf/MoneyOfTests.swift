@@ -4,16 +4,12 @@ import Testing
 @Suite("MoneyOf Tests")
 struct MoneyOfTests {
 
-    // MARK: - Zero
-
     @Test("Zero static property has value of zero")
     func zeroPropertyHasZeroValue() {
         let zero = GBP.zero
 
         #expect(zero == GBP(minorUnits: 0))
     }
-
-    // MARK: - Min/Max
 
     @Test("Min is equivalent to construction through `MoneyOf<C>(Int64.min)`")
     func min() {
@@ -24,8 +20,6 @@ struct MoneyOfTests {
     func max() {
         #expect(GBP.max == GBP.max)
     }
-
-    // MARK: - Construction
 
     @Test("when constructed from narrower integer should hold same amount")
     func whenConstructedFromNarrowerInteger_shouldHoldSameAmount() {
@@ -54,8 +48,6 @@ struct MoneyOfTests {
         }
     }
 
-    // MARK: - Addition
-
     @Test("Add succeeds")
     func add() {
         let a = GBP(minorUnits: 5)
@@ -78,8 +70,6 @@ struct MoneyOfTests {
         }
     }
 
-    // MARK: - Addition In Place
-
     @Test("Addition in place succeeds")
     func additionInPlace() {
         var a = GBP(minorUnits: 5)
@@ -89,8 +79,6 @@ struct MoneyOfTests {
 
         #expect(a == GBP(minorUnits: 12))
     }
-
-    // MARK: - Subtraction
 
     @Test("Subtract succeeds")
     func subtract() {
@@ -114,8 +102,6 @@ struct MoneyOfTests {
         }
     }
 
-    // MARK: - Subtraction In Place
-
     @Test("Subtraction in place succeeds")
     func subtractionInPlace() {
         var a = GBP(minorUnits: 5)
@@ -125,8 +111,6 @@ struct MoneyOfTests {
 
         #expect(a == GBP(minorUnits: -2))
     }
-
-    // MARK: - Integral Multiplication
 
     @Test("Integral multiplication succeeds")
     func integralMultiplication() {
@@ -170,8 +154,6 @@ struct MoneyOfTests {
         }
     }
 
-    // MARK: - Integral Multiplication In Place
-
     @Test("Integral multiplication in place func succeeds")
     func integralMultiplicationInPlace() {
         var a = GBP(minorUnits: 2_25) // £2.25
@@ -182,11 +164,7 @@ struct MoneyOfTests {
         #expect(a == GBP(minorUnits: 6_75)) // £6.75
     }
 
-    // MARK: - Fractional Scaling
-
-    // Covered by ScalingTests, which drives the algorithm through GBP.
-
-    // MARK: - Split
+    // Fractional scaling is covered by ScalingTests, which drives the algorithm through GBP.
 
     // The algorithm itself is covered by SplitTests, which drives it through GBP.
     // These two check only that `split(into:)` returns shares as the same money type.
@@ -208,8 +186,6 @@ struct MoneyOfTests {
 
         #expect(Array(result.amounts) == [GBP(minorUnits: 2), GBP(minorUnits: 1),])
     }
-
-    // MARK: - Comparable
 
     @Test("Lower value is less than higher value")
     func lowerValueIsLessThanHigherValue() {
@@ -303,8 +279,6 @@ struct MoneyOfTests {
             GBP(minorUnits: 5_20),
         ])
     }
-
-    // MARK: - `isMultipleOf(other:)`
 
     @Test("Is multiple of money where euclidean remainder is zero")
     func isMultipleOnZeroRemainder() {

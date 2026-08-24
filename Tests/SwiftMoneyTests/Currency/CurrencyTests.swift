@@ -10,8 +10,6 @@ private enum LoyaltyPoints: CurrencyType {
 @Suite("Currency Tests")
 struct CurrencyTests {
 
-    // MARK: - The value
-
     @Test("A currency carries its code and unit scale")
     func carriesCodeAndUnitScale() {
         let currency = Currency(code: "GBP", unitScale: 100)
@@ -63,8 +61,6 @@ struct CurrencyTests {
         )
     }
 
-    // MARK: - The library's currencies
-
     @Test("The library's currencies expose the expected values")
     func libraryCurrencies() {
         #expect(Currencies.GBP.currency == Currency(code: "GBP", unitScale: 100))
@@ -76,8 +72,6 @@ struct CurrencyTests {
         #expect(Currency.gbp == Currencies.GBP.currency)
         #expect(Currency.eur == Currencies.EUR.currency)
     }
-
-    // MARK: - MoneyOf exposes its currency
 
     @Test("A typed amount reports the currency from its type parameter")
     func typedAmountReportsItsCurrency() {
@@ -95,8 +89,6 @@ struct CurrencyTests {
     func typedAmountReachesItsUnitScale() {
         #expect(GBP(minorUnits: 1).currency.unitScale == 100)
     }
-
-    // MARK: - Caller-defined currencies
 
     @Test("A currency defined outside the library works with MoneyOf")
     func callerDefinedCurrency() {

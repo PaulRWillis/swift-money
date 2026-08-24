@@ -142,8 +142,6 @@ public extension MoneyOf {
     }
 }
 
-// MARK: - Codable
-
 extension MoneyOf.FormatStyle {
     // Both Codable halves are the compiler's: `RoundingIncrement` refuses a below-one value on
     // decode itself. The keys stay declared so a property rename cannot silently change the wire.
@@ -159,8 +157,6 @@ extension MoneyOf.FormatStyle {
     }
 }
 
-// MARK: - Foundation.FormatStyle
-
 extension MoneyOf.FormatStyle: Foundation.FormatStyle {
     /// The amount, rendered for the locale this style holds.
     ///
@@ -169,8 +165,6 @@ extension MoneyOf.FormatStyle: Foundation.FormatStyle {
         decimalStyle(for: value.currency).format(majorUnits(of: value))
     }
 }
-
-// MARK: - The Foundation style underneath
 
 extension MoneyOf.FormatStyle {
     // The style this one renders and parses through, settled for one currency.
@@ -209,8 +203,6 @@ extension MoneyOf.FormatStyle {
         return style
     }
 }
-
-// MARK: - Rounding to an increment
 
 private extension MoneyOf.FormatStyle {
     // The major units to render, after any increment rounding the caller asked for. A step of one
@@ -285,8 +277,6 @@ private extension MoneyOf.FormatStyle {
     }
 }
 
-// MARK: - Style accessors
-
 public extension MoneyOf {
     /// The amount, rendered by the given style.
     ///
@@ -306,8 +296,6 @@ public extension MoneyOf {
         FormatStyle().format(self)
     }
 }
-
-// MARK: - Dot syntax
 
 public extension Foundation.FormatStyle {
     /// A style that renders an amount for people, in the digits and symbols of a locale.

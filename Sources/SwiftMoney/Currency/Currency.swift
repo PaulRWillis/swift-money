@@ -38,23 +38,17 @@ public extension Currency {
     }
 }
 
-// MARK: - CustomStringConvertible
-
 extension Currency: CustomStringConvertible {
     public var description: String {
         String(code)
     }
 }
 
-// MARK: - ISO4217 Currencies as types
-
 /// A namespace for the ISO 4217 currencies, one caseless `enum` per code.
 ///
 /// The members are generated from the list ISO's maintenance agency publishes. Use one as a generic
 /// parameter to fix a currency at compile time: `MoneyOf<Currencies.CHF>`.
 public enum Currencies {}
-
-// MARK: - Typed money
 
 // Only a handful of currencies get a name at the top level, because a typealias per code would put
 // 165 of them into every file that imports this library, among them `ALL`, `TOP` and a `TRY` that

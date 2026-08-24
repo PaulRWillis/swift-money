@@ -129,11 +129,7 @@ extension Split {
     }
 }
 
-// MARK: - Equatable
-
 extension Split: Equatable {}
-
-// MARK: - Sendable
 
 extension Split: Sendable where Amount: Sendable {}
 

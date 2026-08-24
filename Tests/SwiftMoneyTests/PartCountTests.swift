@@ -4,8 +4,6 @@ import Testing
 @Suite("PartCount Tests")
 struct PartCountTests {
 
-    // MARK: - Initialization
-
     @Test("Init from smallest valid value succeeds")
     func initFromSmallestValid() {
         let int: Int = 1
@@ -35,8 +33,6 @@ struct PartCountTests {
         let int: Int = .min
         #expect(PartCount(exactly: int) == nil)
     }
-
-    // MARK: - ExpressibleByIntegerLiteral Initialization
 
     @Test("Literal: Init from smallest valid value succeeds")
     func initFromSmallestValidLiteral() async {
@@ -73,8 +69,6 @@ struct PartCountTests {
         }
     }
 
-    // MARK: - Int Conversion
-
     @Test("Int conversion returns the underlying value")
     func intConversion() {
         let parts: PartCount = 3
@@ -88,8 +82,6 @@ struct PartCountTests {
 
         #expect(Int64(parts) == Int64(raw))
     }
-
-    // MARK: - Comparable
 
     @Test("Fewer parts compare as less than more parts")
     func comparableOrdersByPartCount() {

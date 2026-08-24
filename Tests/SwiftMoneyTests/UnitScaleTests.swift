@@ -4,8 +4,6 @@ import Testing
 @Suite("UnitScale Tests")
 struct UnitScaleTests {
 
-    // MARK: - Accepted
-
     @Test(
         "A value with an exact decimal form is accepted",
         arguments: [
@@ -23,8 +21,6 @@ struct UnitScaleTests {
 
         #expect(Int64(scale) == raw)
     }
-
-    // MARK: - Rejected
 
     @Test(
         "Zero and negative values are rejected",
@@ -49,8 +45,6 @@ struct UnitScaleTests {
         #expect(UnitScale(exactly: raw) == nil)
     }
 
-    // MARK: - Decimal places
-
     @Test(
         "A scale reports how many places write one of its smallest units",
         arguments: [
@@ -68,8 +62,6 @@ struct UnitScaleTests {
         #expect(scale.decimalPlaces == expected)
     }
 
-    // MARK: - Equality
-
     @Test("Equal values are equal, different values are not")
     func equality() throws {
         let hundred = try #require(UnitScale(exactly: 100))
@@ -80,8 +72,6 @@ struct UnitScaleTests {
         #expect(hundred != one)
         #expect(Set([hundred, alsoHundred, one]).count == 2)
     }
-
-    // MARK: - Literals
 
     @Test("A valid integer literal creates a unit scale")
     func validLiteral() throws {
