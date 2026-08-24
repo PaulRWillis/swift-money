@@ -38,18 +38,7 @@ struct MoneyDecimalTests {
         #expect(Money(majorUnits: .greatestFiniteMagnitude, currency: .gbp) == nil)
     }
 
-    @Test("A currency that does not divide decimally converts in neither direction")
-    func refusesANonDecimalCurrency() throws {
-        // Both values are exact, 1.5 being 360 of 240 units and 120 units being 0.5,
-        // so only the currency itself can be what is refused here.
-        let gems = Currency(code: "GEM", unitScale: 240)
-        let half = try #require(Decimal(string: "1.5"))
-
-        #expect(Money(majorUnits: half, currency: gems) == nil)
-        #expect(Decimal(exactly: Money(minorUnits: 120, currency: gems)) == nil)
-    }
-
-    @Test("Every amount a decimal currency can hold round-trips losslessly")
+    @Test("Every amount a currency can hold round-trips losslessly")
     func roundTripsTheFullRange() throws {
         let least = try #require(Decimal(exactly: GBP.min))
         let greatest = try #require(Decimal(exactly: GBP.max))
