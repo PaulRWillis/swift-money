@@ -57,39 +57,30 @@ struct RatioTests {
     // Int64.min would overflow a naive `abs`-based reduction. Computing the greatest common divisor on
     // magnitudes avoids that, and a positive denominator means the numerator is never negated.
     @Test("Int64.min is representable and reduces")
-    func int64MinIsRepresentable() {
-        let smallest = Ratio.Numerator(.min)
+    func int64MinIsRepresentable() throws {
+        let whole = try #require(Ratio(exactly: .min, over: 1))
+        let half = try #require(Ratio(exactly: .min, over: 2))
+        let quarter = try #require(Ratio(exactly: .min, over: 4))
 
-        #expect(String(describing: Ratio(smallest, 1)) == "\(Int64.min)/1")
-        #expect(String(describing: Ratio(smallest, 2)) == "\(Int64.min / 2)/1")
-        #expect(String(describing: Ratio(smallest, 4)) == "\(Int64.min / 4)/1")
+        #expect(String(describing: whole) == "\(Int64.min)/1")
+        #expect(String(describing: half) == "\(Int64.min / 2)/1")
+        #expect(String(describing: quarter) == "\(Int64.min / 4)/1")
     }
 
     @Test("Int64.min stays irreducible against an odd denominator")
-    func int64MinAgainstAnOddDenominator() {
-        #expect(String(describing: Ratio(Ratio.Numerator(.min), 3)) == "\(Int64.min)/3")
+    func int64MinAgainstAnOddDenominator() throws {
+        let third = try #require(Ratio(exactly: .min, over: 3))
+
+        #expect(String(describing: third) == "\(Int64.min)/3")
     }
 
     @Test("Int64.max reduces against itself")
     func int64MaxReduces() throws {
-        let largest = Ratio.Numerator(.max)
-        let largestDenominator = try #require(Ratio.Denominator(exactly: .max))
+        let one = try #require(Ratio(exactly: .max, over: .max))
+        let whole = try #require(Ratio(exactly: .max, over: 1))
 
-        #expect(Ratio(largest, largestDenominator) == Ratio(1, 1))
-        #expect(String(describing: Ratio(largest, 1)) == "\(Int64.max)/1")
-    }
-
-    // MARK: - Construction from runtime values
-
-    @Test("A ratio can be built from values that are not literals")
-    func builtFromRuntimeValues() throws {
-        let rawNumerator: Int64 = 7
-        let rawDenominator: Int64 = 40
-
-        let denominator = try #require(Ratio.Denominator(exactly: rawDenominator))
-        let ratio = Ratio(Ratio.Numerator(rawNumerator), denominator)
-
-        #expect(ratio == Ratio(7, 40))
+        #expect(one == "1/1")
+        #expect(String(describing: whole) == "\(Int64.max)/1")
     }
 
     @Test(
