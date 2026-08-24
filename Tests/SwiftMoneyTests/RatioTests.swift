@@ -132,4 +132,68 @@ struct RatioTests {
         #expect(Ratio(exactly: 40, over: 0) == nil)
     }
 
+    @Test(
+        "A fraction string is the fraction it writes, in lowest terms",
+        arguments: [
+            ("1/3", "1/3"),
+            ("7/40", "7/40"),
+            ("-7/40", "-7/40"),
+            ("+1/3", "1/3"),
+            ("007/040", "7/40"),
+            ("22/200", "11/100"),
+            ("0/5", "0/1"),
+            ("9223372036854775808/2", "4611686018427387904/1"),   // reduces into Int64 range
+        ]
+    )
+    func fractionStringParses(_ string: String, _ expected: String) throws {
+        let parsed = try #require(Ratio(string: string))
+
+        #expect(String(describing: parsed) == expected)
+    }
+
+    @Test("The smallest numerator parses and reduces")
+    func smallestNumeratorParses() throws {
+        let parsed = try #require(Ratio(string: "-9223372036854775808/2"))
+
+        #expect(String(describing: parsed) == "\(Int64.min / 2)/1")
+    }
+
+    @Test(
+        "A string that is not a fraction makes no ratio",
+        arguments: [
+            "",
+            "/",
+            "1/",
+            "/3",
+            "1/0",
+            "0/0",
+            "1/-3",
+            "-1/-3",
+            "a/3",
+            "1/3x",
+            " 1/3",
+            "1/3 ",
+            "1//3",
+            "1/2/3",
+            "1.5/2",
+            "9223372036854775808/3",       // a numerator with no positive Int64
+            "1/9223372036854775808",       // a denominator past Int64.max
+            "½",                           // a vulgar fraction is not ASCII
+            "１/３",                       // fullwidth digits
+            "−1/3",                        // a Unicode minus is not "-"
+        ]
+    )
+    func invalidFractionStringMakesNoRatio(_ string: String) {
+        #expect(Ratio(string: string) == nil)
+    }
+
+    @Test(
+        "A parsed ratio's description parses back to the same ratio",
+        arguments: ["7/40", "-7/40", "22/200"]
+    )
+    func descriptionRoundTrips(_ string: String) throws {
+        let parsed = try #require(Ratio(string: string))
+
+        #expect(Ratio(string: String(describing: parsed)) == parsed)
+    }
 }

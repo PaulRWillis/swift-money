@@ -491,6 +491,170 @@ public extension Ratio {
     }
 }
 
+// The base a ratio string is written in.
+private let decimalRadix: UInt64 = 10
+
+public extension Ratio {
+    /// Creates a ratio from a string that may not be valid.
+    ///
+    /// A fraction is converted exactly, with no rounding:
+    ///
+    /// ```swift
+    /// Ratio(string: "1/3")     // one third, exactly
+    /// Ratio(string: "-7/40")   // minus seven fortieths
+    /// Ratio(string: "1/0")     // nil
+    /// ```
+    ///
+    /// The whole string must be one fraction: ASCII digits, one optional leading `+` or `-`,
+    /// and no whitespace. Each number as written must fit in 64 bits, even where the reduced
+    /// value would fit.
+    ///
+    /// - Parameter string: The ratio, as a fraction.
+    /// - Returns: `nil` unless the string is a ratio this type can hold exactly, written within
+    ///   the limits above.
+    init?(string: String) {
+        guard let parsed = Self.parsed(string.utf8[...]) else {
+            return nil
+        }
+
+        self = parsed
+    }
+}
+
+private extension Ratio {
+    typealias Bytes = String.UTF8View.SubSequence
+
+    // The two magnitudes a parsed ratio is built from. Unsigned because a string carries its sign at
+    // the front, where a ratio carries it on the numerator.
+    struct Terms {
+        let numerator: UInt64
+        let denominator: UInt64
+
+        // The same value with every common factor taken out. A denominator is at least one, so the
+        // two magnitudes always have a greatest common divisor.
+        var reduced: Self {
+            let divisor = SwiftMoney.greatestCommonDivisor(of: numerator, and: denominator)
+
+            return Self(numerator: numerator / divisor, denominator: denominator / divisor)
+        }
+    }
+
+    // The ratio a run of bytes writes. `nil` unless the whole run is one ratio this type holds
+    // exactly. Nothing is rounded: a string that does not convert exactly does not parse.
+    static func parsed(_ bytes: Bytes) -> Ratio? {
+        let (sign, body) = signed(bytes)
+
+        return terms(in: body).flatMap { ratio(from: $0, sign: sign) }
+    }
+
+    // The sign a run of bytes leads with, and the body that follows it. A body with no sign of its
+    // own is positive.
+    static func signed(_ bytes: Bytes) -> (sign: Sign, body: Bytes) {
+        switch bytes.first {
+        case UInt8(ascii: "+"): (.positive, bytes.dropFirst())
+        case UInt8(ascii: "-"): (.negative, bytes.dropFirst())
+        default: (.positive, bytes)
+        }
+    }
+
+    // The terms a body writes. `nil` unless the whole body is one fraction.
+    static func terms(in body: Bytes) -> Terms? {
+        guard let slash = body.firstIndex(of: UInt8(ascii: "/")) else {
+            return nil
+        }
+
+        return fractionTerms(in: body, dividedAt: slash)
+    }
+
+    // The terms `digits "/" digits` writes. Digits only on both sides: a sign belongs at the front of
+    // the string, and a denominator has no sign of its own.
+    static func fractionTerms(
+        in body: Bytes,
+        dividedAt slash: Bytes.Index
+    ) -> Terms? {
+        guard
+            let numerator = digits(in: body[..<slash]),
+            let denominator = digits(in: body[body.index(after: slash)...]),
+            denominator.value >= 1
+        else {
+            return nil
+        }
+
+        return Terms(numerator: numerator.value, denominator: denominator.value)
+    }
+
+    // The number a run of digits writes, and how many digits wrote it. `nil` unless the run holds at
+    // least one byte, holds nothing but ASCII digits, and writes a number a `UInt64` holds.
+    static func digits(in bytes: Bytes) -> (value: UInt64, count: Int)? {
+        guard !bytes.isEmpty, let value = number(in: bytes) else {
+            return nil
+        }
+
+        return (value, bytes.count)
+    }
+
+    // The number a run of digits writes, and zero where the run is empty. `nil` where a byte is
+    // not an ASCII digit, or where the number grows past what a `UInt64` holds.
+    static func number(in bytes: Bytes) -> UInt64? {
+        bytes.reduce(UInt64?.some(0)) { number, byte in
+            number?.appending(digit: byte)
+        }
+    }
+
+    // The ratio `terms` writes, with `sign` applied. Reduces before it checks the range, as
+    // `proportion(_:of:)` does: a fraction can be past what an `Int64` holds until it is reduced.
+    static func ratio(
+        from terms: Terms,
+        sign: Sign
+    ) -> Ratio? {
+        let reduced = terms.reduced
+
+        guard
+            let numerator = Int64(magnitude: reduced.numerator, sign: sign),
+            let whole = Int64(exactly: reduced.denominator),
+            let denominator = Denominator(exactly: whole)
+        else {
+            return nil
+        }
+
+        return Ratio(unchecked: Numerator(numerator), denominator)
+    }
+}
+
+private extension UInt64 {
+    // This number with one more digit written after it. `nil` when the byte is not an ASCII digit, or
+    // when the number has grown past what a `UInt64` holds.
+    func appending(digit byte: UInt8) -> UInt64? {
+        byte.asciiDigitValue.flatMap { digit in
+            multiplied(by: decimalRadix)?.adding(UInt64(digit))
+        }
+    }
+
+    // `nil` where `*` would trap.
+    func multiplied(by other: UInt64) -> UInt64? {
+        let (product, overflowed) = multipliedReportingOverflow(by: other)
+
+        return overflowed ? nil : product
+    }
+
+    // `nil` where `+` would trap.
+    func adding(_ other: UInt64) -> UInt64? {
+        let (sum, overflowed) = addingReportingOverflow(other)
+
+        return overflowed ? nil : sum
+    }
+}
+
+// Deliberately byte level rather than `Character.isNumber`, which is true for the digits of many
+// other scripts. A ratio string is ASCII, so no other script writes a number this parser reads.
+private extension UInt8 {
+    var asciiDigitValue: UInt8? {
+        let zero = UInt8(ascii: "0")
+
+        return (zero...UInt8(ascii: "9")).contains(self) ? self - zero : nil
+    }
+}
+
 // MARK: - Literals
 
 extension Ratio.Numerator: ExpressibleByIntegerLiteral {
