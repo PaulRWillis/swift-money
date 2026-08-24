@@ -21,15 +21,9 @@ public enum Scaled<Amount: Equatable> {
     )
 }
 
-// MARK: - Equatable
-
 extension Scaled: Equatable {}
 
-// MARK: - Sendable
-
 extension Scaled: Sendable where Amount: Sendable {}
-
-// MARK: - Rounding
 
 // Constrained to `Int64` because this is the layer where overflow can still be reported rather than
 // trapped, which is what lets `MoneyOf` trap and `Money` throw from the same code.

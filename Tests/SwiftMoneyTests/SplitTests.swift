@@ -7,8 +7,6 @@ private let partCounts = (1...12).compactMap(PartCount.init(exactly:))
 @Suite("Split Tests")
 struct SplitTests {
 
-    // MARK: - Equatable
-
     @Test("Equatable zero-amount splits return true")
     func equatableZeroAmountSplits() {
         let a = GBP(minorUnits: 0).split(into: 5)
@@ -79,8 +77,6 @@ struct SplitTests {
         #expect(even != uneven)
     }
 
-    // MARK: - `amounts`
-
     @Test("Zero amount produces one zero amount per part")
     func amounts_zeroAmountProducesOneZeroAmountPerPart() {
         let split = GBP(minorUnits: 0).split(into: 5)
@@ -94,8 +90,6 @@ struct SplitTests {
 
         #expect(Array(split.amounts) == [GBP(minorUnits: 4), GBP(minorUnits: 4), GBP(minorUnits: 3),])
     }
-
-    // MARK: - Invariants
 
     @Test("Amount count always matches the part count", arguments: amounts, partCounts)
     func amountCountMatchesPartCount(amount: Int, parts: PartCount) {
@@ -129,9 +123,7 @@ struct SplitTests {
         }
     }
 
-    // MARK: - Large Part Counts
-
-    @Test("A part count too large to materialise still reports its count")
+    @Test("A part count too large to materialize still reports its count")
     func largePartCountReportsItsCount() throws {
         let parts = try #require(PartCount(exactly: Int.max))
 
@@ -140,7 +132,7 @@ struct SplitTests {
         #expect(split.count == parts)
     }
 
-    @Test("A part count too large to materialise can still be iterated")
+    @Test("A part count too large to materialize can still be iterated")
     func largePartCountCanBeIterated() throws {
         let parts = try #require(PartCount(exactly: Int.max))
 
@@ -151,8 +143,6 @@ struct SplitTests {
         #expect(iterator.next() == GBP(minorUnits: 1))
         #expect(iterator.next() == GBP(minorUnits: 0))
     }
-
-    // MARK: - Negatives
 
     @Test("Negative even split keeps negativity")
     func negativeEvenSplit() {

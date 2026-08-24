@@ -118,7 +118,7 @@ func greatestCommonDivisor(
 //
 // `nil` when the whole part is not representable as an `Int64`.
 //
-// Here rather than beside ``Scaled`` — where its sibling `split(_:into:)` sits beside `Split` — because
+// Here rather than beside ``Scaled`` (where its sibling `split(_:into:)` sits beside `Split`) because
 // it needs this file's private storage, and needs to build a `FractionalRemainder`, whose initializer
 // is deliberately reachable from nowhere else.
 @usableFromInline
@@ -156,7 +156,7 @@ private extension Ratio {
         }
 
         // A remainder is always smaller than its divisor, which came from an `Int64`, so it fits and
-        // negating it cannot overflow. Non-zero by the guard above — together, the invariant the type
+        // negating it cannot overflow. Non-zero by the guard above: together, the invariant the type
         // promises.
         let magnitude = Int64(leftOver)
         let signed = sign == .negative ? -magnitude : magnitude
@@ -201,7 +201,7 @@ internal extension Ratio {
             .multipliedReportingOverflow(by: other.denominator.rawValue)
 
         guard !numeratorOverflowed, !denominatorOverflowed else {
-            return cancelled(against: other)
+            return canceled(against: other)
         }
 
         return Ratio(Numerator(numerator), Denominator(unchecked: denominator))
@@ -268,7 +268,7 @@ private extension Ratio {
 
     // Cancels each numerator against the other's denominator before multiplying, so common factors go
     // before anything grows. Both fractions are already in lowest terms, so the result is too.
-    func cancelled(against other: Ratio) -> Ratio? {
+    func canceled(against other: Ratio) -> Ratio? {
         let ours = Self.greatestCommonDivisor(of: numerator, and: other.denominator)
         let theirs = Self.greatestCommonDivisor(of: other.numerator, and: denominator)
 
@@ -288,7 +288,7 @@ private extension Ratio {
 public extension Ratio {
     /// The part of one unit left over by a division.
     ///
-    /// Never zero, and always less than one whole. There is no way to create one — a remainder comes
+    /// Never zero, and always less than one whole. There is no way to create one: a remainder comes
     /// only from a division that left something over, so a result cannot claim a remainder it does not
     /// have.
     struct FractionalRemainder: Equatable, Hashable, Sendable, CustomStringConvertible {
@@ -406,7 +406,7 @@ private extension Ratio.FractionalRemainder {
 
 private extension Ratio.Numerator {
     // Every integer is a valid numerator, so dividing can never produce an invalid one. Dividing by a
-    // positive value also means `Int64.min / -1` — the one trapping integer division — cannot arise.
+    // positive value also means `Int64.min / -1` (the one trapping integer division) cannot arise.
     func reduced(by divisor: Ratio.Denominator) -> Self {
         Self(rawValue / divisor.rawValue)
     }

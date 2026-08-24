@@ -64,8 +64,6 @@ private func decoded<T: Decodable>(
 @Suite("Money Codable Tests")
 struct MoneyCodableTests {
 
-    // MARK: - Writing
-
     @Test("An amount is written as its code and its smallest units")
     func encodesAsACodedString() throws {
         #expect(try json(GBP(minorUnits: 4_99)) == "\"GBP 499\"")
@@ -86,8 +84,6 @@ struct MoneyCodableTests {
         #expect(try json(sevenEighths) == "\"EIG 7\"")
         #expect(try json(sevenEighths, .codedString(.majorUnits)) == "\"EIG 0.875\"")
     }
-
-    // MARK: - Reading
 
     @Test(
         "A typed amount reads either spelling, with or without its code",
@@ -131,8 +127,6 @@ struct MoneyCodableTests {
         #expect(try decoded(GBP.self, from: "\"GBP 499\"", major) == GBP(minorUnits: 4_99))
         #expect(try decoded(GBP.self, from: "\"GBP 4.99\"", .codedString) == GBP(minorUnits: 4_99))
     }
-
-    // MARK: - The field form
 
     @Test("Two fields are written under the keys the format names")
     func encodesAsFields() throws {
@@ -233,8 +227,6 @@ struct MoneyCodableTests {
         }
     }
 
-    // MARK: - The amount alone
-
     @Test("An amount alone is written as named, and carries no currency")
     func encodesAsAnAmountAlone() throws {
         let price = GBP(minorUnits: 4_99)
@@ -306,8 +298,6 @@ struct MoneyCodableTests {
             #expect(try decoder(format).decode(GBP.self, from: encoder(format).encode(typed)) == typed)
         }
     }
-
-    // MARK: - Numbers
 
     @Test("A number counts the units the format names, never the units it happens to be written in")
     func readsANumberInTheUnitsConfigured() throws {
@@ -383,8 +373,6 @@ struct MoneyCodableTests {
         #expect(try decoder(major).decode(MoneyOf<Eighths>.self, from: encoded) == sevenEighths)
     }
 
-    // MARK: - Bitcoin, at eight decimal places
-
     @Test(
         "Every bitcoin amount crosses as a number exactly, exponent notation included",
         arguments: [1, 2, 12_345_678, 100_000_000, 2_099_999_976_900_000] as [Int64]
@@ -405,8 +393,6 @@ struct MoneyCodableTests {
         #expect(try decoded(MoneyOf<Bitcoin>.self, from: "1e-08", major) == MoneyOf<Bitcoin>(minorUnits: 1))
         #expect(try decoded(MoneyOf<Bitcoin>.self, from: "0.00000001", major) == MoneyOf<Bitcoin>(minorUnits: 1))
     }
-
-    // MARK: - The range a number can name
 
     @Test("An amount below the bound crosses as a number, and one at it does not")
     func boundsWhatCrossesAsANumber() throws {
@@ -430,7 +416,7 @@ struct MoneyCodableTests {
         #expect(try json(outside, .amountOnly(.string(.majorUnits))) == "\"45035996273704.96\"")
     }
 
-    @Test("A number past the bound is refused on the way in, rather than read as its neighbour")
+    @Test("A number past the bound is refused on the way in, rather than read as its neighbor")
     func refusesANumberPastTheBound() throws {
         let major = MoneyCodingFormat.amountOnly(.number(.majorUnits))
         let message = try refusalMessage {
@@ -456,8 +442,6 @@ struct MoneyCodableTests {
         #expect(swept.map(\.crossed).reduce(0, +) > 40)
         #expect(swept.map(\.refused).reduce(0, +) > 0)
     }
-
-    // MARK: - Round trip
 
     @Test("Every amount this library writes, it reads back")
     func roundTrips() throws {
@@ -501,8 +485,6 @@ struct MoneyCodableTests {
         #expect(String(decoding: encoded, as: UTF8.self) == #"{"name":"Tea","price":"GBP 499"}"#)
         #expect(try decoder().decode(Product.self, from: encoded) == product)
     }
-
-    // MARK: - Errors
 
     // Three failures with three remedies. A caller told to write fewer decimals when their currency
     // is the problem is sent the wrong way, so each says which thing went wrong.
@@ -552,7 +534,7 @@ private let sweptMagnitudes: [Int64] = [0, 1, 2, 7, 99, 100, 12345, 999_999, 1_0
                                         exactNumberBound + 1, Int64.max]
 
 // Every magnitude worth trying, written as a major units number and read back. `nil` is a refusal,
-// which is always allowed; anything that crosses must come home as itself and never as a neighbour.
+// which is always allowed; anything that crosses must come home as itself and never as a neighbor.
 private func sweepingNumbers<C: CurrencyType>(_ type: MoneyOf<C>.Type) -> (crossed: Int, refused: Int) {
     let format = MoneyCodingFormat.amountOnly(.number(.majorUnits))
 

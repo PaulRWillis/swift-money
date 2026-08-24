@@ -1,5 +1,3 @@
-// MARK: - A currency fixed at compile time: arithmetic cannot fail
-
 extension MoneyOf: AdditiveArithmetic where C: CurrencyType {
     @inlinable
     public static var zero: Self {
@@ -70,8 +68,6 @@ public extension MoneyOf where C: CurrencyType {
         minorUnits.isMultiple(of: other.minorUnits)
     }
 }
-
-// MARK: - A currency only known at runtime: arithmetic can fail
 
 public extension MoneyOf where C == AnyCurrency {
     /// Returns the sum of two values.

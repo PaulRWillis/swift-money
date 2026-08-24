@@ -64,7 +64,7 @@ jobs:
           exit 0
         fi
 
-        python3 Benchmarks/summarise.py benchmark_results.md assets-branch/BENCHMARKS.md
+        python3 Benchmarks/summarize.py benchmark_results.md assets-branch/BENCHMARKS.md
 
     - name: Commit and push
       run: |

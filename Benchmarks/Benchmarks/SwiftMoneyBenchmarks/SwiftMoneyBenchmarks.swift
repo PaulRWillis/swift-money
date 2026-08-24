@@ -65,14 +65,14 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
-    // A result has to be kept alive or the optimiser deletes the work, and the cheapest way to do
+    // A result has to be kept alive or the optimizer deletes the work, and the cheapest way to do
     // that differs by type. Handing a value to `blackHole` costs 7 instructions for an integer and
     // 22 for a struct, which swamped operations costing 1, so the cheap types chain instead: each
     // operation feeds the next and only the final value reaches the harness. `Decimal` keeps the
     // barrier, because an accumulator would add a `Decimal` addition of about 7,000 instructions
     // where the barrier costs a handful.
     //
-    // The operands come from an array because the optimiser folds a loop adding a constant into a
+    // The operands come from an array because the optimizer folds a loop adding a constant into a
     // multiplication, and the benchmark then measures nothing: an attempt at this read zero.
     let operands = [1, 2, 3, 5, 7, 10, 13, 17, 19, 23]
     let doubleOperands = operands.map(Double.init)
@@ -369,7 +369,7 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
-    // Two constant operands let the optimiser hoist the comparison out of the loop, leaving nothing
+    // Two constant operands let the optimizer hoist the comparison out of the loop, leaving nothing
     // to measure, so one side cycles through the shared operands. Every variant hands `blackHole` a
     // `Bool`, so the harness costs the same in all four and what separates them is the comparison.
 

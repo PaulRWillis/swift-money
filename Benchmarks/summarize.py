@@ -9,7 +9,7 @@ and a summary pairing each operation against the alternative it is competing wit
     git show origin/assets:BENCHMARKS.md > BENCHMARKS.md
     swift package --package-path Benchmarks benchmark run --format markdown --path stdout \
         > results.md
-    python3 Benchmarks/summarise.py results.md BENCHMARKS.md
+    python3 Benchmarks/summarize.py results.md BENCHMARKS.md
 
 Lives here rather than inside the workflow so that it can be run and read on a laptop. It was 131 lines
 of Python inside a YAML string, which is why its pairing table had drifted out of step with the
@@ -32,7 +32,7 @@ RAW_MARKERS = ("<!-- BENCHMARK-START -->", "<!-- BENCHMARK-END -->")
 SUMMARY_MARKERS = ("<!-- BENCHMARK-SUMMARY-START -->", "<!-- BENCHMARK-SUMMARY-END -->")
 
 # Each table names its baseline columns once, then lists rows of (label, our benchmark, the benchmarks
-# it is measured against — one per column). A table with no columns is a plain list of measurements.
+# it is measured against, one per column). A table with no columns is a plain list of measurements.
 TABLES = [
     {
         "heading": "SwiftMoney against the alternatives",
@@ -144,7 +144,7 @@ def speedup(ours, theirs):
 def cell(measurement):
     """A time, with the allocation count alongside it when there is one to report."""
     if not measurement:
-        return "—"
+        return "n/a"
     allocations = measurement["mallocs"]
     if allocations:
         noun = "alloc" if allocations == 1 else "allocs"
@@ -183,14 +183,14 @@ def table(spec, results):
 
         if len(columns) == 1:
             only = baselines[0] if baselines else None
-            cells.append(speedup(ours["time_ns"], only["time_ns"]) if only else "—")
+            cells.append(speedup(ours["time_ns"], only["time_ns"]) if only else "n/a")
 
-        lines.append("| " + " | ".join(c or "—" for c in cells) + " |")
+        lines.append("| " + " | ".join(c or "n/a" for c in cells) + " |")
 
     return "\n".join(lines)
 
 
-def summarise(results, warn):
+def summarize(results, warn):
     """A markdown summary, and a warning for every benchmark named here but missing from the run."""
     named = {
         name
@@ -199,7 +199,7 @@ def summarise(results, warn):
         for name in [ours, *baselines]
     }
     for name in sorted(named - results.keys()):
-        warn(f"no benchmark named {name!r} in this run — the summary will omit it")
+        warn(f"no benchmark named {name!r} in this run, so the summary will omit it")
 
     return "\n\n".join(table(spec, results) for spec in TABLES)
 
@@ -210,7 +210,7 @@ def inject(document, markers, content, warn):
     start_index, end_index = document.find(start), document.find(end)
 
     if start_index == -1 or end_index == -1:
-        warn(f"markers {start} / {end} not found — leaving that section alone")
+        warn(f"markers {start} / {end} not found, so that section stays unchanged")
         return document
 
     return document[: start_index + len(start)] + "\n" + content + "\n" + document[end_index:]
@@ -240,10 +240,10 @@ def main():
 
     results = parse(raw)
     if not results:
-        warn("no benchmarks parsed out of the results — has the output format changed?")
+        warn("no benchmarks parsed out of the results. Has the output format changed?")
 
     document = inject(document, RAW_MARKERS, raw, warn)
-    document = inject(document, SUMMARY_MARKERS, summarise(results, warn), warn)
+    document = inject(document, SUMMARY_MARKERS, summarize(results, warn), warn)
 
     with open(args.document, "w") as document_file:
         document_file.write(document)

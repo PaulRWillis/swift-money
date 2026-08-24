@@ -5,7 +5,7 @@ public extension Sequence {
     /// [GBP(minorUnits: 1_00), GBP(minorUnits: 2_50)].total()   // £3.50
     /// ```
     ///
-    /// - Precondition: The sum is representable. Totalling beyond ``MoneyOf/max`` traps, as `+` does.
+    /// - Precondition: The sum is representable. Totaling beyond ``MoneyOf/max`` traps, as `+` does.
     @inlinable
     func total<C: CurrencyType>() -> MoneyOf<C> where Element == MoneyOf<C> {
         reduce(.zero, +)
@@ -18,7 +18,7 @@ public extension Sequence {
     /// Array(repeating: daily, count: 365).total()   // a year, with nothing lost to rounding
     /// ```
     ///
-    /// - Precondition: The sum is representable. Totalling beyond ``MoneyOf/max`` traps, as `+` does.
+    /// - Precondition: The sum is representable. Totaling beyond ``MoneyOf/max`` traps, as `+` does.
     @inlinable
     func total<C: CurrencyType>() -> MoneyOf<C>.Unrounded where Element == MoneyOf<C>.Unrounded {
         reduce(.zero, +)

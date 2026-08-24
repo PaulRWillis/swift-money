@@ -25,7 +25,7 @@ jobs:
     - name: Swift version
       run: swift --version
 
-    # No container, so Swift, python3 and the GitHub CLI all come from the runner image — the same
+    # No container, so Swift, python3 and the GitHub CLI all come from the runner image, the same
     # arrangement as the Linux build workflow.
     - name: Measure coverage
       if: github.event_name != 'pull_request'

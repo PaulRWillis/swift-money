@@ -35,7 +35,7 @@ struct MoneyCurrencyTests {
     }
 
     // Two currencies sharing a code but disagreeing on scale are not the same currency, so
-    // amounts in them must not combine — the alternative is silently adding 1/100ths to wholes.
+    // amounts in them must not combine: the alternative is silently adding 1/100ths to wholes.
     @Test("Currencies sharing a code but not a unit scale do not combine")
     func sameCodeDifferentUnitScaleDoesNotCombine() {
         let hundredths = Currency(code: "XYZ", unitScale: 100)

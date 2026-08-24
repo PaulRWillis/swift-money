@@ -68,8 +68,6 @@ struct MoneyParseStrategyCodableTests {
         }
     }
 
-    // MARK: - Helpers
-
     private static func decoded<T: Encodable, U: Decodable>(
         _ value: T,
         as type: U.Type

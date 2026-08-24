@@ -13,8 +13,6 @@ private enum Eighths: CurrencyType {
 @Suite("Money Description Tests")
 struct MoneyDescriptionTests {
 
-    // MARK: - Scales that are powers of ten
-
     @Test(
         "An amount is written in major units, to the places its currency divides into",
         arguments: [
@@ -46,8 +44,6 @@ struct MoneyDescriptionTests {
         #expect(String(describing: JPY(minorUnits: -7)) == "JPY -7")
     }
 
-    // MARK: - Scales that are not powers of ten
-
     @Test(
         "A scale of twos and fives is written to the places those factors reach",
         arguments: [
@@ -61,16 +57,12 @@ struct MoneyDescriptionTests {
         #expect(written == expected)
     }
 
-    // MARK: - Extremes
-
     // The smallest amount has no positive counterpart, so anything that negates it overflows.
     @Test("The extremes of the range are written without trapping")
     func extremes() {
         #expect(String(describing: GBP.min) == "GBP -92233720368547758.08")
         #expect(String(describing: GBP.max) == "GBP 92233720368547758.07")
     }
-
-    // MARK: - Runtime currencies
 
     @Test("An amount reads the same whether its currency is fixed by its type or carried")
     func runtimeMatchesTyped() {

@@ -14,8 +14,6 @@ struct MoneyParseStrategyTests {
         GBP.FormatStyle().locale(britishEnglish)
     }
 
-    // MARK: - The three refusals
-
     @Test("Text that is not an amount is refused as unrecognized")
     func refusesTextThatIsNotAnAmount() {
         #expect(throws: MoneyParsingError.unrecognizedText("not an amount")) {
@@ -61,8 +59,6 @@ struct MoneyParseStrategyTests {
             try Self.sterling.parseStrategy.parse("£\(vast).99")
         }
     }
-
-    // MARK: - Round trips
 
     @Test("Every amount the style writes parses back to the amount it came from")
     func roundTripsWhatTheStyleWrites() throws {
@@ -117,8 +113,6 @@ struct MoneyParseStrategyTests {
         }
     }
 
-    // MARK: - Rounding is a display choice, never a parsing one
-
     @Test("What a style with a coarser precision shows still parses exactly as shown")
     func parsesWhatADisplayRoundingStyleShows() throws {
         let style = Self.sterling.precision(.fractionLength(0))
@@ -145,8 +139,6 @@ struct MoneyParseStrategyTests {
             try style.parseStrategy.parse("£4.999")
         }
     }
-
-    // MARK: - The ends of the range
 
     @Test("The largest and smallest amounts write and read back")
     func roundTripsTheEndsOfTheRange() throws {
@@ -177,8 +169,6 @@ struct MoneyParseStrategyTests {
             #expect(try strategy.parse(style.format(amount)) == amount)
         }
     }
-
-    // MARK: - Helpers
 
     private static func parsesBack<C: CurrencyType>(
         _ amount: MoneyOf<C>,

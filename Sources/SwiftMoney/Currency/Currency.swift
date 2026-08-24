@@ -1,6 +1,6 @@
 /// A currency a monetary amount can be denominated in.
 ///
-/// A currency is a code and the number of its smallest units that make one major unit — enough to
+/// A currency is a code and the number of its smallest units that make one major unit: enough to
 /// identify it and to know how finely it divides.
 ///
 /// ```swift
@@ -28,7 +28,7 @@ public extension Currency {
     ///
     /// Zero-sized, so fixing a currency at compile time costs an amount nothing to carry it.
     struct Implied: Equatable, Hashable, Sendable {
-        // Computed, not a `static let`: a stored static needs lazy initialisation through
+        // Computed, not a `static let`: a stored static needs lazy initialization through
         // `swift_once`, and this is touched on every construction of a statically typed amount.
         @usableFromInline
         static var implied: Implied { Implied() }
@@ -38,23 +38,17 @@ public extension Currency {
     }
 }
 
-// MARK: - CustomStringConvertible
-
 extension Currency: CustomStringConvertible {
     public var description: String {
         String(code)
     }
 }
 
-// MARK: - ISO4217 Currencies as types
-
 /// A namespace for the ISO 4217 currencies, one caseless `enum` per code.
 ///
 /// The members are generated from the list ISO's maintenance agency publishes. Use one as a generic
 /// parameter to fix a currency at compile time: `MoneyOf<Currencies.CHF>`.
 public enum Currencies {}
-
-// MARK: - Typed money
 
 // Only a handful of currencies get a name at the top level, because a typealias per code would put
 // 165 of them into every file that imports this library, among them `ALL`, `TOP` and a `TRY` that

@@ -3,7 +3,7 @@
 
 Intersects the added-line ranges from a git diff with the per-line hit counts in an lcov report. Lines
 with no lcov record are not executable, so blank lines, comments and declarations drop out without
-needing to be recognised.
+needing to be recognized.
 
 Usage:
     python3 Coverage/diff-coverage.py <base-ref> <lcov-file> [--format text|markdown] [--paths <glob>]
@@ -109,7 +109,7 @@ def as_markdown(rows, covered, total):
     print("|:-----|--------:|----:|:----------------|")
 
     for path, hit, count, missed in rows:
-        lines = ", ".join(map(str, missed)) if missed else "—"
+        lines = ", ".join(map(str, missed)) if missed else "n/a"
         print(f"| `{path}` | {hit}/{count} | {100.0 * hit / count:.1f}% | {lines} |")
 
     if any(missed for *_, missed in rows):

@@ -80,7 +80,7 @@ jobs:
           echo "mainHasBenchmark=1" >> $GITHUB_ENV
         else
           echo "mainHasBenchmark=0" >> $GITHUB_ENV
-          echo "::notice::main does not have Benchmarks yet — skipping comparison"
+          echo "::notice::main does not have Benchmarks yet, so the comparison is skipped"
         fi
 
     - name: Run benchmarks for main
@@ -95,8 +95,8 @@ jobs:
       run: |
         echo "$(date)" >> $GITHUB_STEP_SUMMARY
 
-        # `baseline check` reports its verdict through the exit status — 2 for a regression, 4 for an
-        # improvement — so a non-zero status is the normal case, not a failure. Actions runs this block
+        # `baseline check` reports its verdict through the exit status (2 for a regression, 4 for an
+        # improvement), so a non-zero status is the normal case, not a failure. Actions runs this block
         # as `bash -e`, which would abort here before the status could be read, taking every line below
         # with it and leaving `exitStatus` unset.
         # `--disable-sandbox` matches the two runs above. The flag is part of the plugin's build
@@ -133,7 +133,7 @@ jobs:
       run: |
         BENCHMARK_RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
         if [ "${{ env.mainHasBenchmark }}" != "1" ]; then
-          echo "_Benchmarks ran successfully. No baseline on main yet — comparison will be available after merge._" > benchmark_comment
+          echo "_Benchmarks ran successfully. No baseline on main yet: comparison will be available after merge._" > benchmark_comment
         elif [ "${{ env.exitStatus }}" = "0" ]; then
           echo "_No significant benchmark changes._" > benchmark_comment
         elif [ "${{ env.exitStatus }}" = "2" ]; then

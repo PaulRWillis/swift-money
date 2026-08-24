@@ -8,12 +8,12 @@
 /// fail under `swift test -c release`.
 ///
 /// `@_optimize(none)` is load-bearing, not decoration. Without it the optimizer can delete a call
-/// whose result is unused, and a `preconditionFailure` inside that call goes with it — Swift excludes
+/// whose result is unused, and a `preconditionFailure` inside that call goes with it: Swift excludes
 /// program-termination paths from its effects analysis, so they do not count as a side effect worth
 /// preserving. Arithmetic overflow survives either way, being a distinct instruction, which is why the
 /// gap stayed hidden until a trap came from an explicit `preconditionFailure`.
 ///
-/// - Note: Still not a general optimization barrier — it keeps the *call* alive, not the value. A
+/// - Note: Still not a general optimization barrier: it keeps the *call* alive, not the value. A
 ///   benchmark needs a sink that writes to memory.
 @inline(never)
 @_optimize(none)

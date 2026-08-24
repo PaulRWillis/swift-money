@@ -5,8 +5,6 @@ import Testing
 @Suite("CurrencyCode Tests")
 struct CurrencyCodeTests {
 
-    // MARK: - Accepted
-
     @Test(
         "Codes of three to eight uppercase alphanumerics are accepted",
         arguments: [
@@ -16,7 +14,7 @@ struct CurrencyCodeTests {
             "BTC",       // crypto, 3
             "USDT",      // crypto, 4
             "MATIC",     // crypto, 5
-            "SAFEMOON",  // crypto, 8 — the longest accepted
+            "SAFEMOON",  // crypto, 8: the longest accepted
             "1INCH",     // leading digit
             "401K",      // digits throughout
             "LTY",       // in-app currency
@@ -28,8 +26,6 @@ struct CurrencyCodeTests {
 
         #expect(String(code) == raw)
     }
-
-    // MARK: - Normalization
 
     @Test("Lowercase input is normalized to uppercase")
     func lowercaseIsNormalized() {
@@ -55,8 +51,6 @@ struct CurrencyCodeTests {
 
         #expect(Set([lower, upper]).count == 1)
     }
-
-    // MARK: - Rejected
 
     @Test(
         "Codes outside three to eight characters are rejected",
@@ -109,8 +103,6 @@ struct CurrencyCodeTests {
         #expect(CurrencyCode(string: "ßßß") == nil)
     }
 
-    // MARK: - Literals
-
     @Test("A valid string literal creates a code")
     func validLiteral() {
         let code: CurrencyCode = "GBP"
@@ -133,17 +125,15 @@ struct CurrencyCodeTests {
         }
     }
 
-    // The failable initializer is labelled because an unlabelled one would be unreachable: with
+    // The failable initializer is labeled because an unlabeled one would be unreachable: with
     // ExpressibleByStringLiteral present, `CurrencyCode("...")` always resolves to the literal
     // initializer, which traps rather than returning nil. Same trap as PartCount.
-    @Test("The unlabelled call form is the trapping literal, not the failable initializer")
-    func unlabelledFormIsTheLiteral() async {
+    @Test("The unlabeled call form is the trapping literal, not the failable initializer")
+    func unlabeledFormIsTheLiteral() async {
         await #expect(processExitsWith: .failure) {
             blackHole(CurrencyCode("nope!"))
         }
     }
-
-    // MARK: - Codable
 
     @Test("A code is written as a string, uppercased")
     func encodesAsString() throws {

@@ -11,8 +11,8 @@ Usage:
 import argparse
 import sys
 
-# shields.io's own thresholds, so the colour means the same thing a reader is used to.
-COLOURS = (
+# shields.io's own thresholds, so the color means the same thing a reader is used to.
+COLORS = (
     (50, "#e05d44"),  # red
     (70, "#fe7d37"),  # orange
     (80, "#dfb317"),  # yellow
@@ -26,8 +26,8 @@ CHARACTER_WIDTH = 6.6
 PADDING = 10
 
 
-def colour(percentage):
-    return next(hex for limit, hex in COLOURS if percentage < limit)
+def color(percentage):
+    return next(hex for limit, hex in COLORS if percentage < limit)
 
 
 def badge(label, value, percentage):
@@ -46,7 +46,7 @@ def badge(label, value, percentage):
   </clipPath>
   <g clip-path="url(#rounded)">
     <rect width="{label_width}" height="20" fill="#555"/>
-    <rect x="{label_width}" width="{value_width}" height="20" fill="{colour(percentage)}"/>
+    <rect x="{label_width}" width="{value_width}" height="20" fill="{color(percentage)}"/>
     <rect width="{width}" height="20" fill="url(#shine)"/>
   </g>
   <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="11">

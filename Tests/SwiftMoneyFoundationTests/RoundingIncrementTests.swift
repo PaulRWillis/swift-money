@@ -4,7 +4,6 @@ import Testing
 
 @Suite("Rounding Increment Tests")
 struct RoundingIncrementTests {
-    // MARK: - Exact Initialization
 
     @Test("A value of one creates an increment")
     func acceptsOne() throws {
@@ -29,8 +28,6 @@ struct RoundingIncrementTests {
     func refusesNegative() {
         #expect(RoundingIncrement(exactly: -5) == nil)
     }
-
-    // MARK: - Literals
 
     @Test("A valid integer literal creates an increment")
     func acceptsAValidLiteral() throws {
@@ -67,16 +64,12 @@ struct RoundingIncrementTests {
         }
     }
 
-    // MARK: - Conversion
-
     @Test("An increment converts back to the integer it was built from")
     func convertsToInt64() throws {
         let increment = try #require(RoundingIncrement(exactly: 25))
 
         #expect(Int64(increment) == 25)
     }
-
-    // MARK: - Codable
 
     @Test("An increment round-trips through JSON")
     func roundTripsThroughJSON() throws {
