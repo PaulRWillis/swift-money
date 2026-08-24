@@ -31,6 +31,16 @@ struct MoneyFormatStyleModifierTests {
         #expect(Self.sterling.sign(strategy: .never).format(GBP(minorUnits: -4_99)) == "£4.99")
     }
 
+    @Test("A decimal separator can be asked for where no digits follow it")
+    func decimalSeparator() {
+        // Yen, which have no subunit, so the default style writes no separator at all.
+        let amount = JPY(minorUnits: 499)
+        let style = JPY.FormatStyle().locale(Self.britishEnglish)
+
+        #expect(style.format(amount) == "JP¥499")
+        #expect(style.decimalSeparator(strategy: .always).format(amount) == "JP¥499.")
+    }
+
     @Test("The currency's own scale sets the digits, not ICU's idea of the currency")
     func precisionComesFromTheScale() {
         // The ariary, where the two disagree: ICU shows no decimals, and the repo's MGA divides

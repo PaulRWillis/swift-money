@@ -21,6 +21,7 @@ public extension MoneyOf {
         private var locale: Locale
         private var presentation: Configuration.Presentation
         private var sign: Configuration.SignDisplayStrategy
+        private var decimalSeparator: Configuration.DecimalSeparatorDisplayStrategy
 
         /// Creates a style for the given locale.
         ///
@@ -29,6 +30,7 @@ public extension MoneyOf {
             self.locale = locale
             self.presentation = .standard
             self.sign = .automatic
+            self.decimalSeparator = .automatic
         }
 
         /// Returns a copy of this style that renders in the given locale.
@@ -60,6 +62,18 @@ public extension MoneyOf {
         public func sign(strategy: Configuration.SignDisplayStrategy) -> Self {
             var copy = self
             copy.sign = strategy
+            return copy
+        }
+
+        /// Returns a copy of this style that shows the decimal separator in the given way.
+        ///
+        /// - Parameter strategy: When to write the separator. `.automatic` by default, which
+        ///   writes one only where digits follow it.
+        public func decimalSeparator(
+            strategy: Configuration.DecimalSeparatorDisplayStrategy
+        ) -> Self {
+            var copy = self
+            copy.decimalSeparator = strategy
             return copy
         }
     }
@@ -97,6 +111,10 @@ extension MoneyOf.FormatStyle {
 
         if sign != .automatic {
             style = style.sign(strategy: sign)
+        }
+
+        if decimalSeparator != .automatic {
+            style = style.decimalSeparator(strategy: decimalSeparator)
         }
 
         return style
