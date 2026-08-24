@@ -2,10 +2,6 @@ import SwiftMoney
 import Testing
 
 // Currencies the ISO table cannot supply, because ISO's exponent field only holds powers of ten.
-private enum OldSterling: CurrencyType {
-    static let currency = Currency(code: "OLD", unitScale: 240)
-}
-
 private enum Khoums: CurrencyType {
     static let currency = Currency(code: "KHO", unitScale: 5)
 }
@@ -17,7 +13,7 @@ private enum Eighths: CurrencyType {
 @Suite("Money Description Tests")
 struct MoneyDescriptionTests {
 
-    // MARK: - Currencies with an exact decimal
+    // MARK: - Scales that are powers of ten
 
     @Test(
         "An amount is written in major units, to the places its currency divides into",
@@ -44,24 +40,24 @@ struct MoneyDescriptionTests {
         #expect(String(describing: MoneyOf<Currencies.KWD>(minorUnits: 4_990)) == "KWD 4.990")
     }
 
-    // MARK: - Currencies without one
-
     @Test("A currency with no subunits is written whole")
     func noSubunits() {
         #expect(String(describing: JPY(minorUnits: 499)) == "JPY 499")
         #expect(String(describing: JPY(minorUnits: -7)) == "JPY -7")
     }
 
+    // MARK: - Scales that are not powers of ten
+
     @Test(
-        "A currency divides into a decimal only when two and five are its only factors",
+        "A scale of twos and fives is written to the places those factors reach",
         arguments: [
             (String(describing: MoneyOf<Khoums>(minorUnits: 3)), "KHO 0.6"),
+            (String(describing: MoneyOf<Khoums>(minorUnits: -3)), "KHO -0.6"),
             (String(describing: MoneyOf<Eighths>(minorUnits: 1)), "EIG 0.125"),
-            (String(describing: MoneyOf<OldSterling>(minorUnits: 7)), "OLD 7"),
-            (String(describing: MoneyOf<OldSterling>(minorUnits: -1)), "OLD -1"),
+            (String(describing: MoneyOf<Eighths>(minorUnits: 7)), "EIG 0.875"),
         ]
     )
-    func exactDecimalOnlyForTwosAndFives(_ written: String, _ expected: String) {
+    func writesToThePlacesTwosAndFivesReach(_ written: String, _ expected: String) {
         #expect(written == expected)
     }
 
@@ -85,9 +81,9 @@ struct MoneyDescriptionTests {
 
     @Test("A currency known only at runtime is written from the scale it carries")
     func runtimeUsesItsOwnScale() {
-        let carried = Money(minorUnits: 7, currency: Currency(code: "OLD", unitScale: 240))
+        let carried = Money(minorUnits: 7, currency: Currency(code: "EIG", unitScale: 8))
 
-        #expect(String(describing: carried) == "OLD 7")
+        #expect(String(describing: carried) == "EIG 0.875")
     }
 
     @Test("Interpolating an amount uses the same form")

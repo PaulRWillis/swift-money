@@ -433,9 +433,6 @@ let benchmarks: @Sendable () -> Void = {
     // places nobody profiles. Every variant hands `blackHole` a `String`, so the harness costs the
     // same in each and what separates them is the rendering.
     let carriedPounds = operands.map { Money(minorUnits: $0, currency: .gbp) }
-    let carriedPreDecimal = operands.map {
-        Money(minorUnits: $0, currency: Currency(code: "OLD", unitScale: 240))
-    }
 
     Benchmark("MoneyOf description", configuration: defaultConfiguration) { benchmark in
         var index = 0
@@ -451,16 +448,6 @@ let benchmarks: @Sendable () -> Void = {
 
         for _ in benchmark.scaledIterations {
             blackHole(carriedPounds[index % carriedPounds.count].description)
-            index &+= 1
-        }
-    }
-
-    // The branch for a currency no decimal can express, which writes minor units instead.
-    Benchmark("Money description, no exact decimal", configuration: defaultConfiguration) { benchmark in
-        var index = 0
-
-        for _ in benchmark.scaledIterations {
-            blackHole(carriedPreDecimal[index % carriedPreDecimal.count].description)
             index &+= 1
         }
     }
@@ -555,7 +542,6 @@ let benchmarks: @Sendable () -> Void = {
     // against the string route. Every variant hands `blackHole` a `Bool`, so the harness costs the
     // same in each.
     let decimalAmounts = bareStrings.compactMap { Decimal(string: $0) }
-    let preDecimalCurrency = Currency(code: "OLD", unitScale: 240)
 
     Benchmark("MoneyOf from Decimal", configuration: defaultConfiguration) { benchmark in
         var index = 0
@@ -575,21 +561,13 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
-    // The refusal for a currency no decimal can express, which answers before any multiplication.
-    Benchmark("Money from Decimal, no exact decimal", configuration: defaultConfiguration) { benchmark in
-        var index = 0
-
-        for _ in benchmark.scaledIterations {
-            blackHole(Money(majorUnits: decimalAmounts[index % decimalAmounts.count], currency: preDecimalCurrency) != nil)
-            index &+= 1
-        }
-    }
-
+    // `isFinite` rather than `!= nil`, this direction no longer being failable. What matters is that
+    // every variant still hands `blackHole` a `Bool`.
     Benchmark("Decimal from MoneyOf", configuration: defaultConfiguration) { benchmark in
         var index = 0
 
         for _ in benchmark.scaledIterations {
-            blackHole(Decimal(exactly: moneyOperands[index % moneyOperands.count]) != nil)
+            blackHole(Decimal(moneyOperands[index % moneyOperands.count]).isFinite)
             index &+= 1
         }
     }

@@ -2,49 +2,37 @@ import Foundation
 import SwiftMoney
 
 public extension Decimal {
-    /// Creates a decimal number of major units from a monetary amount.
+    /// Creates the exact amount in major units.
     ///
     /// ```swift
-    /// Decimal(exactly: GBP(minorUnits: 4_99))   // 4.99
-    /// Decimal(exactly: JPY(minorUnits: 499))    // 499
+    /// Decimal(GBP(minorUnits: 4_99))   // 4.99
+    /// Decimal(JPY(minorUnits: 499))    // 499
     /// ```
     ///
-    /// The conversion loses nothing. Every amount the currency can hold converts, and
+    /// The conversion keeps the value. It cannot fail and it cannot round, because every currency
+    /// divides into an exact decimal, so every amount of every currency has one.
     /// ``MoneyOf/init(majorUnits:)`` or ``MoneyOf/init(majorUnits:currency:)`` turns the result
     /// back into the amount it came from.
     ///
-    /// A currency has an exact decimal form only where its scale is `2 ^ a * 5 ^ b` and reaches no
-    /// further than eighteen decimal places. Every ISO 4217 currency qualifies. A pound of 240 pence
-    /// does not, one penny of it being 0.0041666…, and this returns `nil` for any amount in it.
-    ///
     /// - Parameter money: The amount to convert.
-    /// - Returns: `nil` unless the amount's currency has an exact decimal form.
     @inlinable
-    init?<C: CurrencyRepresentation>(exactly money: MoneyOf<C>) {
-        guard let majorUnits = exactMajorUnits(money.minorUnits, in: money.currency) else {
-            return nil
-        }
-
-        self = majorUnits
+    init<C: CurrencyRepresentation>(_ money: MoneyOf<C>) {
+        self = exactMajorUnits(money.minorUnits, in: money.currency)
     }
 }
 
-// The major units an amount holds, as a decimal number. `nil` where the currency has no exact
-// decimal form.
+// The major units an amount holds, as a decimal number.
 @usableFromInline
 func exactMajorUnits(
     _ minorUnits: Money.MinorUnits,
     in currency: Currency
-) -> Decimal? {
+) -> Decimal {
     let scale = UInt64(Int64(currency.unitScale))
+    let places = currency.unitScale.decimalPlaces
 
-    guard let places = scale.exactDecimalPlaces else {
-        return nil
-    }
-
-    // The scale divides `10 ^ places` exactly, that being what `exactDecimalPlaces` reports, so the
-    // multiplier is whole. Eighteen places is as far as it goes, which keeps `10 ^ places` inside a
-    // `UInt64`.
+    // The scale divides `10 ^ places` exactly, that being what a unit scale guarantees, so the
+    // multiplier is whole. A scale stops at eighteen places, so `10 ^ places` reaches `10 ^ 18` and
+    // stays inside a `UInt64`, which holds up to `10 ^ 19`.
     let multiplier = UInt64.powerOfTen(places) / scale
 
     // Multiplied in `Decimal` because the product can pass `UInt64`: a scale of 2 with an amount

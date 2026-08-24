@@ -6,17 +6,15 @@ extension MoneyOf: CustomStringConvertible {
     /// String(describing: JPY(minorUnits: 499))    // "JPY 499"
     /// ```
     ///
-    /// Major units wherever the currency's scale divides a power of ten, which every ISO 4217
-    /// currency's does. Where it does not, the currency's smallest units, no exact decimal being
-    /// available: a pound of 240 pence cannot write seven of them.
+    /// Always major units, written to the number of places the currency's scale divides into: two
+    /// for sterling, none for yen.
     public var description: String {
         codedString(.majorUnits)
     }
 }
 
 extension MoneyOf {
-    // The code and the amount in one string, which `description` and `Codable` both write. Major
-    // units where the scale divides a power of ten, and the smallest units where it does not.
+    // The code and the amount in one string, which `description` and `Codable` both write.
     //
     // Inlined because both callers pass a literal, which lets the units test fold away entirely.
     // Without this it costs `description` nine instructions.
@@ -26,7 +24,7 @@ extension MoneyOf {
         let currency = self.currency
         let scale = UInt64(Int64(currency.unitScale))
         let magnitude = minorUnits.magnitude
-        let places = units == .majorUnits && scale > 1 ? scale.exactDecimalPlaces ?? 0 : 0
+        let places = units == .majorUnits && scale > 1 ? currency.unitScale.decimalPlaces : 0
 
         // Dividing before multiplying is what keeps this inside a `UInt64`: the scale divides
         // `10 ^ places` exactly, so the multiplier is whole and the product stays under `10 ^ places`.
@@ -76,33 +74,6 @@ extension MoneyOf {
 }
 
 extension UInt64 {
-    // Two and five are the only prime factors a decimal can absorb, so a scale keeping any other has
-    // no exact decimal at all: 240 keeps a 3, and seven of its subunits is 0.0291666…
-    //
-    // Beyond eighteen places the digits outgrow a `UInt64`. Only a scale such as `2 ^ 30` reaches
-    // that, and it settles for minor units.
-    @usableFromInline
-    package var exactDecimalPlaces: Int? {
-        var remaining = self
-        var twos = 0
-        var fives = 0
-
-        while remaining.isMultiple(of: 2) {
-            remaining /= 2
-            twos += 1
-        }
-
-        while remaining.isMultiple(of: 5) {
-            remaining /= 5
-            fives += 1
-        }
-
-        // `Swift.max`, because `max` inside an extension on `UInt64` is that type's largest value.
-        let places = Swift.max(twos, fives)
-
-        return remaining == 1 && places <= 18 ? places : nil
-    }
-
     @usableFromInline
     package static func powerOfTen(_ exponent: Int) -> UInt64 {
         (0 ..< exponent).reduce(into: UInt64(1)) { power, _ in power *= 10 }

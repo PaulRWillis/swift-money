@@ -2,8 +2,13 @@ import Foundation
 import SwiftMoney
 import Testing
 
-private enum OldSterling: CurrencyType {
-    static let currency = Currency(code: "OLD", unitScale: 240)
+// Scales that are not powers of ten, so the ISO table cannot supply them.
+private enum Eighths: CurrencyType {
+    static let currency = Currency(code: "EIG", unitScale: 8)
+}
+
+private enum Khoums: CurrencyType {
+    static let currency = Currency(code: "KHO", unitScale: 5)
 }
 
 // Eight decimal places, so it reaches the exponent notation and the `Double` spacing that two
@@ -74,12 +79,12 @@ struct MoneyCodableTests {
         #expect(try json(Money(minorUnits: 1, currency: .kwd), .codedString(.majorUnits)) == "\"KWD 0.001\"")
     }
 
-    @Test("A currency with no exact decimal writes its smallest units either way")
-    func encodesACurrencyWithoutAnExactDecimal() throws {
-        let sevenPence = MoneyOf<OldSterling>(minorUnits: 7)
+    @Test("A currency whose scale is not a power of ten writes the places it divides into")
+    func encodesACurrencyWithAnUncommonScale() throws {
+        let sevenEighths = MoneyOf<Eighths>(minorUnits: 7)
 
-        #expect(try json(sevenPence) == "\"OLD 7\"")
-        #expect(try json(sevenPence, .codedString(.majorUnits)) == "\"OLD 7\"")
+        #expect(try json(sevenEighths) == "\"EIG 7\"")
+        #expect(try json(sevenEighths, .codedString(.majorUnits)) == "\"EIG 0.875\"")
     }
 
     // MARK: - Reading
@@ -261,11 +266,12 @@ struct MoneyCodableTests {
         #expect(try decoded(GBP.self, from: "-499") == GBP(minorUnits: -4_99))
     }
 
-    @Test("A currency with no exact decimal writes its smallest units alone")
-    func encodesAnAmountAloneWithoutAnExactDecimal() throws {
-        let sevenPence = MoneyOf<OldSterling>(minorUnits: 7)
+    @Test("A currency whose scale is not a power of ten writes its major units alone")
+    func encodesAnAmountAloneWithAnUncommonScale() throws {
+        let sevenEighths = MoneyOf<Eighths>(minorUnits: 7)
 
-        #expect(try json(sevenPence, .amountOnly(.string(.majorUnits))) == "\"7\"")
+        #expect(try json(sevenEighths, .amountOnly(.string(.majorUnits))) == "\"0.875\"")
+        #expect(try json(sevenEighths, .amountOnly) == "7")
     }
 
     @Test("A runtime amount refuses to write an amount alone, naming the remedy")
@@ -367,15 +373,14 @@ struct MoneyCodableTests {
         #expect(message.contains("too large to cross as a number"))
     }
 
-    @Test("A currency with no exact decimal cannot cross as a major units number at all")
-    func refusesAMajorUnitsNumberWithoutAnExactDecimal() throws {
-        let sevenPence = MoneyOf<OldSterling>(minorUnits: 7)
+    @Test("A currency whose scale is not a power of ten crosses as a major units number")
+    func crossesAsAMajorUnitsNumberWithAnUncommonScale() throws {
+        let sevenEighths = MoneyOf<Eighths>(minorUnits: 7)
         let major = MoneyCodingFormat.amountOnly(.number(.majorUnits))
-        let message = try encodingRefusalMessage { try encoder(major).encode(sevenPence) }
+        let encoded = try encoder(major).encode(sevenEighths)
 
-        // Writing 7 and reading it as major units would give 1680, a wholly different amount.
-        #expect(message.contains("OLD divides into no exact decimal"))
-        #expect(try json(sevenPence, .amountOnly) == "7")
+        #expect(String(decoding: encoded, as: UTF8.self) == "0.875")
+        #expect(try decoder(major).decode(MoneyOf<Eighths>.self, from: encoded) == sevenEighths)
     }
 
     // MARK: - Bitcoin, at eight decimal places
@@ -437,12 +442,15 @@ struct MoneyCodableTests {
 
     @Test("A number never reads back as a different amount, at any scale")
     func neverReadsBackADifferentAmount() {
-        // Yen at 1, sterling at 100, bitcoin at 100,000,000, and a scale with no exact decimal.
+        // Yen at 1, sterling at 100, bitcoin at 100,000,000, and a scale of five. Five rather than
+        // eight, because eight needs a third fraction digit, which at the top of the range is one
+        // more than a `Double`'s shortest text carries, and the amount is then refused on the way
+        // back rather than misread.
         let swept = [sweepingNumbers(JPY.self),
                      sweepingNumbers(GBP.self),
                      sweepingNumbers(MoneyOf<Bitcoin>.self),
                      sweepingNumbers(MoneyOf<Seventeen>.self),
-                     sweepingNumbers(MoneyOf<OldSterling>.self)]
+                     sweepingNumbers(MoneyOf<Khoums>.self)]
 
         // The sweep proves nothing if everything was skipped, or if nothing reached the bound.
         #expect(swept.map(\.crossed).reduce(0, +) > 40)
@@ -474,10 +482,10 @@ struct MoneyCodableTests {
 
     @Test("A custom currency round trips through the type that names it")
     func roundTripsACustomCurrency() throws {
-        let sevenPence = MoneyOf<OldSterling>(minorUnits: 7)
-        let encoded = try encoder().encode(sevenPence)
+        let sevenEighths = MoneyOf<Eighths>(minorUnits: 7)
+        let encoded = try encoder().encode(sevenEighths)
 
-        #expect(try decoder().decode(MoneyOf<OldSterling>.self, from: encoded) == sevenPence)
+        #expect(try decoder().decode(MoneyOf<Eighths>.self, from: encoded) == sevenEighths)
     }
 
     @Test("An amount sits inside a larger model")

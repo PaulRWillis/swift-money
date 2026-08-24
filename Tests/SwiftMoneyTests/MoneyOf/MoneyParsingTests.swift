@@ -1,10 +1,6 @@
 import SwiftMoney
 import Testing
 
-private enum OldSterling: CurrencyType {
-    static let currency = Currency(code: "OLD", unitScale: 240)
-}
-
 private enum Khoums: CurrencyType {
     static let currency = Currency(code: "KHO", unitScale: 5)
 }
@@ -111,15 +107,6 @@ struct MoneyParsingTests {
         #expect(GBP(string: text) == nil)
     }
 
-    @Test("A currency with no exact decimal takes its smallest units and refuses a decimal")
-    func currencyWithoutAnExactDecimal() throws {
-        let sevenPence = try #require(MoneyOf<OldSterling>(string: "7"))
-
-        #expect(sevenPence == MoneyOf<OldSterling>(minorUnits: 7))
-        #expect(MoneyOf<OldSterling>(string: "0.03") == nil)
-        #expect(try #require(MoneyOf<OldSterling>(string: "1.0")) == MoneyOf<OldSterling>(minorUnits: 240))
-    }
-
     // A sender formatting to a fixed width pads with zeros, and eighteen places is what a system
     // built around wei emits. The amount is still exactly £4.99, so refusing it would be wrong.
     @Test(
@@ -139,7 +126,7 @@ struct MoneyParsingTests {
     @Test("Padding does not make an amount the currency cannot hold acceptable")
     func paddingDoesNotWidenPrecision() {
         #expect(GBP(string: "4.999000000000000000") == nil)
-        #expect(MoneyOf<OldSterling>(string: "0.030000000000000000") == nil)
+        #expect(MoneyOf<Khoums>(string: "0.700000000000000000") == nil)
     }
 
     @Test("A currency far finer than sterling parses its own smallest units")
@@ -152,6 +139,8 @@ struct MoneyParsingTests {
     @Test("A currency dividing by five takes the decimals it can hold")
     func currencyDividingByFive() throws {
         #expect(try #require(MoneyOf<Khoums>(string: "0.6")) == MoneyOf<Khoums>(minorUnits: 3))
+        #expect(try #require(MoneyOf<Khoums>(string: "1.0")) == MoneyOf<Khoums>(minorUnits: 5))
+        #expect(try #require(MoneyOf<Khoums>(string: "3")) == MoneyOf<Khoums>(minorUnits: 3))
         #expect(MoneyOf<Khoums>(string: "0.7") == nil)
     }
 

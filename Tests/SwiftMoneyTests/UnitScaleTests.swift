@@ -7,18 +7,18 @@ struct UnitScaleTests {
     // MARK: - Accepted
 
     @Test(
-        "Any positive value is accepted",
+        "A value with an exact decimal form is accepted",
         arguments: [
-            1,            // JPY — no subunit
-            5,            // MRU, MGA — the only non-decimal circulating currencies
-            100,          // GBP, EUR — the common case
-            240,          // pre-decimal GBP: 20 shillings of 12 pence
-            1_000,        // BHD, KWD — three decimal places
-            100_000_000,  // BTC — satoshis
-            Int64.max,
+            1,                          // JPY: no subunit
+            5,                          // MRU, MGA: the only non-decimal circulating currencies
+            100,                        // GBP, EUR: the common case
+            256,                        // US Treasury bonds, quoted in 256ths
+            1_000,                      // BHD, KWD: three decimal places
+            100_000_000,                // BTC: satoshis
+            1_000_000_000_000_000_000,  // eighteen places, the finest a scale reaches
         ]
     )
-    func acceptsPositiveValues(_ raw: Int64) throws {
+    func acceptsValuesWithAnExactDecimalForm(_ raw: Int64) throws {
         let scale = try #require(UnitScale(exactly: raw))
 
         #expect(Int64(scale) == raw)
@@ -32,6 +32,40 @@ struct UnitScaleTests {
     )
     func rejectsNonPositiveValues(_ raw: Int64) {
         #expect(UnitScale(exactly: raw) == nil)
+    }
+
+    @Test(
+        "A value with no exact decimal form is rejected",
+        arguments: [
+            3,          // a third of a unit is 0.333…
+            12,         // shillings of pence
+            60,         // keeps a 3 even though it divides by 5
+            240,        // pre-decimal GBP: 20 shillings of 12 pence
+            1 << 30,    // 2 ^ 30: thirty places, past the eighteen a scale is allowed
+            Int64.max,
+        ] as [Int64]
+    )
+    func rejectsValuesWithoutAnExactDecimalForm(_ raw: Int64) {
+        #expect(UnitScale(exactly: raw) == nil)
+    }
+
+    // MARK: - Decimal places
+
+    @Test(
+        "A scale reports how many places write one of its smallest units",
+        arguments: [
+            (1, 0),
+            (5, 1),
+            (100, 2),
+            (256, 8),
+            (100_000_000, 8),
+            (1_000_000_000_000_000_000, 18),
+        ] as [(Int64, Int)]
+    )
+    func reportsItsDecimalPlaces(_ raw: Int64, _ expected: Int) throws {
+        let scale = try #require(UnitScale(exactly: raw))
+
+        #expect(scale.decimalPlaces == expected)
     }
 
     // MARK: - Equality
@@ -68,6 +102,22 @@ struct UnitScaleTests {
     func negativeLiteralTraps() async {
         await #expect(processExitsWith: .failure) {
             let scale: UnitScale = -1
+            blackHole(scale)
+        }
+    }
+
+    @Test("A literal with no exact decimal form traps")
+    func nonDecimalLiteralTraps() async {
+        await #expect(processExitsWith: .failure) {
+            let scale: UnitScale = 240
+            blackHole(scale)
+        }
+    }
+
+    @Test("A literal reaching past eighteen decimal places traps")
+    func tooFineLiteralTraps() async {
+        await #expect(processExitsWith: .failure) {
+            let scale: UnitScale = 1_073_741_824  // 2 ^ 30, so thirty decimal places
             blackHole(scale)
         }
     }
