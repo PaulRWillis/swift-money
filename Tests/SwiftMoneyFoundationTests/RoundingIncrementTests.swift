@@ -1,3 +1,4 @@
+import Foundation
 import SwiftMoneyFoundation
 import Testing
 
@@ -71,5 +72,33 @@ struct RoundingIncrementTests {
         let increment = try #require(RoundingIncrement(exactly: 25))
 
         #expect(Int64(increment) == 25)
+    }
+
+    // MARK: - Codable
+
+    @Test("An increment round-trips through JSON")
+    func roundTripsThroughJSON() throws {
+        let increment = try #require(RoundingIncrement(exactly: 25))
+        let encoded = try JSONEncoder().encode([increment])
+        let decoded = try JSONDecoder().decode([RoundingIncrement].self, from: encoded)
+
+        #expect(decoded == [increment])
+    }
+
+    @Test("An increment encodes as its bare number")
+    func encodesAsBareNumber() throws {
+        let increment = try #require(RoundingIncrement(exactly: 25))
+        let encoded = try JSONEncoder().encode([increment])
+
+        #expect(String(decoding: encoded, as: UTF8.self) == "[25]")
+    }
+
+    @Test("A decoded increment below one throws", arguments: [0, -5])
+    func refusesADecodedValueBelowOne(value: Int64) {
+        let data = Data("[\(value)]".utf8)
+
+        #expect(throws: DecodingError.self) {
+            _ = try JSONDecoder().decode([RoundingIncrement].self, from: data)
+        }
     }
 }

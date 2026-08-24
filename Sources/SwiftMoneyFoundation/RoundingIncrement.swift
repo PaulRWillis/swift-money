@@ -42,6 +42,44 @@ extension RoundingIncrement: ExpressibleByIntegerLiteral {
     }
 }
 
+extension RoundingIncrement: Codable {
+    /// Writes the increment as its bare number.
+    ///
+    /// ```swift
+    /// let step: RoundingIncrement = 25
+    ///
+    /// try encoder.encode(step)   // 25
+    /// ```
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+
+        try container.encode(rawValue)
+    }
+
+    /// Reads an increment from a number.
+    ///
+    /// A literal below one is a mistake in the source and traps, but decoded data is data, so
+    /// it throws instead.
+    ///
+    /// - Throws: `DecodingError.dataCorrupted` if the number is below one.
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let value = try container.decode(Int64.self)
+
+        guard let increment = RoundingIncrement(exactly: value) else {
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: """
+                    Not a valid rounding increment: \(value). \
+                    An increment is at least one, counted in the currency's smallest units.
+                    """
+            )
+        }
+
+        self = increment
+    }
+}
+
 public extension Int64 {
     /// Creates an integer from a rounding increment.
     ///
