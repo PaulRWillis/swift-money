@@ -5,6 +5,7 @@ import Testing
 
 @Suite("Money Format Style Modifier Tests")
 struct MoneyFormatStyleModifierTests {
+    private typealias CHF = MoneyOf<Currencies.CHF>
     private typealias MGA = MoneyOf<Currencies.MGA>
 
     private static let britishEnglish = Locale(identifier: "en_GB")
@@ -70,6 +71,36 @@ struct MoneyFormatStyleModifierTests {
         #expect(Self.sterling.precision(.significantDigits(2)).format(amount) == "£5.0")
     }
 
+    @Test("A rounding rule decides which way the shown digits go")
+    func roundingRule() {
+        let style = Self.sterling.precision(.fractionLength(0))
+
+        #expect(style.format(GBP(minorUnits: 4_99)) == "£5")
+        #expect(style.rounded(rule: .down).format(GBP(minorUnits: 4_99)) == "£4")
+        #expect(style.rounded(rule: .up).format(GBP(minorUnits: 4_01)) == "£5")
+    }
+
+    @Test("A tie in the shown digits goes to the even digit unless the caller says otherwise")
+    func roundingRuleDefaultsToHalfEven() {
+        // Half a pound, which is the tie at this precision and the one amount that tells the two
+        // nearest rules apart. The style hands ICU no rule of its own until the caller sets one,
+        // so this pins what ICU's own default is: half to even, showing 4.50 as 4 and 5.50 as 6.
+        let style = Self.sterling.precision(.fractionLength(0))
+
+        #expect(style.format(GBP(minorUnits: 4_50)) == "£4")
+        #expect(style.format(GBP(minorUnits: 5_50)) == "£6")
+        #expect(style.rounded(rule: .toNearestOrAwayFromZero).format(GBP(minorUnits: 4_50)) == "£5")
+    }
+
+    @Test("A rounding increment counts the currency's smallest units")
+    func roundingIncrement() {
+        let style = CHF.FormatStyle().locale(Self.britishEnglish)
+        let amount = CHF(minorUnits: 4_98)
+
+        #expect(style.format(amount) == "CHF\u{00A0}4.98")
+        #expect(style.rounded(increment: 5).format(amount) == "CHF\u{00A0}5.00")
+    }
+
     @Test("Grouping turned off beside a second option loses the currency symbol")
     func groupingOffBesideASecondOptionLosesTheSymbol() {
         // Foundation's own currency style drops the symbol from this pairing, and ours can only
@@ -92,5 +123,16 @@ struct MoneyFormatStyleModifierTests {
 
             #expect(foundationStyle.format(value) == "+£1234.56")
         }
+    }
+
+    @Test("Each modifier keeps every option set before it")
+    func modifiersKeepEarlierOptions() {
+        let sut = Self.sterling
+            .presentation(.isoCode)
+            .sign(strategy: .always())
+            .rounded(rule: .down)
+            .precision(.fractionLength(0))
+
+        #expect(sut.format(GBP(minorUnits: 4_99)) == "+GBP\u{00A0}4")
     }
 }
