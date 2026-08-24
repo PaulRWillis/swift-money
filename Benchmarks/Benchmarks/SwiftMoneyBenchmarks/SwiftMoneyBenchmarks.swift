@@ -239,7 +239,7 @@ let benchmarks: @Sendable () -> Void = {
     // cannot represent, and `Decimal` is exact but pays for it.
 
     Benchmark("MoneyOf scaled and rounded", configuration: defaultConfiguration) { benchmark in
-        let vat = Ratio(7, 40)
+        let vat: Ratio = "7/40"
         var accumulated = GBP(minorUnits: 0)
         var amount = 1
 
@@ -295,7 +295,7 @@ let benchmarks: @Sendable () -> Void = {
     // others settle, truncate or drift at every step, so the timings carry a correctness result too.
 
     Benchmark("MoneyOf unrounded scaling", configuration: defaultConfiguration) { benchmark in
-        let vat = Ratio(7, 40)
+        let vat: Ratio = "7/40"
         var amount = 1
 
         for _ in benchmark.scaledIterations {
@@ -305,9 +305,9 @@ let benchmarks: @Sendable () -> Void = {
     }
 
     Benchmark("MoneyOf unrounded chain", configuration: defaultConfiguration) { benchmark in
-        let discount = Ratio(9, 10)
-        let vat = Ratio(6, 5)
-        let dayCount = Ratio(31, 365)
+        let discount: Ratio = "9/10"
+        let vat: Ratio = "6/5"
+        let dayCount: Ratio = "31/365"
         var amount = 1
 
         for _ in benchmark.scaledIterations {
@@ -318,9 +318,9 @@ let benchmarks: @Sendable () -> Void = {
     }
 
     Benchmark("MoneyOf chain, rounding each step", configuration: defaultConfiguration) { benchmark in
-        let discount = Ratio(9, 10)
-        let vat = Ratio(6, 5)
-        let dayCount = Ratio(31, 365)
+        let discount: Ratio = "9/10"
+        let vat: Ratio = "6/5"
+        let dayCount: Ratio = "31/365"
         var amount = 1
 
         for _ in benchmark.scaledIterations {
@@ -370,7 +370,7 @@ let benchmarks: @Sendable () -> Void = {
 
     // Cycling through pre-built operands, so neither the addition nor the scaling that produced them
     // can be hoisted out of the loop.
-    let thirds = (1 ... 16).map { GBP(minorUnits: $0 * 100).unrounded * Ratio(1, 3) }
+    let thirds = (1 ... 16).map { GBP(minorUnits: $0 * 100).unrounded * "1/3" }
 
     Benchmark("MoneyOf unrounded addition", configuration: defaultConfiguration) { benchmark in
         var index = 0
@@ -713,7 +713,7 @@ let benchmarks: @Sendable () -> Void = {
     // Reporting a remainder means constructing a `Ratio`, which reduces to lowest terms. Against
     // `scaled(by:rounding:)`, the difference is what the report itself costs.
     Benchmark("MoneyOf scaled, reporting a remainder", configuration: defaultConfiguration) { benchmark in
-        let vat = Ratio(7, 40)
+        let vat: Ratio = "7/40"
         var amount = 1
 
         for _ in benchmark.scaledIterations {
@@ -747,13 +747,14 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
-    // Construction reduces, so this measures the greatest common divisor. Denominators with many
-    // factors are the expensive case, and the ones money actually uses.
+    // Construction reduces, so this measures the greatest common divisor, plus the denominator
+    // check and the optional that `init(exactly:over:)` adds. Denominators with many factors are
+    // the expensive case, and the ones money actually uses.
     Benchmark("Ratio construction", configuration: defaultConfiguration) { benchmark in
         var numerator: Int64 = 1
 
         for _ in benchmark.scaledIterations {
-            blackHole(Ratio(Ratio.Numerator(numerator % 40), 40))
+            blackHole(Ratio(exactly: numerator % 40, over: 40))
             numerator &+= 1
         }
     }

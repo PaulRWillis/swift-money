@@ -37,8 +37,8 @@ public extension MoneyOf where C: CurrencyType {
     /// does not divide exactly leaves part of a unit for the caller to resolve.
     ///
     /// ```swift
-    /// GBP(minorUnits: 9_99).scaled(by: Ratio(1, 3))    // .exact(£3.33)
-    /// GBP(minorUnits: 10_00).scaled(by: Ratio(1, 3))   // .inexact(£3.33, remainder: 1/3)
+    /// GBP(minorUnits: 9_99).scaled(by: "1/3")    // .exact(£3.33)
+    /// GBP(minorUnits: 10_00).scaled(by: "1/3")   // .inexact(£3.33, remainder: 1/3)
     /// ```
     ///
     /// - Parameter ratio: The fraction to scale by.
@@ -66,8 +66,8 @@ public extension MoneyOf where C: CurrencyType {
     /// ``scaled(by:)`` to find out whether there was one.
     ///
     /// ```swift
-    /// GBP(minorUnits: 10).scaled(by: Ratio(1, 4), rounding: .toNearestOrEven)   // 2p, from 2.5p
-    /// GBP(minorUnits: 10).scaled(by: Ratio(1, 4), rounding: .up)                // 3p
+    /// GBP(minorUnits: 10).scaled(by: "1/4", rounding: .toNearestOrEven)   // 2p, from 2.5p
+    /// GBP(minorUnits: 10).scaled(by: "1/4", rounding: .up)                // 3p
     /// ```
     ///
     /// - Parameters:

@@ -1,25 +1,26 @@
 /// An exact fraction, used to scale a monetary amount.
 ///
 /// Stored in lowest terms with the sign on the numerator, so equivalent fractions are the same value:
-/// `Ratio(22, 200)` and `Ratio(11, 100)` are equal.
+/// `"22/200"` and `"11/100"` are equal.
 ///
 /// ```swift
-/// let vat = Ratio(7, 40)   // 17.5%
+/// let vat: Ratio = "17.5%"
 /// ```
 ///
-/// Exact, unlike a decimal or floating-point rate — one third is `Ratio(1, 3)` and stays one third.
+/// Exact, unlike a decimal or floating-point rate. One third is `"1/3"` and stays one third.
 public struct Ratio: Equatable, Hashable, Sendable {
     // fileprivate rather than private so that `scaled(_:by:)`, a free function further down this file,
     // can read them. Both stay invisible outside it.
     fileprivate let numerator: Numerator
     fileprivate let denominator: Denominator
 
-    /// Creates a ratio, reduced to lowest terms.
-    ///
-    /// - Parameters:
-    ///   - numerator: The signed part. Any value is valid.
-    ///   - denominator: The part below the line. Always positive, which the type guarantees.
-    public init(
+    // Creates a ratio, reduced to lowest terms. The operand types carry the invariants, so nothing
+    // here can be invalid: any numerator is valid, and a denominator is positive by construction.
+    //
+    // `@usableFromInline` because `MoneyOf.unrounded` and the whole-number `*` are `@inlinable` and
+    // call it.
+    @usableFromInline
+    init(
         _ numerator: Numerator,
         _ denominator: Denominator
     ) {
@@ -443,40 +444,41 @@ extension Ratio: CustomStringConvertible {
 
 // MARK: - Operands
 
-public extension Ratio {
-    /// The signed part of a ratio.
-    ///
-    /// Every integer is a valid numerator, so this cannot fail to be created — including from a
-    /// literal, unlike ``Ratio/Denominator``.
+internal extension Ratio {
+    // The signed part of a ratio. Every integer is a valid numerator, so this cannot fail to be
+    // created, including from a literal, unlike `Denominator`.
+    //
+    // `@usableFromInline` because `MoneyOf.unrounded` and the whole-number `*` are `@inlinable` and
+    // build a ratio from one.
+    @usableFromInline
     struct Numerator: Equatable, Hashable, Sendable, CustomStringConvertible {
         fileprivate let rawValue: Int64
 
-        public var description: String {
+        @usableFromInline
+        var description: String {
             "\(rawValue)"
         }
 
-        /// Creates a numerator.
-        public init(_ value: Int64) {
+        @usableFromInline
+        init(_ value: Int64) {
             self.rawValue = value
         }
     }
 
-    /// A positive integer, used as the denominator of a ratio.
-    ///
-    /// A ratio's sign is carried entirely by its numerator, so a denominator is never zero or
-    /// negative. Those values cannot be constructed.
+    // A positive integer, used as the denominator of a ratio. A ratio's sign is carried entirely by
+    // its numerator, so a denominator is never zero or negative. Those values cannot be constructed.
+    @usableFromInline
     struct Denominator: Equatable, Hashable, Sendable, CustomStringConvertible {
         fileprivate let rawValue: Int64
 
-        public var description: String {
+        @usableFromInline
+        var description: String {
             "\(rawValue)"
         }
 
-        /// Creates a denominator from a value that may not be valid.
-        ///
-        /// - Parameter value: The denominator.
-        /// - Returns: `nil` if `value` is less than one.
-        public init?(exactly value: Int64) {
+        // `nil` if `value` is less than one. The one place the below-one invariant is enforced, so
+        // `Ratio(exactly:over:)` does not repeat it.
+        init?(exactly value: Int64) {
             guard value >= 1 else {
                 return nil
             }
@@ -485,7 +487,7 @@ public extension Ratio {
         }
 
         // No check: only for call sites that have already established the value is positive.
-        internal init(unchecked value: Int64) {
+        init(unchecked value: Int64) {
             self.rawValue = value
         }
     }
@@ -750,47 +752,17 @@ extension Ratio: ExpressibleByStringLiteral {
     }
 }
 
-extension Ratio.Numerator: ExpressibleByIntegerLiteral {
-    /// Creates a numerator from an integer literal.
-    ///
-    /// - Parameter value: The numerator.
-    public init(integerLiteral value: Int64) {
-        self.rawValue = value
-    }
-}
-
 extension Ratio.Denominator: ExpressibleByIntegerLiteral {
-    /// Creates a denominator from an integer literal.
-    ///
-    /// A literal is written by a programmer rather than derived from data, so a value below one is a
-    /// mistake in the source rather than bad input — it traps instead of failing gracefully. Use
-    /// ``init(exactly:)`` for any value that is not a literal.
-    ///
-    /// ```swift
-    /// let fortieths: Ratio.Denominator = 40   // fine
-    /// let none: Ratio.Denominator = 0         // traps
-    /// ```
-    ///
-    /// - Parameter value: The denominator.
-    /// - Precondition: `value` is at least one.
-    public init(integerLiteral value: Int64) {
+    // A literal is written here in the library rather than derived from data, so a value below one is
+    // a mistake in this source rather than bad input: it traps instead of failing gracefully.
+    //
+    // `@usableFromInline` because `MoneyOf.unrounded` and the whole-number `*` are `@inlinable` and
+    // write a denominator of one.
+    @usableFromInline
+    init(integerLiteral value: Int64) {
         precondition(value >= 1, "A denominator must be at least 1. Value: \(value)")
 
         self.rawValue = value
-    }
-}
-
-// MARK: - Conversions
-
-public extension Int64 {
-    /// Creates an integer from a ratio's numerator.
-    init(_ numerator: Ratio.Numerator) {
-        self = numerator.rawValue
-    }
-
-    /// Creates an integer from a ratio's denominator.
-    init(_ denominator: Ratio.Denominator) {
-        self = denominator.rawValue
     }
 }
 
