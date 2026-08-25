@@ -142,4 +142,17 @@ struct WeightedSplitTests {
             GBP(minorUnits: -3_074_457_345_618_258_602),
         ])
     }
+
+    @Test("A runtime-currency amount splits and keeps its currency")
+    func runtimeCurrencySplits() {
+        let money = Money(minorUnits: 100, currency: .gbp)
+
+        let parts = money.split(by: [1, 1, 1])
+
+        #expect(parts == [
+            Money(minorUnits: 34, currency: .gbp),
+            Money(minorUnits: 33, currency: .gbp),
+            Money(minorUnits: 33, currency: .gbp),
+        ])
+    }
 }
