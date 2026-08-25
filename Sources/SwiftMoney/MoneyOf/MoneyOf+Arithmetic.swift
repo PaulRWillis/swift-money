@@ -28,6 +28,19 @@ extension MoneyOf: Comparable where C: CurrencyType {
     }
 }
 
+// Negation and the sign queries read one operand and pass its storage through unchanged, so no
+// currency can mismatch. One unconditional extension therefore serves both seams, and ``Money``
+// needs no throwing twins.
+public extension MoneyOf {
+    /// Returns the given amount with its sign flipped.
+    ///
+    /// Traps when the operand is ``min``, whose negation is one past ``max``.
+    @inlinable
+    static prefix func - (operand: Self) -> Self {
+        Self(unchecked: -operand.minorUnits, storage: operand.storage)
+    }
+}
+
 public extension MoneyOf where C: CurrencyType {
     /// Returns the result of multiplying this amount by a whole number.
     ///

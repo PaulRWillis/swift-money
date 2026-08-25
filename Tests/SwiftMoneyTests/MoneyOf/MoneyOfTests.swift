@@ -112,6 +112,33 @@ struct MoneyOfTests {
         #expect(a == GBP(minorUnits: -2))
     }
 
+    @Test("Negation flips a positive amount to negative")
+    func negationFlipsPositiveToNegative() {
+        let sut = GBP(minorUnits: 4_99)
+
+        #expect(-sut == GBP(minorUnits: -4_99))
+    }
+
+    @Test("Negation of a negative amount returns its positive twin")
+    func negationOfNegativeAmountReturnsPositiveTwin() {
+        let sut = GBP(minorUnits: -4_99)
+
+        #expect(-sut == GBP(minorUnits: 4_99))
+        #expect(-(-sut) == sut)
+    }
+
+    @Test("Negation of zero returns zero")
+    func negationOfZeroReturnsZero() {
+        #expect(-GBP.zero == GBP.zero)
+    }
+
+    @Test("Negation traps on min")
+    func negationTrapsOnMin() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(-GBP.min)
+        }
+    }
+
     @Test("Integral multiplication succeeds")
     func integralMultiplication() {
         let a = GBP(minorUnits: 7)

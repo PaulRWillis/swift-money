@@ -161,6 +161,16 @@ struct MoneyTests {
         }
     }
 
+    @Test("Negation keeps the currency and cannot throw")
+    func negationKeepsCurrency() {
+        let sut = Money(minorUnits: 4_99, currency: .gbp)
+
+        let negated = -sut
+
+        #expect(negated == Money(minorUnits: -4_99, currency: .gbp))
+        #expect(negated.currency == .gbp)
+    }
+
     @Test("Integral multiplication succeeds")
     func integralMultiplication() throws {
         let a = Money(minorUnits: 6, currency: .gbp)
