@@ -9,8 +9,8 @@ public extension MoneyOf where C: CurrencyType {
     /// equals the weight count. The parts always sum to the original amount.
     ///
     /// Weights that do not divide exactly leave minor units over. Each leftover unit goes to the
-    /// part with the largest remainder, and the earliest part wins a tie, so every part sits as
-    /// close as a whole unit can to its exact share.
+    /// part with the largest remainder, and the earliest part wins a tie, so no part differs from
+    /// its exact share by a whole minor unit or more.
     ///
     /// - Parameter weights: The weight of each part, in part order.
     @inlinable
@@ -27,8 +27,8 @@ public extension MoneyOf where C == AnyCurrency {
     /// equals the weight count. The parts always sum to the original amount.
     ///
     /// Weights that do not divide exactly leave minor units over. Each leftover unit goes to the
-    /// part with the largest remainder, and the earliest part wins a tie, so every part sits as
-    /// close as a whole unit can to its exact share.
+    /// part with the largest remainder, and the earliest part wins a tie, so no part differs from
+    /// its exact share by a whole minor unit or more.
     ///
     /// - Parameter weights: The weight of each part, in part order.
     @inlinable

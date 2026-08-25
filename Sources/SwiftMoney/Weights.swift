@@ -67,8 +67,9 @@ extension Weights: ExpressibleByArrayLiteral {
 }
 
 // Truncates each part toward zero, then gives the leftover minor units to the parts with the
-// largest remainders, one unit of the amount's sign each. This is Hamilton's method: it keeps
-// every part as close as an integer can sit to its exact proportional share.
+// largest remainders, one unit of the amount's sign each. This is Hamilton's method: each part
+// differs from its exact proportional share by less than one unit, and no split that conserves
+// the amount has a smaller total difference.
 //
 // The arithmetic runs on full-width magnitudes, so no product can overflow and no amount, the
 // extremes included, can make a split trap.
@@ -110,9 +111,9 @@ func split(
     return parts
 }
 
-// The parts with the largest remainders sit farthest below their exact shares, so they receive
-// the leftover minor units first. The sort is stable, which Swift guarantees, so equal
-// remainders keep part order and the earliest part wins a tie.
+// The parts with the largest remainders sit farthest from their exact shares, by magnitude, so
+// they receive the leftover minor units first. The sort is stable, which Swift guarantees, so
+// equal remainders keep part order and the earliest part wins a tie.
 private func indicesOfLargestRemainders(
     _ remainders: [UInt64],
     taking count: Int
