@@ -62,4 +62,20 @@ struct BinaryIntegerMoneyOfTests {
             blackHole(UInt(minorUnits: GBP(minorUnits: -1)))
         }
     }
+
+    @Test("when extracting minor units exactly into a narrow integer should return nil")
+    func whenExtractingMinorUnitsExactlyIntoNarrowInteger_shouldReturnNil() {
+        #expect(Int8(exactly: GBP(minorUnits: 4_99)) == nil)
+    }
+
+    @Test("when extracting minor units exactly into a wide enough integer should return count")
+    func whenExtractingMinorUnitsExactlyIntoWideEnoughInteger_shouldReturnCount() {
+        #expect(Int8(exactly: GBP(minorUnits: 99)) == 99)
+        #expect(Int64(exactly: Money(minorUnits: 4_99, currency: .gbp)) == 499)
+    }
+
+    @Test("when extracting a negative amount exactly into an unsigned integer should return nil")
+    func whenExtractingNegativeAmountExactlyIntoUnsignedInteger_shouldReturnNil() {
+        #expect(UInt(exactly: GBP(minorUnits: -1)) == nil)
+    }
 }

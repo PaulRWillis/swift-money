@@ -24,4 +24,22 @@ public extension BinaryInteger {
     init<C: CurrencyRepresentation>(minorUnits money: MoneyOf<C>) {
         self.init(money.minorUnits)
     }
+
+    /// Creates the number of the currency's smallest (minor) units an amount holds, if this type
+    /// is wide enough.
+    ///
+    /// Use this where the amount can outgrow the target type on some platform. `Int` holds 32 bits
+    /// on watchOS and 64 elsewhere, so a large amount reads back there and not here.
+    ///
+    /// ```swift
+    /// Int8(exactly: GBP(minorUnits: 99))     // 99
+    /// Int8(exactly: GBP(minorUnits: 4_99))   // nil
+    /// ```
+    ///
+    /// - Parameter money: The amount to read.
+    /// - Returns: `nil` if the number is outside the range this type holds.
+    @inlinable
+    init?<C: CurrencyRepresentation>(exactly money: MoneyOf<C>) {
+        self.init(exactly: money.minorUnits)
+    }
 }
