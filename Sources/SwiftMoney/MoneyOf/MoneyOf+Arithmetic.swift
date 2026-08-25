@@ -28,13 +28,14 @@ extension MoneyOf: Comparable where C: CurrencyType {
     }
 }
 
-// Negation and the sign queries read one operand and pass its storage through unchanged, so no
-// currency can mismatch. One unconditional extension therefore serves both seams, and ``Money``
-// needs no throwing twins.
+// Negation, magnitude and the sign query read one operand and pass its storage through unchanged,
+// so no currency can mismatch. One unconditional extension therefore serves both seams, and
+// ``Money`` needs no throwing twins.
 public extension MoneyOf {
     /// Returns the given amount with its sign flipped.
     ///
-    /// Traps when the operand is ``min``, whose negation is one past ``max``.
+    /// Traps when the operand is the smallest representable amount, whose negation is one past
+    /// the largest.
     @inlinable
     static prefix func - (operand: Self) -> Self {
         Self(unchecked: -operand.minorUnits, storage: operand.storage)
@@ -42,13 +43,14 @@ public extension MoneyOf {
 
     /// The amount with a negative sign removed.
     ///
-    /// Traps when this amount is ``min``, whose magnitude is one past ``max``.
+    /// Traps when this amount is the smallest representable amount, whose magnitude is one past
+    /// the largest.
     @inlinable
     var magnitude: Self {
         Self(unchecked: abs(minorUnits), storage: storage)
     }
 
-    /// True when the amount is less than zero.
+    /// Whether this amount is less than zero.
     @inlinable
     var isNegative: Bool {
         minorUnits < 0
