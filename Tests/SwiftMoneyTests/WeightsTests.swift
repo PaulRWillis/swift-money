@@ -87,17 +87,31 @@ struct WeightsTests {
         }
     }
 
+    @Test("Literal: Init from weights whose sum overflows traps")
+    func initFromOverflowingSumLiteral() async {
+        await #expect(processExitsWith: .failure) {
+            _ = [9223372036854775807, 1] as Weights
+        }
+    }
+
     @Test("A literal equals its validated counterpart")
     func literalEqualsValidatedCounterpart() {
         #expect(Weights(exactly: [60, 30, 10]) == [60, 30, 10])
     }
 
     @Test("Equal weights are equatable")
-    func equalWeightsAreEquatable() {
-        let a = Weights(exactly: [60, 30, 10])
-        let b = Weights(exactly: [60, 30, 10])
+    func equalWeightsAreEquatable() throws {
+        let a = try #require(Weights(exactly: [60, 30, 10]))
+        let b = try #require(Weights(exactly: [60, 30, 10]))
 
         #expect(a == b)
-        #expect(a != nil)
+    }
+
+    @Test("Differently ordered weights are not equal")
+    func differentlyOrderedWeightsAreNotEqual() throws {
+        let descending = try #require(Weights(exactly: [60, 30, 10]))
+        let ascending = try #require(Weights(exactly: [10, 30, 60]))
+
+        #expect(descending != ascending)
     }
 }
