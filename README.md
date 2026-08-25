@@ -6,364 +6,303 @@
 [![CI](https://github.com/PaulRWillis/swift-money/actions/workflows/swift-macos-build.yml/badge.svg)](https://github.com/PaulRWillis/swift-money/actions/workflows/swift-macos-build.yml)
 [![coverage](https://raw.githubusercontent.com/PaulRWillis/swift-money/assets/coverage.svg)](https://github.com/PaulRWillis/swift-money/actions/workflows/swift-code-coverage.yml)
 
-Type-safe money for Swift. `SwiftMoney` stores monetary values as integer minor units (`Int64`)
-with the currency locked at compile time, eliminating floating-point rounding errors entirely.
-Cross-currency arithmetic is a compile error, fractional operations use exact rational numbers,
-and multi-currency exchange-rate conversions apply a single rounding step at the end, no matter how
-many currencies are in the bag.
+Exact money arithmetic for Swift. An amount is a whole number of its currency's smallest unit,
+so there is no floating point and no hidden rounding. The currency is part of the type when you
+know it at compile time, and checked at runtime when you do not.
 
 ```swift
 import SwiftMoney
 
-let price = Money<GBP>(minorUnits: 1250)    // £12.50
-let vatRate = Rate(numerator: 1, denominator: 5)!  // 20%
-let vat = price.multiplied(by: vatRate, rounding: .toNearestOrAwayFromZero)
-
-vat.amount      // Money<GBP>(minorUnits: 250), £2.50
-vat.effectiveRate  // Rate(1/5): exact, no precision lost
+let price = GBP(minorUnits: 4_99)                              // GBP 4.99
+let vat = price.scaled(by: "20%", rounding: .toNearestOrEven)  // GBP 1.00
+let total = price + vat                                        // GBP 5.99
 ```
 
 ## Features
 
-- **Integer minor-unit storage**: `Int64` backing; no `Decimal` overhead on the hot path
-- **Compile-time currency safety**: `Money<GBP> + Money<USD>` is a compile error
-- **Exact fractional multiplication**: `Rate` (GCD-reduced rational) with round-trip invariant
-- **Single-rounding exchange**: `MoneyBag.total(in:using:rounding:)` accumulates exact fractions, then rounds once
-- **No `Numeric` conformance**: `Money * Money` is intentionally impossible
-- **Floating-point blocked**: `Money * Double` and `Money * Float` are `@available(*, unavailable)` compile errors
-- **`Sendable` throughout**: all types are `Sendable`
-- **Configurable Codable**: per-type encoding strategies (`.minorUnits`, `.majorUnits`, `.object`, `.string`, `.dictionary`)
-- **`ParseableFormatStyle`**: locale-aware formatting and parsing with round-trip guarantee
-- **Pure Swift core**: Foundation only required for `Decimal` conversions, formatting, parsing, and Codable
+- **Exact by construction.** Amounts are `Int64` minor units. Rates are exact fractions.
+  `Double` never touches arithmetic.
+- **Two levels of currency safety.** `GBP + EUR` fails to compile. `Money` carries its currency
+  at runtime, and mixing two currencies throws.
+- **One rounding step, at the end.** Chain exact operations with `unrounded`, then settle once.
+- **Splits that always add up.** Even and weighted splits return parts that sum exactly to the
+  original amount.
+- **165 ISO 4217 currencies built in**, every code with a stated minor unit, and a custom
+  currency takes three lines.
+- **Locale-aware formatting and parsing**, in a separate Foundation module.
+- **Exact JSON by default**, with configurable wire formats.
+- **Zero dependencies.** The core imports nothing, not even Foundation. Every value the library
+  produces is `Sendable`.
 
 ## Installation
 
-Add to your `Package.swift`:
+Add the package in `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/PaulRWillis/swift-money.git", from: "0.1.0"),
+    .package(url: "https://github.com/PaulRWillis/swift-money.git", from: "0.6.2"),
 ]
 ```
 
-Then add the dependency to your target:
+Then add the products your target needs:
 
 ```swift
 .target(
     name: "MyTarget",
     dependencies: [
         .product(name: "SwiftMoney", package: "swift-money"),
+        .product(name: "SwiftMoneyFoundation", package: "swift-money"),
     ]
-)
+),
 ```
 
-**Platforms:** macOS 15+, iOS 18+, watchOS 11+, tvOS 18+, visionOS 2+
+`SwiftMoney` is the core library. `SwiftMoneyFoundation` adds the pieces that need Foundation:
+formatting, localized parsing, `Decimal` interop, and JSON configuration. Import both modules to
+use them.
 
-## Types
+**Requires Swift 6.2.**
+**Platforms:** macOS 15+, iOS 18+, watchOS 11+, tvOS 18+, visionOS 2+. Linux builds in CI.
 
-| Type | Description |
-|---|---|
-| `Currency` | Protocol: adopt to define a custom currency |
-| `CurrencyCode` | Validated non-empty currency code string |
-| `MinimalQuantization` | Positive `Int64`: minor units per major unit (100 for GBP, 1 for JPY) |
-| `Money<C>` | Typed monetary amount stored as `Int64` minor units |
-| `AnyMoney` | Type-erased money carrying currency info at runtime |
-| `MoneyBag` | Multi-currency accumulator keyed by `CurrencyCode` |
-| `Distribution<C>` | Result of splitting money into equal-or-near-equal parts |
-| `CurrencyRegistry` | Maps currency codes to their minimal quantization; ships with all ISO 4217 currencies |
-| `Rate` | Exact rational number (GCD-reduced `numerator/denominator`) |
-| `RateCalculation<C>` | Result of fractional multiplication: `amount` + `effectiveRate` |
-| `ExchangeRate<From, To>` | Typed conversion rate between two currencies |
-| `Conversion<From, To>` | Result of exchange-rate conversion: `amount` + `effectiveRate` |
-| `ExchangeRateProvider` | Protocol: implement to supply rates from any source |
-| `UnitRate<C, U>` | Price per unit of measure (e.g. £0.000023/kWh) |
+## Creating money
 
-## Usage
-
-### Defining a Currency
-
-Five currencies are built in: `EUR`, `GBP`, `USD`, `JPY`, `CHF`. Define your own:
+`GBP`, `EUR`, `USD` and `JPY` are ready to use. The other ISO 4217 currencies live in the
+`Currencies` namespace; give the ones you use a short name:
 
 ```swift
-enum BTC: Currency {
-    static let code: CurrencyCode = "BTC"
-    static let minimalQuantization: MinimalQuantization = 100_000_000  // satoshis
+let price = GBP(minorUnits: 4_99)   // GBP 4.99
+let fare = JPY(minorUnits: 499)     // JPY 499
+
+typealias CHF = MoneyOf<Currencies.CHF>
+let fee = CHF(minorUnits: 12_50)    // CHF 12.50
+```
+
+Amounts count the currency's smallest unit: pence, cents, yen. `init(minorUnits:)` takes any
+integer type and traps when the value does not fit. For values from outside the program,
+`init?(exactly:)` returns `nil` instead:
+
+```swift
+GBP(exactly: unvalidatedAmount)     // nil when the amount does not fit
+```
+
+## Arithmetic
+
+```swift
+let price = GBP(minorUnits: 10_00)
+let tax = GBP(minorUnits: 2_00)
+
+price + tax        // GBP 12.00
+price - tax        // GBP 8.00
+price * 3          // GBP 30.00
+-price             // GBP -10.00
+
+let refund = -price
+refund.isNegative  // true
+refund.magnitude   // GBP 10.00
+```
+
+Amounts with a compile-time currency compare, sort, and total:
+
+```swift
+let expenses = [GBP(minorUnits: 5_20), GBP(minorUnits: -2_40), GBP(minorUnits: 3_38)]
+
+expenses.max()     // GBP 5.20
+expenses.total()   // GBP 6.18
+```
+
+Overflow traps, exactly as `Int` overflow does. There is no `money * money`, because money
+squared has no meaning.
+
+## Runtime currencies
+
+When the currency only arrives at runtime, use `Money`. It stores the currency inside the value,
+and combining two amounts throws when their currencies differ. One `try` covers a whole
+expression:
+
+```swift
+let price = Money(minorUnits: 4_99, currency: .gbp)
+let delivery = Money(minorUnits: 2_00, currency: .gbp)
+
+let total = try (price * 3) + delivery   // GBP 16.97
+
+let euros = Money(minorUnits: 5_00, currency: .eur)
+try price + euros   // throws MoneyError.currencyMismatch(lhs: .gbp, rhs: .eur)
+```
+
+`Money` has no `<`, because no order exists between five pounds and five euros. Sort through the
+throwing comparison instead:
+
+```swift
+let ordered = try prices.sorted { try $0.isLessThan($1) }
+```
+
+## Formatting for display
+
+Formatting is locale-aware and lives in `SwiftMoneyFoundation`:
+
+```swift
+import SwiftMoney
+import SwiftMoneyFoundation
+
+let price = GBP(minorUnits: 4_99)
+
+price.formatted()                                               // "£4.99" for a user in the UK
+price.formatted(.currency(locale: Locale(identifier: "en_GB")))  // "£4.99"
+```
+
+The style does not need a currency code, because the amount carries its own. A style is also a
+value you can configure and keep, with the vocabulary of Foundation's currency styles:
+presentation, grouping, sign, precision, and display rounding.
+
+```swift
+let style = CHF.FormatStyle(locale: Locale(identifier: "en_CH")).rounded(increment: 5)
+
+style.format(CHF(minorUnits: 4_98))   // "CHF 5.00", Swiss cash rounding
+```
+
+## Percentages and fractions
+
+`Ratio` is an exact fraction. Write one as a percent, a fraction, or a decimal; each converts
+exactly:
+
+```swift
+let vat: Ratio = "20%"          // equal to "1/5" and "0.2"
+Ratio(exactly: 1, over: 3)      // from runtime values; nil when invalid
+```
+
+Scale an amount and choose the rounding, or pattern-match to learn what was lost:
+
+```swift
+price.scaled(by: "20%", rounding: .toNearestOrEven)   // GBP 1.00
+
+switch price.scaled(by: "1/3") {
+case .exact(let amount):
+    // the ratio divided evenly
+case .inexact(let amount, let remainder):
+    // amount is truncated; remainder holds the exact leftover
 }
 ```
 
-`minimalQuantization` is the number of minor units in one major unit: 100 for pence/cents,
-1 for yen, 1000 for Kuwaiti dinar, 100 000 000 for satoshis.
-
-### Creating Values
+Chain exact steps with `unrounded` and settle once, so rounding error cannot accumulate:
 
 ```swift
-let a = Money<GBP>(minorUnits: 125)      // £1.25
-let b = Money<GBP>(minorUnits: 500)      // £5.00
-let c = Money<GBP>.zero                  // £0.00
+let net = GBP(minorUnits: 4_99)
+let delivery = GBP(minorUnits: 2_00)
+
+let payable = (net.unrounded * "17.5%" + delivery.unrounded)
+    .rounded(.toNearestOrAwayFromZero)
 ```
 
-### Arithmetic
+## Splitting
+
+Splits return parts that sum exactly to the original, with the leftover minor units spread one
+per part:
 
 ```swift
-let price = Money<GBP>(minorUnits: 1000)  // £10.00
-let tax   = Money<GBP>(minorUnits: 200)   // £2.00
+let bill = GBP(minorUnits: 100_00)
 
-price + tax              // £12.00
-price - tax              // £8.00
-
-let quantity: Int64 = 3
-price * quantity         // £30.00 (Int64 scalar)
-
-var total = price
-total += tax             // £12.00
-total -= tax             // £10.00
--price                   // -£10.00
+Array(bill.split(into: 3).amounts)   // [GBP 33.34, GBP 33.33, GBP 33.33]
+bill.split(by: [60, 30, 10])         // [GBP 60.00, GBP 30.00, GBP 10.00]
 ```
 
-`Money * Double` and `Money * Float` are compile errors: use `Rate` for
-fractional operations.
+A weighted split keeps weight order and hands leftovers to the largest remainders, so each part
+sits within one minor unit of its exact share.
 
-### Distribution
+## Parsing text
 
-Split money into equal-or-near-equal parts. The sum invariant always holds:
-`distribution.sum == original`.
+The core parser reads two exact forms and no locale:
 
 ```swift
-let amount = Money<GBP>(minorUnits: 1000)  // £10.00
-
-switch amount.distributed(into: 3) {
-case let .exact(share, count):
-    // When divisible: share × count == amount
-    break
-case let .uneven(larger, largerCount, smaller, smallerCount):
-    // larger: 334 (£3.34), largerCount: 1
-    // smaller: 333 (£3.33), smallerCount: 2
-    // 334 + 333 + 333 == 1000 ✓
-    break
-}
+GBP(string: "4.99")          // GBP 4.99: a decimal point means major units
+GBP(string: "499")           // GBP 4.99: no decimal point means minor units
+Money(string: "EUR 20.00")   // the ISO 4217 table supplies the scale
 ```
 
-### Rate Multiplication
+Each initializer is failable. A decimal too fine for the currency returns `nil`, never a rounded
+value. `description` prints the same coded form, `"GBP 4.99"`, so values round-trip through
+logs.
 
-Use `Rate` for exact rational multiplication. The round-trip invariant holds:
-`input × effectiveRate == result`.
+Localized input goes through the format style's parse strategy:
 
 ```swift
-let price = Money<GBP>(minorUnits: 1000)   // £10.00
-let vatRate = Rate(numerator: 1, denominator: 5)!  // 20%
+let style = GBP.FormatStyle(locale: Locale(identifier: "en_GB"))
 
-let vat = price.multiplied(by: vatRate, rounding: .toNearestOrAwayFromZero)
-vat.amount      // Money<GBP>(minorUnits: 200), £2.00
-vat.effectiveRate  // Rate(1/5): exact rate applied
+try style.parseStrategy.parse("£4.99")   // GBP 4.99
 ```
 
-`Money * Decimal` returns an optional `RateCalculation?` (fails if the `Decimal`
-cannot be represented as a `Rate`).
+## JSON
 
-### Exchange Rates
+An amount encodes as one exact string by default, so no reader can misplace a decimal point:
 
 ```swift
-// 100 GBP minor units → 135 USD minor units (£1.00 = $1.35)
-let rate = ExchangeRate<GBP, USD>(from: 100, to: 135)!
-let gbp = Money<GBP>(minorUnits: 1000)   // £10.00
-let usd = rate.convert(gbp)              // $13.50
+try JSONEncoder().encode(GBP(minorUnits: 4_99))   // "GBP 499"
 ```
 
-Implement `ExchangeRateProvider` to supply rates from any source:
+Wire shape is a property of the coder, configured in `SwiftMoneyFoundation`:
 
 ```swift
-struct MyRates: ExchangeRateProvider {
-    func rate<From, To>(
-        from: From.Type, to: To.Type
-    ) -> ExchangeRate<From, To>? {
-        // Return rates for known pairs, nil for unknown
-    }
-}
-```
-
-### Type Erasure
-
-```swift
-let gbp = Money<GBP>(minorUnits: 500)
-let erased: AnyMoney = gbp.erased              // type-erased
-let recovered: Money<GBP>? = erased.asMoney(GBP.self)  // recover typed value
-```
-
-Use `AnyMoney` for heterogeneous collections or when the currency is determined at runtime.
-
-### MoneyBag
-
-```swift
-var bag = MoneyBag()
-bag.add(Money<GBP>(minorUnits: 500))    // £5.00
-bag.add(Money<EUR>(minorUnits: 1000))   // €10.00
-bag += Money<GBP>(minorUnits: 200)      // adds to existing GBP
-
-bag.balance(of: GBP.self)   // Money<GBP>(minorUnits: 700)
-bag.currencyCodes           // Set(["EUR", "GBP"])
-bag.balances               // [AnyMoney] sorted by code
-
-// Convert everything to one currency (single rounding step)
-let result = bag.total(in: USD.self, using: MyRates(), rounding: .toNearestOrEven)
-result?.total               // Money<USD>: the rounded sum
-```
-
-### Unit Rates
-
-`UnitRate<C, U>` represents a price per unit of measure: ideal for energy billing,
-commodity pricing, and any scenario where a monetary rate is expressed per physical
-or custom unit.
-
-```swift
-// £0.000023 per kWh (23 / 1,000,000)
-let rate = UnitRate<GBP, String>(
-    Rate(numerator: 23, denominator: 1_000_000)!,
-    per: "kWh"
-)
-
-// Calculate cost for 2,000,000 kWh
-let cost = rate.price(forQuantity: 2_000_000, rounding: .toNearestOrAwayFromZero)
-cost.amount  // Money<GBP>(minorUnits: 4600), £46.00
-```
-
-#### With Foundation `Dimension` units
-
-When `U` conforms to `Dimension`, `UnitRate` integrates with `Measurement`:
-
-```swift
-let energyRate = UnitRate<GBP, UnitEnergy>(
-    Rate(numerator: 23, denominator: 1_000_000)!,
-    per: .kilowattHours
-)
-
-let usage = Measurement(value: 350, unit: UnitEnergy.kilowattHours)
-let bill = energyRate.price(for: usage, rounding: .toNearestOrAwayFromZero)
-bill?.amount  // cost for 350 kWh
-```
-
-#### Unit conversion
-
-Convert between units using exact integer factors:
-
-```swift
-// Convert from /kWh to /kJ (1 kWh = 3,600 kJ)
-let kjRate = energyRate.converted(to: .kilojoules, factor: 3600)
-```
-
-#### Formatting
-
-```swift
-let locale = Locale(identifier: "en_GB")
-
-rate.formatted(.init(locale: locale))
-// "£0.000023/kWh" (String unit: slash separator)
-
-energyRate.formatted(.init(locale: locale))
-// "£0.000023 kWh" (Dimension unit: Foundation spacing)
-
-energyRate.formatted(.init(locale: locale, unitWidth: .wide))
-// "£0.000023 kilowatt-hours"
-```
-
-### Formatting
-
-```swift
-import Foundation
-
-let price = Money<GBP>(minorUnits: 12550)  // £125.50
-let locale = Locale(identifier: "en_GB")
-
-price.formatted()                                    // system locale default
-price.formatted(.locale(locale))                     // "£125.50"
-price.formatted(.grouping(.never).locale(locale))    // "£125.50" (no thousands separator)
-price.formatted(.precision(.fractionLength(0)).locale(locale))  // "£126"
-```
-
-`AnyMoney` and `MoneyBag` also support formatting:
-
-```swift
-let erased = price.erased
-erased.formatted()                    // resolves currency from runtime code
-
-let bag = MoneyBag(price)
-bag.formatted(locale: locale)         // "£125.50" (entries joined by ", ")
-```
-
-### Parsing
-
-`Money<C>.FormatStyle` conforms to `ParseableFormatStyle`:
-
-```swift
-let format = Money<GBP>.FormatStyle().locale(Locale(identifier: "en_GB"))
-let parsed = try Money<GBP>("£125.50", format: format)  // Money<GBP>(minorUnits: 12550)
-
-// Round-trip guarantee:
-format.parseStrategy.parse(format.format(parsed)) == parsed  // true
-```
-
-### Codable
-
-Each type has configurable encoding/decoding strategies:
-
-```swift
-// Money<C>, default: .object → {"currencyCode":"GBP","amount":125}
 let encoder = JSONEncoder()
-encoder.moneyEncodingStrategy = .minorUnits   // bare 125
-encoder.moneyEncodingStrategy = .majorUnits   // bare 1.25
-encoder.moneyEncodingStrategy = .string       // "£1.25"
+encoder.moneyCodingFormat = .fields
 
-// AnyMoney, default: .full → {"currencyCode":"GBP","minimalQuantization":100,"minorUnits":125}
-encoder.anyMoneyEncodingStrategy = .object(amount: .majorUnits)
-// → {"currencyCode":"GBP","amount":1.25}
-
-// MoneyBag, default: .full → {"entries":[...]}
-encoder.moneyBagEncodingStrategy = .dictionary(amount: .majorUnits)
-// → {"GBP":1.25,"USD":10.00}
+try encoder.encode(price)   // {"currency":"GBP","amount":499}
 ```
 
-`AnyMoney` and `MoneyBag` `.object`/`.dictionary` decoding strategies require a resolver closure
-to map currency codes back to `MinimalQuantization` values. Use
-`CurrencyRegistry.isoStandard.asResolver()` for all standard currencies:
+Decoding accepts every default shape the library writes, and the payload itself decides which
+arrived. Two choices must also be set on the decoder, because the payload cannot carry them:
+custom field keys, and major units written as bare numbers.
+
+## Decimal interop
 
 ```swift
-let decoder = JSONDecoder()
-decoder.anyMoneyDecodingStrategy = .object(
-    amount: .majorUnits,
-    resolver: CurrencyRegistry.isoStandard.asResolver()
-)
+import SwiftMoneyFoundation
+
+Decimal(GBP(minorUnits: 4_99))   // exactly 4.99
+GBP(majorUnits: decimalAmount)   // nil rather than round when the value is too fine
 ```
 
-## Safety
+## Custom currencies
 
-- **Overflow**: `+`, `-`, `*` trap on overflow, matching Swift `Int` behavior
-- **Type safety**: `Money<GBP> + Money<USD>` is a compile error; no runtime currency checks needed
-- **Floating-point blocked**: `Money * Double` and `Money * Float` are `@available(*, unavailable)` with descriptive error messages
-- **No `Numeric`**: `Money` does not conform to `Numeric`, preventing `money * money`
-- **Foundation optional**: formatting, parsing, `Decimal` conversions, and Codable require Foundation; core arithmetic does not (`#if canImport(Foundation)` guards)
+A currency is a code plus a unit scale, the count of smallest units in one major unit:
 
-## Building and Testing
+```swift
+enum LoyaltyPoints: CurrencyType {
+    static let currency = Currency(code: "LTY", unitScale: 1)
+}
+
+typealias Points = MoneyOf<LoyaltyPoints>
+let balance = Points(minorUnits: 250)   // LTY 250
+```
+
+For a currency known only at runtime, build a `Currency` value and use `Money`. A scale is valid
+when it has an exact decimal form: any `2^a * 5^b`, to at most eighteen decimal places. So 100,
+10, 5, and 256 all work, and US Treasury bond pricing in 256ths is representable.
+
+## Design
+
+- **Overflow traps; bad data throws.** Arithmetic overflow is a programming error and traps like
+  `Int`. A currency mismatch is bad data and throws `MoneyError`, the caller's to handle.
+- **Literals trap; data is failable.** Every literal that can be invalid traps at the source
+  line. Every runtime input has a failable or throwing twin.
+- **`Double` never touches arithmetic.** Fractions go through `Ratio`, which is exact.
+- **No global state.** There is no currency registry. Every type is a value, and every value the
+  library produces is `Sendable`.
+
+## Building and testing
 
 ```bash
 swift build
-swift test    # 1000+ tests
+swift test
 ```
 
 ## Benchmarks
 
-SwiftMoney's `Int64` minor-unit arithmetic is significantly faster than `Foundation.Decimal`:
-
-- **Core arithmetic** (`+`, `-`, `*`, `<`): orders of magnitude faster, zero heap allocations
-- **JSON encoding**: faster with `.minorUnits` strategy (bare integer vs string round-trip)
-- **Formatting**: comparable, because both delegate to Foundation's ICU number formatter
-
-See **[BENCHMARKS.md](https://github.com/PaulRWillis/swift-money/blob/assets/BENCHMARKS.md)** for the full side-by-side comparison, analysis, and detailed
-percentile tables.
-
-Run benchmarks locally:
+Benchmarks live in a separate package and need jemalloc (`brew install jemalloc`):
 
 ```bash
-swift package --package-path Benchmarks benchmark run
+swift package --package-path Benchmarks --disable-sandbox benchmark
 ```
+
+See **[BENCHMARKS.md](https://github.com/PaulRWillis/swift-money/blob/assets/BENCHMARKS.md)**
+for the recorded results.
 
 ## License
 
