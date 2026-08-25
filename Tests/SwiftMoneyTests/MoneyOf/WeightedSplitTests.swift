@@ -82,6 +82,14 @@ struct WeightedSplitTests {
         #expect(money.split(by: weights) == Array(money.split(into: parts).amounts))
     }
 
+    // The leftover unit goes to a part with a non-zero remainder, never to the zero weight.
+    @Test("A zero weight receives exactly zero")
+    func zeroWeightReceivesZero() {
+        let parts = GBP(minorUnits: 101).split(by: [0, 1, 1])
+
+        #expect(parts == [GBP(minorUnits: 0), GBP(minorUnits: 51), GBP(minorUnits: 50)])
+    }
+
     @Test("A zero amount gives every part zero")
     func zeroAmount() {
         let parts = GBP(minorUnits: 0).split(by: [60, 30, 10])
