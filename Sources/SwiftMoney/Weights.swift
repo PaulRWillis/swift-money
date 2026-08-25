@@ -53,12 +53,12 @@ extension Weights: ExpressibleByArrayLiteral {
     /// ```
     ///
     /// - Parameter weights: The weight of each part, in part order.
-    /// - Precondition: `weights` is not empty, holds no negative value, and sums between one and
-    ///   `Int64.max`.
+    /// - Precondition: `weights` is not empty, holds no negative value, and its sum is at least
+    ///   one and no more than an amount can hold.
     public init(arrayLiteral weights: Int...) {
         guard let valid = Weights(exactly: weights) else {
             preconditionFailure(
-                "Weights must be non-empty, non-negative, and sum between 1 and Int64.max. Weights: \(weights)"
+                "Weights must be non-empty, non-negative, and sum to what an amount can hold. Weights: \(weights)"
             )
         }
 
