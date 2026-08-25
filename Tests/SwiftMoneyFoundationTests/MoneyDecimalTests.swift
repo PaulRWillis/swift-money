@@ -19,8 +19,8 @@ struct MoneyDecimalTests {
     func readsBackAsDecimal() throws {
         let expected = try #require(Decimal(string: "-4.99"))
 
-        #expect(Decimal(GBP(minorUnits: -4_99)) == expected)
-        #expect(Decimal(JPY(minorUnits: 499)) == 499)
+        #expect(Decimal(majorUnitsOf: GBP(minorUnits: -4_99)) == expected)
+        #expect(Decimal(majorUnitsOf: JPY(minorUnits: 499)) == 499)
     }
 
     @Test("What the currency cannot hold exactly is refused, never rounded")
@@ -40,8 +40,8 @@ struct MoneyDecimalTests {
 
     @Test("Every amount a currency can hold round-trips losslessly")
     func roundTripsTheFullRange() {
-        #expect(GBP(majorUnits: Decimal(GBP.min)) == GBP.min)
-        #expect(GBP(majorUnits: Decimal(GBP.max)) == GBP.max)
+        #expect(GBP(majorUnits: Decimal(majorUnitsOf: GBP.min)) == GBP.min)
+        #expect(GBP(majorUnits: Decimal(majorUnitsOf: GBP.max)) == GBP.max)
     }
 
     @Test("The widest products a currency can make stay inside Decimal")
@@ -56,8 +56,8 @@ struct MoneyDecimalTests {
             let greatest = Money(minorUnits: Int64.max, currency: currency)
             let least = Money(minorUnits: Int64.min, currency: currency)
 
-            #expect(Money(majorUnits: Decimal(greatest), currency: currency) == greatest)
-            #expect(Money(majorUnits: Decimal(least), currency: currency) == least)
+            #expect(Money(majorUnits: Decimal(majorUnitsOf: greatest), currency: currency) == greatest)
+            #expect(Money(majorUnits: Decimal(majorUnitsOf: least), currency: currency) == least)
         }
     }
 
@@ -66,6 +66,6 @@ struct MoneyDecimalTests {
         let listed = try #require(Decimal(string: "4.990"))
         let amount = try #require(Money(majorUnits: listed, currency: .gbp))
 
-        #expect(Decimal(amount) == listed)
+        #expect(Decimal(majorUnitsOf: amount) == listed)
     }
 }

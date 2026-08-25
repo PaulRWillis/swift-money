@@ -255,9 +255,19 @@ custom field keys, and major units written as bare numbers.
 ```swift
 import SwiftMoneyFoundation
 
-Decimal(GBP(minorUnits: 4_99))   // exactly 4.99
-GBP(majorUnits: decimalAmount)   // nil rather than round when the value is too fine
+Decimal(majorUnitsOf: GBP(minorUnits: 4_99))   // exactly 4.99
+GBP(majorUnits: decimalAmount)                 // nil rather than round when the value is too fine
 ```
+
+Reading an amount as a plain integer needs no Foundation, and names its units the same way:
+
+```swift
+Int(minorUnitsOf: GBP(minorUnits: 4_99))   // Optional(499)
+Int(minorUnitsOf: JPY(minorUnits: 499))    // Optional(499)
+```
+
+It is optional because the width an amount is stored in is private, and `Int` holds only 32 bits
+on watchOS.
 
 ## Custom currencies
 
