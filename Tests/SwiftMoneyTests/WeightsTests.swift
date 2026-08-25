@@ -1,0 +1,60 @@
+import SwiftMoney
+import Testing
+
+@Suite("Weights Tests")
+struct WeightsTests {
+
+    @Test("Init from a single weight succeeds")
+    func initFromSingleWeight() {
+        #expect(Weights(exactly: [1]) != nil)
+    }
+
+    @Test("Init from proportional weights succeeds")
+    func initFromProportionalWeights() {
+        #expect(Weights(exactly: [60, 30, 10]) != nil)
+    }
+
+    @Test("Init from a zero weight among others succeeds")
+    func initFromZeroWeightAmongOthers() {
+        #expect(Weights(exactly: [0, 1]) != nil)
+    }
+
+    @Test("Init from the biggest weight succeeds")
+    func initFromBiggestWeight() {
+        #expect(Weights(exactly: [Int.max]) != nil)
+    }
+
+    @Test("Init from an empty list returns nil")
+    func initFromEmptyList() {
+        #expect(Weights(exactly: []) == nil)
+    }
+
+    @Test("Init from a negative weight returns nil")
+    func initFromNegativeWeight() {
+        #expect(Weights(exactly: [-1]) == nil)
+    }
+
+    @Test("Init from a negative weight among others returns nil")
+    func initFromNegativeWeightAmongOthers() {
+        #expect(Weights(exactly: [1, -1]) == nil)
+    }
+
+    @Test("Init from a single zero weight returns nil")
+    func initFromSingleZeroWeight() {
+        #expect(Weights(exactly: [0]) == nil)
+    }
+
+    @Test("Init from all-zero weights returns nil")
+    func initFromAllZeroWeights() {
+        #expect(Weights(exactly: [0, 0]) == nil)
+    }
+
+    @Test("Equal weights are equatable")
+    func equalWeightsAreEquatable() {
+        let a = Weights(exactly: [60, 30, 10])
+        let b = Weights(exactly: [60, 30, 10])
+
+        #expect(a == b)
+        #expect(a != nil)
+    }
+}
