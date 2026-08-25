@@ -4,8 +4,8 @@
 /// cannot hold an empty list, a negative weight, weights that are all zero, or weights whose
 /// sum is not representable, so a split by weights always gives every part a defined share.
 public struct Weights: Equatable, Hashable, Sendable {
-    private let values: [Int64]
-    private let sum: Int64
+    fileprivate let values: [Int64]
+    fileprivate let sum: Int64
 
     /// Creates weights from values that may not be valid.
     ///
@@ -63,5 +63,16 @@ extension Weights: ExpressibleByArrayLiteral {
         }
 
         self = valid
+    }
+}
+
+// Not inlinable: the result is already concrete, so there is nothing for a caller to specialize.
+@usableFromInline
+func split(
+    _ amount: Int64,
+    by weights: Weights
+) -> [Int64] {
+    weights.values.map { weight in
+        amount * weight / weights.sum
     }
 }
