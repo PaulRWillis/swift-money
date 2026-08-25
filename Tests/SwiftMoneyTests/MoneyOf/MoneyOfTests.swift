@@ -139,6 +139,33 @@ struct MoneyOfTests {
         }
     }
 
+    @Test("Magnitude of a negative amount is its positive twin")
+    func magnitudeOfNegativeAmountIsPositiveTwin() {
+        let sut = GBP(minorUnits: -4_99)
+
+        #expect(sut.magnitude == GBP(minorUnits: 4_99))
+    }
+
+    @Test("Magnitude of a positive amount and of zero is itself")
+    func magnitudeOfPositiveAmountAndZeroIsItself() {
+        #expect(GBP(minorUnits: 4_99).magnitude == GBP(minorUnits: 4_99))
+        #expect(GBP.zero.magnitude == GBP.zero)
+    }
+
+    @Test("Magnitude one above min equals max")
+    func magnitudeOneAboveMinEqualsMax() {
+        let sut = GBP.min + GBP(minorUnits: 1)
+
+        #expect(sut.magnitude == GBP.max)
+    }
+
+    @Test("Magnitude traps on min")
+    func magnitudeTrapsOnMin() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(GBP.min.magnitude)
+        }
+    }
+
     @Test("Integral multiplication succeeds")
     func integralMultiplication() {
         let a = GBP(minorUnits: 7)

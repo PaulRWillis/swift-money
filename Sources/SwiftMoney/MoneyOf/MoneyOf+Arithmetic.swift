@@ -39,6 +39,14 @@ public extension MoneyOf {
     static prefix func - (operand: Self) -> Self {
         Self(unchecked: -operand.minorUnits, storage: operand.storage)
     }
+
+    /// The amount with a negative sign removed.
+    ///
+    /// Traps when this amount is ``min``, whose magnitude is one past ``max``.
+    @inlinable
+    var magnitude: Self {
+        Self(unchecked: abs(minorUnits), storage: storage)
+    }
 }
 
 public extension MoneyOf where C: CurrencyType {

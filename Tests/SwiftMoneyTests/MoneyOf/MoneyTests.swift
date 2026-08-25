@@ -171,6 +171,16 @@ struct MoneyTests {
         #expect(negated.currency == .gbp)
     }
 
+    @Test("Magnitude keeps the currency")
+    func magnitudeKeepsCurrency() {
+        let sut = Money(minorUnits: -4_99, currency: .gbp)
+
+        let magnitude = sut.magnitude
+
+        #expect(magnitude == Money(minorUnits: 4_99, currency: .gbp))
+        #expect(magnitude.currency == .gbp)
+    }
+
     @Test("Integral multiplication succeeds")
     func integralMultiplication() throws {
         let a = Money(minorUnits: 6, currency: .gbp)
