@@ -733,6 +733,18 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    // The validation gate for a weighted split: the emptiness, sign, zero and overflow checks,
+    // plus one pass to sum. Splitting itself never re-checks, so this cost is paid once per
+    // weights value however many amounts it splits.
+    Benchmark("Weights construction", configuration: defaultConfiguration) { benchmark in
+        var weight = 1
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Weights(exactly: [weight % 100, 30, 10]))
+            weight &+= 1
+        }
+    }
+
     Benchmark("MoneyOf split into 3", configuration: defaultConfiguration) { benchmark in
         var amount = 1
 
@@ -750,6 +762,43 @@ let benchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations {
             blackHole(Money(minorUnits: amount, currency: .gbp).split(into: 3))
             amount &+= 1
+        }
+    }
+
+    // The weighted split's general path: most amounts leave minor units over, so this includes
+    // ranking the remainders and distributing the leftover. The weights are built once, as a
+    // caller splitting many amounts by one recipe would build them.
+    Benchmark("MoneyOf split by weights", configuration: defaultConfiguration) { benchmark in
+        let weights: Weights = [60, 30, 10]
+        var amount = 1
+
+        for _ in benchmark.scaledIterations {
+            blackHole(GBP(minorUnits: amount).split(by: weights))
+            amount &+= 1
+        }
+    }
+
+    // The same split on the runtime-currency type. Both run the same algorithm, so a gap between
+    // them is not arithmetic: it is what `MoneyOf` pays for being generic.
+    Benchmark("Money split by weights", configuration: defaultConfiguration) { benchmark in
+        let weights: Weights = [60, 30, 10]
+        var amount = 1
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Money(minorUnits: amount, currency: .gbp).split(by: weights))
+            amount &+= 1
+        }
+    }
+
+    // Every amount here divides exactly, so nothing is left to distribute. Today the remainder
+    // ranking still runs on this path, which is why it is measured apart from the general one.
+    Benchmark("MoneyOf split by weights that divide exactly", configuration: defaultConfiguration) { benchmark in
+        let weights: Weights = [3, 2, 1]
+        var amount = 6
+
+        for _ in benchmark.scaledIterations {
+            blackHole(GBP(minorUnits: amount).split(by: weights))
+            amount &+= 6
         }
     }
 
