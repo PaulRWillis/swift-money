@@ -1,8 +1,8 @@
 import SwiftMoney
 import Testing
 
-@Suite("BinaryInteger From MoneyOf Tests")
-struct BinaryIntegerMoneyOfTests {
+@Suite("Money BinaryInteger Tests")
+struct MoneyBinaryIntegerTests {
 
     @Test("when extracting minor units from typed money should return count")
     func whenExtractingMinorUnitsFromTypedMoney_shouldReturnCount() {
