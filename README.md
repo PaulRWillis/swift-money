@@ -84,6 +84,12 @@ integer type and traps when the value does not fit. For values from outside the 
 GBP(exactly: unvalidatedAmount)     // nil when the amount does not fit
 ```
 
+To hand the count to an API that takes a plain integer, read it back out:
+
+```swift
+Int(minorUnitsOf: price)            // 499, or nil when the count does not fit
+```
+
 ## Arithmetic
 
 ```swift
@@ -258,16 +264,6 @@ import SwiftMoneyFoundation
 Decimal(majorUnitsOf: GBP(minorUnits: 4_99))   // exactly 4.99
 GBP(majorUnits: decimalAmount)                 // nil rather than round when the value is too fine
 ```
-
-Reading an amount as a plain integer needs no Foundation, and names its units the same way:
-
-```swift
-Int(minorUnitsOf: GBP(minorUnits: 4_99))   // Optional(499)
-Int(minorUnitsOf: JPY(minorUnits: 499))    // Optional(499)
-```
-
-It is optional because the width an amount is stored in is private, and `Int` holds only 32 bits
-on watchOS.
 
 ## Custom currencies
 
