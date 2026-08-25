@@ -39,6 +39,16 @@ struct WeightsTests {
         #expect(Weights(exactly: [1, -1]) == nil)
     }
 
+    @Test("Init from weights whose sum overflows returns nil")
+    func initFromOverflowingSum() {
+        #expect(Weights(exactly: [Int.max, 1]) == nil)
+    }
+
+    @Test("Init from two biggest weights returns nil")
+    func initFromTwoBiggestWeights() {
+        #expect(Weights(exactly: [Int.max, Int.max]) == nil)
+    }
+
     @Test("Init from a single zero weight returns nil")
     func initFromSingleZeroWeight() {
         #expect(Weights(exactly: [0]) == nil)
