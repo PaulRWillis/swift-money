@@ -213,19 +213,19 @@ private extension MoneyOf.FormatStyle {
     // smallest units is also exact, where a fractional step would not be.
     func majorUnits(of value: MoneyOf<C>) -> Decimal {
         guard let increment = roundingIncrement else {
-            return Decimal(value)
+            return Decimal(majorUnitsOf: value)
         }
 
         let step = Money.MinorUnits(increment)
 
         guard step > 1 else {
-            return Decimal(value)
+            return Decimal(majorUnitsOf: value)
         }
 
         let remainder = value.minorUnits % step
 
         guard remainder != 0 else {
-            return Decimal(value)
+            return Decimal(majorUnitsOf: value)
         }
 
         let quotient = value.minorUnits / step
