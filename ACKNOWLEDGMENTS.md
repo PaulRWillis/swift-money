@@ -9,6 +9,11 @@
   Swift project authors, Apache License 2.0 with Runtime Library Exception. Its integer parsing
   guided the parser written in August 2026.
 
+- **[Patterns of Enterprise Application Architecture](https://martinfowler.com/eaaCatalog/money.html)**
+  by Martin Fowler, Addison-Wesley 2002. Its Money pattern's allocation shape, parts that sum
+  exactly to the original, informed `split(by:)`, written in August 2026; the leftover units go to
+  the largest remainders here, where the book hands them to the first parts.
+
 - **ISO 4217 currency data** is generated from `list-one.xml`, published by SIX Group AG as the
   ISO 4217 maintenance agency. The generated table records the publication date of the list it
   came from.
