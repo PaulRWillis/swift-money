@@ -43,3 +43,25 @@ public struct Weights: Equatable, Hashable, Sendable {
         return sum
     }
 }
+
+extension Weights: ExpressibleByArrayLiteral {
+    /// Creates weights from an array literal.
+    ///
+    /// ```swift
+    /// let weights: Weights = [60, 30, 10]    // fine
+    /// let none: Weights = []                 // traps
+    /// ```
+    ///
+    /// - Parameter weights: The weight of each part, in part order.
+    /// - Precondition: `weights` is not empty, holds no negative value, and sums between one and
+    ///   `Int64.max`.
+    public init(arrayLiteral weights: Int...) {
+        guard let valid = Weights(exactly: weights) else {
+            preconditionFailure(
+                "Weights must be non-empty, non-negative, and sum between 1 and Int64.max. Weights: \(weights)"
+            )
+        }
+
+        self = valid
+    }
+}

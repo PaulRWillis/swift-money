@@ -59,6 +59,39 @@ struct WeightsTests {
         #expect(Weights(exactly: [0, 0]) == nil)
     }
 
+    @Test("Literal: Init from proportional weights succeeds")
+    func initFromProportionalWeightsLiteral() async {
+        await #expect(processExitsWith: .success) {
+            _ = [60, 30, 10] as Weights
+        }
+    }
+
+    @Test("Literal: Init from an empty list traps")
+    func initFromEmptyListLiteral() async {
+        await #expect(processExitsWith: .failure) {
+            _ = [] as Weights
+        }
+    }
+
+    @Test("Literal: Init from a negative weight traps")
+    func initFromNegativeWeightLiteral() async {
+        await #expect(processExitsWith: .failure) {
+            _ = [-1] as Weights
+        }
+    }
+
+    @Test("Literal: Init from all-zero weights traps")
+    func initFromAllZeroWeightsLiteral() async {
+        await #expect(processExitsWith: .failure) {
+            _ = [0, 0] as Weights
+        }
+    }
+
+    @Test("A literal equals its validated counterpart")
+    func literalEqualsValidatedCounterpart() {
+        #expect(Weights(exactly: [60, 30, 10]) == [60, 30, 10])
+    }
+
     @Test("Equal weights are equatable")
     func equalWeightsAreEquatable() {
         let a = Weights(exactly: [60, 30, 10])
