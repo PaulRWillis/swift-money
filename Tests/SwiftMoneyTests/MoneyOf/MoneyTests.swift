@@ -171,6 +171,13 @@ struct MoneyTests {
         #expect(negated.currency == .gbp)
     }
 
+    @Test("Negation traps on the smallest amount")
+    func negationTrapsOnSmallestAmount() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(-Money(minorUnits: Int64.min, currency: .gbp))
+        }
+    }
+
     @Test("Magnitude keeps the currency")
     func magnitudeKeepsCurrency() {
         let sut = Money(minorUnits: -4_99, currency: .gbp)
@@ -179,6 +186,13 @@ struct MoneyTests {
 
         #expect(magnitude == Money(minorUnits: 4_99, currency: .gbp))
         #expect(magnitude.currency == .gbp)
+    }
+
+    @Test("Magnitude traps on the smallest amount")
+    func magnitudeTrapsOnSmallestAmount() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(Money(minorUnits: Int64.min, currency: .gbp).magnitude)
+        }
     }
 
     @Test("Is negative reports the sign")
