@@ -66,6 +66,22 @@ struct WeightedSplitTests {
         #expect(parts == [GBP(minorUnits: 10), GBP(minorUnits: 30), GBP(minorUnits: 60)])
     }
 
+    @Test("Equal remainders break toward the earliest part")
+    func equalRemaindersBreakTowardEarliestPart() {
+        let parts = GBP(minorUnits: 100).split(by: [1, 1, 1])
+
+        #expect(parts == [GBP(minorUnits: 34), GBP(minorUnits: 33), GBP(minorUnits: 33)])
+    }
+
+    @Test("Equal weights match an even split", arguments: amounts, 1...6)
+    func equalWeightsMatchEvenSplit(amount: Int, count: Int) throws {
+        let weights = try #require(Weights(exactly: Array(repeating: 1, count: count)))
+        let parts = try #require(PartCount(exactly: count))
+        let money = GBP(minorUnits: amount)
+
+        #expect(money.split(by: weights) == Array(money.split(into: parts).amounts))
+    }
+
     @Test("A zero amount gives every part zero")
     func zeroAmount() {
         let parts = GBP(minorUnits: 0).split(by: [60, 30, 10])
