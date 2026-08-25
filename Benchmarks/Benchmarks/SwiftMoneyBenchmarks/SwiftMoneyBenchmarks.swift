@@ -547,7 +547,7 @@ let benchmarks: @Sendable () -> Void = {
         var index = 0
 
         for _ in benchmark.scaledIterations {
-            blackHole(Decimal(moneyOperands[index % moneyOperands.count]).isFinite)
+            blackHole(Decimal(majorUnitsOf: moneyOperands[index % moneyOperands.count]).isFinite)
             index &+= 1
         }
     }
