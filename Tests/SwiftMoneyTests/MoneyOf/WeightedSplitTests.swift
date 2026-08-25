@@ -101,4 +101,20 @@ struct WeightedSplitTests {
     func singleWeight() {
         #expect(GBP(minorUnits: 4_99).split(by: [7]) == [GBP(minorUnits: 4_99)])
     }
+
+    // Splitting a refund: the leftover unit enlarges a part's magnitude, and equal remainders
+    // still break toward the earliest part, matching split(into:)'s convention.
+    @Test("A negative amount mirrors the positive split by magnitude")
+    func negativeAmountMirrorsByMagnitude() {
+        let parts = GBP(minorUnits: -10).split(by: [1, 1, 1])
+
+        #expect(parts == [GBP(minorUnits: -4), GBP(minorUnits: -3), GBP(minorUnits: -3)])
+    }
+
+    @Test("A negative amount sends the leftover unit to the largest remainder")
+    func negativeLeftoverGoesToLargestRemainder() {
+        let parts = GBP(minorUnits: -7).split(by: [1, 2])
+
+        #expect(parts == [GBP(minorUnits: -2), GBP(minorUnits: -5)])
+    }
 }
