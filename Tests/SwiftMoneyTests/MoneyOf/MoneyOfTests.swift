@@ -119,8 +119,8 @@ struct MoneyOfTests {
         #expect(-sut == GBP(minorUnits: -4_99))
     }
 
-    @Test("Negation of a negative amount returns its positive twin")
-    func negationOfNegativeAmountReturnsPositiveTwin() {
+    @Test("Negation of a negative amount returns its positive counterpart")
+    func negationOfNegativeAmountReturnsPositiveCounterpart() {
         let sut = GBP(minorUnits: -4_99)
 
         #expect(-sut == GBP(minorUnits: 4_99))
@@ -139,8 +139,8 @@ struct MoneyOfTests {
         }
     }
 
-    @Test("Magnitude of a negative amount is its positive twin")
-    func magnitudeOfNegativeAmountIsPositiveTwin() {
+    @Test("Magnitude of a negative amount is its positive counterpart")
+    func magnitudeOfNegativeAmountIsPositiveCounterpart() {
         let sut = GBP(minorUnits: -4_99)
 
         #expect(sut.magnitude == GBP(minorUnits: 4_99))
