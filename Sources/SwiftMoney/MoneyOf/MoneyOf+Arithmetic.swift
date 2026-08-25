@@ -28,6 +28,35 @@ extension MoneyOf: Comparable where C: CurrencyType {
     }
 }
 
+// Negation, magnitude and the sign query read one operand and pass its storage through unchanged,
+// so no currency can mismatch. One unconditional extension therefore serves both seams, and
+// ``Money`` needs no throwing twins.
+public extension MoneyOf {
+    /// Returns the given amount with its sign flipped.
+    ///
+    /// Traps when the operand is the smallest representable amount, whose negation is one past
+    /// the largest.
+    @inlinable
+    static prefix func - (operand: Self) -> Self {
+        Self(unchecked: -operand.minorUnits, storage: operand.storage)
+    }
+
+    /// The amount with a negative sign removed.
+    ///
+    /// Traps when this amount is the smallest representable amount, whose magnitude is one past
+    /// the largest.
+    @inlinable
+    var magnitude: Self {
+        Self(unchecked: abs(minorUnits), storage: storage)
+    }
+
+    /// Whether this amount is less than zero.
+    @inlinable
+    var isNegative: Bool {
+        minorUnits < 0
+    }
+}
+
 public extension MoneyOf where C: CurrencyType {
     /// Returns the result of multiplying this amount by a whole number.
     ///

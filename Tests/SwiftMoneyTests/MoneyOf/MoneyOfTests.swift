@@ -112,6 +112,73 @@ struct MoneyOfTests {
         #expect(a == GBP(minorUnits: -2))
     }
 
+    @Test("Negation flips a positive amount to negative")
+    func negationFlipsPositiveToNegative() {
+        let sut = GBP(minorUnits: 4_99)
+
+        #expect(-sut == GBP(minorUnits: -4_99))
+    }
+
+    @Test("Negation of a negative amount returns its positive counterpart")
+    func negationOfNegativeAmountReturnsPositiveCounterpart() {
+        let sut = GBP(minorUnits: -4_99)
+
+        #expect(-sut == GBP(minorUnits: 4_99))
+        #expect(-(-sut) == sut)
+    }
+
+    @Test("Negation of zero returns zero")
+    func negationOfZeroReturnsZero() {
+        #expect(-GBP.zero == GBP.zero)
+    }
+
+    @Test("Negation traps on min")
+    func negationTrapsOnMin() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(-GBP.min)
+        }
+    }
+
+    @Test("Magnitude of a negative amount is its positive counterpart")
+    func magnitudeOfNegativeAmountIsPositiveCounterpart() {
+        let sut = GBP(minorUnits: -4_99)
+
+        #expect(sut.magnitude == GBP(minorUnits: 4_99))
+    }
+
+    @Test("Magnitude of a positive amount and of zero is itself")
+    func magnitudeOfPositiveAmountAndZeroIsItself() {
+        #expect(GBP(minorUnits: 4_99).magnitude == GBP(minorUnits: 4_99))
+        #expect(GBP.zero.magnitude == GBP.zero)
+    }
+
+    @Test("Magnitude one above min equals max")
+    func magnitudeOneAboveMinEqualsMax() {
+        let sut = GBP.min + GBP(minorUnits: 1)
+
+        #expect(sut.magnitude == GBP.max)
+    }
+
+    @Test("Magnitude traps on min")
+    func magnitudeTrapsOnMin() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(GBP.min.magnitude)
+        }
+    }
+
+    @Test("Is negative below zero")
+    func isNegativeBelowZero() {
+        #expect(GBP(minorUnits: -1).isNegative)
+        #expect(GBP.min.isNegative)
+    }
+
+    @Test("Is not negative at zero or above")
+    func isNotNegativeAtZeroOrAbove() {
+        #expect(!GBP.zero.isNegative)
+        #expect(!GBP(minorUnits: 1).isNegative)
+        #expect(!GBP.max.isNegative)
+    }
+
     @Test("Integral multiplication succeeds")
     func integralMultiplication() {
         let a = GBP(minorUnits: 7)

@@ -161,6 +161,47 @@ struct MoneyTests {
         }
     }
 
+    @Test("Negation keeps the currency and cannot throw")
+    func negationKeepsCurrency() {
+        let sut = Money(minorUnits: 4_99, currency: .gbp)
+
+        let negated = -sut
+
+        #expect(negated == Money(minorUnits: -4_99, currency: .gbp))
+        #expect(negated.currency == .gbp)
+    }
+
+    @Test("Negation traps on the smallest amount")
+    func negationTrapsOnSmallestAmount() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(-Money(minorUnits: Int64.min, currency: .gbp))
+        }
+    }
+
+    @Test("Magnitude keeps the currency")
+    func magnitudeKeepsCurrency() {
+        let sut = Money(minorUnits: -4_99, currency: .gbp)
+
+        let magnitude = sut.magnitude
+
+        #expect(magnitude == Money(minorUnits: 4_99, currency: .gbp))
+        #expect(magnitude.currency == .gbp)
+    }
+
+    @Test("Magnitude traps on the smallest amount")
+    func magnitudeTrapsOnSmallestAmount() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(Money(minorUnits: Int64.min, currency: .gbp).magnitude)
+        }
+    }
+
+    @Test("Is negative reports the sign")
+    func isNegativeReportsSign() {
+        #expect(Money(minorUnits: -1, currency: .gbp).isNegative)
+        #expect(!Money(minorUnits: 0, currency: .gbp).isNegative)
+        #expect(!Money(minorUnits: 1, currency: .gbp).isNegative)
+    }
+
     @Test("Integral multiplication succeeds")
     func integralMultiplication() throws {
         let a = Money(minorUnits: 6, currency: .gbp)
