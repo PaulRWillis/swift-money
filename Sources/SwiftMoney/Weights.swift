@@ -70,20 +70,35 @@ extension Weights: ExpressibleByArrayLiteral {
 // largest remainders, one unit of the amount's sign each. This is Hamilton's method: it keeps
 // every part as close as an integer can sit to its exact proportional share.
 //
+// The arithmetic runs on full-width magnitudes, so no product can overflow and no amount, the
+// extremes included, can make a split trap.
+//
 // Not inlinable: the result is already concrete, so there is nothing for a caller to specialize.
 @usableFromInline
 func split(
     _ amount: Int64,
     by weights: Weights
 ) -> [Int64] {
+    let sign = Sign(of: amount)
+    let divisor = UInt64(weights.sum)
+
     var parts: [Int64] = []
-    var remainders: [Int64] = []
+    var remainders: [UInt64] = []
     parts.reserveCapacity(weights.values.count)
     remainders.reserveCapacity(weights.values.count)
 
     for weight in weights.values {
-        parts.append(amount * weight / weights.sum)
-        remainders.append(amount * weight % weights.sum)
+        guard
+            let (quotient, remainder) = WideMagnitude(amount.magnitude, times: UInt64(weight))
+                .quotientAndRemainder(dividingBy: divisor),
+            let part = Int64(magnitude: quotient, sign: sign)
+        else {
+            // Unreachable: a weight never passes the sum, so a share never passes the amount.
+            preconditionFailure("A share left its amount's range. Amount: \(amount)")
+        }
+
+        parts.append(part)
+        remainders.append(remainder)
     }
 
     let leftover = amount - parts.reduce(0, +)
@@ -99,11 +114,11 @@ func split(
 // the leftover minor units first. The sort is stable, which Swift guarantees, so equal
 // remainders keep part order and the earliest part wins a tie.
 private func indicesOfLargestRemainders(
-    _ remainders: [Int64],
+    _ remainders: [UInt64],
     taking count: Int
 ) -> ArraySlice<Int> {
     let ranked = remainders.indices.sorted { lhs, rhs in
-        abs(remainders[lhs]) > abs(remainders[rhs])
+        remainders[lhs] > remainders[rhs]
     }
 
     return ranked.prefix(count)

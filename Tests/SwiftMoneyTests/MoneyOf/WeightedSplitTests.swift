@@ -117,4 +117,29 @@ struct WeightedSplitTests {
 
         #expect(parts == [GBP(minorUnits: -2), GBP(minorUnits: -5)])
     }
+
+    // A naive amount-times-weight product overflows on the first weight, so this pins the
+    // full-width path: weighted splitting never traps.
+    @Test("The largest amount splits without overflow")
+    func largestAmountSplits() {
+        let parts = GBP.max.split(by: [2, 1])
+
+        #expect(parts.reduce(GBP.zero, +) == GBP.max)
+        #expect(parts == [
+            GBP(minorUnits: 6_148_914_691_236_517_205),
+            GBP(minorUnits: 3_074_457_345_618_258_602),
+        ])
+    }
+
+    @Test("The smallest amount splits without overflow")
+    func smallestAmountSplits() {
+        let parts = GBP.min.split(by: [1, 1, 1])
+
+        #expect(parts.reduce(GBP.zero, +) == GBP.min)
+        #expect(parts == [
+            GBP(minorUnits: -3_074_457_345_618_258_603),
+            GBP(minorUnits: -3_074_457_345_618_258_603),
+            GBP(minorUnits: -3_074_457_345_618_258_602),
+        ])
+    }
 }
