@@ -48,4 +48,18 @@ struct BinaryIntegerMoneyOfTests {
 
         #expect(GBP(minorUnits: Int(minorUnits: sut)) == sut)
     }
+
+    @Test("when extracting minor units into a narrow integer should trap")
+    func whenExtractingMinorUnitsIntoNarrowInteger_shouldTrap() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(Int8(minorUnits: GBP(minorUnits: 4_99)))
+        }
+    }
+
+    @Test("when extracting a negative amount into an unsigned integer should trap")
+    func whenExtractingNegativeAmountIntoUnsignedInteger_shouldTrap() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(UInt(minorUnits: GBP(minorUnits: -1)))
+        }
+    }
 }
