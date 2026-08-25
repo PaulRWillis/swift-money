@@ -66,13 +66,45 @@ extension Weights: ExpressibleByArrayLiteral {
     }
 }
 
+// Truncates each part toward zero, then gives the leftover minor units to the parts with the
+// largest remainders, one unit of the amount's sign each. This is Hamilton's method: it keeps
+// every part as close as an integer can sit to its exact proportional share.
+//
 // Not inlinable: the result is already concrete, so there is nothing for a caller to specialize.
 @usableFromInline
 func split(
     _ amount: Int64,
     by weights: Weights
 ) -> [Int64] {
-    weights.values.map { weight in
-        amount * weight / weights.sum
+    var parts: [Int64] = []
+    var remainders: [Int64] = []
+    parts.reserveCapacity(weights.values.count)
+    remainders.reserveCapacity(weights.values.count)
+
+    for weight in weights.values {
+        parts.append(amount * weight / weights.sum)
+        remainders.append(amount * weight % weights.sum)
     }
+
+    let leftover = amount - parts.reduce(0, +)
+
+    for index in indicesOfLargestRemainders(remainders, taking: Int(abs(leftover))) {
+        parts[index] += amount.signum()
+    }
+
+    return parts
+}
+
+// The parts with the largest remainders sit farthest below their exact shares, so they receive
+// the leftover minor units first. The sort is stable, which Swift guarantees, so equal
+// remainders keep part order and the earliest part wins a tie.
+private func indicesOfLargestRemainders(
+    _ remainders: [Int64],
+    taking count: Int
+) -> ArraySlice<Int> {
+    let ranked = remainders.indices.sorted { lhs, rhs in
+        abs(remainders[lhs]) > abs(remainders[rhs])
+    }
+
+    return ranked.prefix(count)
 }
