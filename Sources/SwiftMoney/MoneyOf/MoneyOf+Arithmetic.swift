@@ -47,6 +47,12 @@ public extension MoneyOf {
     var magnitude: Self {
         Self(unchecked: abs(minorUnits), storage: storage)
     }
+
+    /// True when the amount is less than zero.
+    @inlinable
+    var isNegative: Bool {
+        minorUnits < 0
+    }
 }
 
 public extension MoneyOf where C: CurrencyType {

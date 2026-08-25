@@ -181,6 +181,13 @@ struct MoneyTests {
         #expect(magnitude.currency == .gbp)
     }
 
+    @Test("Is negative reports the sign")
+    func isNegativeReportsSign() {
+        #expect(Money(minorUnits: -1, currency: .gbp).isNegative)
+        #expect(!Money(minorUnits: 0, currency: .gbp).isNegative)
+        #expect(!Money(minorUnits: 1, currency: .gbp).isNegative)
+    }
+
     @Test("Integral multiplication succeeds")
     func integralMultiplication() throws {
         let a = Money(minorUnits: 6, currency: .gbp)

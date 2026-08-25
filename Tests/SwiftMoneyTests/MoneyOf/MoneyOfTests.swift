@@ -166,6 +166,19 @@ struct MoneyOfTests {
         }
     }
 
+    @Test("Is negative below zero")
+    func isNegativeBelowZero() {
+        #expect(GBP(minorUnits: -1).isNegative)
+        #expect(GBP.min.isNegative)
+    }
+
+    @Test("Is not negative at zero or above")
+    func isNotNegativeAtZeroOrAbove() {
+        #expect(!GBP.zero.isNegative)
+        #expect(!GBP(minorUnits: 1).isNegative)
+        #expect(!GBP.max.isNegative)
+    }
+
     @Test("Integral multiplication succeeds")
     func integralMultiplication() {
         let a = GBP(minorUnits: 7)
