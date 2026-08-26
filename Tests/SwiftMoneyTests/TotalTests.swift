@@ -80,10 +80,10 @@ struct TotalTests {
 
     // Three thirds of a penny total a penny. Settling each one first would total nothing.
     @Test("Totaling unrounded typed amounts stays exact")
-    func totalOfUnroundedTypedAmounts() {
-        let third = GBP(minorUnits: 1).unrounded * "1/3"
+    func totalOfUnroundedTypedAmounts() throws {
+        let third = try GBP(minorUnits: 1).unrounded * #require(Rate(string: "1/3"))
 
-        #expect([third, third, third].total().rounded(.towardZero) == GBP(minorUnits: 1))
+        #expect([third, third, third].total().rounded(.toNearestOrEven) == GBP(minorUnits: 1))
     }
 
     @Test("Totaling no unrounded typed amounts is zero")
@@ -93,12 +93,12 @@ struct TotalTests {
 
     @Test("Totaling unrounded untyped amounts stays exact")
     func totalOfUnroundedUntypedAmounts() throws {
-        let third = Money(minorUnits: 1, currency: .eur).unrounded * "1/3"
+        let third = try Money(minorUnits: 1, currency: .eur).unrounded * #require(Rate(string: "1/3"))
 
         let summed = try [third, third, third].total()
         let total = try #require(summed)
 
-        #expect(total.rounded(.towardZero) == Money(minorUnits: 1, currency: .eur))
+        #expect(total.rounded(.toNearestOrEven) == Money(minorUnits: 1, currency: .eur))
     }
 
     @Test("Totaling no unrounded untyped amounts is nil")

@@ -442,8 +442,9 @@ struct MoneyTests {
     @Test("A chain keeps the currency")
     func chainKeepsTheCurrency() throws {
         let sut = Money(minorUnits: 10_00, currency: .eur)
+        let third = try #require(Rate(string: "1/3"))
 
-        let chained = sut.unrounded * "1/3" * "3/1"
+        let chained = sut.unrounded * third * "3/1"
 
         #expect(chained.rounded(.toNearestOrEven) == Money(minorUnits: 10_00, currency: .eur))
     }
@@ -452,23 +453,44 @@ struct MoneyTests {
     @Test("A chain of two rates settles once")
     func chainOfTwoRatesSettlesOnce() throws {
         let sut = Money(minorUnits: 10_000_00, currency: .gbp)
+        let dayCount = try #require(Rate(string: "31/365"))
 
-        let interest = sut.unrounded * "45/1000" * "31/365"
+        let interest = sut.unrounded * "45/1000" * dayCount
 
         #expect(interest.rounded(.toNearestOrEven) == Money(minorUnits: 38_22, currency: .gbp))
+    }
+
+    @Test("An unrounded Money amount scales, applies, and divides, keeping its currency")
+    func unroundedMoneyOperations() throws {
+        let sut = Money(minorUnits: 10_00, currency: .eur)
+        let third = try #require(Rate(string: "1/3"))
+
+        #expect((third * sut.unrounded).rounded(.toNearestOrEven) == Money(minorUnits: 3_33, currency: .eur))
+        #expect((sut.unrounded * 3).rounded(.toNearestOrEven) == Money(minorUnits: 30_00, currency: .eur))
+        #expect((3 * sut.unrounded).rounded(.toNearestOrEven) == Money(minorUnits: 30_00, currency: .eur))
+        #expect(sut.unrounded.applying(third) == sut.unrounded * third)
+        #expect(sut.unrounded.divided(by: 3).rounded(.toNearestOrEven) == Money(minorUnits: 3_33, currency: .eur))
+
+        var scaled = sut.unrounded
+        scaled *= third
+        #expect(scaled == sut.unrounded * third)
+
+        #expect(sut.unrounded.divided(byExactly: 0) == nil)
+        let quarter = try #require(sut.unrounded.divided(byExactly: 4))
+        #expect(quarter.rounded(.toNearestOrEven) == Money(minorUnits: 2_50, currency: .eur))
     }
 
     @Test("Scaling an unrounded amount traps on overflow")
     func unroundedScalingTrapsOnOverflow() async {
         await #expect(processExitsWith: .failure) {
-            blackHole(Money(minorUnits: Int64.max, currency: .gbp).unrounded * "3/1")
+            blackHole(Money(minorUnits: Int64.max, currency: .gbp).unrounded * 20)
         }
     }
 
     @Test("Scaling an unrounded amount traps on underflow")
     func unroundedScalingTrapsOnUnderflow() async {
         await #expect(processExitsWith: .failure) {
-            blackHole(Money(minorUnits: Int64.min, currency: .gbp).unrounded * "3/1")
+            blackHole(Money(minorUnits: Int64.min, currency: .gbp).unrounded * 20)
         }
     }
 
@@ -476,7 +498,7 @@ struct MoneyTests {
     func unroundedScalingInPlaceTraps() async {
         await #expect(processExitsWith: .failure) {
             var unrounded = Money(minorUnits: Int64.max, currency: .gbp).unrounded
-            unrounded *= "3/1"
+            unrounded *= 20
 
             blackHole(unrounded)
         }
@@ -492,7 +514,7 @@ struct MoneyTests {
 
     @Test("Adding unrounded amounts keeps the currency")
     func addingUnroundedKeepsTheCurrency() throws {
-        let third = Money(minorUnits: 9_99, currency: .eur).unrounded * "1/3"
+        let third = try Money(minorUnits: 9_99, currency: .eur).unrounded * #require(Rate(string: "1/3"))
 
         let whole = try third + third + third
 
@@ -511,7 +533,7 @@ struct MoneyTests {
 
     @Test("A settled amount joins an unrounded chain")
     func settledAmountJoinsAnUnroundedChain() throws {
-        let net = try Money(minorUnits: 5_00, currency: .gbp).unrounded * "1/3"
+        let net = try Money(minorUnits: 5_00, currency: .gbp).unrounded * #require(Rate(string: "1/3"))
             + Money(minorUnits: 2_00, currency: .gbp)
             - Money(minorUnits: 1_00, currency: .gbp)
 
@@ -530,17 +552,17 @@ struct MoneyTests {
     @Test("Adding unrounded amounts traps on overflow")
     func addingUnroundedTrapsOnOverflow() async {
         await #expect(processExitsWith: .failure) {
-            let largest = Money(minorUnits: Int64.max, currency: .gbp).unrounded
+            let huge = Money(minorUnits: Int64.max, currency: .gbp).unrounded * 15
 
-            blackHole(try largest + largest)
+            blackHole(try huge + huge)
         }
     }
 
     @Test("Subtracting unrounded amounts traps on underflow")
     func subtractingUnroundedTrapsOnUnderflow() async {
         await #expect(processExitsWith: .failure) {
-            let largest = Money(minorUnits: Int64.max, currency: .gbp).unrounded
-            let smallest = Money(minorUnits: Int64.min, currency: .gbp).unrounded
+            let largest = Money(minorUnits: Int64.max, currency: .gbp).unrounded * 15
+            let smallest = Money(minorUnits: Int64.min, currency: .gbp).unrounded * 15
 
             blackHole(try smallest - largest)
         }
@@ -549,9 +571,9 @@ struct MoneyTests {
     @Test("Adding to an unrounded amount in place traps on overflow")
     func addingUnroundedInPlaceTraps() async {
         await #expect(processExitsWith: .failure) {
-            let largest = Money(minorUnits: Int64.max, currency: .gbp)
-            var running = largest.unrounded
-            try running += largest
+            let huge = Money(minorUnits: Int64.max, currency: .gbp).unrounded * 15
+            var running = huge
+            try running += huge
 
             blackHole(running)
         }
