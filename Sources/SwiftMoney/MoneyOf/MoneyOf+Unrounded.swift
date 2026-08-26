@@ -88,6 +88,25 @@ public extension MoneyOf.Unrounded where C: CurrencyType {
         self * rate
     }
 
+    /// Returns this amount divided by a whole number, keeping the fraction for one settling.
+    ///
+    /// Multiplying before dividing (`balance * rate` then `.divided(by: 365)`) keeps more of the value
+    /// than scaling by a tiny rate would.
+    ///
+    /// - Precondition: `n` is not zero.
+    func divided(by n: some BinaryInteger) -> Self {
+        Self(minorUnits.divided(by: n), storage: .implied)
+    }
+
+    /// Returns this amount divided by a whole number, or `nil` if `n` is zero.
+    func divided(byExactly n: some BinaryInteger) -> Self? {
+        guard n != 0 else {
+            return nil
+        }
+
+        return Self(minorUnits.divided(by: n), storage: .implied)
+    }
+
     /// Returns this amount settled to a whole number of the currency's smallest unit, within one of the
     /// exact figure.
     ///
@@ -224,6 +243,22 @@ public extension MoneyOf.Unrounded where C == AnyCurrency {
     /// Traps on overflow.
     func applying(_ rate: Rate) -> Self {
         self * rate
+    }
+
+    /// Returns this amount divided by a whole number, keeping the fraction for one settling.
+    ///
+    /// - Precondition: `n` is not zero.
+    func divided(by n: some BinaryInteger) -> Self {
+        Self(minorUnits.divided(by: n), storage: storage)
+    }
+
+    /// Returns this amount divided by a whole number, or `nil` if `n` is zero.
+    func divided(byExactly n: some BinaryInteger) -> Self? {
+        guard n != 0 else {
+            return nil
+        }
+
+        return Self(minorUnits.divided(by: n), storage: storage)
     }
 
     /// Returns the sum of two unrounded amounts, keeping both fractions.

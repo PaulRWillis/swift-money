@@ -54,6 +54,53 @@ struct UnroundedTests {
         #expect(amount.applying(third) == amount * third)
     }
 
+    @Test("Dividing keeps a fraction for one settling")
+    func dividedByWholeNumber() {
+        #expect(GBP(minorUnits: 10_00).unrounded.divided(by: 3).rounded(.toNearestOrEven) == GBP(minorUnits: 3_33))
+        #expect(GBP(minorUnits: 10_00).unrounded.divided(by: 4).rounded(.toNearestOrEven) == GBP(minorUnits: 2_50))
+    }
+
+    @Test("Dividing by exactly zero is nil, not a trap")
+    func dividedByExactlyZero() throws {
+        #expect(GBP(minorUnits: 10_00).unrounded.divided(byExactly: 0) == nil)
+
+        let quarter = try #require(GBP(minorUnits: 10_00).unrounded.divided(byExactly: 4))
+        #expect(quarter.rounded(.toNearestOrEven) == GBP(minorUnits: 2_50))
+    }
+
+    @Test("Dividing by zero traps")
+    func dividingByZeroTraps() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(GBP(minorUnits: 10_00).unrounded.divided(by: 0))
+        }
+    }
+
+    // The case the type exists for: five years of daily interest, rounded once, matches the annual
+    // figure to within a minor unit, where settling each day drifts away from it.
+    @Test("Daily accrual over five years rounds once to within a minor unit")
+    func dailyAccrualRoundsOnce() throws {
+        let balance = GBP(minorUnits: 10_000_00)              // £10,000
+        let annualRate = try #require(Rate(string: "0.05"))   // 5%
+        let days = 1_826                                      // five years, including a leap day
+
+        let daily = (balance.unrounded * annualRate).divided(by: 365)
+        var accrued = GBP.Unrounded.zero
+        for _ in 0 ..< days {
+            accrued += daily
+        }
+        let roundedOnce = accrued.rounded(.toNearestOrEven)
+
+        let singleShot = ((balance.unrounded * annualRate) * days).divided(by: 365).rounded(.toNearestOrEven)
+        let withinOne = Set([singleShot, singleShot + GBP(minorUnits: 1), singleShot - GBP(minorUnits: 1)])
+        #expect(withinOne.contains(roundedOnce))
+
+        var settledDaily = GBP.zero
+        for _ in 0 ..< days {
+            settledDaily = settledDaily + daily.rounded(.toNearestOrEven)
+        }
+        #expect(settledDaily != roundedOnce)
+    }
+
     // `Rate` is deliberately not `ExpressibleByIntegerLiteral`, which is what keeps this unambiguous.
     @Test("A whole number scales an amount from either side")
     func wholeNumberScales() {

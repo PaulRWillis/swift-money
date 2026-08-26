@@ -292,6 +292,15 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    Benchmark("MoneyOf unrounded divided", configuration: defaultConfiguration) { benchmark in
+        var amount = 1
+
+        for _ in benchmark.scaledIterations {
+            blackHole(GBP(minorUnits: amount).unrounded.divided(by: 365))
+            amount &+= 1
+        }
+    }
+
     Benchmark("MoneyOf unrounded chain", configuration: defaultConfiguration) { benchmark in
         let discount: Rate = "9/10"
         let vat: Rate = "6/5"
