@@ -24,3 +24,40 @@ func comparedToHalf(
     }
     return .equalToHalf
 }
+
+// Whether a truncated magnitude should step away from zero, under the caller's rounding rule.
+//
+// Re-expresses `Ratio`'s rule table for a `Fixed` remainder: `sign` gives the direction for the directed
+// rules, and `quotientIsEven` breaks ties for half-to-even. Only called when there is a real remainder
+// to resolve.
+func roundsAwayFromZero(
+    rule: RoundingRule,
+    sign: Sign,
+    quotientIsEven: Bool,
+    comparedToHalf position: ComparedToHalf
+) -> Bool {
+    switch rule {
+    case .towardZero:
+        false
+    case .awayFromZero:
+        true
+    case .down:
+        sign == .negative
+    case .up:
+        sign == .positive
+    case .toNearestOrAwayFromZero:
+        switch position {
+        case .lessThanHalf: false
+        case .equalToHalf: true
+        case .moreThanHalf: true
+        }
+    case .toNearestOrEven:
+        switch position {
+        case .lessThanHalf: false
+        case .equalToHalf: !quotientIsEven
+        case .moreThanHalf: true
+        }
+    @unknown default:
+        preconditionFailure("Unknown rounding rule: \(rule)")
+    }
+}
