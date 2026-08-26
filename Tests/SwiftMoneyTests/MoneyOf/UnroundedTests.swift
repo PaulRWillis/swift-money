@@ -46,6 +46,14 @@ struct UnroundedTests {
         #expect(GBP(minorUnits: 9_99).unrounded * third == third * GBP(minorUnits: 9_99).unrounded)
     }
 
+    @Test("Applying a rate matches the multiply operator")
+    func applyingMatchesMultiply() throws {
+        let third = try #require(Rate(string: "1/3"))
+        let amount = GBP(minorUnits: 9_99).unrounded
+
+        #expect(amount.applying(third) == amount * third)
+    }
+
     // `Rate` is deliberately not `ExpressibleByIntegerLiteral`, which is what keeps this unambiguous.
     @Test("A whole number scales an amount from either side")
     func wholeNumberScales() {

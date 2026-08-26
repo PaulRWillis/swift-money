@@ -81,6 +81,13 @@ public extension MoneyOf.Unrounded where C: CurrencyType {
         lhs = lhs * rhs
     }
 
+    /// Returns this amount scaled by a rate. The named form of `*`.
+    ///
+    /// Traps on overflow.
+    func applying(_ rate: Rate) -> Self {
+        self * rate
+    }
+
     /// Returns this amount settled to a whole number of the currency's smallest unit, within one of the
     /// exact figure.
     ///
@@ -210,6 +217,13 @@ public extension MoneyOf.Unrounded where C == AnyCurrency {
     /// Traps on overflow.
     static func *= (lhs: inout Self, rhs: some BinaryInteger) {
         lhs = lhs * rhs
+    }
+
+    /// Returns this amount scaled by a rate. The named form of `*`.
+    ///
+    /// Traps on overflow.
+    func applying(_ rate: Rate) -> Self {
+        self * rate
     }
 
     /// Returns the sum of two unrounded amounts, keeping both fractions.
