@@ -137,4 +137,27 @@ struct FixedArithmeticTests {
             blackHole(big * big)
         }
     }
+
+    @Test("Division that rounds up carries the eighteenth digit")
+    func divisionRoundsUp() {
+        // 2 / 3 = 0.666…667 — the true nineteenth digit is 6, so the eighteenth rounds up.
+        #expect(Fixed(2) / Fixed(3) == Fixed(significand: 666_666_666_666_666_667, exponent: -18))
+    }
+
+    @Test("Division past the range traps")
+    func divisionOverflowTraps() async {
+        await #expect(processExitsWith: .failure) {
+            let tiny = Fixed(decimal: "0.000000001")   // 1e-9
+            blackHole(tiny.map { Fixed(1_000_000_000_000) / $0 })
+        }
+    }
+
+    @Test("Integer division past the range traps")
+    func integerDivisionOverflowTraps() async {
+        await #expect(processExitsWith: .failure) {
+            // The most negative value divided by -1 has no positive counterpart.
+            let mostNegative = Fixed(significand: .min, exponent: -18)
+            blackHole(mostNegative.map { $0.divided(by: -1) })
+        }
+    }
 }

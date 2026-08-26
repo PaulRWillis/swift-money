@@ -13,6 +13,9 @@ struct FixedConstructionTests {
         #expect(Fixed(decimal: "-0.05") == Fixed(significand: -5, exponent: -2))
         #expect(Fixed(decimal: "3") == Fixed(3))
         #expect(Fixed(decimal: "0.8765262907") == Fixed(significand: 8_765_262_907, exponent: -10))
+        #expect(Fixed(decimal: "+0.5") == Fixed(decimal: "0.5"))                                  // leading plus
+        #expect(Fixed(significand: 10, exponent: -19) == Fixed(significand: 1, exponent: -18))     // exact past 18 dp
+        #expect(Fixed(exactly: 7) == Fixed(7))
     }
 
     @Test("A decimal reads back as the same Double")
@@ -71,6 +74,7 @@ struct FixedConstructionTests {
     func outOfRange() async {
         #expect(Fixed(exactly: Int128.max) == nil)                          // × scale overflows
         #expect(Fixed(significand: 1, exponent: 21) == nil)                 // 10^39 overflows
+        #expect(Fixed(significand: 1, exponent: -57) == nil)                // dividing by 10^39 overflows
         #expect(Fixed(decimal: String(repeating: "9", count: 40)) == nil)   // significand too large
 
         await #expect(processExitsWith: .failure) {
@@ -83,6 +87,8 @@ struct FixedConstructionTests {
         #expect(Fixed(approximating: 0.05) == Fixed(decimal: "0.05"))
         #expect(Fixed(approximating: 0.175) == Fixed(decimal: "0.175"))
         #expect(Fixed(approximating: 3.0) == Fixed(3))
+        #expect(Fixed(approximating: 5e-5) == Fixed(decimal: "0.00005"))     // exponent notation, small
+        #expect(Fixed(approximating: -5e-5) == Fixed(decimal: "-0.00005"))   // negative exponent notation
 
         #expect(Fixed(approximating: .nan) == nil)
         #expect(Fixed(approximating: .infinity) == nil)

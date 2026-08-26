@@ -24,6 +24,7 @@ struct FixedOverflowTests {
 
         #expect(largest.multipliedReportingOverflow(by: largest).overflow)
         #expect(largest.multipliedReportingOverflow(by: 2).overflow)
+        #expect(Fixed(1).multipliedReportingOverflow(by: UInt128.max).overflow)   // factor too large for Int128
         #expect(!Fixed(1_000_000_000).multipliedReportingOverflow(by: Fixed(1_000_000_000)).overflow)
     }
 
