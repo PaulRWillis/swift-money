@@ -123,10 +123,17 @@ extension Fixed {
         return value
     }
 
-    /// Returns this value divided by a whole number, rounded by `rounding` (half to even by default).
+    /// Returns this value divided by a whole number, rounded half to even.
     ///
     /// - Precondition: `n` is not zero and the result is representable.
-    package func divided(by n: some BinaryInteger, rounding: RoundingRule = .toNearestOrEven) -> Fixed {
+    package func divided(by n: some BinaryInteger) -> Fixed {
+        divided(by: n, rounding: .toNearestOrEven)
+    }
+
+    /// Returns this value divided by a whole number, rounded by `rounding`.
+    ///
+    /// - Precondition: `n` is not zero and the result is representable.
+    package func divided(by n: some BinaryInteger, rounding: RoundingRule) -> Fixed {
         let divisor = Int128(n)
         precondition(divisor != 0, "Fixed divided by zero")
 
