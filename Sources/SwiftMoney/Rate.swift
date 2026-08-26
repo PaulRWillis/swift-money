@@ -45,6 +45,25 @@ public extension Rate {
     }
 }
 
+extension Rate: ExpressibleByStringLiteral {
+    /// Builds the rate from a string literal.
+    ///
+    /// A literal is written by the programmer, so silent rounding would hide a mistake: the literal
+    /// accepts only an exactly-representable value. `"0.175"`, `"1/4"`, and `"5%"` are fine.
+    ///
+    /// - Precondition: `value` is a valid rate the type can hold exactly. `"1/3"`, or anything finer
+    ///   than the grid, traps — use ``init(string:rounding:)`` to round instead.
+    public init(stringLiteral value: String) {
+        guard let (fixed, exact) = Rate.parse(value, rounding: .toNearestOrEven) else {
+            preconditionFailure("Not a valid rate literal: \"\(value)\"")  // coverage:ignore — exit-test trap
+        }
+        guard exact else {
+            preconditionFailure("Rate literal \"\(value)\" is not exactly representable; use Rate(string:rounding:)")  // coverage:ignore — exit-test trap
+        }
+        self.init(fixed)
+    }
+}
+
 private extension Rate {
     // Parses the three written forms, reporting whether `text` named the value exactly (no rounding).
     // Returns nil for anything that is not a decimal, a percentage, or a fraction.

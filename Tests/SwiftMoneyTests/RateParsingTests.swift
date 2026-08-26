@@ -33,4 +33,35 @@ struct RateParsingTests {
     func malformedReturnsNil(_ text: String) {
         #expect(Rate(string: text) == nil)
     }
+
+    @Test("Exact string literals build the rate")
+    func exactLiteralsBuild() {
+        let fraction: Rate = "1/4"
+        let percentage: Rate = "5%"
+        let decimal: Rate = "0.175"
+        #expect(fraction == Rate.percent(25))
+        #expect(percentage == Rate.percent(5))
+        #expect(decimal == Rate.basisPoints(1750))
+    }
+
+    @Test("An inexact fraction literal traps")
+    func inexactFractionLiteralTraps() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(Rate(stringLiteral: "1/3"))
+        }
+    }
+
+    @Test("A literal finer than the grid traps")
+    func overlyPreciseLiteralTraps() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(Rate(stringLiteral: "0.1234567890123456789"))
+        }
+    }
+
+    @Test("A malformed literal traps")
+    func malformedLiteralTraps() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(Rate(stringLiteral: "not a rate"))
+        }
+    }
 }
