@@ -229,7 +229,7 @@ let benchmarks: @Sendable () -> Void = {
     // cannot represent, and `Decimal` is exact but pays for it.
 
     Benchmark("MoneyOf scaled and rounded", configuration: defaultConfiguration) { benchmark in
-        let vat: Ratio = "7/40"
+        let vat: Rate = "7/40"
         var accumulated = GBP(minorUnits: 0)
         var amount = 1
 
@@ -315,9 +315,9 @@ let benchmarks: @Sendable () -> Void = {
     }
 
     Benchmark("MoneyOf chain, rounding each step", configuration: defaultConfiguration) { benchmark in
-        let discount: Ratio = "9/10"
-        let vat: Ratio = "6/5"
-        let dayCount: Ratio = "31/365"
+        let discount: Rate = "9/10"
+        let vat: Rate = "6/5"
+        let dayCount: Rate = "0.085"
         var amount = 1
 
         for _ in benchmark.scaledIterations {
@@ -693,10 +693,10 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
-    // Reporting a remainder means constructing a `Ratio`, which reduces to lowest terms. Against
+    // Reporting a remainder means splitting off the leftover fraction of a unit. Against
     // `scaled(by:rounding:)`, the difference is what the report itself costs.
     Benchmark("MoneyOf scaled, reporting a remainder", configuration: defaultConfiguration) { benchmark in
-        let vat: Ratio = "7/40"
+        let vat: Rate = "7/40"
         var amount = 1
 
         for _ in benchmark.scaledIterations {
