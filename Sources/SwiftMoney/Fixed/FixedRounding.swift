@@ -61,3 +61,21 @@ func roundsAwayFromZero(
         preconditionFailure("Unknown rounding rule: \(rule)")
     }
 }
+
+// Applies the rounding step and the sign, or `nil` when the true value doesn't fit `Int128`.
+//
+// `roundsAway` is the caller's decision to step the magnitude away from zero. Centralised so the
+// increment-overflow check and the `Int128.min` handling live in one place, shared by the divides and
+// by construction.
+func signedRounded(quotient: UInt128, roundsAway: Bool, sign: Sign) -> Int128? {
+    guard roundsAway else {
+        return Int128(magnitude: quotient, sign: sign)
+    }
+
+    let (stepped, overflow) = quotient.addingReportingOverflow(1)
+    guard !overflow else {
+        return nil
+    }
+
+    return Int128(magnitude: stepped, sign: sign)
+}

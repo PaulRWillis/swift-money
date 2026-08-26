@@ -111,16 +111,14 @@ extension Fixed {
         precondition(divisor != 0, "Fixed divided by zero")
 
         let sign = Sign(of: _storage) * Sign(of: divisor)
-        let quotient = _storage.magnitude / divisor.magnitude
-        let remainder = _storage.magnitude % divisor.magnitude
-
-        let roundsUp = switch comparedToHalf(remainder: remainder, divisor: divisor.magnitude) {
+        let (quotient, remainder) = _storage.magnitude.quotientAndRemainder(dividingBy: divisor.magnitude)
+        let roundsAway = switch comparedToHalf(remainder: remainder, divisor: divisor.magnitude) {
         case .lessThanHalf: false
         case .moreThanHalf: true
         case .equalToHalf: !quotient.isMultiple(of: 2)   // ties to even
         }
 
-        guard let storage = Int128(magnitude: roundsUp ? quotient + 1 : quotient, sign: sign) else {
+        guard let storage = signedRounded(quotient: quotient, roundsAway: roundsAway, sign: sign) else {
             preconditionFailure("Fixed integer division overflowed")
         }
 
@@ -156,42 +154,51 @@ extension Fixed {
     // digits; otherwise the excess is rounded by `rounding`. `nil` when the value is out of range.
     package init?(significand: Int128, exponent: Int, rounding: RoundingRule = .toNearestOrEven) {
         let shift = exponent + Fixed.fractionalDigits   // _storage = significand × 10^shift
+        let storage = shift >= 0
+            ? Fixed.scaledUp(significand, byPowerOfTen: shift)
+            : Fixed.scaledDown(significand, byPowerOfTen: -shift, rounding: rounding)
 
-        if shift >= 0 {
-            guard let multiplier = Int128.powerOfTen(shift) else {
-                return nil
-            }
-            let (storage, overflow) = significand.multipliedReportingOverflow(by: multiplier)
-            guard !overflow else {
-                return nil
-            }
-            self.init(_storage: storage)
-        } else {
-            guard let divisor = Int128.powerOfTen(-shift) else {
-                return nil
-            }
-            let sign = Sign(of: significand)
-            let quotient = significand.magnitude / divisor.magnitude
-            let remainder = significand.magnitude % divisor.magnitude
-
-            let magnitude: UInt128
-            if remainder == 0 {
-                magnitude = quotient
-            } else {
-                let roundsAway = roundsAwayFromZero(
-                    rule: rounding,
-                    sign: sign,
-                    quotientIsEven: quotient.isMultiple(of: 2),
-                    comparedToHalf: comparedToHalf(remainder: remainder, divisor: divisor.magnitude)
-                )
-                magnitude = roundsAway ? quotient + 1 : quotient
-            }
-
-            guard let storage = Int128(magnitude: magnitude, sign: sign) else {
-                return nil
-            }
-            self.init(_storage: storage)
+        guard let storage else {
+            return nil
         }
+
+        self.init(_storage: storage)
+    }
+
+    // `significand × 10^power` as raw storage, or nil if it overflows.
+    private static func scaledUp(_ significand: Int128, byPowerOfTen power: Int) -> Int128? {
+        guard let multiplier = Int128.powerOfTen(power) else {
+            return nil
+        }
+
+        let (storage, overflow) = significand.multipliedReportingOverflow(by: multiplier)
+        return overflow ? nil : storage
+    }
+
+    // `significand ÷ 10^power` as raw storage, rounding the dropped digits by `rounding`; nil on overflow.
+    private static func scaledDown(
+        _ significand: Int128,
+        byPowerOfTen power: Int,
+        rounding: RoundingRule
+    ) -> Int128? {
+        guard let divisor = Int128.powerOfTen(power) else {
+            return nil
+        }
+
+        let sign = Sign(of: significand)
+        let (quotient, remainder) = significand.magnitude.quotientAndRemainder(dividingBy: divisor.magnitude)
+
+        guard remainder != 0 else {
+            return Int128(magnitude: quotient, sign: sign)
+        }
+
+        let roundsAway = roundsAwayFromZero(
+            rule: rounding,
+            sign: sign,
+            quotientIsEven: quotient.isMultiple(of: 2),
+            comparedToHalf: comparedToHalf(remainder: remainder, divisor: divisor.magnitude)
+        )
+        return signedRounded(quotient: quotient, roundsAway: roundsAway, sign: sign)
     }
 
     // Creates a whole value. Traps if it is out of range.

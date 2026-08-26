@@ -13,22 +13,11 @@ func bankersDivide256(
         return nil
     }
 
-    let roundsUp = switch comparedToHalf(remainder: remainder, divisor: divisor) {
+    let roundsAway = switch comparedToHalf(remainder: remainder, divisor: divisor) {
     case .lessThanHalf: false
     case .moreThanHalf: true
     case .equalToHalf: !quotient.isMultiple(of: 2)   // ties to even
     }
 
-    let magnitude: UInt128
-    if roundsUp {
-        let (incremented, overflow) = quotient.addingReportingOverflow(1)
-        guard !overflow else {
-            return nil
-        }
-        magnitude = incremented
-    } else {
-        magnitude = quotient
-    }
-
-    return Int128(magnitude: magnitude, sign: sign)
+    return signedRounded(quotient: quotient, roundsAway: roundsAway, sign: sign)
 }
