@@ -12,7 +12,7 @@ func scaled(
 
     guard let product,
           let whole = Int64(exactly: Int128(product, rounding: .towardZero)) else {
-        return nil
+        return nil   // coverage:ignore — exit-test trap: the only public caller traps on this nil
     }
 
     guard let remainder = Rate.FractionalRemainder(leftOverOf: product) else {
