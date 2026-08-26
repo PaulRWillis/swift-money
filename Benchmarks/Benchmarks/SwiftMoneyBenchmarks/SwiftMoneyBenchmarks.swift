@@ -991,4 +991,103 @@ let benchmarks: @Sendable () -> Void = {
             index &+= 1
         }
     }
+
+    // Rate is the fixed-point engine's first public consumer, so these are where its cost first shows.
+    // Basis points and percent are significand construction; the string forms add parsing, and the
+    // fraction form runs the divide. Double and Decimal parsing are the peers for the string forms.
+    Benchmark("Rate from basis points", configuration: defaultConfiguration) { benchmark in
+        var bp = 1
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Rate.basisPoints(bp % 10_000))
+            bp &+= 1
+        }
+    }
+
+    Benchmark("Rate from percent", configuration: defaultConfiguration) { benchmark in
+        var percent = 1
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Rate.percent(percent % 100))
+            percent &+= 1
+        }
+    }
+
+    let decimalStrings = operands.map { "0.0\($0)" }
+    let percentStrings = operands.map { "\($0).5%" }
+    let fractionStrings = operands.map { "1/\($0)" }
+
+    Benchmark("Rate from a decimal string", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Rate(string: decimalStrings[index % decimalStrings.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Rate from a percent string", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Rate(string: percentStrings[index % percentStrings.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Rate from a fraction string", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Rate(string: fractionStrings[index % fractionStrings.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Double from a decimal string", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Double(decimalStrings[index % decimalStrings.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Decimal from a decimal string", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Decimal(string: decimalStrings[index % decimalStrings.count]))
+            index &+= 1
+        }
+    }
+
+    let rateOperands = operands.map { Rate.basisPoints($0 * 137) }
+
+    Benchmark("Rate to whole basis points", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(rateOperands[index % rateOperands.count].wholeBasisPoints)
+            index &+= 1
+        }
+    }
+
+    Benchmark("Rate to basis points, rounded", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(rateOperands[index % rateOperands.count].basisPoints(rounding: .toNearestOrEven))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Rate from a Double", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Rate(approximating: doubleOperands[index % doubleOperands.count] / 100))
+            index &+= 1
+        }
+    }
 }

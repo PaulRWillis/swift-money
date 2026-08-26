@@ -101,4 +101,27 @@ struct FixedConstructionTests {
 
         #expect(abs(fixed.double - 0.175) < 1e-12)
     }
+
+    @Test("Converting to a whole integer is exact or nil")
+    func exactInteger() throws {
+        #expect(Int128(exactly: Fixed(7)) == 7)
+        #expect(Int128(exactly: Fixed(-3)) == -3)
+        #expect(Int128(exactly: .zero) == 0)
+        #expect(Int128(exactly: try #require(Fixed(decimal: "0.5"))) == nil)
+        #expect(Int128(exactly: try #require(Fixed(decimal: "2.25"))) == nil)
+    }
+
+    @Test("Rounding to a whole integer follows the rule and the sign")
+    func roundedInteger() throws {
+        let twoAndAHalf = try #require(Fixed(decimal: "2.5"))
+        let minusTwoAndAHalf = try #require(Fixed(decimal: "-2.5"))
+
+        #expect(Int128(twoAndAHalf, rounding: .toNearestOrEven) == 2)   // ties to even
+        #expect(Int128(twoAndAHalf, rounding: .up) == 3)
+        #expect(Int128(twoAndAHalf, rounding: .towardZero) == 2)
+        #expect(Int128(minusTwoAndAHalf, rounding: .up) == -2)          // toward +∞
+        #expect(Int128(minusTwoAndAHalf, rounding: .down) == -3)        // toward −∞
+        #expect(Int128(try #require(Fixed(decimal: "0.25")), rounding: .awayFromZero) == 1)
+        #expect(Int128(Fixed(4), rounding: .up) == 4)                   // already whole, no step
+    }
 }
