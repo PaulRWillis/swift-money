@@ -9,7 +9,7 @@ enum Sign: Equatable {
 
     // Zero counts as positive. It has no sign of its own, but nothing here needs one: a zero magnitude
     // is the same value whichever sign is applied to it.
-    init(of value: Int64) {
+    init(of value: some SignedInteger) {
         self = value < 0 ? .negative : .positive
     }
 
@@ -36,6 +36,27 @@ extension Int64 {
         }
 
         guard let positive = Int64(exactly: magnitude) else {
+            return nil
+        }
+
+        self = sign == .negative ? -positive : positive
+    }
+}
+
+extension Int128 {
+    // Rebuilds a signed value from its magnitude. `nil` when the magnitude has no signed counterpart.
+    init?(
+        magnitude: UInt128,
+        sign: Sign
+    ) {
+        // The smallest `Int128` is taken from its magnitude directly rather than by negating, having no
+        // positive counterpart.
+        if sign == .negative, magnitude == Int128.min.magnitude {
+            self = .min
+            return
+        }
+
+        guard let positive = Int128(exactly: magnitude) else {
             return nil
         }
 
