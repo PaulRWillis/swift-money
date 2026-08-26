@@ -43,6 +43,20 @@ public extension Rate {
         }
         self.init(value)
     }
+
+    /// The rate closest to `value`.
+    ///
+    /// A `Double` carries only about fifteen significant digits, so that is the ceiling — the result
+    /// is exact to the `Double`, not to the number it approximates. Digits finer than the type keeps
+    /// are rounded by `rounding`.
+    ///
+    /// - Returns: `nil` if `value` is not finite, or is too large to represent.
+    init?(approximating value: Double, rounding: RoundingRule = .toNearestOrEven) {
+        guard let fixed = Fixed(approximating: value, rounding: rounding) else {
+            return nil
+        }
+        self.init(fixed)
+    }
 }
 
 extension Rate: ExpressibleByStringLiteral {

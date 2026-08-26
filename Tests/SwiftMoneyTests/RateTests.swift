@@ -32,4 +32,13 @@ struct RateTests {
             blackHole(Rate.basisPoints(Int128.max))
         }
     }
+
+    @Test("Approximating a Double lands on the nearest rate")
+    func approximatesDouble() throws {
+        #expect(try #require(Rate(approximating: 0.175)) == Rate.basisPoints(1750))
+        #expect(try #require(Rate(approximating: 0.05)) == Rate.percent(5))
+        #expect(Rate(approximating: .nan) == nil)
+        #expect(Rate(approximating: .infinity) == nil)
+        #expect(Rate(approximating: 1e30) == nil)   // out of range
+    }
 }
