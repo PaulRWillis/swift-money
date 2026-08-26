@@ -58,7 +58,7 @@ func roundsAwayFromZero(
         case .moreThanHalf: true
         }
     @unknown default:
-        preconditionFailure("Unknown rounding rule: \(rule)")
+        preconditionFailure("Unknown rounding rule: \(rule)")   // coverage:ignore — only a future RoundingRule case
     }
 }
 
@@ -74,7 +74,7 @@ func signedRounded(quotient: UInt128, roundsAway: Bool, sign: Sign) -> Int128? {
 
     let (stepped, overflow) = quotient.addingReportingOverflow(1)
     guard !overflow else {
-        return nil
+        return nil   // coverage:ignore — unreachable: a real quotient is far below UInt128.max
     }
 
     return Int128(magnitude: stepped, sign: sign)

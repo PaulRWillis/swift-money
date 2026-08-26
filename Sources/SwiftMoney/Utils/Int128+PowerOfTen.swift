@@ -2,7 +2,7 @@ extension Int128 {
     // Ten raised to `exponent`, or `nil` when the exponent is negative or the result overflows Int128.
     static func powerOfTen(_ exponent: Int) -> Int128? {
         guard exponent >= 0 else {
-            return nil
+            return nil   // coverage:ignore — callers only pass non-negative exponents; guards against misuse
         }
 
         let radix: Int128 = 10

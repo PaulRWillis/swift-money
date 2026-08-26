@@ -1,9 +1,12 @@
-// A base-10 fixed-point number with 18 fractional digits, backed by `Int128`.
-//
-// The value is `_storage / 10^18`, so 0.05 is held as `_storage == 50_000_000_000_000_000`. This is the
-// internal precision engine for fractional money; it knows nothing of currency or minor units. Callers
-// construct it and send it commands and queries — the storage is private and never reached into, which
-// is why every operation that touches it lives in this file.
+/// A base-10 fixed-point number with up to 18 fractional digits.
+///
+/// The internal precision engine for fractional money — interest and FX rates, and amounts held before
+/// they are rounded to whole minor units. A finite decimal within range is exact; a value needing more
+/// than 18 fractional digits is rounded, half to even, at the eighteenth.
+///
+/// A `Fixed` is always finite — there is no NaN or infinity. Arithmetic traps on a result outside the
+/// representable range (about ±1.7 × 10²⁰); the `…ReportingOverflow` and `…IfRepresentable` members
+/// report the overflow instead of trapping.
 package struct Fixed: Equatable, Hashable, Sendable, BitwiseCopyable {
     private var _storage: Int128
 
@@ -15,6 +18,7 @@ package struct Fixed: Equatable, Hashable, Sendable, BitwiseCopyable {
         self._storage = _storage
     }
 
+    /// The value zero.
     package static let zero = Fixed(_storage: 0)
 }
 
@@ -25,19 +29,20 @@ extension Fixed: Comparable {
 }
 
 extension Fixed {
-    // Adds two same-scale values, reporting overflow instead of trapping.
+    /// Returns the sum of the two values, and whether it overflowed the representable range.
     package func addingReportingOverflow(_ other: Fixed) -> (value: Fixed, overflow: Bool) {
         let (sum, overflow) = _storage.addingReportingOverflow(other._storage)
         return (Fixed(_storage: sum), overflow)
     }
 
+    /// Returns the difference of the two values, and whether it overflowed the representable range.
     package func subtractingReportingOverflow(_ other: Fixed) -> (value: Fixed, overflow: Bool) {
         let (difference, overflow) = _storage.subtractingReportingOverflow(other._storage)
         return (Fixed(_storage: difference), overflow)
     }
 
-    // Both operands carry the 10^18 scale, so the raw product carries 10^36 and needs 256 bits before
-    // the scale is divided back out. On overflow the value is unspecified and `overflow` is true.
+    /// Returns the product of the two values, and whether it overflowed. The value is meaningless when
+    /// `overflow` is `true`.
     package func multipliedReportingOverflow(by other: Fixed) -> (value: Fixed, overflow: Bool) {
         let sign = Sign(of: _storage) * Sign(of: other._storage)
         let product = Wide256Magnitude(_storage.magnitude, times: other._storage.magnitude)
@@ -49,7 +54,7 @@ extension Fixed {
         return (Fixed(_storage: result), false)
     }
 
-    // Scales by a plain integer: the raw value multiplies directly, with no scale to divide out.
+    /// Returns this value scaled by a whole number, and whether it overflowed the representable range.
     package func multipliedReportingOverflow(by n: some BinaryInteger) -> (value: Fixed, overflow: Bool) {
         guard let factor = Int128(exactly: n) else {
             return (.zero, true)
@@ -60,7 +65,10 @@ extension Fixed {
 }
 
 extension Fixed {
-    // The trapping operators wrap the reporting forms: fail fast on a genuine out-of-range result.
+    /// Returns the sum of the two values.
+    ///
+    /// - Precondition: the result is representable. Use ``addingReportingOverflow(_:)`` or
+    ///   ``addingIfRepresentable(_:)`` for values that may overflow.
     package static func + (lhs: Fixed, rhs: Fixed) -> Fixed {
         let (value, overflow) = lhs.addingReportingOverflow(rhs)
         precondition(!overflow, "Fixed addition overflowed")
@@ -68,6 +76,9 @@ extension Fixed {
         return value
     }
 
+    /// Returns the difference of the two values.
+    ///
+    /// - Precondition: the result is representable. Use ``subtractingIfRepresentable(_:)`` otherwise.
     package static func - (lhs: Fixed, rhs: Fixed) -> Fixed {
         let (value, overflow) = lhs.subtractingReportingOverflow(rhs)
         precondition(!overflow, "Fixed subtraction overflowed")
@@ -75,6 +86,9 @@ extension Fixed {
         return value
     }
 
+    /// Returns the product of the two values.
+    ///
+    /// - Precondition: the result is representable. Use ``multipliedIfRepresentable(by:)`` otherwise.
     package static func * (lhs: Fixed, rhs: Fixed) -> Fixed {
         let (value, overflow) = lhs.multipliedReportingOverflow(by: rhs)
         precondition(!overflow, "Fixed multiplication overflowed")
@@ -82,8 +96,9 @@ extension Fixed {
         return value
     }
 
-    // Scales the numerator by 10^18 first so the quotient keeps 18 fractional digits; that widening also
-    // needs 256 bits. Traps on a zero divisor or an out-of-range result.
+    /// Returns the quotient of the two values, rounded half to even.
+    ///
+    /// - Precondition: `rhs` is not zero and the result is representable.
     package static func / (lhs: Fixed, rhs: Fixed) -> Fixed {
         precondition(rhs._storage != 0, "Fixed divided by zero")
 
@@ -97,6 +112,9 @@ extension Fixed {
         return Fixed(_storage: storage)
     }
 
+    /// Returns this value scaled by a whole number.
+    ///
+    /// - Precondition: the result is representable. Use ``multipliedIfRepresentable(by:)`` otherwise.
     package func multiplied(by n: some BinaryInteger) -> Fixed {
         let (value, overflow) = multipliedReportingOverflow(by: n)
         precondition(!overflow, "Fixed integer multiplication overflowed")
@@ -104,8 +122,9 @@ extension Fixed {
         return value
     }
 
-    // Divides by a plain integer, rounding half to even on the remainder. Traps on a zero divisor or an
-    // out-of-range result.
+    /// Returns this value divided by a whole number, rounded half to even.
+    ///
+    /// - Precondition: `n` is not zero and the result is representable.
     package func divided(by n: some BinaryInteger) -> Fixed {
         let divisor = Int128(n)
         precondition(divisor != 0, "Fixed divided by zero")
@@ -127,22 +146,25 @@ extension Fixed {
 }
 
 extension Fixed {
-    // Fallible siblings for values derived from external data: `nil` instead of a trap on overflow.
+    /// Returns the sum of the two values, or `nil` if it overflows the representable range.
     package func addingIfRepresentable(_ other: Fixed) -> Fixed? {
         let (value, overflow) = addingReportingOverflow(other)
         return overflow ? nil : value
     }
 
+    /// Returns the difference of the two values, or `nil` if it overflows the representable range.
     package func subtractingIfRepresentable(_ other: Fixed) -> Fixed? {
         let (value, overflow) = subtractingReportingOverflow(other)
         return overflow ? nil : value
     }
 
+    /// Returns the product of the two values, or `nil` if it overflows the representable range.
     package func multipliedIfRepresentable(by other: Fixed) -> Fixed? {
         let (value, overflow) = multipliedReportingOverflow(by: other)
         return overflow ? nil : value
     }
 
+    /// Returns this value scaled by a whole number, or `nil` if it overflows the representable range.
     package func multipliedIfRepresentable(by n: some BinaryInteger) -> Fixed? {
         let (value, overflow) = multipliedReportingOverflow(by: n)
         return overflow ? nil : value
@@ -150,8 +172,11 @@ extension Fixed {
 }
 
 extension Fixed {
-    // Creates a value equal to `significand × 10^exponent`. Exact when the value has at most 18 fractional
-    // digits; otherwise the excess is rounded by `rounding`. `nil` when the value is out of range.
+    /// Creates the value `significand × 10^exponent`.
+    ///
+    /// Exact with at most 18 fractional digits; digits beyond the eighteenth are rounded by `rounding`.
+    ///
+    /// - Returns: `nil` if the value is outside the representable range.
     package init?(significand: Int128, exponent: Int, rounding: RoundingRule = .toNearestOrEven) {
         let shift = exponent + Fixed.fractionalDigits   // _storage = significand × 10^shift
         let storage = shift >= 0
@@ -201,7 +226,9 @@ extension Fixed {
         return signedRounded(quotient: quotient, roundsAway: roundsAway, sign: sign)
     }
 
-    // Creates a whole value. Traps if it is out of range.
+    /// Creates a whole value.
+    ///
+    /// - Precondition: `value` is within the representable range. Use ``init(exactly:)`` otherwise.
     package init(_ value: some BinaryInteger) {
         guard let fixed = Fixed(significand: Int128(value), exponent: 0) else {
             preconditionFailure("Value is out of range for Fixed")
@@ -210,7 +237,9 @@ extension Fixed {
         self = fixed
     }
 
-    // Creates a whole value, or `nil` if it is out of range.
+    /// Creates a whole value.
+    ///
+    /// - Returns: `nil` if `value` is outside the representable range.
     package init?(exactly value: some BinaryInteger) {
         guard let significand = Int128(exactly: value),
               let fixed = Fixed(significand: significand, exponent: 0) else {
@@ -220,9 +249,12 @@ extension Fixed {
         self = fixed
     }
 
-    // Parses a decimal string such as "0.175", "-0.05" or "100". Exact when the value fits 18 fractional
-    // digits; otherwise the excess is rounded by `rounding`. `nil` on any non-decimal input (a fraction
-    // like "1/3", exponent notation, a second point, letters) or a significand too large to represent.
+    /// Creates a value from a decimal string such as `"0.175"`, `"-0.05"` or `"100"`.
+    ///
+    /// Exact with at most 18 fractional digits; digits beyond the eighteenth are rounded by `rounding`.
+    ///
+    /// - Returns: `nil` if the string is not a plain decimal number — a fraction such as `"1/3"`,
+    ///   exponent notation, more than one point, or any non-digit — or if the value is out of range.
     package init?(decimal string: some StringProtocol, rounding: RoundingRule = .toNearestOrEven) {
         var sign = Sign.positive
         var magnitude: UInt128 = 0
@@ -271,8 +303,12 @@ extension Fixed {
         self.init(significand: significand, exponent: -fractionDigits, rounding: rounding)
     }
 
-    // Approximates a Double, whose ~15–16 significant digits are the precision ceiling. `nil` when the
-    // value is not finite or is out of range. Named to signal the Double, not the Fixed, is the limit.
+    /// Creates the value closest to `value`.
+    ///
+    /// A `Double` carries only about 15–16 significant digits, so that precision is the ceiling — the
+    /// result is exact to the `Double`, not to the number the `Double` approximates.
+    ///
+    /// - Returns: `nil` if `value` is not finite, or is outside the representable range.
     package init?(approximating value: Double, rounding: RoundingRule = .toNearestOrEven) {
         guard value.isFinite else {
             return nil
@@ -281,7 +317,7 @@ extension Fixed {
         self.init(decimal: value.plainDecimalText, rounding: rounding)
     }
 
-    // The value as a Double, for feeding solvers. Lossy at the edge, by design.
+    /// The value as the nearest `Double`. Lossy for large or fine values.
     package var double: Double {
         Double(_storage) / Double(Fixed.scale)
     }
@@ -310,7 +346,7 @@ private extension UInt128 {
         }
         let (sum, addOverflow) = shifted.addingReportingOverflow(UInt128(digit))
         guard !addOverflow else {
-            return nil
+            return nil   // coverage:ignore — unreachable: the ×10 above overflows first on any input that reaches this
         }
 
         return sum
