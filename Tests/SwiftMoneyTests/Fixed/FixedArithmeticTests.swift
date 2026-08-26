@@ -97,6 +97,26 @@ struct FixedArithmeticTests {
         #expect(value.divided(by: testCase.divisor) == expected)
     }
 
+    @Test("Integer division honours the caller's rounding rule")
+    func integerDivisionRounding() throws {
+        // 1/3 is non-terminating, so the rule decides the eighteenth digit.
+        #expect(Fixed(1).divided(by: 3, rounding: .up) > Fixed(1).divided(by: 3, rounding: .down))
+        // The default matches the rule-less divide.
+        #expect(Fixed(1).divided(by: 3, rounding: .toNearestOrEven) == Fixed(1).divided(by: 3))
+        // 1/4 terminates, so every rule agrees.
+        let quarter = try #require(Fixed(decimal: "0.25"))
+        #expect(Fixed(1).divided(by: 4, rounding: .up) == quarter)
+        #expect(Fixed(1).divided(by: 4, rounding: .down) == quarter)
+    }
+
+    @Test("Directed division rounding follows the sign")
+    func integerDivisionDirectedBySign() {
+        // Rounding toward +∞ is never below rounding toward −∞, on either side of zero.
+        #expect(Fixed(-1).divided(by: 3, rounding: .up) > Fixed(-1).divided(by: 3, rounding: .down))
+        // Toward-zero versus away-from-zero on a negative value.
+        #expect(Fixed(-7).divided(by: 3, rounding: .towardZero) > Fixed(-7).divided(by: 3, rounding: .awayFromZero))
+    }
+
     @Test("Daily accrual over five years stays within a minor unit of the single-shot result")
     func dailyAccrualPrecision() throws {
         let balance = Fixed(1_000_000)                    // £10,000 = 1,000,000 minor units

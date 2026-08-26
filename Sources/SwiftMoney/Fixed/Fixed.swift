@@ -122,20 +122,21 @@ extension Fixed {
         return value
     }
 
-    /// Returns this value divided by a whole number, rounded half to even.
+    /// Returns this value divided by a whole number, rounded by `rounding` (half to even by default).
     ///
     /// - Precondition: `n` is not zero and the result is representable.
-    package func divided(by n: some BinaryInteger) -> Fixed {
+    package func divided(by n: some BinaryInteger, rounding: RoundingRule = .toNearestOrEven) -> Fixed {
         let divisor = Int128(n)
         precondition(divisor != 0, "Fixed divided by zero")
 
         let sign = Sign(of: _storage) * Sign(of: divisor)
         let (quotient, remainder) = _storage.magnitude.quotientAndRemainder(dividingBy: divisor.magnitude)
-        let roundsAway = switch comparedToHalf(remainder: remainder, divisor: divisor.magnitude) {
-        case .lessThanHalf: false
-        case .moreThanHalf: true
-        case .equalToHalf: !quotient.isMultiple(of: 2)   // ties to even
-        }
+        let roundsAway = remainder != 0 && roundsAwayFromZero(
+            rule: rounding,
+            sign: sign,
+            quotientIsEven: quotient.isMultiple(of: 2),
+            comparedToHalf: comparedToHalf(remainder: remainder, divisor: divisor.magnitude)
+        )
 
         guard let storage = signedRounded(quotient: quotient, roundsAway: roundsAway, sign: sign) else {
             preconditionFailure("Fixed integer division overflowed")  // coverage:ignore — exit-test trap
