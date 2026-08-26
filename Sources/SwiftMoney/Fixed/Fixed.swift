@@ -8,11 +8,12 @@
 /// representable range (about ±1.7 × 10²⁰); the `…ReportingOverflow` and `…IfRepresentable` members
 /// report the overflow instead of trapping.
 package struct Fixed: Equatable, Hashable, Sendable, BitwiseCopyable {
-    private var _storage: Int128
+    // `fileprivate`, not `private`, so the same-file `Int128(exactly:)` / `Int128(_:rounding:)` can read it.
+    fileprivate var _storage: Int128
 
     // The number of fractional digits a value is held to, and ten raised to that power.
     private static let fractionalDigits = 18
-    private static let scale: Int128 = 1_000_000_000_000_000_000
+    fileprivate static let scale: Int128 = 1_000_000_000_000_000_000
 
     private init(_storage: Int128) {
         self._storage = _storage
@@ -397,5 +398,29 @@ private extension String {
         }
 
         return sign + (whole.isEmpty ? "0" : whole) + (fraction.isEmpty ? "" : "." + fraction)
+    }
+}
+
+extension Int128 {
+    /// The whole-number value of `fixed`, or `nil` if it has a fractional part.
+    package init?(exactly fixed: Fixed) {
+        let (quotient, remainder) = fixed._storage.quotientAndRemainder(dividingBy: Fixed.scale)
+        guard remainder == 0 else {
+            return nil
+        }
+        self = quotient
+    }
+
+    /// `fixed` rounded to a whole number by `rounding`.
+    package init(_ fixed: Fixed, rounding: RoundingRule) {
+        let (quotient, remainder) = fixed._storage.quotientAndRemainder(dividingBy: Fixed.scale)
+        let sign = Sign(of: fixed._storage)
+        let roundsAway = remainder != 0 && roundsAwayFromZero(
+            rule: rounding,
+            sign: sign,
+            quotientIsEven: quotient.isMultiple(of: 2),
+            comparedToHalf: comparedToHalf(remainder: remainder.magnitude, divisor: Fixed.scale.magnitude)
+        )
+        self = roundsAway ? quotient + (sign == .negative ? -1 : 1) : quotient
     }
 }
