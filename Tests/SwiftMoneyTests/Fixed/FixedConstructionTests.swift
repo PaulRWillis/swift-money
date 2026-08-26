@@ -48,4 +48,42 @@ struct FixedConstructionTests {
             blackHole(Fixed(Int128.max))
         }
     }
+
+    @Test("Parses exact decimals")
+    func parsesExactDecimals() {
+        #expect(Fixed(decimal: "0.175") == Fixed(raw: 175 * Fixed.scale / 1_000))
+        #expect(Fixed(decimal: "0.8765262907") == Fixed(raw: 8_765_262_907 * Fixed.scale / 10_000_000_000))
+        #expect(Fixed(decimal: "100") == Fixed(raw: 100 * Fixed.scale))
+        #expect(Fixed(decimal: ".5") == Fixed(raw: Fixed.scale / 2))
+        #expect(Fixed(decimal: "-0.05") == Fixed(raw: -(Fixed.scale / 20)))
+    }
+
+    @Test("Rejects non-decimal strings")
+    func rejectsMalformed() {
+        #expect(Fixed(decimal: "1.2.3") == nil)
+        #expect(Fixed(decimal: "1/3") == nil)
+        #expect(Fixed(decimal: "1e3") == nil)
+        #expect(Fixed(decimal: "") == nil)
+        #expect(Fixed(decimal: "abc") == nil)
+        #expect(Fixed(decimal: ".") == nil)
+        #expect(Fixed(decimal: "-") == nil)
+    }
+
+    @Test("Rounds a string with more than eighteen fraction digits")
+    func longDecimalRounds() {
+        let twentyTwoThrees = "0." + String(repeating: "3", count: 22)
+        #expect(Fixed(decimal: twentyTwoThrees) == Fixed(raw: 333_333_333_333_333_333))
+
+        let halfUlp = "0." + String(repeating: "0", count: 18) + "5"          // 5 × 10^-19
+        #expect(Fixed(decimal: halfUlp, rounding: .toNearestOrEven) == .zero)
+
+        let onePointFiveUlp = "0." + String(repeating: "0", count: 17) + "15"  // 1.5 × 10^-18
+        #expect(Fixed(decimal: onePointFiveUlp, rounding: .toNearestOrEven) == Fixed(raw: 2))
+    }
+
+    @Test("A significand too large to represent fails")
+    func oversizedSignificandFails() {
+        let fortyNines = String(repeating: "9", count: 40)
+        #expect(Fixed(decimal: fortyNines) == nil)
+    }
 }

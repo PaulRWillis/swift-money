@@ -66,4 +66,88 @@ extension Fixed {
 
         self = fixed
     }
+
+    // Parses a decimal string such as "0.175", "-0.05" or "100". Exact when the value fits 18 fractional
+    // digits; otherwise the excess is rounded by `rounding`. `nil` on any non-decimal input (a fraction
+    // like "1/3", exponent notation, a second point, letters) or a significand too large to represent.
+    package init?(
+        decimal string: some StringProtocol,
+        rounding: RoundingRule = .toNearestOrEven
+    ) {
+        var sign = Sign.positive
+        var magnitude: UInt128 = 0
+        var fractionDigits = 0
+        var sawPoint = false
+        var sawDigit = false
+        var isFirst = true
+
+        for byte in string.utf8 {
+            if isFirst {
+                isFirst = false
+                if byte == UInt8(ascii: "-") {
+                    sign = .negative
+                    continue
+                }
+                if byte == UInt8(ascii: "+") {
+                    continue
+                }
+            }
+
+            if byte == UInt8(ascii: ".") {
+                guard !sawPoint else {
+                    return nil
+                }
+                sawPoint = true
+                continue
+            }
+
+            guard let digit = byte.decimalDigitValue else {
+                return nil
+            }
+            sawDigit = true
+            guard let next = magnitude.multipliedByTenAdding(digit) else {
+                return nil
+            }
+            magnitude = next
+            if sawPoint {
+                fractionDigits += 1
+            }
+        }
+
+        guard sawDigit, let significand = Int128(magnitude: magnitude, sign: sign) else {
+            return nil
+        }
+
+        self.init(significand: significand, exponent: -fractionDigits, rounding: rounding)
+    }
+}
+
+private extension UInt8 {
+    // The value 0...9 of an ASCII decimal digit, or nil for any other byte. Byte-level on purpose:
+    // `Character.isNumber` would accept non-decimal and non-ASCII digits.
+    var decimalDigitValue: UInt8? {
+        let zero = UInt8(ascii: "0")
+        let nine = UInt8(ascii: "9")
+        guard (zero ... nine).contains(self) else {
+            return nil
+        }
+
+        return self - zero
+    }
+}
+
+private extension UInt128 {
+    // Shifts one decimal place and adds a digit, or nil on overflow.
+    func multipliedByTenAdding(_ digit: UInt8) -> UInt128? {
+        let (shifted, mulOverflow) = multipliedReportingOverflow(by: 10)
+        guard !mulOverflow else {
+            return nil
+        }
+        let (sum, addOverflow) = shifted.addingReportingOverflow(UInt128(digit))
+        guard !addOverflow else {
+            return nil
+        }
+
+        return sum
+    }
 }
