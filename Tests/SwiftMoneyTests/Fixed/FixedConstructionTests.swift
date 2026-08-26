@@ -86,4 +86,37 @@ struct FixedConstructionTests {
         let fortyNines = String(repeating: "9", count: 40)
         #expect(Fixed(decimal: fortyNines) == nil)
     }
+
+    @Test("Approximates a Double as its shortest decimal")
+    func approximatesDouble() {
+        #expect(Fixed(approximating: 0.05) == Fixed(raw: Fixed.scale / 20))
+        #expect(Fixed(approximating: 0.175) == Fixed(raw: 175 * Fixed.scale / 1_000))
+        #expect(Fixed(approximating: 3.0) == Fixed(raw: 3 * Fixed.scale))
+    }
+
+    @Test("A non-finite Double returns nil")
+    func nonFiniteIsNil() {
+        #expect(Fixed(approximating: .nan) == nil)
+        #expect(Fixed(approximating: .infinity) == nil)
+        #expect(Fixed(approximating: -.infinity) == nil)
+    }
+
+    @Test("A Double out of range returns nil")
+    func outOfRangeDoubleIsNil() {
+        #expect(Fixed(approximating: 1e30) == nil)
+    }
+
+    @Test("Reading back as a Double is within tolerance")
+    func doubleReadBack() {
+        #expect(abs(Fixed(raw: Fixed.scale / 20).double - 0.05) < 1e-12)
+        #expect(abs(Fixed(raw: 175 * Fixed.scale / 1_000).double - 0.175) < 1e-12)
+        #expect(abs(Fixed(raw: 3 * Fixed.scale).double - 3.0) < 1e-12)
+    }
+
+    @Test("Approximating then reading back round-trips")
+    func approximateRoundTrip() throws {
+        let fixed = try #require(Fixed(approximating: 0.175))
+
+        #expect(abs(fixed.double - 0.175) < 1e-12)
+    }
 }

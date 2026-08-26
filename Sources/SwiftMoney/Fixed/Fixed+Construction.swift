@@ -120,6 +120,24 @@ extension Fixed {
 
         self.init(significand: significand, exponent: -fractionDigits, rounding: rounding)
     }
+
+    // Approximates a Double, whose ~15–16 significant digits are the precision ceiling. `nil` when the
+    // value is not finite or is out of range. Named to signal the Double, not the Fixed, is the limit.
+    package init?(
+        approximating value: Double,
+        rounding: RoundingRule = .toNearestOrEven
+    ) {
+        guard value.isFinite else {
+            return nil
+        }
+
+        self.init(decimal: value.plainDecimalText, rounding: rounding)
+    }
+
+    // The value as a Double, for feeding solvers. Lossy at the edge, by design.
+    package var double: Double {
+        Double(raw) / Double(Fixed.scale)
+    }
 }
 
 private extension UInt8 {
@@ -149,5 +167,51 @@ private extension UInt128 {
         }
 
         return sum
+    }
+}
+
+private extension Double {
+    // The shortest decimal that reads back as this value, written out in full. `description` switches to
+    // exponent notation for very small and very large values, and the decimal parser reads digits only.
+    var plainDecimalText: String {
+        let text = description
+
+        guard let marker = text.firstIndex(where: { $0 == "e" || $0 == "E" }),
+              let exponent = Int(text[text.index(after: marker)...]) else {
+            return text
+        }
+
+        return String(text[text.startIndex ..< marker]).shiftingPoint(by: exponent)
+    }
+}
+
+private extension String {
+    // The decimal point moved, by carrying digits across it and padding with zeros. No floating point is
+    // involved, so nothing here can round.
+    func shiftingPoint(by places: Int) -> String {
+        var digits = Substring(self)
+        let sign = digits.hasPrefix("-") ? "-" : ""
+
+        if digits.hasPrefix("-") || digits.hasPrefix("+") {
+            digits.removeFirst()
+        }
+
+        let point = digits.firstIndex(of: ".") ?? digits.endIndex
+        var whole = String(digits[digits.startIndex ..< point])
+        var fraction = point == digits.endIndex ? "" : String(digits[digits.index(after: point)...])
+
+        if places >= 0 {
+            let carried = min(places, fraction.count)
+            whole += String(fraction.prefix(carried)) + String(repeating: "0", count: places - carried)
+            fraction = String(fraction.dropFirst(carried))
+        } else {
+            let carried = min(-places, whole.count)
+            fraction = String(repeating: "0", count: -places - carried)
+                + String(whole.suffix(carried))
+                + fraction
+            whole = String(whole.dropLast(carried))
+        }
+
+        return sign + (whole.isEmpty ? "0" : whole) + (fraction.isEmpty ? "" : "." + fraction)
     }
 }
