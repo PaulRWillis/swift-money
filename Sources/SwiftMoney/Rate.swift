@@ -64,6 +64,31 @@ extension Rate: ExpressibleByStringLiteral {
     }
 }
 
+public extension Rate {
+    /// The rate as a whole number of basis points, or `nil` if it is not a whole number of them.
+    ///
+    /// One basis point is a hundredth of one percent. `nil` when the rate falls between two basis
+    /// points — half a basis point, say — so a lossy read is never silent.
+    var wholeBasisPoints: Int? {
+        guard let scaled = value.multipliedIfRepresentable(by: Self.basisPointsPerWhole),
+              let whole = Int128(exactly: scaled) else {
+            return nil
+        }
+        return Int(exactly: whole)
+    }
+
+    /// The rate in basis points, rounded to a whole number by `rounding`.
+    ///
+    /// - Precondition: the rate is small enough to count in `Int` basis points; any real rate is.
+    func basisPoints(rounding: RoundingRule) -> Int {
+        let scaled = value.multiplied(by: Self.basisPointsPerWhole)
+        guard let result = Int(exactly: Int128(scaled, rounding: rounding)) else {
+            preconditionFailure("Rate is too large to express as Int basis points")  // coverage:ignore — exit-test trap
+        }
+        return result
+    }
+}
+
 private extension Rate {
     // Parses the three written forms, reporting whether `text` named the value exactly (no rounding).
     // Returns nil for anything that is not a decimal, a percentage, or a fraction.
@@ -153,4 +178,5 @@ private extension Rate {
 private extension Rate {
     static let percentFractionDigits = 2       // percent = value / 10²
     static let basisPointFractionDigits = 4    // basis points = value / 10⁴
+    static let basisPointsPerWhole = 10_000    // basis points in 1 = 10⁴
 }
