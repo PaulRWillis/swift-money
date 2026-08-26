@@ -7,7 +7,7 @@ public extension MoneyOf {
     /// comes to about GBP 450.00 settled once, and GBP 448.95 settled daily.
     ///
     /// ```swift
-    /// let interest = GBP(minorUnits: 10_000_00).unrounded * "0.045" * Rate(string: "31/365")!
+    /// let interest = (GBP(minorUnits: 10_000_00).unrounded * "0.045" * 31).divided(by: 365)
     /// interest.rounded(.toNearestOrEven)   // about £38.22
     /// ```
     struct Unrounded: Equatable, Hashable, Sendable {
@@ -111,7 +111,7 @@ public extension MoneyOf.Unrounded where C: CurrencyType {
     /// exact figure.
     ///
     /// ```swift
-    /// (GBP(minorUnits: 10_00).unrounded * Rate(string: "1/3")!).rounded(.toNearestOrEven)   // £3.33
+    /// GBP(minorUnits: 10_00).unrounded.divided(by: 3).rounded(.toNearestOrEven)   // £3.33
     /// ```
     ///
     /// - Parameter rule: How to settle any fraction of a unit.
