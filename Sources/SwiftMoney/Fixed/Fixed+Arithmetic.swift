@@ -41,4 +41,36 @@ extension Fixed {
 
         return Fixed(raw: raw)
     }
+
+    // Scales by a plain integer: the raw value multiplies directly, with no scale to divide out. Traps
+    // if the true result is out of range.
+    package func multiplied(by n: some BinaryInteger) -> Fixed {
+        let (product, overflow) = raw.multipliedReportingOverflow(by: Int128(n))
+        precondition(!overflow, "Fixed integer multiplication overflowed")
+
+        return Fixed(raw: product)
+    }
+
+    // Divides by a plain integer, rounding half to even on the remainder. Traps on a zero divisor or an
+    // out-of-range result.
+    package func divided(by n: some BinaryInteger) -> Fixed {
+        let divisor = Int128(n)
+        precondition(divisor != 0, "Fixed divided by zero")
+
+        let sign = Sign(of: raw) * Sign(of: divisor)
+        let quotient = raw.magnitude / divisor.magnitude
+        let remainder = raw.magnitude % divisor.magnitude
+
+        let roundsUp = switch comparedToHalf(remainder: remainder, divisor: divisor.magnitude) {
+        case .lessThanHalf: false
+        case .moreThanHalf: true
+        case .equalToHalf: !quotient.isMultiple(of: 2)   // ties to even
+        }
+
+        guard let result = Int128(magnitude: roundsUp ? quotient + 1 : quotient, sign: sign) else {
+            preconditionFailure("Fixed integer division overflowed")
+        }
+
+        return Fixed(raw: result)
+    }
 }
