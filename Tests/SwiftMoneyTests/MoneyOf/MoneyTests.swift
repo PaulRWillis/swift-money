@@ -460,6 +460,26 @@ struct MoneyTests {
         #expect(interest.rounded(.toNearestOrEven) == Money(minorUnits: 38_22, currency: .gbp))
     }
 
+    @Test("An unrounded Money amount scales, applies, and divides, keeping its currency")
+    func unroundedMoneyOperations() throws {
+        let sut = Money(minorUnits: 10_00, currency: .eur)
+        let third = try #require(Rate(string: "1/3"))
+
+        #expect((third * sut.unrounded).rounded(.toNearestOrEven) == Money(minorUnits: 3_33, currency: .eur))
+        #expect((sut.unrounded * 3).rounded(.toNearestOrEven) == Money(minorUnits: 30_00, currency: .eur))
+        #expect((3 * sut.unrounded).rounded(.toNearestOrEven) == Money(minorUnits: 30_00, currency: .eur))
+        #expect(sut.unrounded.applying(third) == sut.unrounded * third)
+        #expect(sut.unrounded.divided(by: 3).rounded(.toNearestOrEven) == Money(minorUnits: 3_33, currency: .eur))
+
+        var scaled = sut.unrounded
+        scaled *= third
+        #expect(scaled == sut.unrounded * third)
+
+        #expect(sut.unrounded.divided(byExactly: 0) == nil)
+        let quarter = try #require(sut.unrounded.divided(byExactly: 4))
+        #expect(quarter.rounded(.toNearestOrEven) == Money(minorUnits: 2_50, currency: .eur))
+    }
+
     @Test("Scaling an unrounded amount traps on overflow")
     func unroundedScalingTrapsOnOverflow() async {
         await #expect(processExitsWith: .failure) {
