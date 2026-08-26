@@ -27,27 +27,24 @@ public extension MoneyOf where C == AnyCurrency {
 }
 
 public extension MoneyOf where C: CurrencyType {
-    /// Returns this monetary amount scaled by a fraction.
+    /// Returns this monetary amount scaled by a rate.
     ///
-    /// A monetary amount is always a whole number of the currency's smallest unit, so a fraction that
-    /// does not divide exactly leaves part of a unit for the caller to resolve.
+    /// A monetary amount is always a whole number of the currency's smallest unit, so a rate that does
+    /// not divide exactly leaves part of a unit for the caller to resolve.
     ///
     /// ```swift
     /// GBP(minorUnits: 9_99).scaled(by: "1/3")    // .exact(£3.33)
-    /// GBP(minorUnits: 10_00).scaled(by: "1/3")   // .inexact(£3.33, remainder: 1/3)
+    /// GBP(minorUnits: 10_00).scaled(by: "0.2")   // .exact(£2.00)
+    /// GBP(minorUnits: 10).scaled(by: "0.25")     // .inexact(2p, remainder: half a unit)
     /// ```
     ///
-    /// - Parameter ratio: The fraction to scale by.
+    /// - Parameter rate: The rate to scale by.
     /// - Precondition: The result is representable. Scaling past ``min`` or ``max`` traps.
-    @inlinable
-    func scaled(by ratio: Ratio) -> Scaled<Self> {
-        guard let scaled = SwiftMoney.scaled(minorUnits, by: ratio) else {
-            preconditionFailure("Scaling by \(ratio) is not representable")
+    func scaled(by rate: Rate) -> Scaled<Self> {
+        guard let scaled = SwiftMoney.scaled(minorUnits, by: rate) else {
+            preconditionFailure("Scaling by a rate is not representable")  // coverage:ignore — exit-test trap
         }
 
-        // Switched here rather than through a shared `map`, which cost fifteen times as much: a
-        // closure taken by a generic method, called from a generic type that is not inlinable, cannot
-        // be specialized away.
         switch scaled {
         case let .exact(whole):
             return .exact(Self(unchecked: whole, storage: .implied))
@@ -56,31 +53,30 @@ public extension MoneyOf where C: CurrencyType {
         }
     }
 
-    /// Returns this monetary amount scaled by a fraction and resolved to a whole unit.
+    /// Returns this monetary amount scaled by a rate and resolved to a whole unit.
     ///
     /// Use this where the caller already knows how a leftover part should be settled. Use
     /// ``scaled(by:)`` to find out whether there was one.
     ///
     /// ```swift
-    /// GBP(minorUnits: 10).scaled(by: "1/4", rounding: .toNearestOrEven)   // 2p, from 2.5p
-    /// GBP(minorUnits: 10).scaled(by: "1/4", rounding: .up)                // 3p
+    /// GBP(minorUnits: 10).scaled(by: "0.25", rounding: .toNearestOrEven)   // 2p, from 2.5p
+    /// GBP(minorUnits: 10).scaled(by: "0.25", rounding: .up)                // 3p
     /// ```
     ///
     /// - Parameters:
-    ///   - ratio: The fraction to scale by.
+    ///   - rate: The rate to scale by.
     ///   - rule: How to resolve part of a unit left over.
     /// - Precondition: The result is representable, including where only the rounding step passes the
     ///   range.
-    @inlinable
     func scaled(
-        by ratio: Ratio,
+        by rate: Rate,
         rounding rule: RoundingRule
     ) -> Self {
         guard
-            let scaled = SwiftMoney.scaled(minorUnits, by: ratio),
+            let scaled = SwiftMoney.scaled(minorUnits, by: rate),
             let rounded = scaled.rounded(rule)
         else {
-            preconditionFailure("Scaling by \(ratio) is not representable")
+            preconditionFailure("Scaling by a rate is not representable")  // coverage:ignore — exit-test trap
         }
 
         return Self(unchecked: rounded, storage: .implied)
@@ -88,14 +84,13 @@ public extension MoneyOf where C: CurrencyType {
 }
 
 public extension MoneyOf where C == AnyCurrency {
-    /// Returns this monetary amount scaled by a fraction.
+    /// Returns this monetary amount scaled by a rate.
     ///
-    /// - Parameter ratio: The fraction to scale by.
+    /// - Parameter rate: The rate to scale by.
     /// - Precondition: The result is representable. Scaling past the largest or smallest amount traps.
-    @inlinable
-    func scaled(by ratio: Ratio) -> Scaled<Self> {
-        guard let scaled = SwiftMoney.scaled(minorUnits, by: ratio) else {
-            preconditionFailure("Scaling by \(ratio) is not representable")
+    func scaled(by rate: Rate) -> Scaled<Self> {
+        guard let scaled = SwiftMoney.scaled(minorUnits, by: rate) else {
+            preconditionFailure("Scaling by a rate is not representable")  // coverage:ignore — exit-test trap
         }
 
         switch scaled {
@@ -106,23 +101,22 @@ public extension MoneyOf where C == AnyCurrency {
         }
     }
 
-    /// Returns this monetary amount scaled by a fraction and resolved to a whole unit.
+    /// Returns this monetary amount scaled by a rate and resolved to a whole unit.
     ///
     /// - Parameters:
-    ///   - ratio: The fraction to scale by.
+    ///   - rate: The rate to scale by.
     ///   - rule: How to resolve part of a unit left over.
     /// - Precondition: The result is representable, including where only the rounding step passes the
     ///   range.
-    @inlinable
     func scaled(
-        by ratio: Ratio,
+        by rate: Rate,
         rounding rule: RoundingRule
     ) -> Self {
         guard
-            let scaled = SwiftMoney.scaled(minorUnits, by: ratio),
+            let scaled = SwiftMoney.scaled(minorUnits, by: rate),
             let rounded = scaled.rounded(rule)
         else {
-            preconditionFailure("Scaling by \(ratio) is not representable")
+            preconditionFailure("Scaling by a rate is not representable")  // coverage:ignore — exit-test trap
         }
 
         return Self(unchecked: rounded, storage: storage)

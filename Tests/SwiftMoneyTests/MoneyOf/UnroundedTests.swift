@@ -7,10 +7,10 @@ struct UnroundedTests {
     @Test("A chain settles once, where scaling settles at every step")
     func aChainSettlesOnce() throws {
         let third = try #require(Rate(string: "1/3"))
-        let chained = GBP(minorUnits: 10_00).unrounded * third * "3/1"
+        let chained = GBP(minorUnits: 10_00).unrounded * third * "3"
         let scaledTwice = GBP(minorUnits: 10_00)
-            .scaled(by: "1/3", rounding: .toNearestOrEven)
-            .scaled(by: "3/1", rounding: .toNearestOrEven)
+            .scaled(by: third, rounding: .toNearestOrEven)
+            .scaled(by: "3", rounding: .toNearestOrEven)
 
         #expect(chained.rounded(.toNearestOrEven) == GBP(minorUnits: 10_00))
         #expect(scaledTwice == GBP(minorUnits: 9_99))

@@ -349,35 +349,35 @@ struct MoneyTests {
 
     @Test("Scaling keeps the currency")
     func scalingKeepsTheCurrency() throws {
-        let sut = Money(minorUnits: 9_99, currency: .eur)
+        let sut = Money(minorUnits: 10_00, currency: .eur)
 
-        #expect(sut.scaled(by: "1/3") == .exact(Money(minorUnits: 3_33, currency: .eur)))
-        #expect(sut.scaled(by: "1/3", rounding: .toNearestOrEven) == Money(minorUnits: 3_33, currency: .eur))
+        #expect(sut.scaled(by: "0.2") == .exact(Money(minorUnits: 2_00, currency: .eur)))
+        #expect(sut.scaled(by: "0.2", rounding: .toNearestOrEven) == Money(minorUnits: 2_00, currency: .eur))
     }
 
     @Test("An inexact result keeps the currency")
     func inexactScalingKeepsTheCurrency() throws {
-        let scaled = Money(minorUnits: 10_00, currency: .eur).scaled(by: "1/3")
+        let scaled = Money(minorUnits: 10, currency: .eur).scaled(by: "0.25")
 
         guard case let .inexact(amount, remainder) = scaled else {
             Issue.record("Expected an inexact result")
             return
         }
 
-        #expect(amount == Money(minorUnits: 3_33, currency: .eur))
-        #expect(Ratio(remainder) == "1/3")
+        #expect(amount == Money(minorUnits: 2, currency: .eur))
+        #expect(Rate(remainder) == Rate.percent(50))
     }
 
     @Test("Scaling traps on overflow")
     func scalingTrapsOnOverflow() async {
         await #expect(processExitsWith: .failure) {
-            blackHole(Money(minorUnits: Int64.max, currency: .gbp).scaled(by: "2/1"))
+            blackHole(Money(minorUnits: Int64.max, currency: .gbp).scaled(by: "2"))
         }
 
         await #expect(processExitsWith: .failure) {
             blackHole(
                 Money(minorUnits: Int64.max, currency: .gbp)
-                    .scaled(by: "2/1", rounding: .towardZero)
+                    .scaled(by: "2", rounding: .towardZero)
             )
         }
     }
@@ -385,13 +385,13 @@ struct MoneyTests {
     @Test("Scaling traps on underflow")
     func scalingTrapsOnUnderflow() async {
         await #expect(processExitsWith: .failure) {
-            blackHole(Money(minorUnits: Int64.min, currency: .gbp).scaled(by: "2/1"))
+            blackHole(Money(minorUnits: Int64.min, currency: .gbp).scaled(by: "2"))
         }
 
         await #expect(processExitsWith: .failure) {
             blackHole(
                 Money(minorUnits: Int64.min, currency: .gbp)
-                    .scaled(by: "2/1", rounding: .towardZero)
+                    .scaled(by: "2", rounding: .towardZero)
             )
         }
     }
