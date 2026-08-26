@@ -4,7 +4,7 @@
 // choice. Returns `nil` when the true result does not fit `Int128` — the whole part needs more than one
 // word, rounding carries it past the range, or the signed magnitude has no counterpart. Callers that
 // treat that as a bug trap on `nil`; callers handling external data report it.
-package func bankersDivide256(
+func bankersDivide256(
     _ dividend: Wide256Magnitude,
     by divisor: UInt128,
     sign: Sign

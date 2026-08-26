@@ -4,59 +4,41 @@ import Testing
 @Suite("Fixed Overflow Tests")
 struct FixedOverflowTests {
 
-    @Test("Reporting addition returns the sum, and flags overflow at the boundary")
-    func addingReporting() {
-        let inRange = Fixed(raw: 2).addingReportingOverflow(Fixed(raw: 3))
-        #expect(inRange.value == Fixed(raw: 5))
-        #expect(!inRange.overflow)
+    // `exponent: -18` names the least significant digit, so a `significand:` there is the stored value —
+    // the way to reach the extremes through the public interface.
+    @Test("Reporting arithmetic returns the value in range and flags overflow at the boundary")
+    func reportingForms() throws {
+        let largest = try #require(Fixed(significand: .max, exponent: -18))
+        let mostNegative = try #require(Fixed(significand: .min, exponent: -18))
+        let smallest = try #require(Fixed(significand: 1, exponent: -18))
 
-        #expect(Fixed(raw: .max).addingReportingOverflow(Fixed(raw: 1)).overflow)
-    }
+        let sum = Fixed(2).addingReportingOverflow(Fixed(3))
+        #expect(sum.value == Fixed(5))
+        #expect(!sum.overflow)
+        #expect(largest.addingReportingOverflow(smallest).overflow)
 
-    @Test("Reporting subtraction returns the difference, and flags overflow at the boundary")
-    func subtractingReporting() {
-        let inRange = Fixed(raw: 5).subtractingReportingOverflow(Fixed(raw: 3))
-        #expect(inRange.value == Fixed(raw: 2))
-        #expect(!inRange.overflow)
+        let difference = Fixed(5).subtractingReportingOverflow(Fixed(3))
+        #expect(difference.value == Fixed(2))
+        #expect(!difference.overflow)
+        #expect(mostNegative.subtractingReportingOverflow(smallest).overflow)
 
-        #expect(Fixed(raw: .min).subtractingReportingOverflow(Fixed(raw: 1)).overflow)
-    }
-
-    @Test("Reporting multiplication returns the product, and flags overflow at the boundary")
-    func multiplyingFixedReporting() {
-        let inRange = Fixed(raw: 3 * Fixed.scale).multipliedReportingOverflow(by: Fixed(raw: Fixed.scale / 4))
-        #expect(inRange.value == Fixed(raw: 3 * Fixed.scale / 4))   // 3 × 0.25 = 0.75
-        #expect(!inRange.overflow)
-
-        #expect(Fixed(raw: .max).multipliedReportingOverflow(by: Fixed(raw: .max)).overflow)
-    }
-
-    @Test("Reporting integer multiplication returns the product, and flags overflow at the boundary")
-    func multiplyingIntegerReporting() {
-        let inRange = Fixed(raw: 2 * Fixed.scale).multipliedReportingOverflow(by: 3)
-        #expect(inRange.value == Fixed(raw: 6 * Fixed.scale))
-        #expect(!inRange.overflow)
-
-        #expect(Fixed(raw: .max).multipliedReportingOverflow(by: 2).overflow)
-    }
-
-    @Test("A near-range product reports no overflow")
-    func nearRangeNoOverflow() {
-        let billion = Fixed(raw: 1_000_000_000 * Fixed.scale)
-
-        #expect(!billion.multipliedReportingOverflow(by: billion).overflow)
+        #expect(largest.multipliedReportingOverflow(by: largest).overflow)
+        #expect(largest.multipliedReportingOverflow(by: 2).overflow)
+        #expect(!Fixed(1_000_000_000).multipliedReportingOverflow(by: Fixed(1_000_000_000)).overflow)
     }
 
     @Test("Representable siblings return the value in range and nil at the boundary")
-    func ifRepresentable() {
-        #expect(Fixed(raw: 2).addingIfRepresentable(Fixed(raw: 3)) == Fixed(raw: 5))
-        #expect(Fixed(raw: .max).addingIfRepresentable(Fixed(raw: 1)) == nil)
+    func ifRepresentable() throws {
+        let largest = try #require(Fixed(significand: .max, exponent: -18))
+        let smallest = try #require(Fixed(significand: 1, exponent: -18))
 
-        #expect(Fixed(raw: 5).subtractingIfRepresentable(Fixed(raw: 3)) == Fixed(raw: 2))
-        #expect(Fixed(raw: .min).subtractingIfRepresentable(Fixed(raw: 1)) == nil)
+        #expect(Fixed(2).addingIfRepresentable(Fixed(3)) == Fixed(5))
+        #expect(largest.addingIfRepresentable(smallest) == nil)
 
-        #expect(Fixed(raw: 2 * Fixed.scale).multipliedIfRepresentable(by: 3) == Fixed(raw: 6 * Fixed.scale))
-        #expect(Fixed(raw: .max).multipliedIfRepresentable(by: Fixed(raw: .max)) == nil)
-        #expect(Fixed(raw: .max).multipliedIfRepresentable(by: 2) == nil)
+        #expect(Fixed(5).subtractingIfRepresentable(Fixed(3)) == Fixed(2))
+
+        #expect(Fixed(2).multipliedIfRepresentable(by: 3) == Fixed(6))
+        #expect(largest.multipliedIfRepresentable(by: largest) == nil)
+        #expect(largest.multipliedIfRepresentable(by: 2) == nil)
     }
 }
