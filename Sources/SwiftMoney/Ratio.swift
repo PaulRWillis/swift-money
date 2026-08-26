@@ -17,8 +17,8 @@ public struct Ratio: Equatable, Hashable, Sendable {
     // Creates a ratio, reduced to lowest terms. The operand types carry the invariants, so nothing
     // here can be invalid: any numerator is valid, and a denominator is positive by construction.
     //
-    // `@usableFromInline` because `MoneyOf.unrounded` and the whole-number `*` are `@inlinable` and
-    // call it.
+    // `@usableFromInline` because the package's `@inlinable` scaling and proportion code builds a
+    // ratio through it.
     @usableFromInline
     init(
         _ numerator: Numerator,
@@ -430,8 +430,8 @@ internal extension Ratio {
     // The signed part of a ratio. Every integer is a valid numerator, so this cannot fail to be
     // created, including from a literal, unlike `Denominator`.
     //
-    // `@usableFromInline` because `MoneyOf.unrounded` and the whole-number `*` are `@inlinable` and
-    // build a ratio from one.
+    // `@usableFromInline` because the package's `@inlinable` scaling and proportion code builds a
+    // ratio from one.
     @usableFromInline
     struct Numerator: Equatable, Hashable, Sendable, CustomStringConvertible {
         fileprivate let rawValue: Int64
@@ -736,8 +736,7 @@ extension Ratio.Denominator: ExpressibleByIntegerLiteral {
     // A literal is written here in the library rather than derived from data, so a value below one is
     // a mistake in this source rather than bad input: it traps instead of failing gracefully.
     //
-    // `@usableFromInline` because `MoneyOf.unrounded` and the whole-number `*` are `@inlinable` and
-    // write a denominator of one.
+    // `@usableFromInline` for the package's `@inlinable` scaling and proportion surface.
     @usableFromInline
     init(integerLiteral value: Int64) {
         precondition(value >= 1, "A denominator must be at least 1. Value: \(value)")

@@ -11,11 +11,12 @@ public extension Sequence {
         reduce(.zero, +)
     }
 
-    /// Returns the sum of every amount, or zero if there are none, keeping every fraction exact.
+    /// Returns the sum of every amount, or zero if there are none, keeping each fraction for a single
+    /// settling.
     ///
     /// ```swift
-    /// let daily = balance.unrounded * "45/365000"
-    /// Array(repeating: daily, count: 365).total()   // a year, with nothing lost to rounding
+    /// let monthly = balance.unrounded * "0.045"
+    /// Array(repeating: monthly, count: 12).total()   // summed, ready to settle once
     /// ```
     ///
     /// - Precondition: The sum is representable. Totaling beyond ``MoneyOf/max`` traps, as `+` does.
@@ -59,7 +60,8 @@ public extension Sequence where Element == Money {
 }
 
 public extension Sequence where Element == Money.Unrounded {
-    /// Returns the sum of every amount, or `nil` if there are none, keeping every fraction exact.
+    /// Returns the sum of every amount, or `nil` if there are none, keeping each fraction for a single
+    /// settling.
     ///
     /// An empty sequence has no total because a zero cannot exist without a currency to be zero *of*.
     ///

@@ -1,6 +1,7 @@
 /// A multiplier applied to a money amount — an interest rate, a fee rate, or an exchange rate.
 public struct Rate: Equatable, Hashable, Sendable {
-    private let value: Fixed
+    // Internal, not private: `MoneyOf.Unrounded` reads it to scale an amount by the rate.
+    let value: Fixed
 
     private init(_ value: Fixed) {
         self.value = value

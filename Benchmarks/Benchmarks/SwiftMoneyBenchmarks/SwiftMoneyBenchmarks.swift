@@ -283,7 +283,7 @@ let benchmarks: @Sendable () -> Void = {
     // others settle, truncate or drift at every step, so the timings carry a correctness result too.
 
     Benchmark("MoneyOf unrounded scaling", configuration: defaultConfiguration) { benchmark in
-        let vat: Ratio = "7/40"
+        let vat: Rate = "7/40"
         var amount = 1
 
         for _ in benchmark.scaledIterations {
@@ -293,9 +293,9 @@ let benchmarks: @Sendable () -> Void = {
     }
 
     Benchmark("MoneyOf unrounded chain", configuration: defaultConfiguration) { benchmark in
-        let discount: Ratio = "9/10"
-        let vat: Ratio = "6/5"
-        let dayCount: Ratio = "31/365"
+        let discount: Rate = "9/10"
+        let vat: Rate = "6/5"
+        let dayCount: Rate = "0.085"
         var amount = 1
 
         for _ in benchmark.scaledIterations {
@@ -358,7 +358,7 @@ let benchmarks: @Sendable () -> Void = {
 
     // Cycling through pre-built operands, so neither the addition nor the scaling that produced them
     // can be hoisted out of the loop.
-    let thirds = (1 ... 16).map { GBP(minorUnits: $0 * 100).unrounded * "1/3" }
+    let thirds = (1 ... 16).map { GBP(minorUnits: $0 * 100).unrounded * "0.333333333333333333" }
 
     Benchmark("MoneyOf unrounded addition", configuration: defaultConfiguration) { benchmark in
         var index = 0
