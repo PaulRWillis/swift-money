@@ -11,10 +11,10 @@
 #
 # Requirements: Swift 6.2+, python3, and llvm-cov: via xcrun on macOS, on PATH on Linux.
 #
-# A caveat that matters when reading the output: every trap test uses
-# `#expect(processExitsWith: .failure)`, which runs its body in a child process. The child's profile is
-# never merged into the parent's, so `preconditionFailure` and the overflow paths guarding it always
-# read as uncovered even though they are tested. There are around thirty such tests.
+# A trap test uses `#expect(processExitsWith: .failure)`, whose body runs in a child process that then
+# traps — so LLVM never flushes that child's coverage counters and the `preconditionFailure` it verifies
+# cannot be measured. Those lines, and unreachable defensive branches, carry a `// coverage:ignore`
+# marker that `diff-coverage.py` leaves out of the added-line coverage.
 
 set -euo pipefail
 

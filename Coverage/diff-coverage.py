@@ -3,7 +3,7 @@
 
 Intersects the added-line ranges from a git diff with the per-line hit counts in an lcov report. Lines
 with no lcov record are not executable, so blank lines, comments and declarations drop out without
-needing to be recognized.
+needing to be recognized. A line tagged `// coverage:ignore` is excluded too — see `ignored_lines`.
 
 Usage:
     python3 Coverage/diff-coverage.py <base-ref> <lcov-file> [--format text|markdown] [--paths <glob>]
@@ -16,6 +16,11 @@ import subprocess
 import sys
 
 HUNK = re.compile(r"@@ -\S+ \+(\d+)(?:,(\d+))? @@")
+
+# A line carrying this marker is left out of the coverage numbers: a trap path an exit test verifies but
+# a crashing process can never flush counters for, or an unreachable defensive branch. Keep the marker
+# on the same line as the code it excuses.
+IGNORE_MARKER = "// coverage:ignore"
 
 
 def added_lines(base, paths):
@@ -59,14 +64,36 @@ def hit_counts(lcov, repo):
     return counts
 
 
+def ignored_lines(paths, repo):
+    """Line numbers tagged `// coverage:ignore`, per file."""
+    ignored = {}
+
+    for path in paths:
+        try:
+            with open(os.path.join(repo, path)) as source:
+                ignored[path] = {
+                    number for number, text in enumerate(source, start=1) if IGNORE_MARKER in text
+                }
+        except OSError:
+            ignored[path] = set()
+
+    return ignored
+
+
 def measure(base, lcov, paths, repo):
     added = added_lines(base, paths)
     counts = hit_counts(lcov, repo)
+    ignored = ignored_lines(added.keys(), repo)
 
-    rows, total, covered = [], 0, 0
+    rows, total, covered, excluded = [], 0, 0, 0
 
     for path in sorted(added):
         executable = added[path] & counts.get(path, {}).keys()
+
+        skipped = executable & ignored.get(path, set())
+        excluded += len(skipped)
+        executable -= skipped
+
         if not executable:
             continue
 
@@ -77,31 +104,39 @@ def measure(base, lcov, paths, repo):
         covered += hit
         rows.append((path, hit, len(executable), missed))
 
-    return rows, covered, total
+    return rows, covered, total, excluded
 
 
-CAVEAT = (
-    "Trap tests run their body in a child process, whose profile is never merged, "
-    "so `preconditionFailure` and the overflow paths guarding it read as uncovered."
-)
+def excluded_note(excluded):
+    if not excluded:
+        return None
+
+    plural = "s" if excluded != 1 else ""
+    return f"{excluded} added line{plural} excluded via `// coverage:ignore`"
 
 
-def as_text(rows, covered, total):
+def as_text(rows, covered, total, excluded):
     for path, hit, count, missed in rows:
         note = f"  missed {','.join(map(str, missed))}" if missed else ""
         print(f"  {path:<52} {hit:>4}/{count:<4} {100.0 * hit / count:5.1f}%{note}")
 
     if total:
         print(f"\n  lines added: {covered}/{total} covered = {100.0 * covered / total:.1f}%")
-        if any(missed for *_, missed in rows):
-            print(f"\n  Note: {CAVEAT}")
-    else:
+    elif not excluded:
         print("  no executable lines added")
 
+    note = excluded_note(excluded)
+    if note:
+        print(f"\n  {note}.")
 
-def as_markdown(rows, covered, total):
+
+def as_markdown(rows, covered, total, excluded):
+    note = excluded_note(excluded)
+
     if not total:
         print("_This branch adds no executable lines._")
+        if note:
+            print(f"\n> {note}.")
         return
 
     print(f"**Coverage of added lines: {covered}/{total} = {100.0 * covered / total:.1f}%**\n")
@@ -112,8 +147,8 @@ def as_markdown(rows, covered, total):
         lines = ", ".join(map(str, missed)) if missed else "n/a"
         print(f"| `{path}` | {hit}/{count} | {100.0 * hit / count:.1f}% | {lines} |")
 
-    if any(missed for *_, missed in rows):
-        print(f"\n> {CAVEAT}")
+    if note:
+        print(f"\n> {note}.")
 
 
 def main():
@@ -128,12 +163,12 @@ def main():
         ["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True, check=True
     ).stdout.strip()
 
-    rows, covered, total = measure(args.base, args.lcov, args.paths, repo)
+    rows, covered, total, excluded = measure(args.base, args.lcov, args.paths, repo)
 
     if args.format == "markdown":
-        as_markdown(rows, covered, total)
+        as_markdown(rows, covered, total, excluded)
     else:
-        as_text(rows, covered, total)
+        as_text(rows, covered, total, excluded)
 
 
 if __name__ == "__main__":

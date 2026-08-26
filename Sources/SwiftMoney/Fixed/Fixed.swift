@@ -106,7 +106,7 @@ extension Fixed {
         let numerator = Wide256Magnitude(lhs._storage.magnitude, times: UInt128(Fixed.scale))
 
         guard let storage = bankersDivide256(numerator, by: rhs._storage.magnitude, sign: sign) else {
-            preconditionFailure("Fixed division overflowed")
+            preconditionFailure("Fixed division overflowed")  // coverage:ignore — exit-test trap
         }
 
         return Fixed(_storage: storage)
@@ -138,7 +138,7 @@ extension Fixed {
         }
 
         guard let storage = signedRounded(quotient: quotient, roundsAway: roundsAway, sign: sign) else {
-            preconditionFailure("Fixed integer division overflowed")
+            preconditionFailure("Fixed integer division overflowed")  // coverage:ignore — exit-test trap
         }
 
         return Fixed(_storage: storage)
@@ -231,7 +231,7 @@ extension Fixed {
     /// - Precondition: `value` is within the representable range. Use ``init(exactly:)`` otherwise.
     package init(_ value: some BinaryInteger) {
         guard let fixed = Fixed(significand: Int128(value), exponent: 0) else {
-            preconditionFailure("Value is out of range for Fixed")
+            preconditionFailure("Value is out of range for Fixed")  // coverage:ignore — exit-test trap
         }
 
         self = fixed
