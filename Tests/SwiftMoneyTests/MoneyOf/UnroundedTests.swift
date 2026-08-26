@@ -101,6 +101,21 @@ struct UnroundedTests {
         #expect(settledDaily != roundedOnce)
     }
 
+    @Test("A fractional amount can be built from minor units")
+    func fromMinorUnits() {
+        let price = GBP.Unrounded(minorUnits: "2.3")
+
+        #expect(price.rounded(.toNearestOrEven) == GBP(minorUnits: 2))
+        #expect((price * 10).rounded(.toNearestOrEven) == GBP(minorUnits: 23))
+    }
+
+    @Test("A fractional amount can be built from major units")
+    func fromMajorUnits() {
+        let price = GBP.Unrounded(majorUnits: "0.023")   // £0.023 = 2.3 pence
+
+        #expect((price * 1_000).rounded(.toNearestOrEven) == GBP(minorUnits: 23_00))
+    }
+
     // `Rate` is deliberately not `ExpressibleByIntegerLiteral`, which is what keeps this unambiguous.
     @Test("A whole number scales an amount from either side")
     func wholeNumberScales() {

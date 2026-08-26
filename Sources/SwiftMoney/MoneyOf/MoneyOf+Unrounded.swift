@@ -344,3 +344,21 @@ public extension MoneyOf.Unrounded where C == AnyCurrency {
         return Money(unchecked: settled, storage: storage)
     }
 }
+
+public extension MoneyOf.Unrounded where C: CurrencyType {
+    /// Creates an amount from a fractional number of the currency's major units.
+    ///
+    /// `GBP.Unrounded(majorUnits: "0.023")` is 2.3 pence, ready to scale and settle once.
+    ///
+    /// - Precondition: the amount is representable.
+    init(majorUnits: Rate) {
+        self.init(majorUnits.value.multiplied(by: Int64(C.currency.unitScale)), storage: .implied)
+    }
+
+    /// Creates an amount from a fractional number of the currency's minor units.
+    ///
+    /// `GBP.Unrounded(minorUnits: "2.3")` is 2.3 pence.
+    init(minorUnits: Rate) {
+        self.init(minorUnits.value, storage: .implied)
+    }
+}
