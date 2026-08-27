@@ -65,6 +65,23 @@ struct ConversionTests {
         #expect(viaCross == GBP(minorUnits: 88_00))
     }
 
+    // Each leg carries its own margin, as a provider takes a spread on every hop, then the two compose.
+    // EUR→USD 1.25 less 20% is 1.0; USD→GBP 1.5 less 20% is 1.2; crossed that is 1.2, so €100.00 is
+    // £120.00 exactly. Guards crossing and per-leg margins together, end to end.
+    @Test("Crossing two rates that each carry a margin gives the exact amount")
+    func crossingWithMarginsIsExact() throws {
+        let eurUsdRate = try #require(Rate(string: "1.25"))
+        let usdGbpRate = try #require(Rate(string: "1.5"))
+        let margin = try #require(Margin(.percent(20)))
+
+        let eurUsd = try #require(ExchangeRate<Currencies.EUR, Currencies.USD>(eurUsdRate)).applyingMargin(margin)
+        let usdGbp = try #require(ExchangeRate<Currencies.USD, Currencies.GBP>(usdGbpRate)).applyingMargin(margin)
+
+        let gbp = EUR(minorUnits: 100_00).converted(using: eurUsd.crossed(with: usdGbp)).rounded(.toNearestOrEven)
+
+        #expect(gbp == GBP(minorUnits: 120_00))
+    }
+
     @Test("Converting an unrounded amount keeps the whole chain unsettled")
     func convertsAnUnroundedAmount() throws {
         let eurGbp = try #require(ExchangeRate<Currencies.EUR, Currencies.GBP>(quoting: 87, per: 100))
