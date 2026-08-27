@@ -1,37 +1,41 @@
 /// The weights a monetary amount is split by.
 ///
-/// A weight is a non-negative integer, and each weight sizes one part of a split. This type
-/// cannot hold an empty list, a negative weight, weights that are all zero, or weights whose
-/// sum is not representable, so a split by weights always gives every part a defined share.
+/// Each weight sizes one part of a split. This type cannot hold an empty list, weights that are all
+/// zero, or weights whose sum is not representable, so a split by weights always gives every part a
+/// defined share. A single weight is never negative, which ``Weight`` guarantees.
 public struct Weights: Equatable, Hashable, Sendable {
-    fileprivate let values: [Int64]
+    fileprivate let weights: [Weight]
     fileprivate let sum: Int64
 
-    /// Creates weights from values that may not be valid.
+    /// The weight of each part, in part order.
+    var values: [Weight] {
+        weights
+    }
+
+    /// Creates weights from a list that may not be valid.
     ///
     /// - Parameter weights: The weight of each part, in part order.
-    /// - Returns: `nil` if `weights` is empty, contains a negative value, sums to zero, or sums
-    ///   past what an amount can hold.
-    public init?(exactly weights: [Int]) {
+    /// - Returns: `nil` if `weights` is empty, sums to zero, or sums past what an amount can hold.
+    public init?(_ weights: [Weight]) {
         guard
             weights.isEmpty == false,
-            weights.allSatisfy({ $0 >= 0 }),
             let sum = Weights.sum(of: weights),
             sum > 0
         else {
             return nil
         }
 
-        self.values = weights.map(Int64.init)
+        self.weights = weights
         self.sum = sum
     }
 
-    // nil when the sum passes `Int64.max`, which a split's divisor must not.
-    private static func sum(of weights: [Int]) -> Int64? {
+    // nil when the sum passes `Int64.max`, which a split's divisor must not. A weight is never
+    // negative, so the running sum only grows.
+    private static func sum(of weights: [Weight]) -> Int64? {
         var sum: Int64 = 0
 
         for weight in weights {
-            let (next, overflow) = sum.addingReportingOverflow(Int64(weight))
+            let (next, overflow) = sum.addingReportingOverflow(Int64(Int(weight)))
 
             guard overflow == false else {
                 return nil
@@ -53,13 +57,11 @@ extension Weights: ExpressibleByArrayLiteral {
     /// ```
     ///
     /// - Parameter weights: The weight of each part, in part order.
-    /// - Precondition: `weights` is not empty, holds no negative value, and its sum is at least
-    ///   one and no more than an amount can hold.
-    public init(arrayLiteral weights: Int...) {
-        guard let valid = Weights(exactly: weights) else {
-            preconditionFailure(
-                "Weights must be non-empty, non-negative, and sum to what an amount can hold. Weights: \(weights)"
-            )
+    /// - Precondition: `weights` is not empty, and its sum is at least one and no more than an amount
+    ///   can hold.
+    public init(arrayLiteral weights: Weight...) {
+        guard let valid = Weights(weights) else {
+            preconditionFailure("Weights must be non-empty and sum to what an amount can hold. Weights: \(weights)")  // coverage:ignore — exit-test trap
         }
 
         self = valid
@@ -90,7 +92,7 @@ func split(
 
     for weight in weights.values {
         guard
-            let (quotient, remainder) = WideMagnitude(amount.magnitude, times: UInt64(weight))
+            let (quotient, remainder) = WideMagnitude(amount.magnitude, times: UInt64(Int(weight)))
                 .quotientAndRemainder(dividingBy: divisor),
             let part = Int64(magnitude: quotient, sign: sign)
         else {

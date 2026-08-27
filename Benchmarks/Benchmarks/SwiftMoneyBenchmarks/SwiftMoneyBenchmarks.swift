@@ -749,7 +749,7 @@ let benchmarks: @Sendable () -> Void = {
         var weight = 1
 
         for _ in benchmark.scaledIterations {
-            blackHole(Weights(exactly: [weight % 100, 30, 10]))
+            blackHole(Weights([Weight(integerLiteral: weight % 100), 30, 10]))
             weight &+= 1
         }
     }
