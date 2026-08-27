@@ -6,7 +6,7 @@
 /// direction cannot be mixed up.
 ///
 /// ```swift
-/// let eurGbp = ExchangeRate<Currencies.EUR, Currencies.GBP>(quoting: 87, per: 100)
+/// let eurGbp = Rate(string: "0.87").flatMap(ExchangeRate<Currencies.EUR, Currencies.GBP>.init)
 /// ```
 public struct ExchangeRate<From: CurrencyType, To: CurrencyType>: Sendable, Equatable {
     // Stored as `To` minor units per one `From` minor unit — the form `converted` and `crossed` use
@@ -35,20 +35,6 @@ public struct ExchangeRate<From: CurrencyType, To: CurrencyType>: Sendable, Equa
             .divided(by: Int64(From.currency.unitScale))
 
         self.init(minorPerMinor: Rate(scaled))
-    }
-
-    /// Creates an exchange rate from a quoted pair of minor-unit amounts, as a feed gives them.
-    ///
-    /// `ExchangeRate(quoting: 87, per: 100)` is the rate at which 100 minor units of `From` are worth 87
-    /// minor units of `To`.
-    ///
-    /// - Returns: `nil` if `fromMinorUnits` is zero, or the quoted rate is not strictly positive.
-    public init?(quoting toMinorUnits: Int64, per fromMinorUnits: Int64) {
-        guard fromMinorUnits != 0 else {
-            return nil
-        }
-
-        self.init(minorPerMinor: Rate(Fixed(toMinorUnits) / Fixed(fromMinorUnits)))
     }
 
     /// Returns the customer rate for this mid-market rate: the rate less the provider's margin.

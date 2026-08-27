@@ -6,7 +6,8 @@ struct ConversionTests {
 
     @Test("An amount converts into the target currency")
     func convertsIntoTargetCurrency() throws {
-        let eurGbp = try #require(ExchangeRate<Currencies.EUR, Currencies.GBP>(quoting: 87, per: 100))
+        let rate = try #require(Rate(string: "0.87"))
+        let eurGbp = try #require(ExchangeRate<Currencies.EUR, Currencies.GBP>(rate))
 
         let gbp = EUR(minorUnits: 100_00).converted(using: eurGbp).rounded(.toNearestOrEven)
 
@@ -84,7 +85,8 @@ struct ConversionTests {
 
     @Test("Converting an unrounded amount keeps the whole chain unsettled")
     func convertsAnUnroundedAmount() throws {
-        let eurGbp = try #require(ExchangeRate<Currencies.EUR, Currencies.GBP>(quoting: 87, per: 100))
+        let rate = try #require(Rate(string: "0.87"))
+        let eurGbp = try #require(ExchangeRate<Currencies.EUR, Currencies.GBP>(rate))
         let third = try #require(Rate(string: "1/3"))
 
         let gbp = (EUR(minorUnits: 300_00).unrounded * third).converted(using: eurGbp).rounded(.toNearestOrEven)
@@ -102,16 +104,5 @@ struct ConversionTests {
         let yen = USD(minorUnits: 1_00).converted(using: usdJpy).rounded(.toNearestOrEven)
 
         #expect(yen == JPY(minorUnits: 150))   // ¥149.5 → ¥150, not ¥14,950
-    }
-
-    // The quoting: initialiser is minor-per-minor, so it needs no scale adjustment: 100 US cents are
-    // worth 150 yen directly.
-    @Test("A minor-unit quote converts across different scales")
-    func quotedMinorUnitsAcrossScales() throws {
-        let usdJpy = try #require(ExchangeRate<Currencies.USD, Currencies.JPY>(quoting: 150, per: 1_00))
-
-        let yen = USD(minorUnits: 1_00).converted(using: usdJpy).rounded(.toNearestOrEven)
-
-        #expect(yen == JPY(minorUnits: 150))
     }
 }
