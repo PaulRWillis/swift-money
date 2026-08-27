@@ -1,8 +1,8 @@
 public extension MoneyOf where C: CurrencyType {
     /// Returns what fraction of another amount this one is.
     ///
-    /// The inverse of ``applying(_:rounding:)``: applying the result to the whole gives this amount
-    /// back, within one minor unit.
+    /// The inverse of ``applying(_:)``: applying the result to the whole and rounding gives this
+    /// amount back, within one minor unit.
     ///
     /// ```swift
     /// GBP(minorUnits: 20_00).proportion(of: GBP(minorUnits: 100_00))   // 0.2

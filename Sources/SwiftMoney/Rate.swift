@@ -1,9 +1,9 @@
 /// A multiplier applied to a money amount — an interest rate, a fee rate, or an exchange rate.
 public struct Rate: Equatable, Hashable, Sendable {
-    // Internal, not private: `MoneyOf.Unrounded` and the scaling remainder read it to scale by the rate.
+    // Internal, not private: `MoneyOf.Unrounded` and conversions read it to scale by the rate.
     let value: Fixed
 
-    // Internal, not private: `Rate+Scaling.swift` builds a rate from a division's leftover.
+    // Internal, not private: `MoneyOf.proportion(of:)` builds a rate from a computed value.
     init(_ value: Fixed) {
         self.value = value
     }

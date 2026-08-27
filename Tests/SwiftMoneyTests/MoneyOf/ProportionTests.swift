@@ -88,7 +88,7 @@ struct ProportionTests {
     func proportionInvertsScaling(_ pair: (part: GBP, whole: GBP)) throws {
         let fraction = try #require(pair.part.proportion(of: pair.whole))
 
-        #expect(pair.whole.scaled(by: fraction, rounding: .toNearestOrEven) == pair.part)
+        #expect(pair.whole.applying(fraction).rounded(.toNearestOrEven) == pair.part)
     }
 
     @Test("A part of a whole in the same currency is the fraction between them")
