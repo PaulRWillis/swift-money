@@ -36,6 +36,19 @@ struct ConversionTests {
         #expect(customer < mid)
     }
 
+    // The whole chain to an exact figure: a mid rate of 1.5 less a 20% margin is 1.2, so £1.00 converts
+    // to exactly €1.20. Guards the rate and the conversion together, not each on its own.
+    @Test("Applying a margin then converting gives the exact amount")
+    func marginThenConvertIsExact() throws {
+        let midRate = try #require(Rate(string: "1.5"))
+        let mid = try #require(ExchangeRate<Currencies.GBP, Currencies.EUR>(midRate))
+        let margin = try #require(Margin(.percent(20)))
+
+        let euros = GBP(minorUnits: 1_00).converted(using: mid.applyingMargin(margin)).rounded(.toNearestOrEven)
+
+        #expect(euros == EUR(minorUnits: 1_20))
+    }
+
     @Test("A multi-hop conversion via a cross rate matches the direct cross rate")
     func multiHopMatchesCrossRate() throws {
         let eurUsdRate = try #require(Rate(string: "1.1"))
