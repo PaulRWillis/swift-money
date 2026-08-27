@@ -8,507 +8,507 @@
 
 public extension Currency {
     /// UAE Dirham.
-    static let aed = Currency(code: "AED", unitScale: 100)
+    static let aed = Currency(unchecked: "AED", unitScale: 100)
 
     /// Afghani.
-    static let afn = Currency(code: "AFN", unitScale: 100)
+    static let afn = Currency(unchecked: "AFN", unitScale: 100)
 
     /// Lek.
-    static let all = Currency(code: "ALL", unitScale: 100)
+    static let all = Currency(unchecked: "ALL", unitScale: 100)
 
     /// Armenian Dram.
-    static let amd = Currency(code: "AMD", unitScale: 100)
+    static let amd = Currency(unchecked: "AMD", unitScale: 100)
 
     /// Kwanza.
-    static let aoa = Currency(code: "AOA", unitScale: 100)
+    static let aoa = Currency(unchecked: "AOA", unitScale: 100)
 
     /// Argentine Peso.
-    static let ars = Currency(code: "ARS", unitScale: 100)
+    static let ars = Currency(unchecked: "ARS", unitScale: 100)
 
     /// Australian Dollar.
-    static let aud = Currency(code: "AUD", unitScale: 100)
+    static let aud = Currency(unchecked: "AUD", unitScale: 100)
 
     /// Aruban Florin.
-    static let awg = Currency(code: "AWG", unitScale: 100)
+    static let awg = Currency(unchecked: "AWG", unitScale: 100)
 
     /// Azerbaijan Manat.
-    static let azn = Currency(code: "AZN", unitScale: 100)
+    static let azn = Currency(unchecked: "AZN", unitScale: 100)
 
     /// Convertible Mark.
-    static let bam = Currency(code: "BAM", unitScale: 100)
+    static let bam = Currency(unchecked: "BAM", unitScale: 100)
 
     /// Barbados Dollar.
-    static let bbd = Currency(code: "BBD", unitScale: 100)
+    static let bbd = Currency(unchecked: "BBD", unitScale: 100)
 
     /// Taka.
-    static let bdt = Currency(code: "BDT", unitScale: 100)
+    static let bdt = Currency(unchecked: "BDT", unitScale: 100)
 
     /// Bahraini Dinar.
-    static let bhd = Currency(code: "BHD", unitScale: 1_000)
+    static let bhd = Currency(unchecked: "BHD", unitScale: 1_000)
 
     /// Burundi Franc.
-    static let bif = Currency(code: "BIF", unitScale: 1)
+    static let bif = Currency(unchecked: "BIF", unitScale: 1)
 
     /// Bermudian Dollar.
-    static let bmd = Currency(code: "BMD", unitScale: 100)
+    static let bmd = Currency(unchecked: "BMD", unitScale: 100)
 
     /// Brunei Dollar.
-    static let bnd = Currency(code: "BND", unitScale: 100)
+    static let bnd = Currency(unchecked: "BND", unitScale: 100)
 
     /// Boliviano.
-    static let bob = Currency(code: "BOB", unitScale: 100)
+    static let bob = Currency(unchecked: "BOB", unitScale: 100)
 
     /// Mvdol.
-    static let bov = Currency(code: "BOV", unitScale: 100)
+    static let bov = Currency(unchecked: "BOV", unitScale: 100)
 
     /// Brazilian Real.
-    static let brl = Currency(code: "BRL", unitScale: 100)
+    static let brl = Currency(unchecked: "BRL", unitScale: 100)
 
     /// Bahamian Dollar.
-    static let bsd = Currency(code: "BSD", unitScale: 100)
+    static let bsd = Currency(unchecked: "BSD", unitScale: 100)
 
     /// Ngultrum.
-    static let btn = Currency(code: "BTN", unitScale: 100)
+    static let btn = Currency(unchecked: "BTN", unitScale: 100)
 
     /// Pula.
-    static let bwp = Currency(code: "BWP", unitScale: 100)
+    static let bwp = Currency(unchecked: "BWP", unitScale: 100)
 
     /// Belarusian Ruble.
-    static let byn = Currency(code: "BYN", unitScale: 100)
+    static let byn = Currency(unchecked: "BYN", unitScale: 100)
 
     /// Belize Dollar.
-    static let bzd = Currency(code: "BZD", unitScale: 100)
+    static let bzd = Currency(unchecked: "BZD", unitScale: 100)
 
     /// Canadian Dollar.
-    static let cad = Currency(code: "CAD", unitScale: 100)
+    static let cad = Currency(unchecked: "CAD", unitScale: 100)
 
     /// Congolese Franc.
-    static let cdf = Currency(code: "CDF", unitScale: 100)
+    static let cdf = Currency(unchecked: "CDF", unitScale: 100)
 
     /// WIR Euro.
-    static let che = Currency(code: "CHE", unitScale: 100)
+    static let che = Currency(unchecked: "CHE", unitScale: 100)
 
     /// Swiss Franc.
-    static let chf = Currency(code: "CHF", unitScale: 100)
+    static let chf = Currency(unchecked: "CHF", unitScale: 100)
 
     /// WIR Franc.
-    static let chw = Currency(code: "CHW", unitScale: 100)
+    static let chw = Currency(unchecked: "CHW", unitScale: 100)
 
     /// Unidad de Fomento.
-    static let clf = Currency(code: "CLF", unitScale: 10_000)
+    static let clf = Currency(unchecked: "CLF", unitScale: 10_000)
 
     /// Chilean Peso.
-    static let clp = Currency(code: "CLP", unitScale: 1)
+    static let clp = Currency(unchecked: "CLP", unitScale: 1)
 
     /// Yuan Renminbi.
-    static let cny = Currency(code: "CNY", unitScale: 100)
+    static let cny = Currency(unchecked: "CNY", unitScale: 100)
 
     /// Colombian Peso.
-    static let cop = Currency(code: "COP", unitScale: 100)
+    static let cop = Currency(unchecked: "COP", unitScale: 100)
 
     /// Unidad de Valor Real.
-    static let cou = Currency(code: "COU", unitScale: 100)
+    static let cou = Currency(unchecked: "COU", unitScale: 100)
 
     /// Costa Rican Colon.
-    static let crc = Currency(code: "CRC", unitScale: 100)
+    static let crc = Currency(unchecked: "CRC", unitScale: 100)
 
     /// Cuban Peso.
-    static let cup = Currency(code: "CUP", unitScale: 100)
+    static let cup = Currency(unchecked: "CUP", unitScale: 100)
 
     /// Cabo Verde Escudo.
-    static let cve = Currency(code: "CVE", unitScale: 100)
+    static let cve = Currency(unchecked: "CVE", unitScale: 100)
 
     /// Czech Koruna.
-    static let czk = Currency(code: "CZK", unitScale: 100)
+    static let czk = Currency(unchecked: "CZK", unitScale: 100)
 
     /// Djibouti Franc.
-    static let djf = Currency(code: "DJF", unitScale: 1)
+    static let djf = Currency(unchecked: "DJF", unitScale: 1)
 
     /// Danish Krone.
-    static let dkk = Currency(code: "DKK", unitScale: 100)
+    static let dkk = Currency(unchecked: "DKK", unitScale: 100)
 
     /// Dominican Peso.
-    static let dop = Currency(code: "DOP", unitScale: 100)
+    static let dop = Currency(unchecked: "DOP", unitScale: 100)
 
     /// Algerian Dinar.
-    static let dzd = Currency(code: "DZD", unitScale: 100)
+    static let dzd = Currency(unchecked: "DZD", unitScale: 100)
 
     /// Egyptian Pound.
-    static let egp = Currency(code: "EGP", unitScale: 100)
+    static let egp = Currency(unchecked: "EGP", unitScale: 100)
 
     /// Nakfa.
-    static let ern = Currency(code: "ERN", unitScale: 100)
+    static let ern = Currency(unchecked: "ERN", unitScale: 100)
 
     /// Ethiopian Birr.
-    static let etb = Currency(code: "ETB", unitScale: 100)
+    static let etb = Currency(unchecked: "ETB", unitScale: 100)
 
     /// Euro.
-    static let eur = Currency(code: "EUR", unitScale: 100)
+    static let eur = Currency(unchecked: "EUR", unitScale: 100)
 
     /// Fiji Dollar.
-    static let fjd = Currency(code: "FJD", unitScale: 100)
+    static let fjd = Currency(unchecked: "FJD", unitScale: 100)
 
     /// Falkland Islands Pound.
-    static let fkp = Currency(code: "FKP", unitScale: 100)
+    static let fkp = Currency(unchecked: "FKP", unitScale: 100)
 
     /// Pound Sterling.
-    static let gbp = Currency(code: "GBP", unitScale: 100)
+    static let gbp = Currency(unchecked: "GBP", unitScale: 100)
 
     /// Lari.
-    static let gel = Currency(code: "GEL", unitScale: 100)
+    static let gel = Currency(unchecked: "GEL", unitScale: 100)
 
     /// Ghana Cedi.
-    static let ghs = Currency(code: "GHS", unitScale: 100)
+    static let ghs = Currency(unchecked: "GHS", unitScale: 100)
 
     /// Gibraltar Pound.
-    static let gip = Currency(code: "GIP", unitScale: 100)
+    static let gip = Currency(unchecked: "GIP", unitScale: 100)
 
     /// Dalasi.
-    static let gmd = Currency(code: "GMD", unitScale: 100)
+    static let gmd = Currency(unchecked: "GMD", unitScale: 100)
 
     /// Guinean Franc.
-    static let gnf = Currency(code: "GNF", unitScale: 1)
+    static let gnf = Currency(unchecked: "GNF", unitScale: 1)
 
     /// Quetzal.
-    static let gtq = Currency(code: "GTQ", unitScale: 100)
+    static let gtq = Currency(unchecked: "GTQ", unitScale: 100)
 
     /// Guyana Dollar.
-    static let gyd = Currency(code: "GYD", unitScale: 100)
+    static let gyd = Currency(unchecked: "GYD", unitScale: 100)
 
     /// Hong Kong Dollar.
-    static let hkd = Currency(code: "HKD", unitScale: 100)
+    static let hkd = Currency(unchecked: "HKD", unitScale: 100)
 
     /// Lempira.
-    static let hnl = Currency(code: "HNL", unitScale: 100)
+    static let hnl = Currency(unchecked: "HNL", unitScale: 100)
 
     /// Gourde.
-    static let htg = Currency(code: "HTG", unitScale: 100)
+    static let htg = Currency(unchecked: "HTG", unitScale: 100)
 
     /// Forint.
-    static let huf = Currency(code: "HUF", unitScale: 100)
+    static let huf = Currency(unchecked: "HUF", unitScale: 100)
 
     /// Rupiah.
-    static let idr = Currency(code: "IDR", unitScale: 100)
+    static let idr = Currency(unchecked: "IDR", unitScale: 100)
 
     /// New Israeli Sheqel.
-    static let ils = Currency(code: "ILS", unitScale: 100)
+    static let ils = Currency(unchecked: "ILS", unitScale: 100)
 
     /// Indian Rupee.
-    static let inr = Currency(code: "INR", unitScale: 100)
+    static let inr = Currency(unchecked: "INR", unitScale: 100)
 
     /// Iraqi Dinar.
-    static let iqd = Currency(code: "IQD", unitScale: 1_000)
+    static let iqd = Currency(unchecked: "IQD", unitScale: 1_000)
 
     /// Iranian Rial.
-    static let irr = Currency(code: "IRR", unitScale: 100)
+    static let irr = Currency(unchecked: "IRR", unitScale: 100)
 
     /// Iceland Krona.
-    static let isk = Currency(code: "ISK", unitScale: 1)
+    static let isk = Currency(unchecked: "ISK", unitScale: 1)
 
     /// Jamaican Dollar.
-    static let jmd = Currency(code: "JMD", unitScale: 100)
+    static let jmd = Currency(unchecked: "JMD", unitScale: 100)
 
     /// Jordanian Dinar.
-    static let jod = Currency(code: "JOD", unitScale: 1_000)
+    static let jod = Currency(unchecked: "JOD", unitScale: 1_000)
 
     /// Yen.
-    static let jpy = Currency(code: "JPY", unitScale: 1)
+    static let jpy = Currency(unchecked: "JPY", unitScale: 1)
 
     /// Kenyan Shilling.
-    static let kes = Currency(code: "KES", unitScale: 100)
+    static let kes = Currency(unchecked: "KES", unitScale: 100)
 
     /// Som.
-    static let kgs = Currency(code: "KGS", unitScale: 100)
+    static let kgs = Currency(unchecked: "KGS", unitScale: 100)
 
     /// Riel.
-    static let khr = Currency(code: "KHR", unitScale: 100)
+    static let khr = Currency(unchecked: "KHR", unitScale: 100)
 
     /// Comorian Franc.
-    static let kmf = Currency(code: "KMF", unitScale: 1)
+    static let kmf = Currency(unchecked: "KMF", unitScale: 1)
 
     /// North Korean Won.
-    static let kpw = Currency(code: "KPW", unitScale: 100)
+    static let kpw = Currency(unchecked: "KPW", unitScale: 100)
 
     /// Won.
-    static let krw = Currency(code: "KRW", unitScale: 1)
+    static let krw = Currency(unchecked: "KRW", unitScale: 1)
 
     /// Kuwaiti Dinar.
-    static let kwd = Currency(code: "KWD", unitScale: 1_000)
+    static let kwd = Currency(unchecked: "KWD", unitScale: 1_000)
 
     /// Cayman Islands Dollar.
-    static let kyd = Currency(code: "KYD", unitScale: 100)
+    static let kyd = Currency(unchecked: "KYD", unitScale: 100)
 
     /// Tenge.
-    static let kzt = Currency(code: "KZT", unitScale: 100)
+    static let kzt = Currency(unchecked: "KZT", unitScale: 100)
 
     /// Lao Kip.
-    static let lak = Currency(code: "LAK", unitScale: 100)
+    static let lak = Currency(unchecked: "LAK", unitScale: 100)
 
     /// Lebanese Pound.
-    static let lbp = Currency(code: "LBP", unitScale: 100)
+    static let lbp = Currency(unchecked: "LBP", unitScale: 100)
 
     /// Sri Lanka Rupee.
-    static let lkr = Currency(code: "LKR", unitScale: 100)
+    static let lkr = Currency(unchecked: "LKR", unitScale: 100)
 
     /// Liberian Dollar.
-    static let lrd = Currency(code: "LRD", unitScale: 100)
+    static let lrd = Currency(unchecked: "LRD", unitScale: 100)
 
     /// Loti.
-    static let lsl = Currency(code: "LSL", unitScale: 100)
+    static let lsl = Currency(unchecked: "LSL", unitScale: 100)
 
     /// Libyan Dinar.
-    static let lyd = Currency(code: "LYD", unitScale: 1_000)
+    static let lyd = Currency(unchecked: "LYD", unitScale: 1_000)
 
     /// Moroccan Dirham.
-    static let mad = Currency(code: "MAD", unitScale: 100)
+    static let mad = Currency(unchecked: "MAD", unitScale: 100)
 
     /// Moldovan Leu.
-    static let mdl = Currency(code: "MDL", unitScale: 100)
+    static let mdl = Currency(unchecked: "MDL", unitScale: 100)
 
     /// Malagasy Ariary.
     ///
     /// Divides into five iraimbilanja, which ISO 4217 cannot express: its
     /// exponent field holds a power of ten, so it records 2 and footnotes the currency
     /// `divby5`. The scale here follows ISO, because that is what payment systems assume.
-    static let mga = Currency(code: "MGA", unitScale: 100)
+    static let mga = Currency(unchecked: "MGA", unitScale: 100)
 
     /// Denar.
-    static let mkd = Currency(code: "MKD", unitScale: 100)
+    static let mkd = Currency(unchecked: "MKD", unitScale: 100)
 
     /// Kyat.
-    static let mmk = Currency(code: "MMK", unitScale: 100)
+    static let mmk = Currency(unchecked: "MMK", unitScale: 100)
 
     /// Tugrik.
-    static let mnt = Currency(code: "MNT", unitScale: 100)
+    static let mnt = Currency(unchecked: "MNT", unitScale: 100)
 
     /// Pataca.
-    static let mop = Currency(code: "MOP", unitScale: 100)
+    static let mop = Currency(unchecked: "MOP", unitScale: 100)
 
     /// Ouguiya.
     ///
     /// Divides into five khoums, which ISO 4217 cannot express: its
     /// exponent field holds a power of ten, so it records 2 and footnotes the currency
     /// `divby5`. The scale here follows ISO, because that is what payment systems assume.
-    static let mru = Currency(code: "MRU", unitScale: 100)
+    static let mru = Currency(unchecked: "MRU", unitScale: 100)
 
     /// Mauritius Rupee.
-    static let mur = Currency(code: "MUR", unitScale: 100)
+    static let mur = Currency(unchecked: "MUR", unitScale: 100)
 
     /// Rufiyaa.
-    static let mvr = Currency(code: "MVR", unitScale: 100)
+    static let mvr = Currency(unchecked: "MVR", unitScale: 100)
 
     /// Malawi Kwacha.
-    static let mwk = Currency(code: "MWK", unitScale: 100)
+    static let mwk = Currency(unchecked: "MWK", unitScale: 100)
 
     /// Mexican Peso.
-    static let mxn = Currency(code: "MXN", unitScale: 100)
+    static let mxn = Currency(unchecked: "MXN", unitScale: 100)
 
     /// Mexican Unidad de Inversion (UDI).
-    static let mxv = Currency(code: "MXV", unitScale: 100)
+    static let mxv = Currency(unchecked: "MXV", unitScale: 100)
 
     /// Malaysian Ringgit.
-    static let myr = Currency(code: "MYR", unitScale: 100)
+    static let myr = Currency(unchecked: "MYR", unitScale: 100)
 
     /// Mozambique Metical.
-    static let mzn = Currency(code: "MZN", unitScale: 100)
+    static let mzn = Currency(unchecked: "MZN", unitScale: 100)
 
     /// Namibia Dollar.
-    static let nad = Currency(code: "NAD", unitScale: 100)
+    static let nad = Currency(unchecked: "NAD", unitScale: 100)
 
     /// Naira.
-    static let ngn = Currency(code: "NGN", unitScale: 100)
+    static let ngn = Currency(unchecked: "NGN", unitScale: 100)
 
     /// Cordoba Oro.
-    static let nio = Currency(code: "NIO", unitScale: 100)
+    static let nio = Currency(unchecked: "NIO", unitScale: 100)
 
     /// Norwegian Krone.
-    static let nok = Currency(code: "NOK", unitScale: 100)
+    static let nok = Currency(unchecked: "NOK", unitScale: 100)
 
     /// Nepalese Rupee.
-    static let npr = Currency(code: "NPR", unitScale: 100)
+    static let npr = Currency(unchecked: "NPR", unitScale: 100)
 
     /// New Zealand Dollar.
-    static let nzd = Currency(code: "NZD", unitScale: 100)
+    static let nzd = Currency(unchecked: "NZD", unitScale: 100)
 
     /// Rial Omani.
-    static let omr = Currency(code: "OMR", unitScale: 1_000)
+    static let omr = Currency(unchecked: "OMR", unitScale: 1_000)
 
     /// Balboa.
-    static let pab = Currency(code: "PAB", unitScale: 100)
+    static let pab = Currency(unchecked: "PAB", unitScale: 100)
 
     /// Sol.
-    static let pen = Currency(code: "PEN", unitScale: 100)
+    static let pen = Currency(unchecked: "PEN", unitScale: 100)
 
     /// Kina.
-    static let pgk = Currency(code: "PGK", unitScale: 100)
+    static let pgk = Currency(unchecked: "PGK", unitScale: 100)
 
     /// Philippine Peso.
-    static let php = Currency(code: "PHP", unitScale: 100)
+    static let php = Currency(unchecked: "PHP", unitScale: 100)
 
     /// Pakistan Rupee.
-    static let pkr = Currency(code: "PKR", unitScale: 100)
+    static let pkr = Currency(unchecked: "PKR", unitScale: 100)
 
     /// Zloty.
-    static let pln = Currency(code: "PLN", unitScale: 100)
+    static let pln = Currency(unchecked: "PLN", unitScale: 100)
 
     /// Guarani.
-    static let pyg = Currency(code: "PYG", unitScale: 1)
+    static let pyg = Currency(unchecked: "PYG", unitScale: 1)
 
     /// Qatari Rial.
-    static let qar = Currency(code: "QAR", unitScale: 100)
+    static let qar = Currency(unchecked: "QAR", unitScale: 100)
 
     /// Romanian Leu.
-    static let ron = Currency(code: "RON", unitScale: 100)
+    static let ron = Currency(unchecked: "RON", unitScale: 100)
 
     /// Serbian Dinar.
-    static let rsd = Currency(code: "RSD", unitScale: 100)
+    static let rsd = Currency(unchecked: "RSD", unitScale: 100)
 
     /// Russian Ruble.
-    static let rub = Currency(code: "RUB", unitScale: 100)
+    static let rub = Currency(unchecked: "RUB", unitScale: 100)
 
     /// Rwanda Franc.
-    static let rwf = Currency(code: "RWF", unitScale: 1)
+    static let rwf = Currency(unchecked: "RWF", unitScale: 1)
 
     /// Saudi Riyal.
-    static let sar = Currency(code: "SAR", unitScale: 100)
+    static let sar = Currency(unchecked: "SAR", unitScale: 100)
 
     /// Solomon Islands Dollar.
-    static let sbd = Currency(code: "SBD", unitScale: 100)
+    static let sbd = Currency(unchecked: "SBD", unitScale: 100)
 
     /// Seychelles Rupee.
-    static let scr = Currency(code: "SCR", unitScale: 100)
+    static let scr = Currency(unchecked: "SCR", unitScale: 100)
 
     /// Sudanese Pound.
-    static let sdg = Currency(code: "SDG", unitScale: 100)
+    static let sdg = Currency(unchecked: "SDG", unitScale: 100)
 
     /// Swedish Krona.
-    static let sek = Currency(code: "SEK", unitScale: 100)
+    static let sek = Currency(unchecked: "SEK", unitScale: 100)
 
     /// Singapore Dollar.
-    static let sgd = Currency(code: "SGD", unitScale: 100)
+    static let sgd = Currency(unchecked: "SGD", unitScale: 100)
 
     /// Saint Helena Pound.
-    static let shp = Currency(code: "SHP", unitScale: 100)
+    static let shp = Currency(unchecked: "SHP", unitScale: 100)
 
     /// Leone.
-    static let sle = Currency(code: "SLE", unitScale: 100)
+    static let sle = Currency(unchecked: "SLE", unitScale: 100)
 
     /// Somali Shilling.
-    static let sos = Currency(code: "SOS", unitScale: 100)
+    static let sos = Currency(unchecked: "SOS", unitScale: 100)
 
     /// Surinam Dollar.
-    static let srd = Currency(code: "SRD", unitScale: 100)
+    static let srd = Currency(unchecked: "SRD", unitScale: 100)
 
     /// South Sudanese Pound.
-    static let ssp = Currency(code: "SSP", unitScale: 100)
+    static let ssp = Currency(unchecked: "SSP", unitScale: 100)
 
     /// Dobra.
-    static let stn = Currency(code: "STN", unitScale: 100)
+    static let stn = Currency(unchecked: "STN", unitScale: 100)
 
     /// El Salvador Colon.
-    static let svc = Currency(code: "SVC", unitScale: 100)
+    static let svc = Currency(unchecked: "SVC", unitScale: 100)
 
     /// Syrian Pound.
-    static let syp = Currency(code: "SYP", unitScale: 100)
+    static let syp = Currency(unchecked: "SYP", unitScale: 100)
 
     /// Lilangeni.
-    static let szl = Currency(code: "SZL", unitScale: 100)
+    static let szl = Currency(unchecked: "SZL", unitScale: 100)
 
     /// Baht.
-    static let thb = Currency(code: "THB", unitScale: 100)
+    static let thb = Currency(unchecked: "THB", unitScale: 100)
 
     /// Somoni.
-    static let tjs = Currency(code: "TJS", unitScale: 100)
+    static let tjs = Currency(unchecked: "TJS", unitScale: 100)
 
     /// Turkmenistan New Manat.
-    static let tmt = Currency(code: "TMT", unitScale: 100)
+    static let tmt = Currency(unchecked: "TMT", unitScale: 100)
 
     /// Tunisian Dinar.
-    static let tnd = Currency(code: "TND", unitScale: 1_000)
+    static let tnd = Currency(unchecked: "TND", unitScale: 1_000)
 
     /// Pa’anga.
-    static let top = Currency(code: "TOP", unitScale: 100)
+    static let top = Currency(unchecked: "TOP", unitScale: 100)
 
     /// Turkish Lira.
-    static let `try` = Currency(code: "TRY", unitScale: 100)
+    static let `try` = Currency(unchecked: "TRY", unitScale: 100)
 
     /// Trinidad and Tobago Dollar.
-    static let ttd = Currency(code: "TTD", unitScale: 100)
+    static let ttd = Currency(unchecked: "TTD", unitScale: 100)
 
     /// New Taiwan Dollar.
-    static let twd = Currency(code: "TWD", unitScale: 100)
+    static let twd = Currency(unchecked: "TWD", unitScale: 100)
 
     /// Tanzanian Shilling.
-    static let tzs = Currency(code: "TZS", unitScale: 100)
+    static let tzs = Currency(unchecked: "TZS", unitScale: 100)
 
     /// Hryvnia.
-    static let uah = Currency(code: "UAH", unitScale: 100)
+    static let uah = Currency(unchecked: "UAH", unitScale: 100)
 
     /// Uganda Shilling.
-    static let ugx = Currency(code: "UGX", unitScale: 1)
+    static let ugx = Currency(unchecked: "UGX", unitScale: 1)
 
     /// US Dollar.
-    static let usd = Currency(code: "USD", unitScale: 100)
+    static let usd = Currency(unchecked: "USD", unitScale: 100)
 
     /// US Dollar (Next day).
-    static let usn = Currency(code: "USN", unitScale: 100)
+    static let usn = Currency(unchecked: "USN", unitScale: 100)
 
     /// Uruguay Peso en Unidades Indexadas (UI).
-    static let uyi = Currency(code: "UYI", unitScale: 1)
+    static let uyi = Currency(unchecked: "UYI", unitScale: 1)
 
     /// Peso Uruguayo.
-    static let uyu = Currency(code: "UYU", unitScale: 100)
+    static let uyu = Currency(unchecked: "UYU", unitScale: 100)
 
     /// Unidad Previsional.
-    static let uyw = Currency(code: "UYW", unitScale: 10_000)
+    static let uyw = Currency(unchecked: "UYW", unitScale: 10_000)
 
     /// Uzbekistan Sum.
-    static let uzs = Currency(code: "UZS", unitScale: 100)
+    static let uzs = Currency(unchecked: "UZS", unitScale: 100)
 
     /// Bolívar Soberano.
-    static let ved = Currency(code: "VED", unitScale: 100)
+    static let ved = Currency(unchecked: "VED", unitScale: 100)
 
     /// Bolívar Soberano.
-    static let ves = Currency(code: "VES", unitScale: 100)
+    static let ves = Currency(unchecked: "VES", unitScale: 100)
 
     /// Dong.
-    static let vnd = Currency(code: "VND", unitScale: 1)
+    static let vnd = Currency(unchecked: "VND", unitScale: 1)
 
     /// Vatu.
-    static let vuv = Currency(code: "VUV", unitScale: 1)
+    static let vuv = Currency(unchecked: "VUV", unitScale: 1)
 
     /// Tala.
-    static let wst = Currency(code: "WST", unitScale: 100)
+    static let wst = Currency(unchecked: "WST", unitScale: 100)
 
     /// Arab Accounting Dinar.
-    static let xad = Currency(code: "XAD", unitScale: 100)
+    static let xad = Currency(unchecked: "XAD", unitScale: 100)
 
     /// CFA Franc BEAC.
-    static let xaf = Currency(code: "XAF", unitScale: 1)
+    static let xaf = Currency(unchecked: "XAF", unitScale: 1)
 
     /// East Caribbean Dollar.
-    static let xcd = Currency(code: "XCD", unitScale: 100)
+    static let xcd = Currency(unchecked: "XCD", unitScale: 100)
 
     /// Caribbean Guilder.
-    static let xcg = Currency(code: "XCG", unitScale: 100)
+    static let xcg = Currency(unchecked: "XCG", unitScale: 100)
 
     /// CFA Franc BCEAO.
-    static let xof = Currency(code: "XOF", unitScale: 1)
+    static let xof = Currency(unchecked: "XOF", unitScale: 1)
 
     /// CFP Franc.
-    static let xpf = Currency(code: "XPF", unitScale: 1)
+    static let xpf = Currency(unchecked: "XPF", unitScale: 1)
 
     /// Yemeni Rial.
-    static let yer = Currency(code: "YER", unitScale: 100)
+    static let yer = Currency(unchecked: "YER", unitScale: 100)
 
     /// Rand.
-    static let zar = Currency(code: "ZAR", unitScale: 100)
+    static let zar = Currency(unchecked: "ZAR", unitScale: 100)
 
     /// Zambian Kwacha.
-    static let zmw = Currency(code: "ZMW", unitScale: 100)
+    static let zmw = Currency(unchecked: "ZMW", unitScale: 100)
 
     /// Zimbabwe Gold.
-    static let zwg = Currency(code: "ZWG", unitScale: 100)
+    static let zwg = Currency(unchecked: "ZWG", unitScale: 100)
 }
 
 

@@ -29,7 +29,7 @@ struct MoneyParseStrategyCodableTests {
 
     @Test("A runtime strategy carries a currency no ISO list names")
     func roundTripsACurrencyOutsideTheISOList() throws {
-        let points = Currency(code: "LTY", unitScale: 1)
+        let points = customCurrency(code: "LTY", unitScale: 1)
         let sut = Money.FormatStyle().locale(Self.britishEnglish).parseStrategy(for: points)
 
         #expect(try Self.decoded(sut, as: Money.ParseStrategy.self) == sut)
@@ -46,11 +46,16 @@ struct MoneyParseStrategyCodableTests {
 
     @Test("A typed strategy refuses its own code at another scale")
     func refusesItsOwnCodeAtAnotherScale() throws {
-        let milled = Currency(code: "GBP", unitScale: 1_000)
-        let strategy = Money.FormatStyle().locale(Self.britishEnglish).parseStrategy(for: milled)
+        // GBP has 100 minor units, so 1000 contradicts it. The mis-scaled currency cannot be built
+        // directly, so the conflict is injected into the JSON, as it would arrive from outside.
+        let json = try Self.encodedJSON(
+            Money.FormatStyle().locale(Self.britishEnglish).parseStrategy(for: .gbp),
+            replacing: "\"unitScale\":100",
+            with: "\"unitScale\":1000"
+        )
 
         #expect(throws: DecodingError.self) {
-            try Self.decoded(strategy, as: GBP.ParseStrategy.self)
+            try JSONDecoder().decode(GBP.ParseStrategy.self, from: json)
         }
     }
 

@@ -673,11 +673,15 @@ let benchmarks: @Sendable () -> Void = {
 
     // The benchmark above adds two amounts sharing one `Currency.gbp`, which is the cheapest case a
     // currency check ever sees. Amounts decoded from a payload or read from a database carry equal
-    // currencies built separately, and that is what this measures.
-    let separatelyBuiltPounds = [
-        Currency(code: "GBP", unitScale: 100),
-        Currency(code: "GBP", unitScale: 100),
-    ]
+    // currencies built separately, and that is what this measures. Built through the failable
+    // initialiser at GBP's own scale, so the values always exist.
+    guard
+        let firstPounds = Currency(code: "GBP", unitScale: 100),
+        let secondPounds = Currency(code: "GBP", unitScale: 100)
+    else {
+        preconditionFailure("GBP at 100 is a valid currency")
+    }
+    let separatelyBuiltPounds = [firstPounds, secondPounds]
 
     Benchmark("Money addition, separately built currencies", configuration: defaultConfiguration) { benchmark in
         var accumulated = Money(minorUnits: 0, currency: separatelyBuiltPounds[0])

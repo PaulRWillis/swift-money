@@ -13,9 +13,34 @@ public struct Currency: Equatable, Hashable, Sendable {
     /// How many of the currency's smallest units make one major unit.
     public let unitScale: UnitScale
 
-    /// Creates a currency.
-    public init(
+    /// Creates a currency from a code and the number of its smallest units per major unit.
+    ///
+    /// Define any currency the library doesn't ship — a cryptocurrency (`BTC`), a commodity (`XAU`),
+    /// loyalty points (`LTY`), or an ISO code that has no minor unit. For a currency the library does
+    /// ship, prefer its vetted value, such as ``Currency/gbp`` or ``Currencies/GBP``.
+    ///
+    /// - Parameters:
+    ///   - code: The code identifying the currency.
+    ///   - unitScale: How many of the currency's smallest units make one major unit.
+    /// - Returns: `nil` if `code` is a currency the library ships at a different scale — for example
+    ///   `Currency(code: "GBP", unitScale: 1)`, since pounds have 100 minor units.
+    public init?(
         code: CurrencyCode,
+        unitScale: UnitScale
+    ) {
+        if let shipped = Currency(iso: code), shipped.unitScale != unitScale {
+            return nil
+        }
+
+        self.init(unchecked: code, unitScale: unitScale)
+    }
+
+    /// Creates a currency, trusting the code and scale without validating them.
+    ///
+    /// Used to build the currencies the library itself ships, whose values are already vetted, and so
+    /// must not route back through the validating initialiser (which reads the shipped table).
+    init(
+        unchecked code: CurrencyCode,
         unitScale: UnitScale
     ) {
         self.code = code

@@ -4,23 +4,23 @@ import Testing
 
 // Scales that are not powers of ten, so the ISO table cannot supply them.
 private enum Eighths: CurrencyType {
-    static let currency = Currency(code: "EIG", unitScale: 8)
+    static let currency = customCurrency(code: "EIG", unitScale: 8)
 }
 
 private enum Khoums: CurrencyType {
-    static let currency = Currency(code: "KHO", unitScale: 5)
+    static let currency = customCurrency(code: "KHO", unitScale: 5)
 }
 
 // Eight decimal places, so it reaches the exponent notation and the `Double` spacing that two
 // decimal places never do.
 private enum Bitcoin: CurrencyType {
-    static let currency = Currency(code: "BTC", unitScale: 100_000_000)
+    static let currency = customCurrency(code: "BTC", unitScale: 100_000_000)
 }
 
 // Fine enough to hold seventeen decimal places, and so fine that a `Double` cannot tell one of its
 // smallest units from the next.
 private enum Seventeen: CurrencyType {
-    static let currency = Currency(code: "FIN", unitScale: 100_000_000_000_000_000)
+    static let currency = customCurrency(code: "FIN", unitScale: 100_000_000_000_000_000)
 }
 
 private let exactNumberBound: Int64 = 1 << 52

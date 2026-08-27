@@ -2,15 +2,15 @@ import SwiftMoney
 import Testing
 
 private enum Khoums: CurrencyType {
-    static let currency = Currency(code: "KHO", unitScale: 5)
+    static let currency = customCurrency(code: "KHO", unitScale: 5)
 }
 
 // Seventeen decimal places, near the finest a scale can name.
 private enum Seventeen: CurrencyType {
-    static let currency = Currency(code: "FIN", unitScale: 100_000_000_000_000_000)
+    static let currency = customCurrency(code: "FIN", unitScale: 100_000_000_000_000_000)
 }
 
-private let loyaltyPoints = Currency(code: "LTY", unitScale: 1)
+private let loyaltyPoints = customCurrency(code: "LTY", unitScale: 1)
 
 @Suite("Money Parsing Tests")
 struct MoneyParsingTests {

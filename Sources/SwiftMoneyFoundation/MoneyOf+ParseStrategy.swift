@@ -57,7 +57,15 @@ extension MoneyOf.ParseStrategy: Codable {
             )
         }
 
-        let currency = Currency(code: code, unitScale: unitScale)
+        guard let currency = Currency(code: code, unitScale: unitScale) else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .currencyCode,
+                in: container,
+                debugDescription: """
+                    \(code) is a standard currency, but the scale \(rawScale) contradicts its own.
+                    """
+            )
+        }
 
         // A representation that carries its currency stores the currency itself, so this cast
         // succeeds for exactly that one and there is nothing to check: any currency is allowed.

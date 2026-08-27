@@ -3,11 +3,11 @@ import Testing
 
 // Currencies the ISO table cannot supply, because ISO's exponent field only holds powers of ten.
 private enum Khoums: CurrencyType {
-    static let currency = Currency(code: "KHO", unitScale: 5)
+    static let currency = customCurrency(code: "KHO", unitScale: 5)
 }
 
 private enum Eighths: CurrencyType {
-    static let currency = Currency(code: "EIG", unitScale: 8)
+    static let currency = customCurrency(code: "EIG", unitScale: 8)
 }
 
 @Suite("Money Description Tests")
@@ -73,7 +73,7 @@ struct MoneyDescriptionTests {
 
     @Test("A currency known only at runtime is written from the scale it carries")
     func runtimeUsesItsOwnScale() {
-        let carried = Money(minorUnits: 7, currency: Currency(code: "EIG", unitScale: 8))
+        let carried = Money(minorUnits: 7, currency: customCurrency(code: "EIG", unitScale: 8))
 
         #expect(String(describing: carried) == "EIG 0.875")
     }
