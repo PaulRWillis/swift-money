@@ -1099,4 +1099,47 @@ let benchmarks: @Sendable () -> Void = {
             index &+= 1
         }
     }
+
+    // A single-hop conversion: scale the amount by the rate and keep it unrounded. Against Double and
+    // Decimal doing the same multiply, this is what the exact fixed-point path costs.
+    if let eurGbp = ExchangeRate<Currencies.EUR, Currencies.GBP>(quoting: 8_765_262_907, per: 10_000_000_000) {
+        Benchmark("MoneyOf converted", configuration: defaultConfiguration) { benchmark in
+            var amount: Int64 = 1
+
+            for _ in benchmark.scaledIterations {
+                blackHole(EUR(minorUnits: amount).converted(using: eurGbp))
+                amount &+= 1
+            }
+        }
+    }
+
+    if let eurUsd = ExchangeRate<Currencies.EUR, Currencies.USD>(quoting: 11, per: 10),
+       let usdGbp = ExchangeRate<Currencies.USD, Currencies.GBP>(quoting: 8, per: 10) {
+        Benchmark("ExchangeRate crossed", configuration: defaultConfiguration) { benchmark in
+            for _ in benchmark.scaledIterations {
+                blackHole(eurUsd.crossed(with: usdGbp))
+            }
+        }
+    }
+
+    let rateAsDouble = 0.8765262907
+
+    Benchmark("Double multiplied by a rate", configuration: defaultConfiguration) { benchmark in
+        var amount = 1.0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(amount * rateAsDouble)
+            amount += 1.0
+        }
+    }
+
+    Benchmark("Decimal multiplied by a rate", configuration: defaultConfiguration) { benchmark in
+        let rate = Decimal(string: "0.8765262907") ?? .zero
+        var amount = Decimal(1)
+
+        for _ in benchmark.scaledIterations {
+            blackHole(amount * rate)
+            amount += 1
+        }
+    }
 }
