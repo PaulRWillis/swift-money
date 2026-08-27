@@ -92,7 +92,7 @@ def values(found):
         lines += [f"    {line}" for line in documentation(currency)]
         lines.append(
             f"    static let {identifier(currency['code'])} = "
-            f'Currency(code: "{currency["code"]}", unitScale: {grouped(currency["scale"])})'
+            f'Currency(unchecked: "{currency["code"]}", unitScale: {grouped(currency["scale"])})'
         )
 
     return lines + ["}"]

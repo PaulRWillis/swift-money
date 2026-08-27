@@ -18,6 +18,17 @@ public struct Currency: Equatable, Hashable, Sendable {
         code: CurrencyCode,
         unitScale: UnitScale
     ) {
+        self.init(unchecked: code, unitScale: unitScale)
+    }
+
+    /// Creates a currency, trusting the code and scale without validating them.
+    ///
+    /// Used to build the currencies the library itself ships, whose values are already vetted, and so
+    /// must not route back through the validating initialiser (which reads the shipped table).
+    init(
+        unchecked code: CurrencyCode,
+        unitScale: UnitScale
+    ) {
         self.code = code
         self.unitScale = unitScale
     }
