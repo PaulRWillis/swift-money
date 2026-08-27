@@ -1148,4 +1148,25 @@ let benchmarks: @Sendable () -> Void = {
             amount += 1
         }
     }
+
+    // A sub-minor-unit tariff resolved to a total. No Int/Double/Decimal peer: this is a money-domain
+    // operation (a price finer than a minor unit, kept exact until settled), so it stands alone.
+    let tariff = UnitPrice<Currencies.GBP, String>(GBP.Unrounded(majorUnits: "0.023"), per: "kWh")
+
+    Benchmark("UnitPrice total for a whole quantity", configuration: defaultConfiguration) { benchmark in
+        var quantity: Int64 = 1
+
+        for _ in benchmark.scaledIterations {
+            blackHole(tariff.total(for: quantity))
+            quantity &+= 1
+        }
+    }
+
+    if let quantity = Rate(string: "350.5") {
+        Benchmark("UnitPrice total for a fractional quantity", configuration: defaultConfiguration) { benchmark in
+            for _ in benchmark.scaledIterations {
+                blackHole(tariff.total(for: quantity))
+            }
+        }
+    }
 }
