@@ -7,7 +7,9 @@
 /// let weights: Weights = [60, 30, 10]   // three weights
 /// ```
 public struct Weight: Equatable, Hashable, Sendable {
-    let value: Int
+    // `fileprivate`, not `private`: the same-file `Int(_ weight:)` extension reads it, and that
+    // extension is on `Int`, not `Weight`, so `private` would not reach it.
+    fileprivate let value: Int
 
     /// Creates a weight from a value that may not be valid.
     ///
