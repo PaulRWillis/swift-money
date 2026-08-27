@@ -12,11 +12,11 @@ public struct Weights: Equatable, Hashable, Sendable {
         weights
     }
 
-    /// Creates weights from values that may not be valid.
+    /// Creates weights from a list that may not be valid.
     ///
     /// - Parameter weights: The weight of each part, in part order.
     /// - Returns: `nil` if `weights` is empty, sums to zero, or sums past what an amount can hold.
-    public init?(exactly weights: [Weight]) {
+    public init?(_ weights: [Weight]) {
         guard
             weights.isEmpty == false,
             let sum = Weights.sum(of: weights),
@@ -60,7 +60,7 @@ extension Weights: ExpressibleByArrayLiteral {
     /// - Precondition: `weights` is not empty, and its sum is at least one and no more than an amount
     ///   can hold.
     public init(arrayLiteral weights: Weight...) {
-        guard let valid = Weights(exactly: weights) else {
+        guard let valid = Weights(weights) else {
             preconditionFailure("Weights must be non-empty and sum to what an amount can hold. Weights: \(weights)")  // coverage:ignore — exit-test trap
         }
 

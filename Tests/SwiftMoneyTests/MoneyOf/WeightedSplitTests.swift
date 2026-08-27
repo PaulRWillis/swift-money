@@ -17,7 +17,7 @@ struct WeightedSplitTests {
 
     @Test("Parts always sum to the original amount", arguments: amounts, weightLists)
     func partsSumToOriginalAmount(amount: Int, weightList: [Weight]) throws {
-        let weights = try #require(Weights(exactly: weightList))
+        let weights = try #require(Weights(weightList))
         let money = GBP(minorUnits: amount)
 
         let distribution = money.split(by: weights)
@@ -27,7 +27,7 @@ struct WeightedSplitTests {
 
     @Test("One part per weight, in weight order", arguments: amounts, weightLists)
     func onePartPerWeight(amount: Int, weightList: [Weight]) throws {
-        let weights = try #require(Weights(exactly: weightList))
+        let weights = try #require(Weights(weightList))
 
         let distribution = GBP(minorUnits: amount).split(by: weights)
 
@@ -84,7 +84,7 @@ struct WeightedSplitTests {
 
     @Test("Equal weights match an even split", arguments: amounts, 1...6)
     func equalWeightsMatchEvenSplit(amount: Int, count: Int) throws {
-        let weights = try #require(Weights(exactly: Array(repeating: Weight(integerLiteral: 1), count: count)))
+        let weights = try #require(Weights(Array(repeating: Weight(integerLiteral: 1), count: count)))
         let parts = try #require(PartCount(exactly: count))
         let money = GBP(minorUnits: amount)
 
