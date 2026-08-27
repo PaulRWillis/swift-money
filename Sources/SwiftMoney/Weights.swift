@@ -61,9 +61,7 @@ extension Weights: ExpressibleByArrayLiteral {
     ///   can hold.
     public init(arrayLiteral weights: Weight...) {
         guard let valid = Weights(exactly: weights) else {
-            preconditionFailure(
-                "Weights must be non-empty and sum to what an amount can hold. Weights: \(weights)"
-            )
+            preconditionFailure("Weights must be non-empty and sum to what an amount can hold. Weights: \(weights)")  // coverage:ignore — exit-test trap
         }
 
         self = valid

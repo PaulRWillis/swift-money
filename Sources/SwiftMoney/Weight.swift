@@ -38,7 +38,7 @@ extension Weight: ExpressibleByIntegerLiteral {
     /// - Precondition: `value` is not negative.
     public init(integerLiteral value: Int) {
         guard let weight = Weight(exactly: value) else {
-            preconditionFailure("A weight cannot be negative. Value: \(value)")
+            preconditionFailure("A weight cannot be negative. Value: \(value)")  // coverage:ignore — exit-test trap
         }
 
         self = weight
