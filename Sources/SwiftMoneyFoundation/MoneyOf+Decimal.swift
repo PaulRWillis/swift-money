@@ -1,5 +1,5 @@
 import Foundation
-import SwiftMoney
+import SwiftMoneyCore
 
 public extension MoneyOf where C: CurrencyType {
     /// Creates an amount from a decimal number of major units, in the currency this type names.

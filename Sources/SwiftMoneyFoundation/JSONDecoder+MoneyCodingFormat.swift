@@ -1,5 +1,5 @@
 import Foundation
-import SwiftMoney
+import SwiftMoneyCore
 
 public extension JSONDecoder {
     /// The field names and the number units that money is read with.

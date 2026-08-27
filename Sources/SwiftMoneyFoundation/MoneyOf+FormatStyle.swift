@@ -1,5 +1,5 @@
 import Foundation
-import SwiftMoney
+import SwiftMoneyCore
 
 public extension MoneyOf {
     /// A style that renders an amount for people, in the digits and symbols of a locale.

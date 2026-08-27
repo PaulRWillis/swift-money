@@ -1,4 +1,4 @@
-import SwiftMoney
+import SwiftMoneyCore
 
 // An `Encoder` that keeps the last value it is given and does nothing else.
 //

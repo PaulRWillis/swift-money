@@ -1,5 +1,5 @@
 import Foundation
-import SwiftMoney
+import SwiftMoneyCore
 
 public extension Decimal {
     /// Creates the exact count of the currency's major units in an amount.

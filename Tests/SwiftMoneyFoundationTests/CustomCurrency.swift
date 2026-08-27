@@ -1,4 +1,4 @@
-import SwiftMoney
+import SwiftMoneyCore
 
 // Builds a currency the library does not ship, for tests that need a custom code and scale.
 //

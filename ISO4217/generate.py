@@ -4,7 +4,7 @@
     python3 ISO4217/generate.py
 
 Reads `ISO4217/list-one.xml`, the list SIX Group publishes as ISO 4217's maintenance agency, and
-writes `Sources/SwiftMoney/Currency/Currency+ISO4217.swift`. The list is vendored rather than fetched so that
+writes `Sources/SwiftMoneyCore/Currency/Currency+ISO4217.swift`. The list is vendored rather than fetched so that
 a regeneration is reproducible and the published date is recorded alongside what came out of it.
 
 To take a newer list:
@@ -19,8 +19,8 @@ import xml.etree.ElementTree as ET
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SOURCE = ROOT / "ISO4217" / "list-one.xml"
-OUTPUT = ROOT / "Sources" / "SwiftMoney" / "Currency" / "Currency+ISO4217.swift"
-TEST_OUTPUT = ROOT / "Tests" / "SwiftMoneyTests" / "Currency" / "CurrencyISO4217Tests.swift"
+OUTPUT = ROOT / "Sources" / "SwiftMoneyCore" / "Currency" / "Currency+ISO4217.swift"
+TEST_OUTPUT = ROOT / "Tests" / "SwiftMoneyCoreTests" / "Currency" / "CurrencyISO4217Tests.swift"
 
 # `try` is the only ISO code whose lowercased form Swift reserves.
 SWIFT_KEYWORDS = {"try"}
@@ -183,7 +183,7 @@ def tests(published, found):
     return f"""// Generated from ISO 4217's list-one.xml, published {published}. Do not edit by hand:
 // run `python3 ISO4217/generate.py` instead.
 
-import SwiftMoney
+import SwiftMoneyCore
 import Testing
 
 @Suite("ISO 4217 Table Tests")
