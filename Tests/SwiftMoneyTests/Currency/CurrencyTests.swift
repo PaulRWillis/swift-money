@@ -4,67 +4,78 @@ import Testing
 // A currency defined entirely outside the library, proving no library change is needed to add one.
 // This is the guarantee `CurrencyType` exists to provide, so it is a kept test rather than a scratch.
 private enum LoyaltyPoints: CurrencyType {
-    static let currency = Currency(code: "LTY", unitScale: 1)
+    static let currency = customCurrency(code: "LTY", unitScale: 1)
 }
 
 @Suite("Currency Tests")
 struct CurrencyTests {
 
     @Test("A currency carries its code and unit scale")
-    func carriesCodeAndUnitScale() {
-        let currency = Currency(code: "GBP", unitScale: 100)
+    func carriesCodeAndUnitScale() throws {
+        let currency = try #require(Currency(code: "GBP", unitScale: 100))
 
         #expect(currency.code == "GBP")
         #expect(currency.unitScale == 100)
     }
 
+    @Test("A standard code at a scale that contradicts its own is not a currency")
+    func conflictingStandardScaleIsNil() {
+        #expect(Currency(code: "GBP", unitScale: 1) == nil)      // pounds have 100 minor units
+        #expect(Currency(code: "JPY", unitScale: 100) == nil)    // yen have none
+    }
+
+    @Test("A standard code at its own scale builds")
+    func standardCodeAtItsScaleBuilds() {
+        #expect(Currency(code: "GBP", unitScale: 100) != nil)
+        #expect(Currency(code: "JPY", unitScale: 1) != nil)
+    }
+
+    @Test("A code the library does not ship builds at any scale")
+    func unshippedCodeBuilds() {
+        #expect(Currency(code: "BTC", unitScale: 100_000_000) != nil)
+        #expect(Currency(code: "LTY", unitScale: 1) != nil)
+        #expect(Currency(code: "XAU", unitScale: 1_000) != nil)   // gold: ISO lists it with no minor unit
+    }
+
     @Test("Currencies with the same code and unit scale are equal")
     func equality() {
-        #expect(
-            Currency(code: "GBP", unitScale: 100)
-                == Currency(code: "GBP", unitScale: 100)
-        )
+        #expect(Currency.gbp == Currency.gbp)
+        #expect(customCurrency(code: "XYZ", unitScale: 100) == customCurrency(code: "XYZ", unitScale: 100))
     }
 
     @Test("Currencies differing in code are not equal")
     func differingCodesAreNotEqual() {
-        #expect(
-            Currency(code: "GBP", unitScale: 100)
-                != Currency(code: "EUR", unitScale: 100)
-        )
+        #expect(Currency.gbp != Currency.eur)
     }
 
     @Test("Currencies differing in unit scale are not equal")
     func differingUnitScalesAreNotEqual() {
         #expect(
-            Currency(code: "GBP", unitScale: 100)
-                != Currency(code: "GBP", unitScale: 1)
+            customCurrency(code: "XYZ", unitScale: 100)
+                != customCurrency(code: "XYZ", unitScale: 1)
         )
     }
 
     @Test("Equal currencies hash the same")
     func hashing() {
-        let currencies: Set<Currency> = [
-            Currency(code: "GBP", unitScale: 100),
-            Currency(code: "GBP", unitScale: 100),
-            Currency(code: "EUR", unitScale: 100),
-        ]
+        let currencies: Set<Currency> = [.gbp, .gbp, .eur]
 
         #expect(currencies.count == 2)
     }
 
     @Test("A currency code is matched case-insensitively, so case does not split a currency")
-    func codeCaseDoesNotSplitACurrency() {
-        #expect(
-            Currency(code: "gbp", unitScale: 100)
-                == Currency(code: "GBP", unitScale: 100)
-        )
+    func codeCaseDoesNotSplitACurrency() throws {
+        let lower = try #require(Currency(code: "gbp", unitScale: 100))
+        let upper = try #require(Currency(code: "GBP", unitScale: 100))
+
+        #expect(lower == upper)
     }
 
     @Test("The library's currencies expose the expected values")
     func libraryCurrencies() {
-        #expect(Currencies.GBP.currency == Currency(code: "GBP", unitScale: 100))
-        #expect(Currencies.EUR.currency == Currency(code: "EUR", unitScale: 100))
+        #expect(Currencies.GBP.currency == .gbp)
+        #expect(Currencies.EUR.currency == .eur)
+        #expect(Currencies.GBP.currency.unitScale == 100)
     }
 
     @Test("Named constants match their currency types")
