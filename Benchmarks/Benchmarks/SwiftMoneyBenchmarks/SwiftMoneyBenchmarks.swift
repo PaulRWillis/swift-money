@@ -234,7 +234,7 @@ let benchmarks: @Sendable () -> Void = {
         var amount = 1
 
         for _ in benchmark.scaledIterations {
-            accumulated = accumulated + GBP(minorUnits: amount).scaled(by: vat, rounding: .toNearestOrEven)
+            accumulated = accumulated + GBP(minorUnits: amount).applying(vat).rounded(.toNearestOrEven)
             amount &+= 1
         }
 
@@ -323,9 +323,9 @@ let benchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations {
             blackHole(
                 GBP(minorUnits: amount)
-                    .scaled(by: discount, rounding: .toNearestOrEven)
-                    .scaled(by: vat, rounding: .toNearestOrEven)
-                    .scaled(by: dayCount, rounding: .toNearestOrEven)
+                    .applying(discount).rounded(.toNearestOrEven)
+                    .applying(vat).rounded(.toNearestOrEven)
+                    .applying(dayCount).rounded(.toNearestOrEven)
             )
             amount &+= 1
         }
@@ -697,17 +697,6 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
-    // Reporting a remainder means splitting off the leftover fraction of a unit. Against
-    // `scaled(by:rounding:)`, the difference is what the report itself costs.
-    Benchmark("MoneyOf scaled, reporting a remainder", configuration: defaultConfiguration) { benchmark in
-        let vat: Rate = "7/40"
-        var amount = 1
-
-        for _ in benchmark.scaledIterations {
-            blackHole(GBP(minorUnits: amount).scaled(by: vat))
-            amount &+= 1
-        }
-    }
 
     // Divides the two amounts into a rate. The whole is fixed, as a budget or an order total would be.
     Benchmark("MoneyOf proportion", configuration: defaultConfiguration) { benchmark in

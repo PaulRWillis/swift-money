@@ -9,8 +9,8 @@ struct UnroundedTests {
         let third = try #require(Rate(string: "1/3"))
         let chained = GBP(minorUnits: 10_00).unrounded * third * "3"
         let scaledTwice = GBP(minorUnits: 10_00)
-            .scaled(by: third, rounding: .toNearestOrEven)
-            .scaled(by: "3", rounding: .toNearestOrEven)
+            .applying(third).rounded(.toNearestOrEven)
+            .applying("3").rounded(.toNearestOrEven)
 
         #expect(chained.rounded(.toNearestOrEven) == GBP(minorUnits: 10_00))
         #expect(scaledTwice == GBP(minorUnits: 9_99))

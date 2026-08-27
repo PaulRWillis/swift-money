@@ -344,55 +344,35 @@ struct MoneyTests {
         }
     }
 
-    // The algorithm itself is covered by ScalingTests, which drives it through GBP. These check the
+    // The algorithm itself is covered by ApplyingTests, which drives it through GBP. These check the
     // steps unique to Money: re-attaching the currency, and throwing where MoneyOf traps.
 
     @Test("Scaling keeps the currency")
-    func scalingKeepsTheCurrency() throws {
+    func scalingKeepsTheCurrency() {
         let sut = Money(minorUnits: 10_00, currency: .eur)
 
-        #expect(sut.scaled(by: "0.2") == .exact(Money(minorUnits: 2_00, currency: .eur)))
-        #expect(sut.scaled(by: "0.2", rounding: .toNearestOrEven) == Money(minorUnits: 2_00, currency: .eur))
+        #expect(sut.applying("0.2").rounded(.toNearestOrEven) == Money(minorUnits: 2_00, currency: .eur))
     }
 
-    @Test("An inexact result keeps the currency")
-    func inexactScalingKeepsTheCurrency() throws {
-        let scaled = Money(minorUnits: 10, currency: .eur).scaled(by: "0.25")
+    @Test("An inexact result settles and keeps the currency")
+    func inexactScalingKeepsTheCurrency() {
+        // 10 × 0.25 = 2.5, settled up to 3, in the currency it started in.
+        let scaled = Money(minorUnits: 10, currency: .eur).applying("0.25").rounded(.up)
 
-        guard case let .inexact(amount, remainder) = scaled else {
-            Issue.record("Expected an inexact result")
-            return
-        }
-
-        #expect(amount == Money(minorUnits: 2, currency: .eur))
-        #expect(Rate(remainder) == Rate.percent(50))
+        #expect(scaled == Money(minorUnits: 3, currency: .eur))
     }
 
-    @Test("Scaling traps on overflow")
+    @Test("Settling a scaled amount past the range traps")
     func scalingTrapsOnOverflow() async {
         await #expect(processExitsWith: .failure) {
-            blackHole(Money(minorUnits: Int64.max, currency: .gbp).scaled(by: "2"))
-        }
-
-        await #expect(processExitsWith: .failure) {
-            blackHole(
-                Money(minorUnits: Int64.max, currency: .gbp)
-                    .scaled(by: "2", rounding: .towardZero)
-            )
+            blackHole(Money(minorUnits: Int64.max, currency: .gbp).applying("2").rounded(.toNearestOrEven))
         }
     }
 
-    @Test("Scaling traps on underflow")
+    @Test("Settling a scaled amount below the range traps")
     func scalingTrapsOnUnderflow() async {
         await #expect(processExitsWith: .failure) {
-            blackHole(Money(minorUnits: Int64.min, currency: .gbp).scaled(by: "2"))
-        }
-
-        await #expect(processExitsWith: .failure) {
-            blackHole(
-                Money(minorUnits: Int64.min, currency: .gbp)
-                    .scaled(by: "2", rounding: .towardZero)
-            )
+            blackHole(Money(minorUnits: Int64.min, currency: .gbp).applying("2").rounded(.toNearestOrEven))
         }
     }
 
@@ -402,7 +382,7 @@ struct MoneyTests {
     func truncatingReachesTheLargestAmount() throws {
         let sut = Money(minorUnits: Int64.max / 3 * 2 + 1, currency: .gbp)
 
-        #expect(sut.scaled(by: "3/2", rounding: .towardZero) == Money(minorUnits: Int64.max, currency: .gbp))
+        #expect(sut.applying("1.5").rounded(.towardZero) == Money(minorUnits: Int64.max, currency: .gbp))
     }
 
     @Test("Rounding traps on overflow, where truncating would not")
@@ -410,7 +390,7 @@ struct MoneyTests {
         await #expect(processExitsWith: .failure) {
             blackHole(
                 Money(minorUnits: Int64.max / 3 * 2 + 1, currency: .gbp)
-                    .scaled(by: "3/2", rounding: .awayFromZero)
+                    .applying("1.5").rounded(.awayFromZero)
             )
         }
     }

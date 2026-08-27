@@ -14,13 +14,13 @@ know it at compile time, and checked at runtime when you do not.
 import SwiftMoney
 
 let price = GBP(minorUnits: 4_99)                              // GBP 4.99
-let vat = price.scaled(by: "20%", rounding: .toNearestOrEven)  // GBP 1.00
+let vat = price.applying("20%").rounded(.toNearestOrEven)      // GBP 1.00
 let total = price + vat                                        // GBP 5.99
 ```
 
 ## Features
 
-- **Exact by construction.** Amounts are `Int64` minor units. Rates are exact fractions.
+- **Exact by construction.** Amounts are `Int64` minor units. Rates are decimal fixed point.
   `Double` never touches arithmetic.
 - **Two levels of currency safety.** `GBP + EUR` fails to compile. `Money` carries its currency
   at runtime, and mixing two currencies throws.
@@ -167,25 +167,18 @@ style.format(CHF(minorUnits: 4_98))   // "CHF 5.00", Swiss cash rounding
 
 ## Percentages and fractions
 
-`Ratio` is an exact fraction. Write one as a percent, a fraction, or a decimal; each converts
-exactly:
+A `Rate` scales an amount. Write one as a percent, a fraction, or a decimal:
 
 ```swift
-let vat: Ratio = "20%"          // equal to "1/5" and "0.2"
-Ratio(exactly: 1, over: 3)      // from runtime values; nil when invalid
+let vat: Rate = "20%"           // equal to "1/5" and "0.2"
+Rate(string: "1/3")             // from runtime text; nil when invalid
 ```
 
-Scale an amount and choose the rounding, or pattern-match to learn what was lost:
+Applying a rate keeps the fraction of a unit until you settle it, so you choose the rounding at the
+point it happens:
 
 ```swift
-price.scaled(by: "20%", rounding: .toNearestOrEven)   // GBP 1.00
-
-switch price.scaled(by: "1/3") {
-case .exact(let amount):
-    // the ratio divided evenly
-case .inexact(let amount, let remainder):
-    // amount is truncated; remainder holds the exact leftover
-}
+price.applying("20%").rounded(.toNearestOrEven)   // GBP 1.00
 ```
 
 Chain exact steps with `unrounded` and settle once, so rounding error cannot accumulate:
@@ -288,7 +281,7 @@ when it has an exact decimal form: any `2^a * 5^b`, to at most eighteen decimal 
   `Int`. A currency mismatch is bad data and throws `MoneyError`, the caller's to handle.
 - **Literals trap; data is failable.** Every literal that can be invalid traps at the source
   line. Every runtime input has a failable or throwing twin.
-- **`Double` never touches arithmetic.** Fractions go through `Ratio`, which is exact.
+- **`Double` never touches arithmetic.** Fractions go through `Rate`, decimal fixed point.
 - **No global state.** There is no currency registry. Every type is a value, and every value the
   library produces is `Sendable`.
 
