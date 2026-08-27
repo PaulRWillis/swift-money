@@ -11,8 +11,8 @@ public struct WeightedSplit<Amount: Equatable>: Equatable {
         /// The share this part received.
         public let amount: Amount
 
-        // Not public, so a distribution can only come from `split(by:)`, which is what guarantees the
-        // invariants the type documents.
+        // Not public, so a weighted split can only come from `split(by:)`, which is what guarantees
+        // the invariants the type documents.
         init(
             weight: Weight,
             amount: Amount
