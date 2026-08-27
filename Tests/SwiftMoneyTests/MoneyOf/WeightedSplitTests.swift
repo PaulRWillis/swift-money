@@ -3,7 +3,7 @@ import Testing
 
 private let amounts = [-1000, -101, -12, -3, -1, 0, 1, 3, 12, 101, 1000]
 
-private let weightLists: [[Int]] = [
+private let weightLists: [[Weight]] = [
     [1],
     [1, 1, 1],
     [60, 30, 10],
@@ -16,7 +16,7 @@ private let weightLists: [[Int]] = [
 struct WeightedSplitTests {
 
     @Test("Parts always sum to the original amount", arguments: amounts, weightLists)
-    func partsSumToOriginalAmount(amount: Int, weightList: [Int]) throws {
+    func partsSumToOriginalAmount(amount: Int, weightList: [Weight]) throws {
         let weights = try #require(Weights(exactly: weightList))
         let money = GBP(minorUnits: amount)
 
@@ -26,7 +26,7 @@ struct WeightedSplitTests {
     }
 
     @Test("One part per weight", arguments: amounts, weightLists)
-    func onePartPerWeight(amount: Int, weightList: [Int]) throws {
+    func onePartPerWeight(amount: Int, weightList: [Weight]) throws {
         let weights = try #require(Weights(exactly: weightList))
 
         let parts = GBP(minorUnits: amount).split(by: weights)
@@ -75,7 +75,7 @@ struct WeightedSplitTests {
 
     @Test("Equal weights match an even split", arguments: amounts, 1...6)
     func equalWeightsMatchEvenSplit(amount: Int, count: Int) throws {
-        let weights = try #require(Weights(exactly: Array(repeating: 1, count: count)))
+        let weights = try #require(Weights(exactly: Array(repeating: Weight(integerLiteral: 1), count: count)))
         let parts = try #require(PartCount(exactly: count))
         let money = GBP(minorUnits: amount)
 

@@ -21,7 +21,7 @@ struct WeightsTests {
 
     @Test("Init from the biggest weight succeeds")
     func initFromBiggestWeight() {
-        #expect(Weights(exactly: [Int.max]) != nil)
+        #expect(Weights(exactly: [Weight(integerLiteral: Int.max)]) != nil)
     }
 
     @Test("Init from an empty list returns nil")
@@ -29,24 +29,15 @@ struct WeightsTests {
         #expect(Weights(exactly: []) == nil)
     }
 
-    @Test("Init from a negative weight returns nil")
-    func initFromNegativeWeight() {
-        #expect(Weights(exactly: [-1]) == nil)
-    }
-
-    @Test("Init from a negative weight among others returns nil")
-    func initFromNegativeWeightAmongOthers() {
-        #expect(Weights(exactly: [1, -1]) == nil)
-    }
-
     @Test("Init from weights whose sum overflows returns nil")
     func initFromOverflowingSum() {
-        #expect(Weights(exactly: [Int.max, 1]) == nil)
+        #expect(Weights(exactly: [Weight(integerLiteral: Int.max), 1]) == nil)
     }
 
     @Test("Init from two biggest weights returns nil")
     func initFromTwoBiggestWeights() {
-        #expect(Weights(exactly: [Int.max, Int.max]) == nil)
+        let biggest = Weight(integerLiteral: Int.max)
+        #expect(Weights(exactly: [biggest, biggest]) == nil)
     }
 
     @Test("Init from a single zero weight returns nil")
@@ -70,13 +61,6 @@ struct WeightsTests {
     func initFromEmptyListLiteral() async {
         await #expect(processExitsWith: .failure) {
             _ = [] as Weights
-        }
-    }
-
-    @Test("Literal: Init from a negative weight traps")
-    func initFromNegativeWeightLiteral() async {
-        await #expect(processExitsWith: .failure) {
-            _ = [-1] as Weights
         }
     }
 
