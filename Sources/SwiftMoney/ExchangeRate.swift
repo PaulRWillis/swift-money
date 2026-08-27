@@ -35,4 +35,36 @@ public struct ExchangeRate<From: CurrencyType, To: CurrencyType>: Sendable, Equa
 
         self.init(Rate(Fixed(toMinorUnits) / Fixed(fromMinorUnits)))
     }
+
+    /// Returns the customer rate for this mid-market rate: the rate less the provider's margin.
+    ///
+    /// The customer keeps the fraction of the mid rate the margin does not take, so the result is
+    /// always positive and never larger than the mid rate.
+    public func applyingMargin(_ margin: Margin) -> Self {
+        // margin is in [0, 1), so the kept fraction is in (0, 1] and the product stays positive and no
+        // larger than `rate` — it cannot leave the range or the positive invariant.
+        guard let customer = rate.multiplied(by: margin.rate.subtracted(from: .par)),
+              let result = Self(customer) else {
+            preconditionFailure("Applying a margin left the representable range")  // coverage:ignore — exit-test trap
+        }
+
+        return result
+    }
+
+    /// Returns the rate that converts `From` all the way to `Onward`, via this rate and `other`.
+    ///
+    /// The shared currency is enforced by the types: this rate's `To` must be `other`'s `From`, so
+    /// `EUR→GBP` is `EUR→USD` crossed with `USD→GBP`.
+    ///
+    /// - Precondition: the composed rate is representable, which any realistic pair of rates is.
+    public func crossed<Onward>(
+        with other: ExchangeRate<To, Onward>
+    ) -> ExchangeRate<From, Onward> {
+        guard let composed = rate.multiplied(by: other.rate),
+              let result = ExchangeRate<From, Onward>(composed) else {
+            preconditionFailure("Crossing two rates left the representable range")  // coverage:ignore — exit-test trap
+        }
+
+        return result
+    }
 }
