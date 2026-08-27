@@ -2,7 +2,7 @@
 ///
 /// One part per weight, in weight order, and the parts always sum to the original amount: a weighted
 /// split does not lose or invent money. Each part carries the weight it came from alongside its share.
-public struct WeightedDistribution<Amount: Equatable>: Equatable {
+public struct WeightedSplit<Amount: Equatable>: Equatable {
     /// One part of a weighted split: a weight and the share it received.
     public struct Part: Equatable {
         /// The weight this part came from.
@@ -31,7 +31,7 @@ public struct WeightedDistribution<Amount: Equatable>: Equatable {
     }
 }
 
-public extension WeightedDistribution {
+public extension WeightedSplit {
     /// Each part's share, in weight order.
     var amounts: [Amount] {
         parts.map(\.amount)
@@ -48,6 +48,6 @@ public extension WeightedDistribution {
     }
 }
 
-extension WeightedDistribution: Sendable where Amount: Sendable {}
+extension WeightedSplit: Sendable where Amount: Sendable {}
 
-extension WeightedDistribution.Part: Sendable where Amount: Sendable {}
+extension WeightedSplit.Part: Sendable where Amount: Sendable {}

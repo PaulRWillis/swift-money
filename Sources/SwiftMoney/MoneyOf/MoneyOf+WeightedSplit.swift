@@ -13,8 +13,8 @@ public extension MoneyOf where C: CurrencyType {
     /// its exact share by a whole minor unit or more.
     ///
     /// - Parameter weights: The weight of each part, in part order.
-    func split(by weights: Weights) -> WeightedDistribution<Self> {
-        distribution(
+    func split(by weights: Weights) -> WeightedSplit<Self> {
+        weightedSplit(
             of: SwiftMoney.split(minorUnits, by: weights),
             over: weights,
             storage: .implied
@@ -33,8 +33,8 @@ public extension MoneyOf where C == AnyCurrency {
     /// its exact share by a whole minor unit or more.
     ///
     /// - Parameter weights: The weight of each part, in part order.
-    func split(by weights: Weights) -> WeightedDistribution<Self> {
-        distribution(
+    func split(by weights: Weights) -> WeightedSplit<Self> {
+        weightedSplit(
             of: SwiftMoney.split(minorUnits, by: weights),
             over: weights,
             storage: storage
@@ -45,18 +45,18 @@ public extension MoneyOf where C == AnyCurrency {
 private extension MoneyOf where C: CurrencyRepresentation {
     // Pairs each weight with the minor-unit share the engine gave it, as an amount of this currency.
     // The engine returns one part per weight in order, so the two zip one-to-one.
-    func distribution(
+    func weightedSplit(
         of shares: [Int64],
         over weights: Weights,
         storage: C.Storage
-    ) -> WeightedDistribution<Self> {
+    ) -> WeightedSplit<Self> {
         let parts = zip(weights.values, shares).map { weight, share in
-            WeightedDistribution<Self>.Part(
+            WeightedSplit<Self>.Part(
                 weight: weight,
                 amount: Self(unchecked: share, storage: storage)
             )
         }
 
-        return WeightedDistribution(parts: parts)
+        return WeightedSplit(parts: parts)
     }
 }
