@@ -361,4 +361,35 @@ public extension MoneyOf.Unrounded where C: CurrencyType {
     init(minorUnits: Rate) {
         self.init(minorUnits.value, storage: .implied)
     }
+
+    /// Returns this amount converted to another currency at the given rate, keeping the fraction for a
+    /// single settling.
+    ///
+    /// Converting leaves the result unsettled, so a chain of conversions rounds once at the end rather
+    /// than at each hop.
+    ///
+    /// - Precondition: the converted amount is representable.
+    func converted<To>(using rate: ExchangeRate<C, To>) -> MoneyOf<To>.Unrounded {
+        guard let converted = minorUnits.multipliedIfRepresentable(by: rate.rate.value) else {
+            preconditionFailure("Converting is not representable")  // coverage:ignore — exit-test trap
+        }
+
+        return MoneyOf<To>.Unrounded(converted, storage: .implied)
+    }
+}
+
+public extension MoneyOf where C: CurrencyType {
+    /// Returns this amount converted to another currency at the given rate, keeping the fraction for a
+    /// single settling.
+    ///
+    /// ```swift
+    /// let gbp = EUR(minorUnits: 100_00)
+    ///     .converted(using: eurGbp.applyingMargin(margin))
+    ///     .rounded(.toNearestOrEven)   // one rounding, into GBP
+    /// ```
+    ///
+    /// - Precondition: the converted amount is representable.
+    func converted<To>(using rate: ExchangeRate<C, To>) -> MoneyOf<To>.Unrounded {
+        unrounded.converted(using: rate)
+    }
 }
