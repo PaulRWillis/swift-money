@@ -709,8 +709,7 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
-    // Reduces the fraction it returns, so like `Ratio construction` this is mostly a greatest common
-    // divisor. The whole is fixed, as a budget or an order total would be.
+    // Divides the two amounts into a rate. The whole is fixed, as a budget or an order total would be.
     Benchmark("MoneyOf proportion", configuration: defaultConfiguration) { benchmark in
         let whole = GBP(minorUnits: 100_00)
         var amount = 1
@@ -721,9 +720,8 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
-    // Euclid takes a step per digit, so its cost is bounded by the *smaller* operand: a few pence of a
-    // vast total costs no more than the pence do. Both sides have to be large for the expensive case,
-    // which is what this measures and the benchmark above cannot.
+    // Large amounts on both sides, where the division works at full width. A proportion of a few pence
+    // against a vast total is the cheap case the benchmark above measures; this is the dear one.
     Benchmark("MoneyOf proportion of large amounts", configuration: defaultConfiguration) { benchmark in
         let whole = GBP.max
         var amount = Int64.max / 3
@@ -731,18 +729,6 @@ let benchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations {
             blackHole(GBP(minorUnits: amount).proportion(of: whole))
             amount &+= 1
-        }
-    }
-
-    // Construction reduces, so this measures the greatest common divisor, plus the denominator
-    // check and the optional that `init(exactly:over:)` adds. Denominators with many factors are
-    // the expensive case, and the ones money actually uses.
-    Benchmark("Ratio construction", configuration: defaultConfiguration) { benchmark in
-        var numerator: Int64 = 1
-
-        for _ in benchmark.scaledIterations {
-            blackHole(Ratio(exactly: numerator % 40, over: 40))
-            numerator &+= 1
         }
     }
 

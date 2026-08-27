@@ -8,8 +8,7 @@ enum ComparedToHalf {
 // Compares a remainder against half of its divisor without overflowing.
 //
 // A remainder is always smaller than its divisor, so `divisor - remainder` cannot underflow, and
-// comparing against it avoids doubling the remainder (which could overflow a full-width word). This is
-// the same comparison `Ratio` makes.
+// comparing against it avoids doubling the remainder (which could overflow a full-width word).
 func comparedToHalf(
     remainder: UInt128,
     divisor: UInt128
@@ -27,9 +26,8 @@ func comparedToHalf(
 
 // Whether a truncated magnitude should step away from zero, under the caller's rounding rule.
 //
-// Re-expresses `Ratio`'s rule table for a `Fixed` remainder: `sign` gives the direction for the directed
-// rules, and `quotientIsEven` breaks ties for half-to-even. Only called when there is a real remainder
-// to resolve.
+// `sign` gives the direction for the directed rules, and `quotientIsEven` breaks ties for half-to-even.
+// Only called when there is a real remainder to resolve.
 func roundsAwayFromZero(
     rule: RoundingRule,
     sign: Sign,
