@@ -61,4 +61,27 @@ struct ConversionTests {
 
         #expect(gbp == GBP(minorUnits: 87_00))   // 300.00 × 1/3 = 100.00 EUR, × 0.87 = 87.00 GBP
     }
+
+    // USD has 100 minor units, JPY has 1. A market rate is quoted per major unit ($1 = ¥149.5), so
+    // converting must account for the differing scales: $1.00 is ¥150 (rounded), not ¥14,950.
+    @Test("A market rate converts correctly across currencies of different scale")
+    func convertsAcrossDifferentScales() throws {
+        let rate = try #require(Rate(string: "149.5"))               // $1 = ¥149.5, quoted per major unit
+        let usdJpy = try #require(ExchangeRate<Currencies.USD, Currencies.JPY>(rate))
+
+        let yen = USD(minorUnits: 1_00).converted(using: usdJpy).rounded(.toNearestOrEven)
+
+        #expect(yen == JPY(minorUnits: 150))   // ¥149.5 → ¥150, not ¥14,950
+    }
+
+    // The quoting: initialiser is minor-per-minor, so it needs no scale adjustment: 100 US cents are
+    // worth 150 yen directly.
+    @Test("A minor-unit quote converts across different scales")
+    func quotedMinorUnitsAcrossScales() throws {
+        let usdJpy = try #require(ExchangeRate<Currencies.USD, Currencies.JPY>(quoting: 150, per: 1_00))
+
+        let yen = USD(minorUnits: 1_00).converted(using: usdJpy).rounded(.toNearestOrEven)
+
+        #expect(yen == JPY(minorUnits: 150))
+    }
 }

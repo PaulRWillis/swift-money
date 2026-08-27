@@ -1,31 +1,46 @@
-/// The rate at which one currency converts to another: how many minor units of `To` one minor unit of
-/// `From` buys.
+/// The rate at which one currency converts to another.
 ///
-/// An exchange rate is strictly positive. The currencies are part of the type, so a rate can only be
-/// used to convert the currency it was quoted for, and the direction cannot be mixed up.
+/// Quoted the way a market quotes a pair: how many major units of `To` one major unit of `From` buys.
+/// A EUR/GBP rate of `0.87` means €1 buys £0.87. An exchange rate is strictly positive, and the
+/// currencies are part of the type, so a rate can only convert the currency it was quoted for and the
+/// direction cannot be mixed up.
 ///
 /// ```swift
 /// let eurGbp = ExchangeRate<Currencies.EUR, Currencies.GBP>(quoting: 87, per: 100)
 /// ```
 public struct ExchangeRate<From: CurrencyType, To: CurrencyType>: Sendable, Equatable {
-    let rate: Rate
+    // Stored as `To` minor units per one `From` minor unit — the form `converted` and `crossed` use
+    // directly. The public quote is per major unit; the two differ only when the currencies' scales
+    // differ, and the conversion between them lives solely in `init?(_:)`.
+    let minorPerMinorRate: Rate
 
-    /// Creates an exchange rate from a rate.
-    ///
-    /// - Returns: `nil` unless the rate is strictly positive — a zero or negative exchange rate would
-    ///   zero or sign-flip a conversion.
-    public init?(_ rate: Rate) {
+    private init?(minorPerMinor rate: Rate) {
         guard rate.isPositive else {
             return nil
         }
 
-        self.rate = rate
+        self.minorPerMinorRate = rate
+    }
+
+    /// Creates an exchange rate from a market quote: `To` major units per one `From` major unit.
+    ///
+    /// - Returns: `nil` unless the rate is strictly positive — a zero or negative exchange rate would
+    ///   zero or sign-flip a conversion.
+    public init?(_ marketRate: Rate) {
+        // A major-unit rate scaled to minor units: multiplying a `From`-minor amount by the result
+        // gives a `To`-minor amount. `× toScale ÷ fromScale` converts between the two quote forms —
+        // e.g. $1 = ¥149.5 (per major) becomes 1.495 ¥-minor per ¢, since ¥ has scale 1 and $ has 100.
+        let scaled = marketRate.value
+            .multiplied(by: Int64(To.currency.unitScale))
+            .divided(by: Int64(From.currency.unitScale))
+
+        self.init(minorPerMinor: Rate(scaled))
     }
 
     /// Creates an exchange rate from a quoted pair of minor-unit amounts, as a feed gives them.
     ///
-    /// `ExchangeRate(quoting: 87, per: 100)` is the rate that buys 87 minor units of `To` for every 100
-    /// of `From`.
+    /// `ExchangeRate(quoting: 87, per: 100)` is the rate at which 100 minor units of `From` are worth 87
+    /// minor units of `To`.
     ///
     /// - Returns: `nil` if `fromMinorUnits` is zero, or the quoted rate is not strictly positive.
     public init?(quoting toMinorUnits: Int64, per fromMinorUnits: Int64) {
@@ -33,7 +48,7 @@ public struct ExchangeRate<From: CurrencyType, To: CurrencyType>: Sendable, Equa
             return nil
         }
 
-        self.init(Rate(Fixed(toMinorUnits) / Fixed(fromMinorUnits)))
+        self.init(minorPerMinor: Rate(Fixed(toMinorUnits) / Fixed(fromMinorUnits)))
     }
 
     /// Returns the customer rate for this mid-market rate: the rate less the provider's margin.
@@ -42,9 +57,9 @@ public struct ExchangeRate<From: CurrencyType, To: CurrencyType>: Sendable, Equa
     /// always positive and never larger than the mid rate.
     public func applyingMargin(_ margin: Margin) -> Self {
         // margin is in [0, 1), so the kept fraction is in (0, 1] and the product stays positive and no
-        // larger than `rate` — it cannot leave the range or the positive invariant.
-        guard let customer = rate.multiplied(by: margin.rate.subtracted(from: .par)),
-              let result = Self(customer) else {
+        // larger than the rate — it cannot leave the range or the positive invariant.
+        guard let customer = minorPerMinorRate.multiplied(by: margin.rate.subtracted(from: .par)),
+              let result = Self(minorPerMinor: customer) else {
             preconditionFailure("Applying a margin left the representable range")  // coverage:ignore — exit-test trap
         }
 
@@ -60,8 +75,10 @@ public struct ExchangeRate<From: CurrencyType, To: CurrencyType>: Sendable, Equa
     public func crossed<Onward>(
         with other: ExchangeRate<To, Onward>
     ) -> ExchangeRate<From, Onward> {
-        guard let composed = rate.multiplied(by: other.rate),
-              let result = ExchangeRate<From, Onward>(composed) else {
+        // Both are minor-per-minor, so the shared `To` minor unit cancels and the product is already
+        // `Onward` minor units per one `From` minor unit — no scale adjustment needed.
+        guard let composed = minorPerMinorRate.multiplied(by: other.minorPerMinorRate),
+              let result = ExchangeRate<From, Onward>(minorPerMinor: composed) else {
             preconditionFailure("Crossing two rates left the representable range")  // coverage:ignore — exit-test trap
         }
 

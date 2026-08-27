@@ -370,7 +370,7 @@ public extension MoneyOf.Unrounded where C: CurrencyType {
     ///
     /// - Precondition: the converted amount is representable.
     func converted<To>(using rate: ExchangeRate<C, To>) -> MoneyOf<To>.Unrounded {
-        guard let converted = minorUnits.multipliedIfRepresentable(by: rate.rate.value) else {
+        guard let converted = minorUnits.multipliedIfRepresentable(by: rate.minorPerMinorRate.value) else {
             preconditionFailure("Converting is not representable")  // coverage:ignore — exit-test trap
         }
 
