@@ -15,7 +15,7 @@ let package = Package(
         .executableTarget(
             name: "SwiftMoneyBenchmarks",
             dependencies: [
-                .product(name: "SwiftMoney", package: "swift-money"),
+                .product(name: "SwiftMoneyCore", package: "swift-money"),
                 .product(name: "SwiftMoneyFoundation", package: "swift-money"),
                 .product(name: "Benchmark", package: "package-benchmark"),
             ],

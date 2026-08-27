@@ -1,5 +1,5 @@
 import Foundation
-import SwiftMoney
+import SwiftMoneyCore
 
 public extension JSONEncoder {
     /// The shape money takes on the wire.

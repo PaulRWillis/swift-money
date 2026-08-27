@@ -1,0 +1,319 @@
+public extension MoneyOf where C: CurrencyType {
+    /// Creates an amount from a string, in the currency this type names.
+    ///
+    /// ```swift
+    /// GBP(string: "4.99")       // £4.99
+    /// GBP(string: "499")        // £4.99, the same amount in pence
+    /// GBP(string: "GBP 4.99")   // £4.99
+    /// GBP(string: "USD 4.99")   // nil
+    /// ```
+    ///
+    /// A `.` means major units and no `.` means the currency's smallest units. The code may be left
+    /// out, this type having named the currency already, and must match where it is given.
+    ///
+    /// - Parameter string: The amount, with or without its currency code.
+    /// - Returns: `nil` unless the string is an amount this currency can hold exactly.
+    @inlinable
+    init?(string: String) {
+        guard let minorUnits = parsedMinorUnits(string, in: C.currency) else {
+            return nil
+        }
+
+        self.init(unchecked: minorUnits, storage: .implied)
+    }
+}
+
+public extension MoneyOf where C == AnyCurrency {
+    /// Creates an amount from a string naming an ISO 4217 currency.
+    ///
+    /// ```swift
+    /// Money(string: "GBP 4.99")   // £4.99
+    /// Money(string: "GBP 499")    // £4.99, the same amount in pence
+    /// Money(string: "JPY 499")    // ¥499
+    /// Money(string: "LTY 250")    // nil
+    /// Money(string: "4.99")       // nil
+    /// ```
+    ///
+    /// A `.` means major units and no `.` means the currency's smallest units. The code is required,
+    /// nothing else here being able to say how finely the currency divides. Use
+    /// ``init(string:currency:)`` for a currency outside ISO 4217.
+    ///
+    /// - Parameter string: The amount, led by its currency code.
+    /// - Returns: `nil` unless the string is an amount an ISO 4217 currency can hold exactly.
+    init?(string: String) {
+        guard let parsed = parsedISOAmount(string) else {
+            return nil
+        }
+
+        self.init(unchecked: parsed.minorUnits, storage: parsed.currency)
+    }
+
+    /// Creates an amount from a string, in a currency the caller names.
+    ///
+    /// ```swift
+    /// let points = Currency(code: "LTY", unitScale: 1)   // Currency?
+    ///
+    /// if let points {
+    ///     Money(string: "250", currency: points)       // 250 points
+    ///     Money(string: "LTY 250", currency: points)   // 250 points
+    ///     Money(string: "GBP 250", currency: points)   // nil
+    /// }
+    /// ```
+    ///
+    /// A `.` means major units and no `.` means the currency's smallest units. The code may be left
+    /// out, the argument having named the currency already, and must match where it is given.
+    ///
+    /// - Parameters:
+    ///   - string: The amount, with or without its currency code.
+    ///   - currency: The currency the amount is in.
+    /// - Returns: `nil` unless the string is an amount that currency can hold exactly.
+    init?(
+        string: String,
+        currency: Currency
+    ) {
+        guard let minorUnits = parsedMinorUnits(string, in: currency) else {
+            return nil
+        }
+
+        self.init(unchecked: minorUnits, storage: currency)
+    }
+}
+
+// The amount a string holds, in the smallest units of a currency the caller already knows. A code is
+// optional and must agree with that currency where it is given.
+@usableFromInline
+func parsedMinorUnits(
+    _ string: String,
+    in currency: Currency
+) -> Int64? {
+    string.withUTF8Buffer { utf8 in
+        let (code, digits) = codeAndDigits(utf8)
+
+        guard code == nil || code == currency.code else {
+            return nil
+        }
+
+        return minorUnits(digits, scale: UInt64(Int64(currency.unitScale)))
+    }
+}
+
+// The amount and currency a string holds, the code naming an ISO 4217 currency. The code is required,
+// nothing else here being able to say how finely the currency divides.
+@usableFromInline
+func parsedISOAmount(_ string: String) -> (minorUnits: Int64, currency: Currency)? {
+    string.withUTF8Buffer { utf8 -> (Int64, Currency)? in
+        let (code, digits) = codeAndDigits(utf8)
+
+        guard let code,
+              let currency = Currency(iso: code),
+              let minorUnits = minorUnits(digits, scale: UInt64(Int64(currency.unitScale)))
+        else {
+            return nil
+        }
+
+        return (minorUnits, currency)
+    }
+}
+
+// Why a coded string is not an amount. Reported rather than collapsed into `nil`, because the three
+// have three remedies, and telling a caller to write fewer decimals when their currency is the
+// problem sends them the wrong way.
+enum CodedStringError: Error, Equatable {
+    // Nothing named a currency, and this representation cannot supply one.
+    case unnamedCurrency
+
+    // The code names a currency this representation cannot be.
+    case unresolvedCurrency(CurrencyCode)
+
+    // The digits are not a whole number of the smallest units of the currency they are in.
+    case inexactAmount(Currency)
+}
+
+extension MoneyOf {
+    // The amount a coded string holds, the currency coming from the code where the string names one
+    // and from the representation where it does not. One implementation for both money types, since
+    // `Codable` may be conformed to only once.
+    init(codedString text: String) throws(CodedStringError) {
+        switch Self.parsed(codedString: text) {
+        case let .success(amount):
+            self.init(unchecked: amount.minorUnits, storage: amount.storage)
+
+        case let .failure(error):
+            throw error
+        }
+    }
+
+    private static func parsed(
+        codedString text: String
+    ) -> Result<(minorUnits: Int64, storage: C.Storage), CodedStringError> {
+        text.withUTF8Buffer { utf8 in
+            let (code, digits) = codeAndDigits(utf8)
+
+            guard let storage = C.storage(forCode: code) else {
+                return .failure(code.map { .unresolvedCurrency($0) } ?? .unnamedCurrency)
+            }
+
+            let currency = C.currency(for: storage)
+
+            // Qualified, because the stored property of the same name shadows the function here.
+            guard let amount = SwiftMoneyCore.minorUnits(
+                digits,
+                scale: UInt64(Int64(currency.unitScale))
+            ) else {
+                return .failure(.inexactAmount(currency))
+            }
+
+            return .success((amount, storage))
+        }
+    }
+}
+
+private extension String {
+    // The bytes, lent where they are already contiguous UTF-8 and copied where they are not.
+    func withUTF8Buffer<T>(_ body: (UnsafeBufferPointer<UInt8>) -> T) -> T {
+        utf8.withContiguousStorageIfAvailable(body) ?? Array(utf8).withUnsafeBufferPointer(body)
+    }
+}
+
+// The code a string leads with and the digits that follow. Where no code is found the whole string
+// is digits, which is the form a caller who already knows the currency may use.
+private func codeAndDigits(
+    _ utf8: UnsafeBufferPointer<UInt8>
+) -> (code: CurrencyCode?, digits: Slice<UnsafeBufferPointer<UInt8>>) {
+    guard let leading = CurrencyCode.leading(in: utf8) else {
+        return (nil, utf8[...])
+    }
+
+    return (leading.code, utf8[leading.after...])
+}
+
+// The amount a run of bytes holds, in the smallest units of a currency of `scale`. One pass: the
+// decimal point is met rather than searched for, and the power of ten it implies is accumulated
+// alongside the digits it counts.
+private func minorUnits(
+    _ utf8: Slice<UnsafeBufferPointer<UInt8>>,
+    scale: UInt64
+) -> Int64? {
+    var whole: UInt64 = 0
+    var fraction: UInt64 = 0
+    var power: UInt64 = 1
+    var isNegative = false
+    var seenPoint = false
+    var seenDigit = false
+    var index = utf8.startIndex
+
+    if index < utf8.endIndex, utf8[index] == UInt8(ascii: "-") || utf8[index] == UInt8(ascii: "+") {
+        isNegative = utf8[index] == UInt8(ascii: "-")
+        index = utf8.index(after: index)
+    }
+
+    while index < utf8.endIndex {
+        let byte = utf8[index]
+        index = utf8.index(after: index)
+
+        if byte == UInt8(ascii: ".") {
+            guard !seenPoint else {
+                return nil
+            }
+
+            seenPoint = true
+            seenDigit = false
+            continue
+        }
+
+        let digit = UInt64(byte &- UInt8(ascii: "0"))
+
+        guard digit < 10 else {
+            return nil
+        }
+
+        seenDigit = true
+
+        if seenPoint {
+            guard let raised = power.multipliedExactly(by: 10),
+                  let shifted = fraction.multipliedExactly(by: 10),
+                  let added = shifted.addedExactly(digit)
+            else {
+                return nil
+            }
+
+            power = raised
+            fraction = added
+        } else {
+            guard let shifted = whole.multipliedExactly(by: 10),
+                  let added = shifted.addedExactly(digit)
+            else {
+                return nil
+            }
+
+            whole = added
+        }
+    }
+
+    guard seenDigit else {
+        return nil
+    }
+
+    // Without a point the digits are already the smallest units, so nothing is scaled.
+    guard seenPoint else {
+        return Int64(magnitude: whole, sign: isNegative ? .negative : .positive)
+    }
+
+    guard let scaledFraction = fraction.scaled(by: scale, over: power),
+          let major = whole.multipliedExactly(by: scale),
+          let magnitude = major.addedExactly(scaledFraction)
+    else {
+        return nil
+    }
+
+    return Int64(magnitude: magnitude, sign: isNegative ? .negative : .positive)
+}
+
+private extension UInt64 {
+    // `self * scale / power`, where `self` is a fraction below `power`. `nil` where the division
+    // leaves a remainder, the string then being finer than the currency divides, as "GBP 4.999" is:
+    // rounding it away here would be losing money quietly.
+    //
+    // Multiplying first is right until it overflows, which eighteen fraction digits reach. That is
+    // not an exotic input: a sender padding "4.99" to eighteen places is writing an amount sterling
+    // holds exactly, and it used to be refused.
+    func scaled(
+        by scale: UInt64,
+        over power: UInt64
+    ) -> UInt64? {
+        let (product, overflow) = multipliedReportingOverflow(by: scale)
+
+        guard overflow else {
+            return product.isMultiple(of: power) ? product / power : nil
+        }
+
+        return reduced(by: scale, over: power)
+    }
+
+    // Out of line so that the caller above stays small enough to inline: holding this beside it cost
+    // every parse sixteen instructions, for a branch almost nothing takes.
+    @inline(never)
+    func reduced(
+        by scale: UInt64,
+        over power: UInt64
+    ) -> UInt64? {
+        // Reducing the two before multiplying holds every intermediate below `scale`, the fraction
+        // being below `power`.
+        let common = greatestCommonDivisor(of: power, and: scale)
+        let divisor = power / common
+
+        return isMultiple(of: divisor) ? self / divisor * (scale / common) : nil
+    }
+
+    func multipliedExactly(by other: UInt64) -> UInt64? {
+        let (product, overflow) = multipliedReportingOverflow(by: other)
+
+        return overflow ? nil : product
+    }
+
+    func addedExactly(_ other: UInt64) -> UInt64? {
+        let (sum, overflow) = addingReportingOverflow(other)
+
+        return overflow ? nil : sum
+    }
+}

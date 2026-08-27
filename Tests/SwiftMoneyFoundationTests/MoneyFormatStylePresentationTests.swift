@@ -1,5 +1,5 @@
 import Foundation
-import SwiftMoney
+import SwiftMoneyCore
 import SwiftMoneyFoundation
 import Testing
 

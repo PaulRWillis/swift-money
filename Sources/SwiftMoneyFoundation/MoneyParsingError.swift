@@ -1,4 +1,4 @@
-import SwiftMoney
+import SwiftMoneyCore
 
 /// Why localized text could not become an amount.
 ///

@@ -1,5 +1,5 @@
 import Foundation
-import SwiftMoney
+import SwiftMoneyCore
 
 public extension MoneyOf {
     /// A strategy that turns localized text back into the amount it renders.

@@ -1,6 +1,6 @@
 import Benchmark
 import Foundation
-import SwiftMoney
+import SwiftMoneyCore
 import SwiftMoneyFoundation
 
 // Three baselines, because one number on its own says nothing. `Int` is what the type safety costs,

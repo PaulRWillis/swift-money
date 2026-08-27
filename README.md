@@ -11,7 +11,7 @@ so there is no floating point and no hidden rounding. The currency is part of th
 know it at compile time, and checked at runtime when you do not.
 
 ```swift
-import SwiftMoney
+import SwiftMoneyCore
 
 let price = GBP(minorUnits: 4_99)                              // GBP 4.99
 let vat = price.applying("20%").rounded(.toNearestOrEven)      // GBP 1.00
@@ -50,13 +50,13 @@ Then add the products your target needs:
 .target(
     name: "MyTarget",
     dependencies: [
-        .product(name: "SwiftMoney", package: "swift-money"),
+        .product(name: "SwiftMoneyCore", package: "swift-money"),
         .product(name: "SwiftMoneyFoundation", package: "swift-money"),
     ]
 ),
 ```
 
-`SwiftMoney` is the core library. `SwiftMoneyFoundation` adds the pieces that need Foundation:
+`SwiftMoneyCore` is the core library. `SwiftMoneyFoundation` adds the pieces that need Foundation:
 formatting, localized parsing, `Decimal` interop, and JSON configuration. Import both modules to
 use them.
 
@@ -146,7 +146,7 @@ let ordered = try prices.sorted { try $0.isLessThan($1) }
 Formatting is locale-aware and lives in `SwiftMoneyFoundation`:
 
 ```swift
-import SwiftMoney
+import SwiftMoneyCore
 import SwiftMoneyFoundation
 
 let price = GBP(minorUnits: 4_99)
