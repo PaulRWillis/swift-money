@@ -4,7 +4,7 @@
 /// identify it and to know how finely it divides.
 ///
 /// ```swift
-/// let currency = Currency(code: "LTY", unitScale: 1)
+/// let points = Currency(code: "LTY", unitScale: 1)   // Currency?, nil only for a shipped code at a wrong scale
 /// ```
 public struct Currency: Equatable, Hashable, Sendable {
     /// The code identifying the currency, such as `GBP`.

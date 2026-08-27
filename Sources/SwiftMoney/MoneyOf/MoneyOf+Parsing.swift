@@ -51,11 +51,13 @@ public extension MoneyOf where C == AnyCurrency {
     /// Creates an amount from a string, in a currency the caller names.
     ///
     /// ```swift
-    /// let points = Currency(code: "LTY", unitScale: 1)
+    /// let points = Currency(code: "LTY", unitScale: 1)   // Currency?
     ///
-    /// Money(string: "250", currency: points)       // 250 points
-    /// Money(string: "LTY 250", currency: points)   // 250 points
-    /// Money(string: "GBP 250", currency: points)   // nil
+    /// if let points {
+    ///     Money(string: "250", currency: points)       // 250 points
+    ///     Money(string: "LTY 250", currency: points)   // 250 points
+    ///     Money(string: "GBP 250", currency: points)   // nil
+    /// }
     /// ```
     ///
     /// A `.` means major units and no `.` means the currency's smallest units. The code may be left
