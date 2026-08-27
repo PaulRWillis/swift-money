@@ -33,7 +33,12 @@ public extension CurrencyRepresentation {
 ///
 /// ```swift
 /// enum LoyaltyPoints: CurrencyType {
-///     static let currency = Currency(code: "LTY", unitScale: 1)
+///     static let currency: Currency = {
+///         guard let currency = Currency(code: "LTY", unitScale: 1) else {
+///             preconditionFailure("LTY must not be a currency the library ships")
+///         }
+///         return currency
+///     }()
 /// }
 ///
 /// typealias Points = MoneyOf<LoyaltyPoints>

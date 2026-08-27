@@ -8,7 +8,7 @@ import SwiftMoney
 // definitely-valid custom currencies, never for validating input.
 func customCurrency(code: CurrencyCode, unitScale: UnitScale) -> Currency {
     guard let currency = Currency(code: code, unitScale: unitScale) else {
-        preconditionFailure("\(code) is a custom currency and should build at any scale")
+        preconditionFailure("\(code) must not be a currency the library ships at another scale")
     }
 
     return currency
