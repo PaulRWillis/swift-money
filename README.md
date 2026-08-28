@@ -44,21 +44,27 @@ dependencies: [
 ]
 ```
 
-Then add the products your target needs:
+Then add the product your target needs. For most apps the umbrella product is all you need:
 
 ```swift
 .target(
     name: "MyTarget",
     dependencies: [
-        .product(name: "SwiftMoneyCore", package: "swift-money"),
-        .product(name: "SwiftMoneyFoundation", package: "swift-money"),
+        .product(name: "SwiftMoney", package: "swift-money"),
     ]
 ),
 ```
 
-`SwiftMoneyCore` is the core library. `SwiftMoneyFoundation` adds the pieces that need Foundation:
-formatting, localized parsing, `Decimal` interop, and JSON configuration. Import both modules to
-use them.
+```swift
+import SwiftMoney   // the core types and the Foundation-backed formatting, in one import
+```
+
+`SwiftMoney` re-exports two libraries you can also depend on directly:
+
+- **`SwiftMoneyCore`** — the core money types, with no Foundation dependency, so it is the one to use
+  on Embedded Swift.
+- **`SwiftMoneyFoundation`** — the pieces that need Foundation: formatting, localized parsing,
+  `Decimal` interop, and JSON configuration.
 
 **Requires Swift 6.2.**
 **Platforms:** macOS 15+, iOS 18+, watchOS 11+, tvOS 18+, visionOS 2+. Linux builds in CI.

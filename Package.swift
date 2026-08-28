@@ -13,6 +13,10 @@ let package = Package(
     ],
     products: [
         .library(
+            name: "SwiftMoney",
+            targets: ["SwiftMoney"]
+        ),
+        .library(
             name: "SwiftMoneyCore",
             targets: ["SwiftMoneyCore"]
         ),
@@ -23,11 +27,19 @@ let package = Package(
     ],
     targets: [
         .target(
+            name: "SwiftMoney",
+            dependencies: ["SwiftMoneyCore", "SwiftMoneyFoundation"]
+        ),
+        .target(
             name: "SwiftMoneyCore"
         ),
         .target(
             name: "SwiftMoneyFoundation",
             dependencies: ["SwiftMoneyCore"]
+        ),
+        .testTarget(
+            name: "SwiftMoneyTests",
+            dependencies: ["SwiftMoney"]
         ),
         .testTarget(
             name: "SwiftMoneyCoreTests",
