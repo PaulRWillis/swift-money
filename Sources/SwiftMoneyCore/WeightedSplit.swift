@@ -35,16 +35,22 @@ public struct WeightedSplit<Amount: Equatable>: Equatable {
 
 public extension WeightedSplit {
     /// Each part's share, in weight order.
+    ///
+    /// `@inlinable` so it specializes for a concretely-typed amount at the call site rather than running
+    /// the generic `map`, which for a typed `WeightedSplit` measured far dearer than the work it does.
+    @inlinable
     var amounts: [Amount] {
         parts.map(\.amount)
     }
 
     /// The weights, in order.
+    @inlinable
     var weights: [Weight] {
         parts.map(\.weight)
     }
 
     /// The number of parts, which equals the number of weights.
+    @inlinable
     var count: Int {
         parts.count
     }
