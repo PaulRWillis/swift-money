@@ -28,6 +28,21 @@ package struct Fixed: Equatable, Hashable, Sendable, BitwiseCopyable {
     @usableFromInline package static let zero = Fixed(_storage: 0)
 }
 
+extension Fixed {
+    // The raw storage integer — the value times 10^18 — for the byte serializer, which writes it as
+    // sixteen two's-complement bytes and reads it back. Not a public number and not a bit pattern to
+    // reinterpret as anything else: it is exactly the integer this type holds internally.
+    @usableFromInline
+    package var storageBits: Int128 {
+        _storage
+    }
+
+    @usableFromInline
+    package init(storageBits: Int128) {
+        self.init(_storage: storageBits)
+    }
+}
+
 extension Fixed: Comparable {
     @usableFromInline package static func < (lhs: Fixed, rhs: Fixed) -> Bool {
         lhs._storage < rhs._storage

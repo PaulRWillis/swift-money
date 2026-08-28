@@ -1579,6 +1579,48 @@ let benchmarks: @Sendable () -> Void = {
                 index &+= 1
             }
         }
+
+        // The unrounded serializer, twenty-three bytes. Operands are the prebuilt fractional `thirds`,
+        // whose fraction the encoding must carry. `unroundedBytes` writes a settled amount straight into
+        // this form.
+        let encodedThirds = thirds.map { $0.bytes }
+        let encodedCarriedThirds = carriedThirds.map { $0.bytes }
+
+        Benchmark("MoneyOf Unrounded bytes encode", configuration: defaultConfiguration) { benchmark in
+            var index = 0
+
+            for _ in benchmark.scaledIterations {
+                blackHole(thirds[index % thirds.count].bytes)
+                index &+= 1
+            }
+        }
+
+        Benchmark("MoneyOf Unrounded bytes decode", configuration: defaultConfiguration) { benchmark in
+            var index = 0
+
+            for _ in benchmark.scaledIterations {
+                blackHole(GBP.Unrounded(bytes: encodedThirds[index % encodedThirds.count]))
+                index &+= 1
+            }
+        }
+
+        Benchmark("Money Unrounded bytes decode", configuration: defaultConfiguration) { benchmark in
+            var index = 0
+
+            for _ in benchmark.scaledIterations {
+                blackHole(Money.Unrounded(bytes: encodedCarriedThirds[index % encodedCarriedThirds.count]))
+                index &+= 1
+            }
+        }
+
+        Benchmark("MoneyOf unroundedBytes", configuration: defaultConfiguration) { benchmark in
+            var index = 0
+
+            for _ in benchmark.scaledIterations {
+                blackHole(moneyOperands[index % moneyOperands.count].unroundedBytes)
+                index &+= 1
+            }
+        }
     }
 
     // Rate is the fixed-point engine's first public consumer, so these are where its cost first shows.
