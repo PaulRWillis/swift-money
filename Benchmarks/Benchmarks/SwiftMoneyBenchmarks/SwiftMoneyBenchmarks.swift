@@ -505,6 +505,148 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    Benchmark("MoneyOf unrounded subtraction", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(thirds[index % thirds.count] - thirds[(index &+ 1) % thirds.count])
+            index &+= 1
+        }
+    }
+
+    // Adding a settled amount to a running unrounded total widens the settled side to `Unrounded`, the
+    // shape an interest or fee accrual takes. The `-` and reversed and compound-assign forms share this
+    // widen-then-add path.
+    Benchmark("MoneyOf unrounded plus settled", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(thirds[index % thirds.count] + moneyOperands[index % moneyOperands.count])
+            index &+= 1
+        }
+    }
+
+    Benchmark("MoneyOf unrounded minus settled", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(thirds[index % thirds.count] - moneyOperands[index % moneyOperands.count])
+            index &+= 1
+        }
+    }
+
+    Benchmark("MoneyOf unrounded divided exactly", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(thirds[index % thirds.count].divided(byExactly: 3))
+            index &+= 1
+        }
+    }
+
+    // `Money.Unrounded` (the runtime-currency unrounded type) had no coverage at all. Its operands are
+    // prebuilt like `thirds` so the scaling that makes them cannot be hoisted. The mismatch-checking
+    // additions throw, so they take the do/catch shape; the scalings do not. The `*=`, reversed-operand,
+    // and `applying` (which is `self * rate`) forms delegate to these primitives.
+    let carriedThirds = (1 ... 16).map { Money(minorUnits: $0 * 100, currency: .gbp).unrounded * "0.333333333333333333" }
+    let carriedVAT: Rate = "7/40"
+
+    Benchmark("Money unrounded scaling by a rate", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(carriedThirds[index % carriedThirds.count] * carriedVAT)
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money unrounded scaling by an integer", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(carriedThirds[index % carriedThirds.count] * 3)
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money unrounded applying a rate", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(carriedThirds[index % carriedThirds.count].applying(carriedVAT))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money unrounded divided by an integer", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(carriedThirds[index % carriedThirds.count].divided(by: 365))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money unrounded divided exactly", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(carriedThirds[index % carriedThirds.count].divided(byExactly: 4))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money unrounded rounded", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(carriedThirds[index % carriedThirds.count].rounded(.toNearestOrEven))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money unrounded addition, throwing", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try carriedThirds[index % carriedThirds.count] + carriedThirds[(index &+ 1) % carriedThirds.count])
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts share a currency, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("Money unrounded subtraction, throwing", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try carriedThirds[index % carriedThirds.count] - carriedThirds[(index &+ 1) % carriedThirds.count])
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts share a currency, so this cannot happen: \(error)")
+        }
+    }
+
+    // Adding a settled `Money` to a running unrounded total, the runtime-currency accrual shape. The
+    // reversed, `-`, and compound-assign forms share this widen-then-add path.
+    Benchmark("Money unrounded plus settled, throwing", configuration: defaultConfiguration) { benchmark in
+        let settled = Money(minorUnits: 1, currency: .gbp)
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try carriedThirds[index % carriedThirds.count] + settled)
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts share a currency, so this cannot happen: \(error)")
+        }
+    }
+
     // Two constant operands let the optimizer hoist the comparison out of the loop, leaving nothing
     // to measure, so one side cycles through the shared operands. Every variant hands `blackHole` a
     // `Bool`, so the harness costs the same in all four and what separates them is the comparison.
