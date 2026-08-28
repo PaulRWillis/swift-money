@@ -1544,6 +1544,43 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    // The binary serializer: the Embedded-safe, allocation-free counterpart to the JSON rows above.
+    // Fifteen fixed bytes, no coder and no `String`, so it sits orders of magnitude below every
+    // `Money JSON` row and allocates nothing. `InlineArray` exists only on the newest systems, so these
+    // rows register there and are absent elsewhere — there is no serializer to price on older ones.
+    if #available(macOS 26, iOS 26, watchOS 26, tvOS 26, visionOS 26, *) {
+        let encodedPounds = moneyOperands.map { $0.bytes }
+
+        Benchmark("MoneyOf bytes encode", configuration: defaultConfiguration) { benchmark in
+            var index = 0
+
+            for _ in benchmark.scaledIterations {
+                blackHole(moneyOperands[index % moneyOperands.count].bytes)
+                index &+= 1
+            }
+        }
+
+        Benchmark("MoneyOf bytes decode", configuration: defaultConfiguration) { benchmark in
+            var index = 0
+
+            for _ in benchmark.scaledIterations {
+                blackHole(GBP(bytes: encodedPounds[index % encodedPounds.count]))
+                index &+= 1
+            }
+        }
+
+        // The runtime-currency decode rebuilds the `Currency` from the code and scale, where the typed
+        // decode above only checks them, so this prices that rebuild.
+        Benchmark("Money bytes decode", configuration: defaultConfiguration) { benchmark in
+            var index = 0
+
+            for _ in benchmark.scaledIterations {
+                blackHole(Money(bytes: encodedPounds[index % encodedPounds.count]))
+                index &+= 1
+            }
+        }
+    }
+
     // Rate is the fixed-point engine's first public consumer, so these are where its cost first shows.
     // Basis points and percent are significand construction; the string forms add parsing, and the
     // fraction form runs the divide. Double and Decimal parsing are the peers for the string forms.

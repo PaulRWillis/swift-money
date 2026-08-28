@@ -290,6 +290,18 @@ candidate for the specialization sweep.
 | Money encode, no coder | 1285 | 0 | 42 |
 | Money encode, no coder, two fields | 4312 | 1 | 132 |
 
+### Binary serializer
+
+Fixed fifteen bytes, no coder and no `String`, so it runs allocation-free and orders of magnitude below
+every JSON row. The typed decode only checks the code and scale against the type's own; the runtime decode
+rebuilds the currency, which is the table check it pays for.
+
+| Operation | Instructions | Malloc | Wall (ns) |
+|---|--:|--:|--:|
+| MoneyOf bytes encode | 403 | 0 | 11 |
+| MoneyOf bytes decode | 174 | 0 | 5 |
+| Money bytes decode | 219 | 0 | 6 |
+
 ### ICU formatting (Foundation)
 
 | Operation | Instructions | Malloc | Wall (ns) |
