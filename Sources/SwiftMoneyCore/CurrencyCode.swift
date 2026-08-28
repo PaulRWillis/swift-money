@@ -96,6 +96,7 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
     // symbol 1...36 (A–Z then 0–9); zero is the empty slot, so the length is implicit in where the
     // symbols stop. The high character occupies the top six bits, matching `packedValue`'s order, so a
     // packed code still sorts as it reads. The top sixteen bits are unused (48 bits hold eight symbols).
+    @usableFromInline
     package var compactValue: UInt64 {
         var compact: UInt64 = 0
 
@@ -114,6 +115,7 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
 
     // Rebuilds a code from its six-bit packed form, or `nil` when the symbols are not a valid code:
     // fewer than three or a symbol out of range. Validating, because packed bytes come from outside.
+    @usableFromInline
     package init?(compactValue: UInt64) {
         var storage: UInt64 = 0
         var count = 0

@@ -26,6 +26,7 @@ public extension MoneyOf {
     ///
     /// The bytes carry the amount, the currency code, and the scale, so ``init(bytes:)`` rebuilds the
     /// amount without consulting any table. Allocation-free.
+    @inlinable
     var bytes: InlineArray<15, UInt8> {
         let amount = UInt64(bitPattern: Int64(minorUnits))
         let code = currency.code.compactValue
@@ -48,6 +49,7 @@ public extension MoneyOf {
 // Shared by the typed and runtime decoders, which differ only in how they turn the code and scale into
 // a currency.
 @available(macOS 26, iOS 26, watchOS 26, tvOS 26, visionOS 26, *)
+@inlinable
 func decodedMoneyFields(_ bytes: InlineArray<15, UInt8>) -> (minorUnits: Int64, code: CurrencyCode, scale: UnitScale)? {
     var amount: UInt64 = 0
     for index in 0 ... 7 {
@@ -73,6 +75,7 @@ public extension MoneyOf where C: CurrencyType {
     ///
     /// - Returns: `nil` unless the bytes are a valid encoding whose currency is the one this type names.
     ///   The code and scale in the bytes must match `C`'s own, so decoding `GBP` bytes as `EUR` fails.
+    @inlinable
     init?(bytes: InlineArray<15, UInt8>) {
         guard let fields = decodedMoneyFields(bytes),
               fields.code == C.currency.code,
@@ -91,6 +94,7 @@ public extension MoneyOf where C == AnyCurrency {
     /// - Returns: `nil` unless the bytes are a valid encoding: a valid code and scale that name a
     ///   currency, and a scale the code does not contradict (a currency the library ships at a
     ///   different scale is refused).
+    @inlinable
     init?(bytes: InlineArray<15, UInt8>) {
         guard let fields = decodedMoneyFields(bytes),
               let currency = Currency(code: fields.code, unitScale: fields.scale) else {
