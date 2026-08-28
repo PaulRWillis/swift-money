@@ -1,10 +1,15 @@
 import Benchmark
+import FixedPointDecimal
 import Foundation
 import SwiftMoneyCore
 import SwiftMoneyFoundation
 
-// Three baselines, because one number on its own says nothing. `Int` is what the type safety costs,
+// Five baselines, because one number on its own says nothing. `Int` is what the type safety costs,
 // `Double` is the fast answer that is wrong at scale, and `Decimal` is the exact answer that is slow.
+// `Int128` is the same storage width the scaling engine works in, so the gap to it is the cost of
+// renormalizing after a multiply rather than of the wider arithmetic. `FixedPointDecimal` (ordo-one's
+// Int64-backed, 8-fraction-digit type) is the closest published peer — same class of type, same
+// benchmark harness — so it is the realistic yardstick for the fractional operations.
 //
 // Benchmark names are distinct from the SwiftMoney target's, since results are keyed by name across a
 // whole run.
@@ -75,9 +80,11 @@ let benchmarks: @Sendable () -> Void = {
     // The operands come from an array because the optimizer folds a loop adding a constant into a
     // multiplication, and the benchmark then measures nothing: an attempt at this read zero.
     let operands = [1, 2, 3, 5, 7, 10, 13, 17, 19, 23]
-    let doubleOperands = operands.map(Double.init)
-    let decimalOperands = operands.map { Decimal($0) }
-    let moneyOperands = operands.map { GBP(minorUnits: $0) }
+    let doubleOperands: [Double] = operands.map(Double.init)
+    let decimalOperands: [Decimal] = operands.map { Decimal($0) }
+    let moneyOperands: [GBP] = operands.map { GBP(minorUnits: $0) }
+    let int128Operands: [Int128] = operands.map { Int128($0) }
+    let fixedOperands: [FixedPointDecimal] = operands.map { FixedPointDecimal(integerValue: Int64($0)) }
 
     Benchmark("MoneyOf addition", configuration: defaultConfiguration) { benchmark in
         var accumulated = GBP(minorUnits: 0)
@@ -126,6 +133,30 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    Benchmark("Int128 addition", configuration: defaultConfiguration) { benchmark in
+        var accumulated: Int128 = 0
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            accumulated = accumulated + int128Operands[index % int128Operands.count]
+            index &+= 1
+        }
+
+        blackHole(accumulated)
+    }
+
+    Benchmark("FixedPoint addition", configuration: defaultConfiguration) { benchmark in
+        var accumulated = FixedPointDecimal(integerValue: 0)
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            accumulated = accumulated + fixedOperands[index % fixedOperands.count]
+            index &+= 1
+        }
+
+        blackHole(accumulated)
+    }
+
     Benchmark("MoneyOf subtraction", configuration: defaultConfiguration) { benchmark in
         var accumulated = GBP(minorUnits: 999_999_999)
         var index = 0
@@ -171,6 +202,30 @@ let benchmarks: @Sendable () -> Void = {
             accumulated = accumulated - decimalOperands[index % decimalOperands.count]
             index &+= 1
         }
+    }
+
+    Benchmark("Int128 subtraction", configuration: defaultConfiguration) { benchmark in
+        var accumulated: Int128 = 999_999_999
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            accumulated = accumulated - int128Operands[index % int128Operands.count]
+            index &+= 1
+        }
+
+        blackHole(accumulated)
+    }
+
+    Benchmark("FixedPoint subtraction", configuration: defaultConfiguration) { benchmark in
+        var accumulated = FixedPointDecimal(integerValue: 999_999_999)
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            accumulated = accumulated - fixedOperands[index % fixedOperands.count]
+            index &+= 1
+        }
+
+        blackHole(accumulated)
     }
 
     // Summing the products keeps each one alive without handing it to the harness, and costs every
@@ -224,9 +279,33 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    Benchmark("Int128 scalar multiplication", configuration: defaultConfiguration) { benchmark in
+        let price: Int128 = 12_50
+        var accumulated: Int128 = 0
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            accumulated = accumulated + price * int128Operands[index % int128Operands.count]
+            index &+= 1
+        }
+
+        blackHole(accumulated)
+    }
+
+    Benchmark("FixedPoint scalar multiplication", configuration: defaultConfiguration) { benchmark in
+        let price = FixedPointDecimal("12.50")!
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(price * fixedOperands[index % fixedOperands.count])
+            index &+= 1
+        }
+    }
+
     // 17.5% of an amount, resolved to a whole unit. The operation this library exists for, and the one
-    // where the three baselines diverge most: `Int` cannot round at all, `Double` rounds a value it
-    // cannot represent, and `Decimal` is exact but pays for it.
+    // where the baselines diverge most: `Int`/`Int128` cannot round at all (they truncate), `Double`
+    // rounds a value it cannot represent, `Decimal` is exact but pays for it, and `FixedPointDecimal`
+    // does the same fixed-point multiply-and-round the engine does.
 
     Benchmark("MoneyOf scaled and rounded", configuration: defaultConfiguration) { benchmark in
         let vat: Rate = "7/40"
@@ -247,6 +326,19 @@ let benchmarks: @Sendable () -> Void = {
 
         for _ in benchmark.scaledIterations {
             accumulated = accumulated + amount * 7 / 40
+            amount &+= 1
+        }
+
+        blackHole(accumulated)
+    }
+
+    Benchmark("Int128 scaled, truncating", configuration: defaultConfiguration) { benchmark in
+        let numerator: Int128 = 7, denominator: Int128 = 40
+        var accumulated: Int128 = 0
+        var amount: Int128 = 1
+
+        for _ in benchmark.scaledIterations {
+            accumulated = accumulated + amount * numerator / denominator
             amount &+= 1
         }
 
@@ -275,6 +367,16 @@ let benchmarks: @Sendable () -> Void = {
             var rounded = Decimal()
             NSDecimalRound(&rounded, &scaled, 0, .bankers)
             blackHole(rounded)
+            amount &+= 1
+        }
+    }
+
+    Benchmark("FixedPoint scaled and rounded", configuration: defaultConfiguration) { benchmark in
+        let vat = FixedPointDecimal("0.175")!
+        var amount = 1
+
+        for _ in benchmark.scaledIterations {
+            blackHole((FixedPointDecimal(integerValue: Int64(amount)) * vat).rounded(.toNearestOrEven))
             amount &+= 1
         }
     }
@@ -340,6 +442,18 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    Benchmark("Int128 chained scaling, truncating", configuration: defaultConfiguration) { benchmark in
+        let discountNum: Int128 = 9, discountDen: Int128 = 10
+        let vatNum: Int128 = 6, vatDen: Int128 = 5
+        let dayNum: Int128 = 31, dayDen: Int128 = 365
+        var amount: Int128 = 1
+
+        for _ in benchmark.scaledIterations {
+            blackHole(amount * discountNum / discountDen * vatNum / vatDen * dayNum / dayDen)
+            amount &+= 1
+        }
+    }
+
     Benchmark("Double chained scaling", configuration: defaultConfiguration) { benchmark in
         let dayCount = 31.0 / 365.0
         var amount = 1.0
@@ -361,6 +475,19 @@ let benchmarks: @Sendable () -> Void = {
             var rounded = Decimal()
             NSDecimalRound(&rounded, &scaled, 0, .bankers)
             blackHole(rounded)
+            amount &+= 1
+        }
+    }
+
+    Benchmark("FixedPoint chained scaling", configuration: defaultConfiguration) { benchmark in
+        let discount = FixedPointDecimal("0.9")!
+        let vat = FixedPointDecimal("1.2")!
+        let dayCount = FixedPointDecimal("0.084931506")!
+        var amount = 1
+
+        for _ in benchmark.scaledIterations {
+            let scaled = FixedPointDecimal(integerValue: Int64(amount)) * discount * vat * dayCount
+            blackHole(scaled.rounded(.toNearestOrEven))
             amount &+= 1
         }
     }
@@ -418,6 +545,26 @@ let benchmarks: @Sendable () -> Void = {
 
         for _ in benchmark.scaledIterations {
             blackHole(decimalOperands[index % decimalOperands.count] < threshold)
+            index &+= 1
+        }
+    }
+
+    Benchmark("Int128 comparison", configuration: defaultConfiguration) { benchmark in
+        let threshold: Int128 = 10
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(int128Operands[index % int128Operands.count] < threshold)
+            index &+= 1
+        }
+    }
+
+    Benchmark("FixedPoint comparison", configuration: defaultConfiguration) { benchmark in
+        let threshold = FixedPointDecimal(integerValue: 10)
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(fixedOperands[index % fixedOperands.count] < threshold)
             index &+= 1
         }
     }
