@@ -19,6 +19,7 @@ public struct UnitScale: Equatable, Hashable, Sendable {
     /// How many decimal places write one of the currency's smallest units exactly.
     ///
     /// `2` for pounds, `0` for yen, `8` for bitcoin.
+    @usableFromInline
     package var decimalPlaces: Int {
         Int(places)
     }
