@@ -946,6 +946,29 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    // The Foundation-free formatter engine (§15), against the same amounts as the ICU en_GB row. The
+    // descriptor is prebuilt once, as a resolved locale format would be. Allocation-free.
+    let engineGBP = MoneyFormat(symbol: "£", placement: .before)
+    let largePounds = operands.map { GBP(minorUnits: 1_234_567_00 + Int64($0)) }
+
+    Benchmark("MoneyOf non-ICU format, en_GB", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(engineGBP.format(fourPoundAmounts[index % fourPoundAmounts.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("MoneyOf non-ICU format, grouped", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(engineGBP.format(largePounds[index % largePounds.count]))
+            index &+= 1
+        }
+    }
+
     // Formatting with a rounding increment (five smallest units, as Swiss cash rounding uses) runs the
     // whole snap-to-increment computation the plain format skips. The amounts carry nonzero remainders so
     // the rounding always has work to do.

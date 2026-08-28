@@ -319,6 +319,17 @@ rebuilds the currency, which is the table check it pays for. The `Unrounded` row
 | Money currency parsing, en_GB | 45K | 19 | 1559 |
 | Decimal currency parsing, en_GB | 25K | 8 | 842 |
 
+### Non-ICU formatter (§15)
+
+The Foundation-free engine, rendering the same amounts with a prebuilt descriptor. Allocation-free, and
+~34× below the ICU rows above; grouping adds the per-separator work. (Wiring into `MoneyOf.FormatStyle`
+lands in a later phase; these measure the engine directly.)
+
+| Operation | Instructions | Malloc | Wall (ns) |
+|---|--:|--:|--:|
+| MoneyOf non-ICU format, en_GB | 920 | 0 | 25 |
+| MoneyOf non-ICU format, grouped | 1370 | 0 | 38 |
+
 ### Harness floor
 
 | Operation | Instructions | Malloc | Wall (ns) |
