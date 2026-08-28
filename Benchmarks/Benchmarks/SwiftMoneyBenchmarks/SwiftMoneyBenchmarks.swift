@@ -1795,4 +1795,92 @@ let benchmarks: @Sendable () -> Void = {
             blackHole(tariff.total(for: fractionalQuantity))
         }
     }
+
+    // Edge cases: value-type accessors and arithmetic that do real work but had no row. These are not on
+    // the hot path, but a regression in any of them would otherwise go unseen.
+
+    // `Split.count` switches on the split shape and converts, unlike the trivial stored count elsewhere.
+    let unevenSplit = GBP(minorUnits: 100_00).split(into: 3)
+
+    Benchmark("Split counting the parts", configuration: defaultConfiguration) { benchmark in
+        for _ in benchmark.scaledIterations {
+            blackHole(unevenSplit.count)
+        }
+    }
+
+    // `UnitScale(exactly:)` runs the factor-out-twos-and-fives reduction, so it does real validation work,
+    // unlike the trivial >= 1 checks of PartCount and RoundingIncrement.
+    Benchmark("UnitScale construction", configuration: defaultConfiguration) { benchmark in
+        let scales: [Int64] = [1, 10, 100, 1_000, 10_000, 100_000]
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(UnitScale(exactly: scales[index % scales.count]))
+            index &+= 1
+        }
+    }
+
+    // Building an unrounded amount from fractional major units, which multiplies by the currency's scale.
+    Benchmark("MoneyOf unrounded from major units", configuration: defaultConfiguration) { benchmark in
+        for _ in benchmark.scaledIterations {
+            blackHole(GBP.Unrounded(majorUnits: "0.023"))
+        }
+    }
+
+    // Negation and magnitude read from a signed operand array so the optimizer cannot fold them and so
+    // `magnitude` has a sign to strip.
+    let signedOperands = operands.enumerated().map { GBP(minorUnits: $0.isMultiple(of: 2) ? Int64($1) : -Int64($1)) }
+
+    Benchmark("MoneyOf negation", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(-signedOperands[index % signedOperands.count])
+            index &+= 1
+        }
+    }
+
+    Benchmark("MoneyOf magnitude", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(signedOperands[index % signedOperands.count].magnitude)
+            index &+= 1
+        }
+    }
+
+    Benchmark("MoneyOf is multiple", configuration: defaultConfiguration) { benchmark in
+        let divisor = GBP(minorUnits: 5)
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(moneyOperands[index % moneyOperands.count].isMultiple(of: divisor))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money is multiple, throwing", configuration: defaultConfiguration) { benchmark in
+        let divisor = Money(minorUnits: 5, currency: .gbp)
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try poundOperands[index % poundOperands.count].isMultiple(of: divisor))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts share a currency, so this cannot happen: \(error)")
+        }
+    }
+
+    // Rendering a currency code to a string, which writes into a small inline buffer.
+    Benchmark("CurrencyCode description", configuration: defaultConfiguration) { benchmark in
+        let codes: [CurrencyCode] = ["GBP", "EUR", "USD", "JPY", "CHF", "AUD"]
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(codes[index % codes.count].description)
+            index &+= 1
+        }
+    }
 }
