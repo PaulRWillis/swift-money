@@ -91,6 +91,54 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
     // The code as one word, first character in the high byte.
     var packedValue: UInt64 { storage }
 
+    // The code packed six bits per character, so three to eight of them fit in six bytes rather than the
+    // eight the whole-byte `packedValue` uses — the form the byte serializer writes. Each character is a
+    // symbol 1...36 (A–Z then 0–9); zero is the empty slot, so the length is implicit in where the
+    // symbols stop. The high character occupies the top six bits, matching `packedValue`'s order, so a
+    // packed code still sorts as it reads. The top sixteen bits are unused (48 bits hold eight symbols).
+    package var compactValue: UInt64 {
+        var compact: UInt64 = 0
+
+        for shift in stride(from: 56, through: 0, by: -8) {
+            let byte = UInt8(truncatingIfNeeded: storage >> shift)
+
+            guard byte != 0 else {
+                break
+            }
+
+            compact = compact << 6 | UInt64(byte.alphanumericSymbol)
+        }
+
+        return compact << (6 * (8 - utf8Count))
+    }
+
+    // Rebuilds a code from its six-bit packed form, or `nil` when the symbols are not a valid code:
+    // fewer than three or a symbol out of range. Validating, because packed bytes come from outside.
+    package init?(compactValue: UInt64) {
+        var storage: UInt64 = 0
+        var count = 0
+
+        for slot in stride(from: 42, through: 0, by: -6) {
+            let symbol = UInt8(truncatingIfNeeded: compactValue >> slot) & 0b11_1111
+
+            guard symbol != 0 else {
+                break
+            }
+            guard let byte = UInt8(alphanumericSymbol: symbol) else {
+                return nil
+            }
+
+            storage = storage << 8 | UInt64(byte)
+            count += 1
+        }
+
+        guard (3 ... 8).contains(count) else {
+            return nil
+        }
+
+        self.storage = storage << (8 * (8 - count))
+    }
+
     // The bytes of the code, written into a buffer the caller sizes with `utf8Count`. Lets a caller
     // assemble a longer string in one pass rather than building this one and concatenating it.
     func write(into buffer: UnsafeMutableBufferPointer<UInt8>, at offset: inout Int) {
@@ -159,6 +207,27 @@ private extension UInt8 {
 
     var uppercasedASCII: UInt8 {
         isASCIILowercase ? self - (UInt8(ascii: "a") - UInt8(ascii: "A")) : self
+    }
+
+    // The six-bit symbol for an uppercase-or-digit byte: `A`–`Z` become 1...26 and `0`–`9` become
+    // 27...36, leaving 0 free as the empty slot. Called only on bytes already known alphanumeric.
+    var alphanumericSymbol: UInt8 {
+        isASCIIDigit
+            ? self - UInt8(ascii: "0") + 27
+            : self - UInt8(ascii: "A") + 1
+    }
+
+    // The uppercase-or-digit byte a six-bit symbol stands for, or `nil` when the symbol is outside
+    // 1...36 — the inverse of `alphanumericSymbol`, validating because symbols come from outside.
+    init?(alphanumericSymbol symbol: UInt8) {
+        switch symbol {
+        case 1 ... 26:
+            self = UInt8(ascii: "A") + symbol - 1
+        case 27 ... 36:
+            self = UInt8(ascii: "0") + symbol - 27
+        default:
+            return nil
+        }
     }
 }
 
