@@ -10,6 +10,7 @@ let package = Package(
     dependencies: [
         .package(path: ".."),
         .package(url: "https://github.com/ordo-one/package-benchmark.git", from: "1.27.0"),
+        .package(url: "https://github.com/ordo-one/FixedPoint.git", from: "2.2.0"),
     ],
     targets: [
         .executableTarget(
@@ -18,6 +19,7 @@ let package = Package(
                 .product(name: "SwiftMoneyCore", package: "swift-money"),
                 .product(name: "SwiftMoneyFoundation", package: "swift-money"),
                 .product(name: "Benchmark", package: "package-benchmark"),
+                .product(name: "FixedPointDecimal", package: "FixedPoint"),
             ],
             path: "Benchmarks/SwiftMoneyBenchmarks",
             plugins: [

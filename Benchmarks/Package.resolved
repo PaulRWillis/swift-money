@@ -1,6 +1,15 @@
 {
-  "originHash" : "a9a699246f883ddfa709baad8de33d76c893c4ed73e5e9ab10f7460d0511f1a0",
+  "originHash" : "07a155ca64a68d5f963c1459789a007767d5feb693c41cbbde1f419c279d2bdc",
   "pins" : [
+    {
+      "identity" : "fixedpoint",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ordo-one/FixedPoint.git",
+      "state" : {
+        "revision" : "ab4515780da177259fc4558e3af66d0a42adc3f0",
+        "version" : "2.2.0"
+      }
+    },
     {
       "identity" : "hdrhistogram-swift",
       "kind" : "remoteSourceControl",
