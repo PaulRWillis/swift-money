@@ -1,0 +1,34 @@
+name: Embedded Swift
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+# The core is meant to compile under Embedded Swift. Apple's Xcode toolchain ships no Embedded standard
+# library, so this job installs a swift.org toolchain (via swiftly) that does, then runs the same script
+# a developer runs locally.
+jobs:
+  embedded-core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Install a swift.org toolchain with the Embedded stdlib
+      run: |
+        curl -O https://download.swift.org/swiftly/linux/swiftly-$(uname -m).tar.gz
+        tar zxf swiftly-$(uname -m).tar.gz
+        ./swiftly init --quiet-shell-followup --assume-yes
+        . "${SWIFTLY_HOME_DIR:-$HOME/.local/share/swiftly}/env.sh"
+        swiftly install --use latest
+        echo "${SWIFTLY_HOME_DIR:-$HOME/.local/share/swiftly}/bin" >> "$GITHUB_PATH"
+
+    - name: Swift version
+      run: swift --version
+
+    - name: Verify SwiftMoneyCore compiles under Embedded
+      run: bash Embedded/verify.sh
