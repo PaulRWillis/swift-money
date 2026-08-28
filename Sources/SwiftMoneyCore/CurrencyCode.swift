@@ -198,6 +198,8 @@ public extension String {
     }
 }
 
+#if !hasFeature(Embedded)
+
 extension CurrencyCode: Codable {
     /// Writes the code as a string, in upper case.
     ///
@@ -243,3 +245,5 @@ extension CurrencyCode: Codable {
         self = code
     }
 }
+
+#endif
