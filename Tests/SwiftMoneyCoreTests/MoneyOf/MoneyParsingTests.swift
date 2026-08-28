@@ -1,8 +1,8 @@
 import SwiftMoneyCore
 import Testing
 
-private enum Khoums: CurrencyType {
-    static let currency = customCurrency(code: "KHO", unitScale: 5)
+private enum Tenths: CurrencyType {
+    static let currency = customCurrency(code: "TEN", unitScale: 10)
 }
 
 // Seventeen decimal places, near the finest a scale can name.
@@ -120,7 +120,7 @@ struct MoneyParsingTests {
     @Test("Padding does not make an amount the currency cannot hold acceptable")
     func paddingDoesNotWidenPrecision() {
         #expect(GBP(string: "4.999000000000000000") == nil)
-        #expect(MoneyOf<Khoums>(string: "0.700000000000000000") == nil)
+        #expect(MoneyOf<Tenths>(string: "0.640000000000000000") == nil)
     }
 
     @Test("A currency far finer than sterling parses its own smallest units")
@@ -130,12 +130,12 @@ struct MoneyParsingTests {
         #expect(amount == MoneyOf<Seventeen>(minorUnits: 12345))
     }
 
-    @Test("A currency dividing by five takes the decimals it can hold")
-    func currencyDividingByFive() throws {
-        #expect(try #require(MoneyOf<Khoums>(string: "0.6")) == MoneyOf<Khoums>(minorUnits: 3))
-        #expect(try #require(MoneyOf<Khoums>(string: "1.0")) == MoneyOf<Khoums>(minorUnits: 5))
-        #expect(try #require(MoneyOf<Khoums>(string: "3")) == MoneyOf<Khoums>(minorUnits: 3))
-        #expect(MoneyOf<Khoums>(string: "0.7") == nil)
+    @Test("A currency dividing into tenths takes the decimals it can hold")
+    func currencyDividingIntoTenths() throws {
+        #expect(try #require(MoneyOf<Tenths>(string: "0.6")) == MoneyOf<Tenths>(minorUnits: 6))
+        #expect(try #require(MoneyOf<Tenths>(string: "1.0")) == MoneyOf<Tenths>(minorUnits: 10))
+        #expect(try #require(MoneyOf<Tenths>(string: "3")) == MoneyOf<Tenths>(minorUnits: 3))
+        #expect(MoneyOf<Tenths>(string: "0.64") == nil)
     }
 
     @Test(
