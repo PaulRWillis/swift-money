@@ -155,6 +155,24 @@ struct ApplyingTests {
 
         #expect(money.applying("0.25").rounded(.up) == Money(minorUnits: 3, currency: .gbp))
     }
+
+    // `applying` takes a fast path for representable rates, computing the product without widening to the
+    // internal fixed-point form first. This pins that path to the general one: scaling through `applying`
+    // must match scaling the same amount through `unrounded`, across amounts and rates and every rule.
+    @Test("The fast path matches scaling through unrounded", arguments: everyRule)
+    func fastPathMatchesUnrounded(rule: RoundingRule) throws {
+        let amounts: [Int64] = [0, 1, -1, 7, -7, 2_50, -99, 1_000_000, -1_000_000, Int64.max / 4, Int64.min / 4]
+        let rates: [Rate] = ["0", "1", "0.5", "0.25", "-0.25", "3", "1.5", "0.175", "2.999999999999999999"]
+        let third = try #require(Rate(string: "1/3"))
+
+        for amount in amounts {
+            for rate in rates + [third] {
+                let money = GBP(minorUnits: amount)
+
+                #expect(money.applying(rate).rounded(rule) == (money.unrounded * rate).rounded(rule))
+            }
+        }
+    }
 }
 
 private let everyRule: [RoundingRule] = [

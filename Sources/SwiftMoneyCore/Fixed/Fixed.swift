@@ -186,6 +186,22 @@ extension Fixed {
 }
 
 extension Fixed {
+    // A whole number of minor units scaled by `rate`, as the unrounded product — the value
+    // `Fixed(minorUnits) * rate` computes, reached without widening to `Fixed` first.
+    //
+    // `Fixed(minorUnits) * rate` is `(minorUnits · 10^18 · rateStorage) / 10^18 = minorUnits · rateStorage`,
+    // a plain integer product. Since `minorUnits` is an `Int64`, that product fits `Int128` for every rate
+    // up to about eighteen, which is every realistic one — so the common case skips the 256-bit
+    // multiply-and-divide the general `Fixed * Fixed` pays. `nil` for an extreme rate, whose caller falls
+    // back to the wide path.
+    @usableFromInline
+    static func scalingIfRepresentable(_ minorUnits: Int64, by rate: Fixed) -> Fixed? {
+        let (product, overflow) = Int128(minorUnits).multipliedReportingOverflow(by: rate._storage)
+        return overflow ? nil : Fixed(_storage: product)
+    }
+}
+
+extension Fixed {
     /// Creates the value `significand × 10^exponent`.
     ///
     /// Exact with at most 18 fractional digits; digits beyond the eighteenth are rounded by `rounding`.
