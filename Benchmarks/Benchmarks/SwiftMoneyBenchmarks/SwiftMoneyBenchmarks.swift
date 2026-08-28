@@ -815,6 +815,33 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    // The parsing rows above use small positive amounts. These dimension the amount parser across scale
+    // and sign: large amounts near `Int64.max` minor units, which exercise the per-digit overflow guards,
+    // and negative amounts through the sign branch. Pinned not-nil, since a value past the range parses to
+    // nil and would measure the failure path.
+    let largeAmountStrings = operands.map { "922337203685477\($0 < 10 ? "0" : "")\($0)" }
+    let negativeAmountStrings = operands.map { "-4.\($0 < 10 ? "0" : "")\($0)" }
+    precondition(largeAmountStrings.allSatisfy { GBP(string: $0) != nil },
+                 "the large amount fixtures must parse")
+
+    Benchmark("MoneyOf parsing a large amount", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(GBP(string: largeAmountStrings[index % largeAmountStrings.count]) != nil)
+            index &+= 1
+        }
+    }
+
+    Benchmark("MoneyOf parsing a negative amount", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(GBP(string: negativeAmountStrings[index % negativeAmountStrings.count]) != nil)
+            index &+= 1
+        }
+    }
+
     // The Foundation bridge between `Decimal` and money. `MoneyOf parsing` and `MoneyOf
     // description` are the string peers: the gap between a pair is what the `Decimal` route costs
     // against the string route. Every variant hands `blackHole` a `Bool`, so the harness costs the
@@ -835,6 +862,18 @@ let benchmarks: @Sendable () -> Void = {
 
         for _ in benchmark.scaledIterations {
             blackHole(Money(majorUnits: decimalAmounts[index % decimalAmounts.count], currency: .gbp) != nil)
+            index &+= 1
+        }
+    }
+
+    // The negative-sign branch of the Decimal bridge.
+    let negativeDecimalAmounts = negativeAmountStrings.compactMap { Decimal(string: $0) }
+
+    Benchmark("MoneyOf from a negative Decimal", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(GBP(majorUnits: negativeDecimalAmounts[index % negativeDecimalAmounts.count]) != nil)
             index &+= 1
         }
     }
@@ -1241,6 +1280,18 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    // The longest codes the type accepts, so the packing loop runs its full length — the scale analog for
+    // a code, where a numeric value would vary by magnitude.
+    Benchmark("CurrencyCode validation, eight characters", configuration: defaultConfiguration) { benchmark in
+        let codes = ["ABCDEFGH", "abcdefgh", "12345678", "GBPUSDXY", "lty12345", "ZzZzZzZz"]
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(CurrencyCode(string: codes[index % codes.count]))
+            index &+= 1
+        }
+    }
+
     // `JSONEncoder` and `JSONDecoder` cost thousands of instructions, so a round trip through them
     // says almost nothing about this library. Three measurements separate the two costs:
     //
@@ -1411,6 +1462,59 @@ let benchmarks: @Sendable () -> Void = {
 
         for _ in benchmark.scaledIterations {
             blackHole(Rate(string: fractionStrings[index % fractionStrings.count]))
+            index &+= 1
+        }
+    }
+
+    // The parse rows above are all small positive values. These dimension the same decimal parser (which
+    // the percent form also runs) across scale and sign: values near the representable bound (about
+    // ±1.7 × 10²⁰), and negative values through the sign branch. The large strings are pinned not-nil at
+    // registration, since a value past the bound parses to nil and would measure the failure path.
+    let largeDecimalStrings = operands.map { "1234567890123456\($0)" }
+    let negativeDecimalStrings = operands.map { "-0.0\($0)" }
+    let negativeFractionStrings = operands.map { "-1/\($0)" }
+    precondition(largeDecimalStrings.allSatisfy { Rate(string: $0) != nil },
+                 "the large decimal fixtures must parse")
+
+    Benchmark("Rate from a large decimal string", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Rate(string: largeDecimalStrings[index % largeDecimalStrings.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Rate from a negative decimal string", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Rate(string: negativeDecimalStrings[index % negativeDecimalStrings.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Rate from a negative fraction string", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Rate(string: negativeFractionStrings[index % negativeFractionStrings.count]))
+            index &+= 1
+        }
+    }
+
+    // The literal form runs the same parse plus an exactness check that traps on an inexact value, so its
+    // fixtures must be exactly representable — all terminating binary-free decimals here. Pinned not-nil,
+    // and the literals below trap at registration anyway if any were inexact.
+    let exactRateLiterals = ["0.5", "0.25", "0.125", "0.2", "0.05", "0.8", "0.4", "0.64", "0.1", "0.32"]
+    precondition(exactRateLiterals.allSatisfy { Rate(string: $0) != nil },
+                 "the rate literal fixtures must parse")
+
+    Benchmark("Rate from a string literal", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Rate(stringLiteral: exactRateLiterals[index % exactRateLiterals.count]))
             index &+= 1
         }
     }
