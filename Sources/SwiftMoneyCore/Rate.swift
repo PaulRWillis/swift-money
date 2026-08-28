@@ -116,10 +116,17 @@ private extension Rate {
             return parsePercent(text.dropLast(), rounding: rounding)
         }
 
-        switch text.utf8.filter({ $0 == slash }).count {
+        // Count slashes by scanning, rather than building a filtered array to count: none is a decimal,
+        // one a fraction, more is neither.
+        var slashes = 0
+        for byte in text.utf8 where byte == slash {
+            slashes += 1
+            guard slashes <= 1 else { return nil }
+        }
+
+        switch slashes {
         case 0: return parseDecimal(text[...], rounding: rounding)
-        case 1: return parseFraction(text[...], rounding: rounding)
-        default: return nil
+        default: return parseFraction(text[...], rounding: rounding)
         }
     }
 
@@ -137,10 +144,13 @@ private extension Rate {
 
     // "1/3" → numerator over denominator, exact only when the division leaves nothing over.
     static func parseFraction(_ text: Substring, rounding: RoundingRule) -> (value: Fixed, exact: Bool)? {
-        let parts = text.split(separator: "/", omittingEmptySubsequences: false)
-        guard parts.count == 2,
-              let numerator = Int128(parts[0]),
-              let denominator = Int128(parts[1]), denominator > 0,
+        // Slice at the single slash rather than `split`, which would allocate an array for two parts.
+        guard let slash = text.firstIndex(of: "/") else { return nil }
+        let numeratorText = text[text.startIndex ..< slash]
+        let denominatorText = text[text.index(after: slash)...]
+
+        guard let numerator = Int128(numeratorText),
+              let denominator = Int128(denominatorText), denominator > 0,
               let whole = Fixed(exactly: numerator) else {
             return nil
         }
