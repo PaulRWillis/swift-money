@@ -168,4 +168,45 @@ struct CurrencyCodeTests {
             #expect(try JSONDecoder().decode(CurrencyCode.self, from: encoded) == original)
         }
     }
+
+    @Test(
+        "A code survives a round trip through its compact packing",
+        arguments: [
+            "GBP",       // three, the shortest
+            "USD",
+            "BTC",
+            "USDT",      // four
+            "MATIC",     // five
+            "1INCH",     // leading digit
+            "401K",
+            "SAFEMOON",  // eight, the longest
+            "ABCDEFGH",  // eight letters
+            "12345678",  // eight digits
+        ]
+    )
+    func roundTripsThroughCompactPacking(_ raw: String) throws {
+        let code = try #require(CurrencyCode(string: raw))
+
+        #expect(CurrencyCode(compactValue: code.compactValue) == code)
+    }
+
+    @Test("The compact form uses only its low forty-eight bits")
+    func compactFormFitsSixBytes() throws {
+        let code = try #require(CurrencyCode(string: "SAFEMOON"))
+
+        #expect(code.compactValue >> 48 == 0)
+    }
+
+    @Test(
+        "A compact word that is not a valid code is refused",
+        arguments: [
+            0,                          // no symbols at all
+            0b000001 << 42,             // one symbol, fewer than three
+            (0b000001 << 42) | (0b000010 << 36),   // two symbols
+            UInt64(0b111111) << 42,     // symbol 63, past the 36 that map to a character
+        ] as [UInt64]
+    )
+    func refusesAnInvalidCompactWord(_ word: UInt64) {
+        #expect(CurrencyCode(compactValue: word) == nil)
+    }
 }
