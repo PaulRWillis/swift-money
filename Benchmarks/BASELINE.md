@@ -294,13 +294,18 @@ candidate for the specialization sweep.
 
 Fixed fifteen bytes, no coder and no `String`, so it runs allocation-free and orders of magnitude below
 every JSON row. The typed decode only checks the code and scale against the type's own; the runtime decode
-rebuilds the currency, which is the table check it pays for.
+rebuilds the currency, which is the table check it pays for. The `Unrounded` rows are the 23-byte peer;
+`unroundedBytes` costs more because it widens a settled amount by 10^18 before encoding.
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
 | MoneyOf bytes encode | 403 | 0 | 11 |
 | MoneyOf bytes decode | 174 | 0 | 5 |
 | Money bytes decode | 219 | 0 | 6 |
+| MoneyOf Unrounded bytes encode | 627 | 0 | 16 |
+| MoneyOf Unrounded bytes decode | 197 | 0 | 5 |
+| Money Unrounded bytes decode | 241 | 0 | 6 |
+| MoneyOf unroundedBytes | 1376 | 0 | 40 |
 
 ### ICU formatting (Foundation)
 
