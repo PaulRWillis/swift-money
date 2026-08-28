@@ -18,7 +18,7 @@ public struct PartCount: Equatable, Hashable, Sendable {
     }
 
     // No check: only for call sites that have already established the value is at least one.
-    internal init(unchecked value: Int) {
+    @usableFromInline init(unchecked value: Int) {
         self.rawValue = value
     }
 }

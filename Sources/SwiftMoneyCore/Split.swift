@@ -41,6 +41,7 @@ extension Split {
 
 extension Split {
     /// The number of parts the amount was split into.
+    @inlinable
     public var count: PartCount {
         switch self {
         case let .even(group):
@@ -72,36 +73,37 @@ extension Split {
     ///
     /// - Note: Iterating does not consume the sequence (it can be traversed repeatedly), though
     ///   `Sequence` does not promise that to generic code.
+    @inlinable
     public var amounts: some Sequence<Amount> {
         Amounts(self)
     }
 
-    fileprivate struct Amounts: Sequence {
-        private let split: Split
+    @usableFromInline struct Amounts: Sequence {
+        @usableFromInline let split: Split
 
-        fileprivate init(_ split: Split) {
+        @usableFromInline init(_ split: Split) {
             self.split = split
         }
 
-        var underestimatedCount: Int {
+        @usableFromInline var underestimatedCount: Int {
             Int(split.count)
         }
 
-        func makeIterator() -> Iterator {
+        @usableFromInline func makeIterator() -> Iterator {
             Iterator(split)
         }
 
         // Everything about the split is settled once, in the initializer. Reading it out of the enum
         // per element meant recomputing `count` (itself a switch, two conversions and an addition)
         // on every call to `next()`, for a value that cannot change while iterating.
-        struct Iterator: IteratorProtocol {
-            private let larger: Amount
-            private let smaller: Amount
-            private let largerCount: Int
-            private let count: Int
-            private var position = 0
+        @usableFromInline struct Iterator: IteratorProtocol {
+            @usableFromInline let larger: Amount
+            @usableFromInline let smaller: Amount
+            @usableFromInline let largerCount: Int
+            @usableFromInline let count: Int
+            @usableFromInline var position = 0
 
-            fileprivate init(_ split: Split) {
+            @usableFromInline init(_ split: Split) {
                 switch split {
                 case let .even(group):
                     larger = group.amount
@@ -116,7 +118,7 @@ extension Split {
                 }
             }
 
-            mutating func next() -> Amount? {
+            @usableFromInline mutating func next() -> Amount? {
                 guard position < count else {
                     return nil
                 }
