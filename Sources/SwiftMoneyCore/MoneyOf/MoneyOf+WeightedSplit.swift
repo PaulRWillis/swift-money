@@ -13,12 +13,9 @@ public extension MoneyOf where C: CurrencyType {
     /// its exact share by a whole minor unit or more.
     ///
     /// - Parameter weights: The weight of each part, in part order.
+    @inlinable
     func split(by weights: Weights) -> WeightedSplit<Self> {
-        weightedSplit(
-            of: SwiftMoneyCore.split(minorUnits, by: weights),
-            over: weights,
-            storage: .implied
-        )
+        weightedSplit(over: weights, storage: .implied)
     }
 }
 
@@ -33,24 +30,21 @@ public extension MoneyOf where C == AnyCurrency {
     /// its exact share by a whole minor unit or more.
     ///
     /// - Parameter weights: The weight of each part, in part order.
+    @inlinable
     func split(by weights: Weights) -> WeightedSplit<Self> {
-        weightedSplit(
-            of: SwiftMoneyCore.split(minorUnits, by: weights),
-            over: weights,
-            storage: storage
-        )
+        weightedSplit(over: weights, storage: storage)
     }
 }
 
-private extension MoneyOf where C: CurrencyRepresentation {
+extension MoneyOf where C: CurrencyRepresentation {
     // Pairs each weight with the minor-unit share the engine gave it, as an amount of this currency.
     // The engine returns one part per weight in order, so the two zip one-to-one.
-    func weightedSplit(
-        of shares: [Int64],
-        over weights: Weights,
-        storage: C.Storage
-    ) -> WeightedSplit<Self> {
-        let parts = zip(weights.values, shares).map { weight, share in
+    //
+    // `@inlinable` so a concretely-typed amount specializes it at the call site rather than paying the
+    // generic path, which for `MoneyOf<GBP>` measured far dearer than the runtime-currency `Money`.
+    @inlinable
+    func weightedSplit(over weights: Weights, storage: C.Storage) -> WeightedSplit<Self> {
+        let parts = zip(weights.values, SwiftMoneyCore.split(minorUnits, by: weights)).map { weight, share in
             WeightedSplit<Self>.Part(
                 weight: weight,
                 amount: Self(unchecked: share, storage: storage)

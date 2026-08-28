@@ -8,6 +8,7 @@ public struct Weights: Equatable, Hashable, Sendable {
     fileprivate let sum: Int64
 
     /// The weight of each part, in part order.
+    @usableFromInline
     var values: [Weight] {
         weights
     }
@@ -105,6 +106,12 @@ func split(
     }
 
     let leftover = amount - parts.reduce(0, +)
+
+    // When the weights divide the amount exactly there is nothing to distribute, so the remainder
+    // ranking — and the array its sort allocates — is skipped.
+    guard leftover != 0 else {
+        return parts
+    }
 
     for index in indicesOfLargestRemainders(remainders, taking: Int(abs(leftover))) {
         parts[index] += amount.signum()

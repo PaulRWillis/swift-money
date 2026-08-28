@@ -13,6 +13,7 @@ public struct WeightedSplit<Amount: Equatable>: Equatable {
 
         // Not public, so a weighted split can only come from `split(by:)`, which is what guarantees
         // the invariants the type documents.
+        @usableFromInline
         init(
             weight: Weight,
             amount: Amount
@@ -26,6 +27,7 @@ public struct WeightedSplit<Amount: Equatable>: Equatable {
     public let parts: [Part]
 
     // Not public: see `Part.init`.
+    @usableFromInline
     init(parts: [Part]) {
         self.parts = parts
     }
