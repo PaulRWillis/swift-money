@@ -108,28 +108,34 @@ func split(
     let leftover = amount - parts.reduce(0, +)
 
     // When the weights divide the amount exactly there is nothing to distribute, so the remainder
-    // ranking — and the array its sort allocates — is skipped.
+    // ranking is skipped.
     guard leftover != 0 else {
         return parts
     }
 
-    for index in indicesOfLargestRemainders(remainders, taking: Int(abs(leftover))) {
-        parts[index] += amount.signum()
-    }
+    distributeLeftover(abs(leftover), by: amount.signum(), toLargestOf: &remainders, in: &parts)
 
     return parts
 }
 
-// The parts with the largest remainders sit farthest from their exact shares, by magnitude, so
-// they receive the leftover minor units first. The sort is stable, which Swift guarantees, so
-// equal remainders keep part order and the earliest part wins a tie.
-private func indicesOfLargestRemainders(
-    _ remainders: [UInt64],
-    taking count: Int
-) -> ArraySlice<Int> {
-    let ranked = remainders.indices.sorted { lhs, rhs in
-        remainders[lhs] > remainders[rhs]
-    }
+// Gives one unit, of the amount's sign, to each of the `count` parts with the largest remainders. Only a
+// few units are ever distributed (`count` is below the part count), so this selects them by scanning
+// rather than sorting every index into a fresh array. `remainders` is the caller's scratch, taken `inout`
+// to avoid a copy: a part given a unit has its remainder zeroed so a later pass does not pick it again,
+// and the earliest part wins a tie because the scan keeps the first maximum.
+private func distributeLeftover(
+    _ count: Int64,
+    by unit: Int64,
+    toLargestOf remainders: inout [UInt64],
+    in parts: inout [Int64]
+) {
+    for _ in 0 ..< count {
+        var largest = 0
+        for index in remainders.indices where remainders[index] > remainders[largest] {
+            largest = index
+        }
 
-    return ranked.prefix(count)
+        parts[largest] += unit
+        remainders[largest] = 0   // taken, so a later pass does not pick it again
+    }
 }
