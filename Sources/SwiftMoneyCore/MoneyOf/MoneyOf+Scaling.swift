@@ -42,7 +42,13 @@ public extension MoneyOf where C: CurrencyType {
     /// - Parameter rate: The rate to scale by.
     /// - Precondition: the scaled amount is representable.
     @inlinable func applying(_ rate: Rate) -> Unrounded {
-        unrounded.applying(rate)
+        // The product is `minorUnits * rate`, which for a realistic rate is reached with one `Int128`
+        // multiply rather than the widen-and-256-bit-divide the general path takes; an extreme rate falls
+        // back to it.
+        if let scaled = Fixed.scalingIfRepresentable(minorUnits, by: rate.value) {
+            return Unrounded(scaled, storage: storage)
+        }
+        return unrounded.applying(rate)
     }
 }
 
@@ -56,6 +62,9 @@ public extension MoneyOf where C == AnyCurrency {
     /// - Parameter rate: The rate to scale by.
     /// - Precondition: the scaled amount is representable.
     @inlinable func applying(_ rate: Rate) -> Unrounded {
-        unrounded.applying(rate)
+        if let scaled = Fixed.scalingIfRepresentable(minorUnits, by: rate.value) {
+            return Unrounded(scaled, storage: storage)
+        }
+        return unrounded.applying(rate)
     }
 }

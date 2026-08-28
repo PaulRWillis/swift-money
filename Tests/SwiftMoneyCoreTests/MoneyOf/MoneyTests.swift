@@ -455,6 +455,10 @@ struct MoneyTests {
         scaled *= third
         #expect(scaled == sut.unrounded * third)
 
+        var byWholeNumber = sut.unrounded
+        byWholeNumber *= 3
+        #expect(byWholeNumber == sut.unrounded * 3)
+
         #expect(sut.unrounded.divided(byExactly: 0) == nil)
         let quarter = try #require(sut.unrounded.divided(byExactly: 4))
         #expect(quarter.rounded(.toNearestOrEven) == Money(minorUnits: 2_50, currency: .eur))
