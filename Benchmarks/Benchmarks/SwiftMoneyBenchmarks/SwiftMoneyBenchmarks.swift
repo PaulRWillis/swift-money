@@ -889,6 +889,16 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    // Reading the minor-unit count back out to an integer — the peer of the Decimal read-out above.
+    Benchmark("Int from MoneyOf minor units", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Int(minorUnitsOf: moneyOperands[index % moneyOperands.count]))
+            index &+= 1
+        }
+    }
+
     // The `FormatStyle` and `ParseStrategy` surface delegates to Foundation's
     // `Decimal.FormatStyle.Currency`, so the `Decimal` rows here run the exact engine underneath:
     // the gap between a pair is what the library adds on top of ICU. Part of that gap is a
@@ -936,10 +946,23 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
-    // Every parse variant hands `blackHole` a `Bool`, so the harness costs the same in each. Both
-    // variants read the same strings, `bareStrings` behind a pound sign. The runtime route,
-    // `parseStrategy(for:)`, has no row: it shares the typed parse path, and only the final
-    // construction differs.
+    // Formatting with a rounding increment (five smallest units, as Swiss cash rounding uses) runs the
+    // whole snap-to-increment computation the plain format skips. The amounts carry nonzero remainders so
+    // the rounding always has work to do.
+    let fivePenceRoundedStyle = typedCurrencyStyle.rounded(increment: 5)
+
+    Benchmark("MoneyOf currency formatting with an increment, en_GB", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(fivePenceRoundedStyle.format(fourPoundAmounts[index % fourPoundAmounts.count]))
+            index &+= 1
+        }
+    }
+
+    // Every parse variant hands `blackHole` a `Bool`, so the harness costs the same in each. All read the
+    // same strings, `bareStrings` behind a pound sign. The runtime route, `parseStrategy(for:)`, has its
+    // own row below; it shares the typed parse path and only the final construction differs.
     let poundStrings = bareStrings.map { "£" + $0 }
     let typedCurrencyStrategy = typedCurrencyStyle.parseStrategy
     let decimalCurrencyStrategy = decimalCurrencyStyle.parseStrategy
@@ -969,6 +992,22 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    // The runtime-currency parse route, `parseStrategy(for:)`. It shares the typed parse path and differs
+    // only in the final construction, so it reads close to the typed row above — measured here to close
+    // the coverage gap, not because a large gap is expected.
+    let runtimeCurrencyStrategy = runtimeCurrencyStyle.parseStrategy(for: .gbp)
+    precondition((try? runtimeCurrencyStrategy.parse(poundStrings[0])) != nil,
+                 "the runtime strategy must parse the fixtures")
+
+    Benchmark("Money currency parsing, en_GB", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole((try? runtimeCurrencyStrategy.parse(poundStrings[index % poundStrings.count])) != nil)
+            index &+= 1
+        }
+    }
+
     // A spread across the alphabet, because the table is searched in order: AED is the first case
     // and ZWG the last.
     let lookupCodes: [CurrencyCode] = ["AED", "EUR", "GBP", "JPY", "MRU", "USD", "ZWG"]
@@ -978,6 +1017,20 @@ let benchmarks: @Sendable () -> Void = {
 
         for _ in benchmark.scaledIterations {
             blackHole(Currency(iso: lookupCodes[index % lookupCodes.count]))
+            index &+= 1
+        }
+    }
+
+    // Building a custom currency — a code the library does not ship, so it takes the branch that skips the
+    // shipped-table scale check (the conflict branch is priced by "Money addition, separately built
+    // currencies"). Cycles codes so the construction cannot be hoisted.
+    let customCodes: [CurrencyCode] = ["LTY", "PTS", "GLD", "XYZ", "QQQ", "ZZZ"]
+
+    Benchmark("Currency construction, custom", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Currency(code: customCodes[index % customCodes.count], unitScale: 1))
             index &+= 1
         }
     }
@@ -1212,6 +1265,23 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    // The accessors a caller reads after splitting. Each maps the parts into a fresh array every call —
+    // that allocation is the operation, so the row blackHoles the array rather than chaining, and its
+    // baseline captures the allocation as the ±4 tolerance measures a change against.
+    let weightedSplitToRead = GBP(minorUnits: 100_00).split(by: [60, 30, 10])
+
+    Benchmark("WeightedSplit amounts", configuration: defaultConfiguration) { benchmark in
+        for _ in benchmark.scaledIterations {
+            blackHole(weightedSplitToRead.amounts)
+        }
+    }
+
+    Benchmark("WeightedSplit weights", configuration: defaultConfiguration) { benchmark in
+        for _ in benchmark.scaledIterations {
+            blackHole(weightedSplitToRead.weights)
+        }
+    }
+
     // What splitting costs when the hardware does it unaided, and so the floor the others are measured
     // against. A split is a division that keeps its remainder rather than discarding it.
     Benchmark("Int quotient and remainder", configuration: defaultConfiguration) { benchmark in
@@ -1265,6 +1335,40 @@ let benchmarks: @Sendable () -> Void = {
 
         for _ in benchmark.scaledIterations {
             blackHole(amounts.total())
+        }
+    }
+
+    // The runtime-currency total throws on a currency mismatch and returns an optional; the two unrounded
+    // totals sum the round-once type (the interest-accrual pattern). Peers of "MoneyOf total of 10".
+    Benchmark("Money total of 10, throwing", configuration: defaultConfiguration) { benchmark in
+        let amounts = (1...10).map { Money(minorUnits: $0 * 100, currency: .gbp) }
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try amounts.total())
+            }
+        } catch {
+            fatalError("these amounts share a currency, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("MoneyOf unrounded total of 10", configuration: defaultConfiguration) { benchmark in
+        let amounts = (1...10).map { GBP(minorUnits: $0 * 100).unrounded }
+
+        for _ in benchmark.scaledIterations {
+            blackHole(amounts.total())
+        }
+    }
+
+    Benchmark("Money unrounded total of 10, throwing", configuration: defaultConfiguration) { benchmark in
+        let amounts = (1...10).map { Money(minorUnits: $0 * 100, currency: .gbp).unrounded }
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try amounts.total())
+            }
+        } catch {
+            fatalError("these amounts share a currency, so this cannot happen: \(error)")
         }
     }
 
@@ -1346,6 +1450,32 @@ let benchmarks: @Sendable () -> Void = {
 
         for _ in benchmark.scaledIterations {
             blackHole(try fieldsDecoder.decode(GBP.self, from: fieldPayloads[index % fieldPayloads.count]))
+            index &+= 1
+        }
+    }
+
+    // The other wire shapes. Major units renders the amount in the currency's major unit (a decimal
+    // divide on encode); amount-only writes the bare number and so needs a type that names its currency —
+    // a runtime `Money` throws for it by design, so this row uses typed `GBP`.
+    let majorUnitsEncoder = JSONEncoder()
+    majorUnitsEncoder.userInfo[.moneyCodingFormat] = MoneyCodingFormat.codedString(.majorUnits)
+    let amountOnlyEncoder = JSONEncoder()
+    amountOnlyEncoder.userInfo[.moneyCodingFormat] = MoneyCodingFormat.amountOnly
+
+    Benchmark("Money JSON encode, major units", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(try majorUnitsEncoder.encode(moneyOperands[index % moneyOperands.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("MoneyOf JSON encode, amount only", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(try amountOnlyEncoder.encode(fourPoundAmounts[index % fourPoundAmounts.count]))
             index &+= 1
         }
     }
@@ -1596,6 +1726,29 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("ExchangeRate crossed", configuration: defaultConfiguration) { benchmark in
         for _ in benchmark.scaledIterations {
             blackHole(eurUsd.crossed(with: usdGbp))
+        }
+    }
+
+    // Applying a provider's spread to a mid-market rate — the customer-rate step. The margin is built at
+    // registration (it is failable), like the rates above.
+    guard let providerMargin = Margin(.percent(2)) else {
+        preconditionFailure("2% is a valid margin")
+    }
+
+    Benchmark("ExchangeRate applying a margin", configuration: defaultConfiguration) { benchmark in
+        for _ in benchmark.scaledIterations {
+            blackHole(eurGbp.applyingMargin(providerMargin))
+        }
+    }
+
+    // Constructing the margin itself: validation that the rate is in [0, 1). Cycles the prebuilt rates so
+    // the construction cannot be hoisted.
+    Benchmark("Margin construction", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Margin(rateOperands[index % rateOperands.count]))
+            index &+= 1
         }
     }
 
