@@ -390,6 +390,12 @@ public extension MoneyOf where C: CurrencyType {
     ///
     /// - Precondition: the converted amount is representable.
     func converted<To>(using rate: ExchangeRate<C, To>) -> MoneyOf<To>.Unrounded {
-        unrounded.converted(using: rate)
+        // The converted value is `minorUnits * rate`, and `minorUnits` is an `Int64`, so for a realistic
+        // rate it is reached with one `Int128` multiply rather than widening this amount and taking the
+        // 256-bit path; an extreme rate falls back to it. Mirrors `applying(_:)`.
+        if let converted = Fixed.scalingIfRepresentable(minorUnits, by: rate.minorPerMinorRate.value) {
+            return MoneyOf<To>.Unrounded(converted, storage: .implied)
+        }
+        return unrounded.converted(using: rate)
     }
 }
