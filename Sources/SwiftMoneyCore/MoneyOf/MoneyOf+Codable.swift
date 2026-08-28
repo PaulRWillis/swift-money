@@ -1,3 +1,7 @@
+// Codable relies on `any Encoder`/`any Decoder`, metatypes, and `EncodingError`/`DecodingError`, none of
+// which Embedded Swift compiles. It is excluded there; everything else in the core is Embedded-clean.
+#if !hasFeature(Embedded)
+
 extension MoneyOf: Codable {
     /// Writes the amount and its currency, as one string unless the encoder asks for otherwise.
     ///
@@ -432,3 +436,5 @@ private extension String {
         return sign + (whole.isEmpty ? "0" : whole) + (fraction.isEmpty ? "" : "." + fraction)
     }
 }
+
+#endif

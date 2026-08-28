@@ -109,6 +109,8 @@ public struct MoneyCodingFormat: Sendable, Equatable, Hashable {
     }
 }
 
+#if !hasFeature(Embedded)
+
 // A key an API names, rather than one this library fixes.
 struct MoneyCodingKey: CodingKey {
     let stringValue: String
@@ -143,6 +145,8 @@ public extension CodingUserInfoKey {
     }()
 }
 
+#endif
+
 extension MoneyCodingFormat.Amount {
     var units: MoneyCodingFormat.Units {
         switch self {
@@ -165,6 +169,7 @@ extension MoneyCodingFormat {
 
     // The keys a field payload uses. Reading needs these whatever shape was set for writing, since
     // nothing but the format can say what an API calls them.
+    #if !hasFeature(Embedded)
     var fieldKeys: (currency: MoneyCodingKey, amount: MoneyCodingKey) {
         guard case let .fields(currencyKey, amountKey, _) = shape else {
             return (MoneyCodingKey("currency"), MoneyCodingKey("amount"))
@@ -172,7 +177,10 @@ extension MoneyCodingFormat {
 
         return (MoneyCodingKey(currencyKey), MoneyCodingKey(amountKey))
     }
+    #endif
 }
+
+#if !hasFeature(Embedded)
 
 extension Decoder {
     var moneyCodingFormat: MoneyCodingFormat {
@@ -185,3 +193,5 @@ extension Encoder {
         userInfo[.moneyCodingFormat] as? MoneyCodingFormat ?? .codedString
     }
 }
+
+#endif
