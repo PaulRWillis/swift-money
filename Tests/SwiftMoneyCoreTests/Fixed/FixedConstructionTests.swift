@@ -18,6 +18,18 @@ struct FixedConstructionTests {
         #expect(Fixed(exactly: 7) == Fixed(7))
     }
 
+    // A whole number is widened by reusing the scale constant rather than recomputing ten to the
+    // eighteenth, which is sound only while the constant equals that power of ten. These reach the same
+    // values by paths that do recompute it — `exponent: 1` shifts by nineteen, multiplication divides by
+    // scale — so a drift between the constant and the digit count would show here.
+    @Test("Widening a whole number agrees with the power-of-ten paths")
+    func wholeNumberWideningAgrees() {
+        #expect(Fixed(10) == Fixed(significand: 1, exponent: 1))
+        #expect(Fixed(1) == Fixed(significand: 1, exponent: 0))
+        #expect(Fixed(7) == Fixed(1) * Fixed(7))
+        #expect(Fixed(-1_000) == Fixed(significand: -1, exponent: 3))
+    }
+
     @Test("A decimal reads back as the same Double")
     func decimalDoubleRoundTrip() throws {
         #expect(abs(try #require(Fixed(decimal: "0.175")).double - 0.175) < 1e-12)

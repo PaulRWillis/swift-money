@@ -201,7 +201,12 @@ extension Fixed {
 
     // `significand × 10^power` as raw storage, or nil if it overflows.
     private static func scaledUp(_ significand: Int128, byPowerOfTen power: Int) -> Int128? {
-        guard let multiplier = Int128.powerOfTen(power) else {
+        // Widening a whole number shifts by exactly `fractionalDigits`, so its multiplier is the `scale`
+        // constant. Reusing it keeps the common `Fixed(someInteger)` off the `powerOfTen` loop, which
+        // every `.unrounded` would otherwise pay eighteen iterations for.
+        let multiplier = power == Fixed.fractionalDigits ? Fixed.scale : Int128.powerOfTen(power)
+
+        guard let multiplier else {
             return nil
         }
 
