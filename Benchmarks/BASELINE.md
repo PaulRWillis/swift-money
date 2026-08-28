@@ -1,7 +1,8 @@
 # Performance baseline
 
-The "before" reference for the performance-recovery work (spec §16). Every later change is measured
-against these numbers, so a regression or a win is a diff, not an impression.
+The reference the performance work is measured against (spec §16). Every change is a diff against these
+numbers, so a regression or a win is measured, not impressioned. This captures the full public API — every
+public operation a caller can run, common and edge cases — so a future regression anywhere is visible.
 
 **Read the instruction column.** Wall-clock is noisy (CI gates it at 20% for that reason) and malloc is
 near-zero across the arithmetic; the p50 **instruction count** is the stable signal, and it is the one no
@@ -15,20 +16,24 @@ swift package --package-path Benchmarks --disable-sandbox --allow-writing-to-pac
     benchmark --format markdown
 ```
 
-## The gap this work targets
+## Where the fractional path landed
 
-Addition, subtraction, scalar-multiply and comparison are `Int64` operations and already sit at `Int`
-parity, far ahead of `Decimal`. The fractional operations are where the regression lives:
+Addition, subtraction, scalar-multiply and comparison are `Int64` operations at `Int` parity, far ahead of
+`Decimal`. The fractional operations carried the `Fixed`-engine regression, which the performance program
+(PRs through the `Fixed` fast path) drove back down:
 
-| Operation | MoneyOf | FixedPointDecimal (peer) | gap |
+| Operation | start of Part II | now | FixedPointDecimal (peer) |
 |---|--:|--:|--:|
-| Scale by a rate and round | 2506 | 198 | **12.7×** |
-| Chained scaling (three rates) | 7454 | 530 | **14.1×** |
+| Scale by a rate and round | 2506 | 287 | 198 |
+| Chained scaling (three rates) | 7454 | 869 | 530 |
 
-`FixedPointDecimal` (ordo-one, `Int64`-backed, 8 fraction digits) is the realistic same-class yardstick.
-The gap is not the arithmetic — it is inlining the redesign dropped across the module seam, plus a
-redundant scale recomputation and a double-round. `Int128` (same storage width, truncating) shows the
-floor beneath the renormalization: 27 and 107 instructions.
+`FixedPointDecimal` (ordo-one, `Int64`-backed, 8 fraction digits) is the same-class yardstick; `Int128`
+(same storage width, truncating) shows the arithmetic floor beneath the renormalization (27 / 107). Scale-
+and-round is now 1.45× the peer, down from ~12×.
+
+Known outlier: **`WeightedSplit amounts` reads ~22K instructions** — the accessor is not specialized for a
+typed currency (the same generic tax the weighted split itself had before it was made inlinable). A
+candidate for the specialization sweep.
 
 ## Baselines
 
@@ -44,9 +49,9 @@ floor beneath the renormalization: 27 and 107 instructions.
 | MoneyOf addition | 8 | 0 | 0 |
 | Int addition | 8 | 0 | 0 |
 | Int128 addition | 11 | 0 | 1 |
-| Double addition | 6 | 0 | 0 |
+| Double addition | 6 | 0 | 1 |
 | FixedPoint addition | 11 | 0 | 0 |
-| Decimal addition | 7135 | 6 | 220 |
+| Decimal addition | 7130 | 6 | 212 |
 
 ### Subtraction
 
@@ -57,7 +62,7 @@ floor beneath the renormalization: 27 and 107 instructions.
 | Int128 subtraction | 11 | 0 | 1 |
 | Double subtraction | 7 | 0 | 0 |
 | FixedPoint subtraction | 11 | 0 | 0 |
-| Decimal subtraction | 7829 | 7 | 228 |
+| Decimal subtraction | 7829 | 7 | 237 |
 
 ### Scalar multiplication
 
@@ -68,38 +73,56 @@ floor beneath the renormalization: 27 and 107 instructions.
 | Int128 scalar multiplication | 23 | 0 | 1 |
 | Double scalar multiplication | 7 | 0 | 1 |
 | FixedPoint scalar multiplication | 167 | 0 | 6 |
-| Decimal scalar multiplication | 6240 | 5 | 181 |
+| Decimal scalar multiplication | 6240 | 5 | 178 |
 
 ### Scale by a rate and round
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
-| MoneyOf scaled and rounded | 2506 | 0 | 83 |
+| MoneyOf scaled and rounded | 287 | 0 | 12 |
 | Int scaled, truncating | 6 | 0 | 0 |
 | Int128 scaled, truncating | 27 | 0 | 1 |
 | Double scaled and rounded | 7 | 0 | 1 |
 | FixedPoint scaled and rounded | 198 | 0 | 8 |
-| Decimal scaled and rounded | 107K | 83 | 3186 |
+| Decimal scaled and rounded | 107K | 83 | 3203 |
 
 ### Chained scaling (three rates)
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
-| MoneyOf unrounded chain | 4180 | 0 | 134 |
-| MoneyOf chain, rounding each step | 7454 | 0 | 239 |
+| MoneyOf unrounded chain | 2135 | 0 | 89 |
+| MoneyOf chain, rounding each step | 869 | 0 | 46 |
 | Int chained scaling, truncating | 23 | 0 | 1 |
 | Int128 chained scaling, truncating | 107 | 0 | 6 |
 | Double chained scaling | 12 | 0 | 1 |
 | FixedPoint chained scaling | 530 | 0 | 31 |
-| Decimal chained scaling | 55K | 41 | 1633 |
+| Decimal chained scaling | 55K | 41 | 1644 |
 
 ### Unrounded (round-once) building blocks
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
-| MoneyOf unrounded scaling | 1777 | 0 | 53 |
-| MoneyOf unrounded divided | 2378 | 0 | 76 |
-| MoneyOf unrounded addition | 496 | 0 | 14 |
+| MoneyOf unrounded scaling | 1138 | 0 | 46 |
+| MoneyOf unrounded divided | 1736 | 0 | 69 |
+| MoneyOf unrounded addition | 36 | 0 | 1 |
+| MoneyOf unrounded subtraction | 36 | 0 | 1 |
+| MoneyOf unrounded plus settled | 774 | 0 | 34 |
+| MoneyOf unrounded minus settled | 774 | 0 | 24 |
+| MoneyOf unrounded divided exactly | 1626 | 0 | 55 |
+
+### Money.Unrounded (runtime currency)
+
+| Operation | Instructions | Malloc | Wall (ns) |
+|---|--:|--:|--:|
+| Money unrounded scaling by a rate | 444 | 0 | 15 |
+| Money unrounded scaling by an integer | 743 | 0 | 24 |
+| Money unrounded applying a rate | 444 | 0 | 15 |
+| Money unrounded divided by an integer | 994 | 0 | 33 |
+| Money unrounded divided exactly | 1183 | 0 | 36 |
+| Money unrounded rounded | 275 | 0 | 9 |
+| Money unrounded addition, throwing | 45 | 0 | 1 |
+| Money unrounded subtraction, throwing | 45 | 0 | 1 |
+| Money unrounded plus settled, throwing | 94 | 0 | 2 |
 
 ### Comparison
 
@@ -110,7 +133,22 @@ floor beneath the renormalization: 27 and 107 instructions.
 | Int128 comparison | 15 | 0 | 1 |
 | Double comparison | 13 | 0 | 0 |
 | FixedPoint comparison | 13 | 0 | 0 |
-| Decimal comparison | 3932 | 4 | 123 |
+| Decimal comparison | 3932 | 4 | 124 |
+
+### Money (runtime currency) arithmetic
+
+| Operation | Instructions | Malloc | Wall (ns) |
+|---|--:|--:|--:|
+| Money addition, throwing | 25 | 0 | 1 |
+| Money addition, separately built currencies | 26 | 0 | 1 |
+| Money subtraction, throwing | 34 | 0 | 1 |
+| Money addition in place, throwing | 25 | 0 | 1 |
+| Money scalar multiplication, amount times integer | 31 | 0 | 1 |
+| Money scalar multiplication, integer times amount | 31 | 0 | 1 |
+| Money applying a rate | 68 | 0 | 2 |
+| Money is less than, throwing | 18 | 0 | 1 |
+| Money proportion, throwing | 470 | 0 | 15 |
+| Money is multiple, throwing | 20 | 0 | 1 |
 
 ### Description
 
@@ -120,120 +158,151 @@ floor beneath the renormalization: 27 and 107 instructions.
 | Money description | 437 | 0 | 12 |
 | Int description | 470 | 0 | 15 |
 | Double description | 524 | 0 | 17 |
-| Decimal description | 6656 | 3 | 220 |
+| Decimal description | 6654 | 3 | 208 |
+| CurrencyCode description | 126 | 0 | 4 |
 
 ### Parsing
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
-| MoneyOf parsing | 211 | 0 | 6 |
 | Money parsing | 274 | 0 | 7 |
+| MoneyOf parsing | 211 | 0 | 6 |
+| MoneyOf parsing a large amount | 624 | 0 | 16 |
+| MoneyOf parsing a negative amount | 198 | 0 | 6 |
 | Int parsing | 79 | 0 | 2 |
 | Double parsing | 298 | 0 | 8 |
-| Decimal parsing | 4749 | 2 | 170 |
+| Decimal parsing | 4749 | 2 | 167 |
 
 ### Decimal bridge
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
-| MoneyOf from Decimal | 18K | 11 | 556 |
-| Money from Decimal | 18K | 11 | 544 |
-| Decimal from MoneyOf | 6338 | 5 | 189 |
+| MoneyOf from Decimal | 18K | 11 | 552 |
+| MoneyOf from a negative Decimal | 18K | 11 | 624 |
+| Money from Decimal | 18K | 11 | 553 |
+| Decimal from MoneyOf | 6338 | 5 | 188 |
+| Int from MoneyOf minor units | 27 | 0 | 1 |
 
 ### Proportion
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
-| MoneyOf proportion | 1132 | 0 | 43 |
-| MoneyOf proportion of large amounts | 1147 | 0 | 45 |
+| MoneyOf proportion | 449 | 0 | 15 |
+| MoneyOf proportion of large amounts | 464 | 0 | 16 |
 
 ### Splitting
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
-| Weights construction | 778 | 1 | 22 |
+| Weights construction | 778 | 1 | 23 |
 | MoneyOf split into 3 | 56 | 0 | 2 |
 | Money split into 3 | 58 | 0 | 2 |
-| MoneyOf split by weights | 33K | 16 | 946 |
-| Money split by weights | 4501 | 4 | 144 |
-| MoneyOf split by weights that divide exactly | 33K | 16 | 1002 |
+| MoneyOf split by weights | 4360 | 4 | 137 |
+| Money split by weights | 4375 | 4 | 140 |
+| MoneyOf split by weights that divide exactly | 3110 | 3 | 104 |
+| WeightedSplit amounts | 22K | 9 | 706 |
+| WeightedSplit weights | 22K | 9 | 706 |
 | Int quotient and remainder | 28 | 0 | 1 |
 | Double divided by 3 | 9 | 0 | 0 |
-| Decimal divided by 3 | 50K | 37 | 1497 |
-| MoneyOf split, iterating the parts | 6326 | 0 | 190 |
+| Decimal divided by 3 | 50K | 37 | 1545 |
+| MoneyOf split, iterating the parts | 6326 | 0 | 188 |
+| Split counting the parts | 900 | 0 | 26 |
 
 ### Total
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
 | MoneyOf total of 10 | 87 | 0 | 3 |
+| Money total of 10, throwing | 142 | 0 | 4 |
+| MoneyOf unrounded total of 10 | 854 | 0 | 28 |
+| Money unrounded total of 10, throwing | 160 | 0 | 5 |
 
-### Currency
+### Currency & code
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
 | CurrencyCode validation | 244 | 0 | 8 |
-| ISO currency lookup | 87 | 0 | 4 |
-| Money addition, throwing | 25 | 0 | 1 |
-| Money addition, separately built currencies | 26 | 0 | 1 |
+| CurrencyCode validation, eight characters | 427 | 0 | 15 |
+| ISO currency lookup | 87 | 0 | 3 |
+| Currency construction, custom | 107 | 0 | 4 |
+| UnitScale construction | 91 | 0 | 3 |
 
 ### Rate construction & conversion
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
-| Rate from basis points | 970 | 0 | 32 |
-| Rate from percent | 1006 | 0 | 31 |
-| Rate from a decimal string | 1874 | 0 | 58 |
-| Rate from a percent string | 2261 | 0 | 77 |
-| Rate from a fraction string | 5587 | 3 | 187 |
-| Double from a decimal string | 322 | 0 | 10 |
-| Decimal from a decimal string | 4678 | 2 | 167 |
+| Rate from basis points | 971 | 0 | 31 |
+| Rate from percent | 1008 | 0 | 32 |
+| Rate from a decimal string | 1800 | 0 | 56 |
+| Rate from a percent string | 2265 | 0 | 72 |
+| Rate from a fraction string | 1934 | 0 | 60 |
+| Rate from a large decimal string | 2066 | 0 | 62 |
+| Rate from a negative decimal string | 1876 | 0 | 60 |
+| Rate from a negative fraction string | 2239 | 0 | 73 |
+| Rate from a string literal | 1792 | 0 | 57 |
+| Double from a decimal string | 322 | 0 | 11 |
+| Decimal from a decimal string | 4678 | 2 | 163 |
 | Rate to whole basis points | 162 | 0 | 6 |
 | Rate to basis points, rounded | 301 | 0 | 9 |
-| Rate from a Double | 2575 | 0 | 82 |
+| Rate from a Double | 2575 | 0 | 83 |
 
 ### FX
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
-| MoneyOf converted | 1964 | 0 | 59 |
-| ExchangeRate crossed | 368 | 0 | 10 |
+| MoneyOf converted | 1612 | 0 | 52 |
+| ExchangeRate crossed | 368 | 0 | 11 |
+| ExchangeRate applying a margin | 380 | 0 | 11 |
+| Margin construction | 43 | 0 | 2 |
 | Double multiplied by a rate | 9 | 0 | 1 |
-| Decimal multiplied by a rate | 13K | 10 | 397 |
+| Decimal multiplied by a rate | 13K | 10 | 392 |
 
 ### UnitPrice
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
-| UnitPrice total for a whole quantity | 1224 | 0 | 37 |
-| UnitPrice total for a fractional quantity | 858 | 0 | 25 |
+| UnitPrice total for a whole quantity | 753 | 0 | 24 |
+| UnitPrice total for a fractional quantity | 397 | 0 | 12 |
+| MoneyOf unrounded from major units | 2373 | 0 | 69 |
+
+### Value-type edge cases
+
+| Operation | Instructions | Malloc | Wall (ns) |
+|---|--:|--:|--:|
+| MoneyOf negation | 28 | 0 | 1 |
+| MoneyOf magnitude | 28 | 0 | 1 |
+| MoneyOf is multiple | 14 | 0 | 1 |
 
 ### Codable / JSON
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
-| Money JSON encode | 7214 | 2 | 244 |
-| Money JSON decode | 14K | 6 | 441 |
-| Money JSON encode, two fields | 28K | 11 | 966 |
-| Money JSON decode, two fields | 53K | 29 | 1759 |
-| Control JSON encode | 5948 | 2 | 213 |
-| Control JSON decode | 8418 | 6 | 278 |
-| Decimal JSON encode | 11K | 5 | 366 |
-| Decimal JSON decode | 12K | 8 | 395 |
+| Money JSON encode | 7214 | 2 | 250 |
+| Money JSON decode | 14K | 6 | 450 |
+| Money JSON encode, two fields | 28K | 11 | 925 |
+| Money JSON decode, two fields | 52K | 29 | 1723 |
+| Money JSON encode, major units | 10K | 3 | 350 |
+| MoneyOf JSON encode, amount only | 9719 | 3 | 347 |
+| Control JSON encode | 5948 | 2 | 207 |
+| Control JSON decode | 8417 | 6 | 282 |
+| Decimal JSON encode | 11K | 5 | 361 |
+| Decimal JSON decode | 12K | 8 | 388 |
 | Money encode, no coder | 1285 | 0 | 42 |
-| Money encode, no coder, two fields | 4312 | 1 | 129 |
+| Money encode, no coder, two fields | 4312 | 1 | 132 |
 
 ### ICU formatting (Foundation)
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
-| MoneyOf currency formatting, en_GB | 32K | 15 | 1042 |
-| Money currency formatting, en_GB | 32K | 15 | 1046 |
-| Decimal currency formatting, en_GB | 22K | 10 | 759 |
-| MoneyOf currency parsing, en_GB | 46K | 19 | 1575 |
-| Decimal currency parsing, en_GB | 25K | 8 | 845 |
+| MoneyOf currency formatting, en_GB | 32K | 15 | 1085 |
+| Money currency formatting, en_GB | 32K | 15 | 1062 |
+| Decimal currency formatting, en_GB | 22K | 10 | 762 |
+| MoneyOf currency formatting with an increment, en_GB | 35K | 18 | 1247 |
+| MoneyOf currency parsing, en_GB | 46K | 19 | 1590 |
+| Money currency parsing, en_GB | 45K | 19 | 1559 |
+| Decimal currency parsing, en_GB | 25K | 8 | 842 |
 
-### Other
+### Harness floor
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
