@@ -845,6 +845,100 @@ let benchmarks: @Sendable () -> Void = {
     }
 
 
+    // The runtime-currency twins of the typed `MoneyOf` arithmetic above. Each shares one `Currency.gbp`
+    // instance, the cheapest a currency check sees; the separately-built case is priced once at the row
+    // above. `Money` arithmetic throws on a currency mismatch, so these take the do/catch shape and a
+    // per-iteration barrier rather than chaining.
+    let poundOperands = operands.map { Money(minorUnits: $0, currency: .gbp) }
+
+    Benchmark("Money subtraction, throwing", configuration: defaultConfiguration) { benchmark in
+        var accumulated = Money(minorUnits: 999_999_999, currency: .gbp)
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(accumulated)
+                accumulated = try accumulated - poundOperands[index % poundOperands.count]
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts share a currency, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("Money addition in place, throwing", configuration: defaultConfiguration) { benchmark in
+        var accumulated = Money(minorUnits: 0, currency: .gbp)
+        let delta = Money(minorUnits: 1, currency: .gbp)
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(accumulated)
+                try accumulated += delta
+            }
+        } catch {
+            fatalError("these amounts share a currency, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("Money scalar multiplication, amount times integer", configuration: defaultConfiguration) { benchmark in
+        let price = Money(minorUnits: 12_50, currency: .gbp)
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(price * operands[index % operands.count])
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money scalar multiplication, integer times amount", configuration: defaultConfiguration) { benchmark in
+        let price = Money(minorUnits: 12_50, currency: .gbp)
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(operands[index % operands.count] * price)
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money applying a rate", configuration: defaultConfiguration) { benchmark in
+        let vat: Rate = "7/40"
+        var amount: Int64 = 1
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Money(minorUnits: amount, currency: .gbp).applying(vat))
+            amount &+= 1
+        }
+    }
+
+    Benchmark("Money is less than, throwing", configuration: defaultConfiguration) { benchmark in
+        let threshold = Money(minorUnits: 10, currency: .gbp)
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try poundOperands[index % poundOperands.count].isLessThan(threshold))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts share a currency, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("Money proportion, throwing", configuration: defaultConfiguration) { benchmark in
+        let whole = Money(minorUnits: 100_00, currency: .gbp)
+        var amount: Int64 = 1
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try Money(minorUnits: amount, currency: .gbp).proportion(of: whole))
+                amount &+= 1
+            }
+        } catch {
+            fatalError("these amounts share a currency, so this cannot happen: \(error)")
+        }
+    }
+
+
     // Divides the two amounts into a rate. The whole is fixed, as a budget or an order total would be.
     Benchmark("MoneyOf proportion", configuration: defaultConfiguration) { benchmark in
         let whole = GBP(minorUnits: 100_00)
