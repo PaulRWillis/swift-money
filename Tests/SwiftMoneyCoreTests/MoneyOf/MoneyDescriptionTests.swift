@@ -1,13 +1,13 @@
 import SwiftMoneyCore
 import Testing
 
-// Currencies the ISO table cannot supply, because ISO's exponent field only holds powers of ten.
-private enum Khoums: CurrencyType {
-    static let currency = customCurrency(code: "KHO", unitScale: 5)
+// Currencies at scales other than the sterling hundredth, all powers of ten.
+private enum Tenths: CurrencyType {
+    static let currency = customCurrency(code: "TEN", unitScale: 10)
 }
 
-private enum Eighths: CurrencyType {
-    static let currency = customCurrency(code: "EIG", unitScale: 8)
+private enum Mills: CurrencyType {
+    static let currency = customCurrency(code: "MIL", unitScale: 1_000)
 }
 
 @Suite("Money Description Tests")
@@ -45,15 +45,15 @@ struct MoneyDescriptionTests {
     }
 
     @Test(
-        "A scale of twos and fives is written to the places those factors reach",
+        "A scale is written to the number of places it reaches",
         arguments: [
-            (String(describing: MoneyOf<Khoums>(minorUnits: 3)), "KHO 0.6"),
-            (String(describing: MoneyOf<Khoums>(minorUnits: -3)), "KHO -0.6"),
-            (String(describing: MoneyOf<Eighths>(minorUnits: 1)), "EIG 0.125"),
-            (String(describing: MoneyOf<Eighths>(minorUnits: 7)), "EIG 0.875"),
+            (String(describing: MoneyOf<Tenths>(minorUnits: 6)), "TEN 0.6"),
+            (String(describing: MoneyOf<Tenths>(minorUnits: -6)), "TEN -0.6"),
+            (String(describing: MoneyOf<Mills>(minorUnits: 125)), "MIL 0.125"),
+            (String(describing: MoneyOf<Mills>(minorUnits: 875)), "MIL 0.875"),
         ]
     )
-    func writesToThePlacesTwosAndFivesReach(_ written: String, _ expected: String) {
+    func writesToThePlacesTheScaleReaches(_ written: String, _ expected: String) {
         #expect(written == expected)
     }
 
@@ -73,9 +73,9 @@ struct MoneyDescriptionTests {
 
     @Test("A currency known only at runtime is written from the scale it carries")
     func runtimeUsesItsOwnScale() {
-        let carried = Money(minorUnits: 7, currency: customCurrency(code: "EIG", unitScale: 8))
+        let carried = Money(minorUnits: 875, currency: customCurrency(code: "MIL", unitScale: 1_000))
 
-        #expect(String(describing: carried) == "EIG 0.875")
+        #expect(String(describing: carried) == "MIL 0.875")
     }
 
     @Test("Interpolating an amount uses the same form")

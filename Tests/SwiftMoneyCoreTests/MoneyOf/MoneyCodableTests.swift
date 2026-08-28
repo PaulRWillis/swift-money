@@ -2,13 +2,13 @@ import Foundation
 import SwiftMoneyCore
 import Testing
 
-// Scales that are not powers of ten, so the ISO table cannot supply them.
-private enum Eighths: CurrencyType {
-    static let currency = customCurrency(code: "EIG", unitScale: 8)
+// Scales other than the sterling hundredth, all powers of ten.
+private enum Mills: CurrencyType {
+    static let currency = customCurrency(code: "MIL", unitScale: 1_000)
 }
 
-private enum Khoums: CurrencyType {
-    static let currency = customCurrency(code: "KHO", unitScale: 5)
+private enum Tenths: CurrencyType {
+    static let currency = customCurrency(code: "TEN", unitScale: 10)
 }
 
 // Eight decimal places, so it reaches the exponent notation and the `Double` spacing that two
@@ -77,12 +77,12 @@ struct MoneyCodableTests {
         #expect(try json(Money(minorUnits: 1, currency: .kwd), .codedString(.majorUnits)) == "\"KWD 0.001\"")
     }
 
-    @Test("A currency whose scale is not a power of ten writes the places it divides into")
+    @Test("A currency finer than sterling writes the places it divides into")
     func encodesACurrencyWithAnUncommonScale() throws {
-        let sevenEighths = MoneyOf<Eighths>(minorUnits: 7)
+        let sevenEighths = MoneyOf<Mills>(minorUnits: 875)
 
-        #expect(try json(sevenEighths) == "\"EIG 7\"")
-        #expect(try json(sevenEighths, .codedString(.majorUnits)) == "\"EIG 0.875\"")
+        #expect(try json(sevenEighths) == "\"MIL 875\"")
+        #expect(try json(sevenEighths, .codedString(.majorUnits)) == "\"MIL 0.875\"")
     }
 
     @Test(
@@ -258,12 +258,12 @@ struct MoneyCodableTests {
         #expect(try decoded(GBP.self, from: "-499") == GBP(minorUnits: -4_99))
     }
 
-    @Test("A currency whose scale is not a power of ten writes its major units alone")
+    @Test("A currency finer than sterling writes its major units alone")
     func encodesAnAmountAloneWithAnUncommonScale() throws {
-        let sevenEighths = MoneyOf<Eighths>(minorUnits: 7)
+        let sevenEighths = MoneyOf<Mills>(minorUnits: 875)
 
         #expect(try json(sevenEighths, .amountOnly(.string(.majorUnits))) == "\"0.875\"")
-        #expect(try json(sevenEighths, .amountOnly) == "7")
+        #expect(try json(sevenEighths, .amountOnly) == "875")
     }
 
     @Test("A runtime amount refuses to write an amount alone, naming the remedy")
@@ -363,14 +363,14 @@ struct MoneyCodableTests {
         #expect(message.contains("too large to cross as a number"))
     }
 
-    @Test("A currency whose scale is not a power of ten crosses as a major units number")
+    @Test("A currency finer than sterling crosses as a major units number")
     func crossesAsAMajorUnitsNumberWithAnUncommonScale() throws {
-        let sevenEighths = MoneyOf<Eighths>(minorUnits: 7)
+        let sevenEighths = MoneyOf<Mills>(minorUnits: 875)
         let major = MoneyCodingFormat.amountOnly(.number(.majorUnits))
         let encoded = try encoder(major).encode(sevenEighths)
 
         #expect(String(decoding: encoded, as: UTF8.self) == "0.875")
-        #expect(try decoder(major).decode(MoneyOf<Eighths>.self, from: encoded) == sevenEighths)
+        #expect(try decoder(major).decode(MoneyOf<Mills>.self, from: encoded) == sevenEighths)
     }
 
     @Test(
@@ -436,7 +436,7 @@ struct MoneyCodableTests {
                      sweepingNumbers(GBP.self),
                      sweepingNumbers(MoneyOf<Bitcoin>.self),
                      sweepingNumbers(MoneyOf<Seventeen>.self),
-                     sweepingNumbers(MoneyOf<Khoums>.self)]
+                     sweepingNumbers(MoneyOf<Tenths>.self)]
 
         // The sweep proves nothing if everything was skipped, or if nothing reached the bound.
         #expect(swept.map(\.crossed).reduce(0, +) > 40)
@@ -466,10 +466,10 @@ struct MoneyCodableTests {
 
     @Test("A custom currency round trips through the type that names it")
     func roundTripsACustomCurrency() throws {
-        let sevenEighths = MoneyOf<Eighths>(minorUnits: 7)
+        let sevenEighths = MoneyOf<Mills>(minorUnits: 875)
         let encoded = try encoder().encode(sevenEighths)
 
-        #expect(try decoder().decode(MoneyOf<Eighths>.self, from: encoded) == sevenEighths)
+        #expect(try decoder().decode(MoneyOf<Mills>.self, from: encoded) == sevenEighths)
     }
 
     @Test("An amount sits inside a larger model")

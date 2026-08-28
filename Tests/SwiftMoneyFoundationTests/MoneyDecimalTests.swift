@@ -46,13 +46,13 @@ struct MoneyDecimalTests {
 
     @Test("The widest products a currency can make stay inside Decimal")
     func roundTripsTheWidestProducts() {
-        // Scale 2^18 makes the largest multiplier, 5^18, so its extremes are the 32-digit
-        // products nearest Decimal's 38-digit ceiling. Scale 2 pairs the extremes with a
-        // fractional half, whose products need twenty digits and so pass UInt64.
-        let finest = customCurrency(code: "FIN", unitScale: 262_144)
-        let halves = customCurrency(code: "HLV", unitScale: 2)
+        // Scale 10^18 is the finest a currency reaches, so its extremes are the widest products, the
+        // ones nearest Decimal's 38-digit ceiling. Scale 10 pairs the extremes with a single
+        // fractional place, a different width through the bridge.
+        let finest = customCurrency(code: "FIN", unitScale: 1_000_000_000_000_000_000)
+        let tenths = customCurrency(code: "TEN", unitScale: 10)
 
-        for currency in [finest, halves] {
+        for currency in [finest, tenths] {
             let greatest = Money(minorUnits: Int64.max, currency: currency)
             let least = Money(minorUnits: Int64.min, currency: currency)
 
