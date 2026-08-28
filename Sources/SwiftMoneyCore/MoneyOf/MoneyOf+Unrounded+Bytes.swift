@@ -27,6 +27,7 @@ public extension MoneyOf.Unrounded {
     ///
     /// The bytes carry the amount, the currency code, and the scale, so ``init(bytes:)`` rebuilds the
     /// amount without consulting any table. Allocation-free.
+    @inlinable
     var bytes: InlineArray<23, UInt8> {
         let amount = UInt128(bitPattern: minorUnits.storageBits)
         let currency = C.currency(for: storage)
@@ -50,6 +51,7 @@ public extension MoneyOf.Unrounded {
 // Shared by the typed and runtime decoders, which differ only in how they turn the code and scale into
 // a currency.
 @available(macOS 26, iOS 26, watchOS 26, tvOS 26, visionOS 26, *)
+@inlinable
 func decodedUnroundedFields(_ bytes: InlineArray<23, UInt8>) -> (minorUnits: Fixed, code: CurrencyCode, scale: UnitScale)? {
     var amount: UInt128 = 0
     for index in 0 ... 15 {
@@ -75,6 +77,7 @@ public extension MoneyOf.Unrounded where C: CurrencyType {
     ///
     /// - Returns: `nil` unless the bytes are a valid encoding whose currency is the one this type names.
     ///   The code and scale in the bytes must match `C`'s own, so decoding `GBP` bytes as `EUR` fails.
+    @inlinable
     init?(bytes: InlineArray<23, UInt8>) {
         guard let fields = decodedUnroundedFields(bytes),
               fields.code == C.currency.code,
@@ -93,6 +96,7 @@ public extension MoneyOf.Unrounded where C == AnyCurrency {
     /// - Returns: `nil` unless the bytes are a valid encoding: a valid code and scale that name a
     ///   currency, and a scale the code does not contradict (a currency the library ships at a
     ///   different scale is refused).
+    @inlinable
     init?(bytes: InlineArray<23, UInt8>) {
         guard let fields = decodedUnroundedFields(bytes),
               let currency = Currency(code: fields.code, unitScale: fields.scale) else {
@@ -111,6 +115,7 @@ public extension MoneyOf {
     /// this, rather than encoding it as settled bytes and converting later. The amount is widened to the
     /// unrounded form first — a genuine multiply by 10^18, not a zero-pad — so it reads back as
     /// ``Unrounded/init(bytes:)`` expects. Equivalent to `unrounded.bytes`.
+    @inlinable
     var unroundedBytes: InlineArray<23, UInt8> {
         unrounded.bytes
     }
