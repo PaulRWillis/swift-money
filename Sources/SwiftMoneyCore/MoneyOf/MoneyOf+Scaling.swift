@@ -41,7 +41,7 @@ public extension MoneyOf where C: CurrencyType {
     ///
     /// - Parameter rate: The rate to scale by.
     /// - Precondition: the scaled amount is representable.
-    func applying(_ rate: Rate) -> Unrounded {
+    @inlinable func applying(_ rate: Rate) -> Unrounded {
         unrounded.applying(rate)
     }
 }
@@ -55,7 +55,7 @@ public extension MoneyOf where C == AnyCurrency {
     ///
     /// - Parameter rate: The rate to scale by.
     /// - Precondition: the scaled amount is representable.
-    func applying(_ rate: Rate) -> Unrounded {
+    @inlinable func applying(_ rate: Rate) -> Unrounded {
         unrounded.applying(rate)
     }
 }

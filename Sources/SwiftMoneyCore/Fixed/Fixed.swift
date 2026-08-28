@@ -7,6 +7,11 @@
 /// A `Fixed` is always finite — there is no NaN or infinity. Arithmetic traps on a result outside the
 /// representable range (about ±1.7 × 10²⁰); the `…ReportingOverflow` and `…IfRepresentable` members
 /// report the overflow instead of trapping.
+// `@usableFromInline` (not `@inlinable`): the thin `MoneyOf.Unrounded` wrappers inline across the module
+// boundary and call into this engine, but the heavy 256-bit bodies below stay out of line — inlining a
+// full-width multiply into a caller's loop bloats it rather than helping (measured). So the type and the
+// entry points the wrappers call are visible for calling, while their bodies are not emitted for inlining.
+@usableFromInline
 package struct Fixed: Equatable, Hashable, Sendable, BitwiseCopyable {
     // `fileprivate`, not `private`, so the same-file `Int128(exactly:)` / `Int128(_:rounding:)` can read it.
     fileprivate var _storage: Int128
@@ -20,11 +25,11 @@ package struct Fixed: Equatable, Hashable, Sendable, BitwiseCopyable {
     }
 
     /// The value zero.
-    package static let zero = Fixed(_storage: 0)
+    @usableFromInline package static let zero = Fixed(_storage: 0)
 }
 
 extension Fixed: Comparable {
-    package static func < (lhs: Fixed, rhs: Fixed) -> Bool {
+    @usableFromInline package static func < (lhs: Fixed, rhs: Fixed) -> Bool {
         lhs._storage < rhs._storage
     }
 }
@@ -126,7 +131,7 @@ extension Fixed {
     /// Returns this value divided by a whole number, rounded half to even.
     ///
     /// - Precondition: `n` is not zero and the result is representable.
-    package func divided(by n: some BinaryInteger) -> Fixed {
+    @usableFromInline package func divided(by n: some BinaryInteger) -> Fixed {
         divided(by: n, rounding: .toNearestOrEven)
     }
 
@@ -168,13 +173,13 @@ extension Fixed {
     }
 
     /// Returns the product of the two values, or `nil` if it overflows the representable range.
-    package func multipliedIfRepresentable(by other: Fixed) -> Fixed? {
+    @usableFromInline package func multipliedIfRepresentable(by other: Fixed) -> Fixed? {
         let (value, overflow) = multipliedReportingOverflow(by: other)
         return overflow ? nil : value
     }
 
     /// Returns this value scaled by a whole number, or `nil` if it overflows the representable range.
-    package func multipliedIfRepresentable(by n: some BinaryInteger) -> Fixed? {
+    @usableFromInline package func multipliedIfRepresentable(by n: some BinaryInteger) -> Fixed? {
         let (value, overflow) = multipliedReportingOverflow(by: n)
         return overflow ? nil : value
     }
@@ -243,7 +248,7 @@ extension Fixed {
     /// Creates a whole value.
     ///
     /// - Precondition: `value` is within the representable range. Use ``init(exactly:)`` otherwise.
-    package init(_ value: some BinaryInteger) {
+    @usableFromInline package init(_ value: some BinaryInteger) {
         guard let fixed = Fixed(significand: Int128(value), exponent: 0) else {
             preconditionFailure("Value is out of range for Fixed")  // coverage:ignore — exit-test trap
         }
@@ -424,7 +429,7 @@ extension Int128 {
     }
 
     /// `fixed` rounded to a whole number by `rounding`.
-    package init(_ fixed: Fixed, rounding: RoundingRule) {
+    @usableFromInline package init(_ fixed: Fixed, rounding: RoundingRule) {
         let (quotient, remainder) = fixed._storage.quotientAndRemainder(dividingBy: Fixed.scale)
         let sign = Sign(of: fixed._storage)
         let roundsAway = remainder != 0 && roundsAwayFromZero(

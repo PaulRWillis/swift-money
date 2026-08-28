@@ -12,10 +12,10 @@ public extension MoneyOf {
     /// ```
     struct Unrounded: Equatable, Hashable, Sendable {
         // The count of minor units, which may hold a fraction of one until it is settled.
-        fileprivate let minorUnits: Fixed
-        fileprivate let storage: C.Storage
+        @usableFromInline let minorUnits: Fixed
+        @usableFromInline let storage: C.Storage
 
-        fileprivate init(
+        @usableFromInline init(
             _ minorUnits: Fixed,
             storage: C.Storage
         ) {
@@ -25,7 +25,7 @@ public extension MoneyOf {
     }
 
     /// This amount, ready to be scaled without settling a fraction at each step.
-    var unrounded: Unrounded {
+    @inlinable var unrounded: Unrounded {
         Unrounded(Fixed(minorUnits), storage: storage)
     }
 }
@@ -34,7 +34,7 @@ public extension MoneyOf.Unrounded where C: CurrencyType {
     /// Returns the result of scaling an unrounded amount by a rate, keeping the fraction for one settling.
     ///
     /// Traps on overflow.
-    static func * (lhs: Self, rhs: Rate) -> Self {
+    @inlinable static func * (lhs: Self, rhs: Rate) -> Self {
         guard let scaled = lhs.minorUnits.multipliedIfRepresentable(by: rhs.value) else {
             preconditionFailure("Scaling by a rate is not representable")  // coverage:ignore — exit-test trap
         }
@@ -45,14 +45,14 @@ public extension MoneyOf.Unrounded where C: CurrencyType {
     /// Returns the result of scaling an unrounded amount by a rate, keeping the fraction for one settling.
     ///
     /// Traps on overflow.
-    static func * (lhs: Rate, rhs: Self) -> Self {
+    @inlinable static func * (lhs: Rate, rhs: Self) -> Self {
         rhs * lhs
     }
 
     /// Returns the result of scaling an unrounded amount by a whole number.
     ///
     /// Traps on overflow.
-    static func * (lhs: Self, rhs: some BinaryInteger) -> Self {
+    @inlinable static func * (lhs: Self, rhs: some BinaryInteger) -> Self {
         guard let scaled = lhs.minorUnits.multipliedIfRepresentable(by: rhs) else {
             preconditionFailure("Scaling by \(rhs) is not representable")  // coverage:ignore — exit-test trap
         }
@@ -63,28 +63,28 @@ public extension MoneyOf.Unrounded where C: CurrencyType {
     /// Returns the result of scaling an unrounded amount by a whole number.
     ///
     /// Traps on overflow.
-    static func * (lhs: some BinaryInteger, rhs: Self) -> Self {
+    @inlinable static func * (lhs: some BinaryInteger, rhs: Self) -> Self {
         rhs * lhs
     }
 
     /// Scales an unrounded amount by a rate in place.
     ///
     /// Traps on overflow.
-    static func *= (lhs: inout Self, rhs: Rate) {
+    @inlinable static func *= (lhs: inout Self, rhs: Rate) {
         lhs = lhs * rhs
     }
 
     /// Scales an unrounded amount by a whole number in place.
     ///
     /// Traps on overflow.
-    static func *= (lhs: inout Self, rhs: some BinaryInteger) {
+    @inlinable static func *= (lhs: inout Self, rhs: some BinaryInteger) {
         lhs = lhs * rhs
     }
 
     /// Returns this amount scaled by a rate. The named form of `*`.
     ///
     /// Traps on overflow.
-    func applying(_ rate: Rate) -> Self {
+    @inlinable func applying(_ rate: Rate) -> Self {
         self * rate
     }
 
@@ -94,7 +94,7 @@ public extension MoneyOf.Unrounded where C: CurrencyType {
     /// than scaling by a tiny rate would.
     ///
     /// - Precondition: `n` is not zero.
-    func divided(by n: some BinaryInteger) -> Self {
+    @inlinable func divided(by n: some BinaryInteger) -> Self {
         Self(minorUnits.divided(by: n), storage: .implied)
     }
 
@@ -116,7 +116,7 @@ public extension MoneyOf.Unrounded where C: CurrencyType {
     ///
     /// - Parameter rule: How to settle any fraction of a unit.
     /// - Precondition: the settled amount is representable.
-    func rounded(_ rule: RoundingRule) -> MoneyOf<C> {
+    @inlinable func rounded(_ rule: RoundingRule) -> MoneyOf<C> {
         guard let settled = Int64(exactly: Int128(minorUnits, rounding: rule)) else {
             preconditionFailure("Settled amount is out of range")  // coverage:ignore — exit-test trap
         }
@@ -191,7 +191,7 @@ public extension MoneyOf.Unrounded where C == AnyCurrency {
     /// Returns the result of scaling an unrounded amount by a rate, keeping the fraction for one settling.
     ///
     /// Traps on overflow.
-    static func * (lhs: Self, rhs: Rate) -> Self {
+    @inlinable static func * (lhs: Self, rhs: Rate) -> Self {
         guard let scaled = lhs.minorUnits.multipliedIfRepresentable(by: rhs.value) else {
             preconditionFailure("Scaling by a rate is not representable")  // coverage:ignore — exit-test trap
         }
@@ -202,14 +202,14 @@ public extension MoneyOf.Unrounded where C == AnyCurrency {
     /// Returns the result of scaling an unrounded amount by a rate, keeping the fraction for one settling.
     ///
     /// Traps on overflow.
-    static func * (lhs: Rate, rhs: Self) -> Self {
+    @inlinable static func * (lhs: Rate, rhs: Self) -> Self {
         rhs * lhs
     }
 
     /// Returns the result of scaling an unrounded amount by a whole number.
     ///
     /// Traps on overflow.
-    static func * (lhs: Self, rhs: some BinaryInteger) -> Self {
+    @inlinable static func * (lhs: Self, rhs: some BinaryInteger) -> Self {
         guard let scaled = lhs.minorUnits.multipliedIfRepresentable(by: rhs) else {
             preconditionFailure("Scaling by \(rhs) is not representable")  // coverage:ignore — exit-test trap
         }
@@ -220,35 +220,35 @@ public extension MoneyOf.Unrounded where C == AnyCurrency {
     /// Returns the result of scaling an unrounded amount by a whole number.
     ///
     /// Traps on overflow.
-    static func * (lhs: some BinaryInteger, rhs: Self) -> Self {
+    @inlinable static func * (lhs: some BinaryInteger, rhs: Self) -> Self {
         rhs * lhs
     }
 
     /// Scales an unrounded amount by a rate in place.
     ///
     /// Traps on overflow.
-    static func *= (lhs: inout Self, rhs: Rate) {
+    @inlinable static func *= (lhs: inout Self, rhs: Rate) {
         lhs = lhs * rhs
     }
 
     /// Scales an unrounded amount by a whole number in place.
     ///
     /// Traps on overflow.
-    static func *= (lhs: inout Self, rhs: some BinaryInteger) {
+    @inlinable static func *= (lhs: inout Self, rhs: some BinaryInteger) {
         lhs = lhs * rhs
     }
 
     /// Returns this amount scaled by a rate. The named form of `*`.
     ///
     /// Traps on overflow.
-    func applying(_ rate: Rate) -> Self {
+    @inlinable func applying(_ rate: Rate) -> Self {
         self * rate
     }
 
     /// Returns this amount divided by a whole number, keeping the fraction for one settling.
     ///
     /// - Precondition: `n` is not zero.
-    func divided(by n: some BinaryInteger) -> Self {
+    @inlinable func divided(by n: some BinaryInteger) -> Self {
         Self(minorUnits.divided(by: n), storage: storage)
     }
 
@@ -336,7 +336,7 @@ public extension MoneyOf.Unrounded where C == AnyCurrency {
     ///
     /// - Parameter rule: How to settle any fraction of a unit.
     /// - Precondition: the settled amount is representable.
-    func rounded(_ rule: RoundingRule) -> Money {
+    @inlinable func rounded(_ rule: RoundingRule) -> Money {
         guard let settled = Int64(exactly: Int128(minorUnits, rounding: rule)) else {
             preconditionFailure("Settled amount is out of range")  // coverage:ignore — exit-test trap
         }
