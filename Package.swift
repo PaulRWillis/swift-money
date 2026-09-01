@@ -21,6 +21,10 @@ let package = Package(
             targets: ["SwiftMoneyCore"]
         ),
         .library(
+            name: "SwiftMoneyLocalization",
+            targets: ["SwiftMoneyLocalization"]
+        ),
+        .library(
             name: "SwiftMoneyFoundation",
             targets: ["SwiftMoneyFoundation"]
         ),
@@ -28,10 +32,14 @@ let package = Package(
     targets: [
         .target(
             name: "SwiftMoney",
-            dependencies: ["SwiftMoneyCore", "SwiftMoneyFoundation"]
+            dependencies: ["SwiftMoneyCore", "SwiftMoneyLocalization", "SwiftMoneyFoundation"]
         ),
         .target(
             name: "SwiftMoneyCore"
+        ),
+        .target(
+            name: "SwiftMoneyLocalization",
+            dependencies: ["SwiftMoneyCore"]
         ),
         .target(
             name: "SwiftMoneyFoundation",
@@ -46,8 +54,18 @@ let package = Package(
             dependencies: ["SwiftMoneyCore"]
         ),
         .testTarget(
+            name: "SwiftMoneyLocalizationTests",
+            dependencies: ["SwiftMoneyLocalization"]
+        ),
+        .testTarget(
             name: "SwiftMoneyFoundationTests",
             dependencies: ["SwiftMoneyFoundation"]
+        ),
+        // Dev-only. Reads the pinned CLDR JSON (Tools/cldr/node_modules) and regenerates
+        // SwiftMoneyLocalization's data tables. Not in any library product.
+        .executableTarget(
+            name: "GenerateSwiftMoneyLocalization",
+            path: "Tools/GenerateLocalization"
         ),
     ]
 )

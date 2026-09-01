@@ -14,3 +14,6 @@ Benchmarks/.benchmarkBaselines
 
 # Coverage/run.sh --badge writes here locally; CI publishes it to the assets branch.
 .github/badges/
+
+# CLDR source data for the localization generator — fetched via npm, not committed.
+Tools/cldr/node_modules/
