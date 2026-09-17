@@ -6,72 +6,6 @@
 // `SwiftMoneyLocalization`, or a caller with a fixed format): `.standard`/`.isoCode`/`.narrow` differ
 // only in the symbol string the descriptor carries, so the engine itself is presentation-agnostic.
 
-/// The number of whole digits in a group, always at least one.
-///
-/// ```swift
-/// let size: GroupingSize = 3    // fine
-/// let bad: GroupingSize = 0     // traps
-/// ```
-public struct GroupingSize: Equatable, Hashable, Sendable {
-    @usableFromInline
-    let rawValue: Int
-
-    /// Creates a grouping size, or `nil` if `value` is below one.
-    public init?(exactly value: Int) {
-        guard value >= 1 else {
-            return nil
-        }
-
-        self.rawValue = value
-    }
-}
-
-extension GroupingSize: ExpressibleByIntegerLiteral {
-    /// Creates a grouping size from an integer literal.
-    ///
-    /// A literal is written in source, so one below one is a programmer mistake and traps. Use
-    /// ``init(exactly:)`` for a value taken from data.
-    ///
-    /// - Precondition: `value` is at least one.
-    public init(integerLiteral value: Int) {
-        guard let size = Self(exactly: value) else {
-            preconditionFailure("A grouping size must be at least 1. Value: \(value)")  // coverage:ignore
-        }
-
-        self = size
-    }
-}
-
-/// The string written between digit groups, such as `","`, `"."`, or a narrow no-break space.
-///
-/// ```swift
-/// let separator: GroupingSeparator = ","
-/// ```
-public struct GroupingSeparator: Equatable, Hashable, Sendable {
-    @usableFromInline
-    let rawValue: String
-
-    /// Creates a grouping separator, or `nil` if `value` is empty.
-    public init?(_ value: String) {
-        guard !value.isEmpty else {
-            return nil
-        }
-
-        self.rawValue = value
-    }
-}
-
-extension GroupingSeparator: ExpressibleByStringLiteral {
-    /// Creates a grouping separator from a string literal, trapping on an empty literal.
-    public init(stringLiteral value: String) {
-        guard let separator = Self(value) else {
-            preconditionFailure("A grouping separator must not be empty.")  // coverage:ignore
-        }
-
-        self = separator
-    }
-}
-
 /// The locale-dependent pieces a currency amount is rendered with, held as plain data so the amount can
 /// be formatted without consulting ICU at render time.
 public struct MoneyFormat: Equatable, Hashable, Sendable {
@@ -143,49 +77,6 @@ public extension MoneyFormat.GroupingScheme {
     /// ```
     static func repeating(_ size: GroupingSize, separator: GroupingSeparator) -> Self {
         .digits(primary: size, secondary: size, separator: separator)
-    }
-}
-
-/// A count of fraction digits to show, never negative.
-///
-/// ```swift
-/// let length: FractionLength = 2    // fine
-/// let bad: FractionLength = -1      // traps
-/// ```
-public struct FractionLength: Equatable, Hashable, Sendable {
-    @usableFromInline
-    let rawValue: Int
-
-    /// Creates a fraction length, or `nil` if `value` is negative.
-    public init?(exactly value: Int) {
-        guard value >= 0 else {
-            return nil
-        }
-
-        self.rawValue = value
-    }
-}
-
-extension FractionLength: ExpressibleByIntegerLiteral {
-    /// Creates a fraction length from an integer literal.
-    ///
-    /// A literal is written in source, so a negative one is a programmer mistake and traps. Use
-    /// ``init(exactly:)`` for a value taken from data.
-    ///
-    /// - Precondition: `value` is at least zero.
-    public init(integerLiteral value: Int) {
-        guard let length = Self(exactly: value) else {
-            preconditionFailure("A fraction length must not be negative. Value: \(value)")  // coverage:ignore
-        }
-
-        self = length
-    }
-}
-
-public extension Int {
-    /// The number of fraction digits.
-    init(_ length: FractionLength) {
-        self = length.rawValue
     }
 }
 
