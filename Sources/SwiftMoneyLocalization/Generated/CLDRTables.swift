@@ -15,7 +15,7 @@ extension MoneyLocalization {
             secondaryGroupingSize: 3,
             placement: .before,
             isoCodeSpacing: "\u{A0}",
-            accountingParentheses: true
+            accountingNegative: .parentheses
         ),
         "en-GB": LocaleNumberFormat(
             decimalSeparator: ".",
@@ -25,7 +25,7 @@ extension MoneyLocalization {
             secondaryGroupingSize: 3,
             placement: .before,
             isoCodeSpacing: "\u{A0}",
-            accountingParentheses: true
+            accountingNegative: .parentheses
         ),
         "de": LocaleNumberFormat(
             decimalSeparator: ",",
@@ -35,7 +35,7 @@ extension MoneyLocalization {
             secondaryGroupingSize: 3,
             placement: .after,
             isoCodeSpacing: "\u{A0}",
-            accountingParentheses: false
+            accountingNegative: .minusSign
         ),
         "fr": LocaleNumberFormat(
             decimalSeparator: ",",
@@ -45,7 +45,7 @@ extension MoneyLocalization {
             secondaryGroupingSize: 3,
             placement: .after,
             isoCodeSpacing: "\u{A0}",
-            accountingParentheses: true
+            accountingNegative: .parentheses
         ),
         "ja": LocaleNumberFormat(
             decimalSeparator: ".",
@@ -55,7 +55,7 @@ extension MoneyLocalization {
             secondaryGroupingSize: 3,
             placement: .before,
             isoCodeSpacing: "\u{A0}",
-            accountingParentheses: true
+            accountingNegative: .parentheses
         ),
     ]
 

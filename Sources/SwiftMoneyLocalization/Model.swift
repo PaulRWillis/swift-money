@@ -11,9 +11,8 @@ struct LocaleNumberFormat {
     let placement: MoneyFormat.SymbolPlacement
     // The space between an ISO code (or a code used as a fallback symbol) and the digits.
     let isoCodeSpacing: String
-    // Whether this locale's accounting form wraps negatives in parentheses (`true` for en/ja) or shows
-    // a minus (`false` for de). Carried for the format-style wiring; not read by composition yet.
-    let accountingParentheses: Bool
+    // How this locale's accounting form marks a negative: parentheses (en/ja) or a minus (de).
+    let accountingNegative: MoneyFormat.AccountingNegative
 }
 
 // A currency's symbol and narrow symbol in one locale, each with the spacing CLDR resolves for it. Only
