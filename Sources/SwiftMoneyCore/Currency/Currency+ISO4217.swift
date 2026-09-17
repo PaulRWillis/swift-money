@@ -1529,3 +1529,24 @@ public extension Currency {
         }
     }
 }
+
+
+package extension Currency {
+    /// Every ISO 4217 currency the library ships, in code order.
+    static let allISO4217: [Currency] = [
+        .aed, .afn, .all, .amd, .aoa, .ars, .aud, .awg, .azn, .bam, .bbd, .bdt,
+        .bhd, .bif, .bmd, .bnd, .bob, .bov, .brl, .bsd, .btn, .bwp, .byn, .bzd,
+        .cad, .cdf, .che, .chf, .chw, .clf, .clp, .cny, .cop, .cou, .crc, .cup,
+        .cve, .czk, .djf, .dkk, .dop, .dzd, .egp, .ern, .etb, .eur, .fjd, .fkp,
+        .gbp, .gel, .ghs, .gip, .gmd, .gnf, .gtq, .gyd, .hkd, .hnl, .htg, .huf,
+        .idr, .ils, .inr, .iqd, .irr, .isk, .jmd, .jod, .jpy, .kes, .kgs, .khr,
+        .kmf, .kpw, .krw, .kwd, .kyd, .kzt, .lak, .lbp, .lkr, .lrd, .lsl, .lyd,
+        .mad, .mdl, .mga, .mkd, .mmk, .mnt, .mop, .mru, .mur, .mvr, .mwk, .mxn,
+        .mxv, .myr, .mzn, .nad, .ngn, .nio, .nok, .npr, .nzd, .omr, .pab, .pen,
+        .pgk, .php, .pkr, .pln, .pyg, .qar, .ron, .rsd, .rub, .rwf, .sar, .sbd,
+        .scr, .sdg, .sek, .sgd, .shp, .sle, .sos, .srd, .ssp, .stn, .svc, .syp,
+        .szl, .thb, .tjs, .tmt, .tnd, .top, .`try`, .ttd, .twd, .tzs, .uah, .ugx,
+        .usd, .usn, .uyi, .uyu, .uyw, .uzs, .ved, .ves, .vnd, .vuv, .wst, .xad,
+        .xaf, .xcd, .xcg, .xof, .xpf, .yer, .zar, .zmw, .zwg,
+    ]
+}

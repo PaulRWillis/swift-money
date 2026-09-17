@@ -56,7 +56,7 @@ struct ParsedPattern {
     let patternSpacing: String
     let primaryGroupingSize: Int
     let secondaryGroupingSize: Int
-    let accountingParentheses: Bool
+    let accountingNegative: String
 }
 
 func parse(standard: String, accounting: String) -> ParsedPattern {
@@ -82,16 +82,16 @@ func parse(standard: String, accounting: String) -> ParsedPattern {
     let primary = groups.last ?? 3
     let secondary = groups.count >= 3 ? groups[groups.count - 2] : primary
 
-    // Accounting wraps negatives in parentheses when its negative subpattern does.
-    let accountingNegative = accounting.split(separator: ";").dropFirst().first ?? ""
-    let accountingParentheses = accountingNegative.contains("(")
+    // Accounting wraps negatives in parentheses when its negative subpattern does, else it uses a minus.
+    let negativeSubpattern = accounting.split(separator: ";").dropFirst().first ?? ""
+    let accountingNegative = negativeSubpattern.contains("(") ? ".parentheses" : ".minusSign"
 
     return ParsedPattern(
         placement: placement,
         patternSpacing: patternSpacing,
         primaryGroupingSize: primary,
         secondaryGroupingSize: secondary,
-        accountingParentheses: accountingParentheses
+        accountingNegative: accountingNegative
     )
 }
 
@@ -165,16 +165,17 @@ for locale in locales {
                 secondaryGroupingSize: \(parsed.secondaryGroupingSize),
                 placement: \(parsed.placement.rawValue),
                 isoCodeSpacing: \(quote(isoSpacing)),
-                accountingParentheses: \(parsed.accountingParentheses)
+                accountingNegative: \(parsed.accountingNegative)
             ),
     """)
 
     var entries: [String] = []
     for (code, fields) in currencies(locale).sorted(by: { $0.key < $1.key }) {
-        guard let symbol = fields["symbol"], symbol != code else {
-            continue   // no distinct symbol; the runtime falls back to the code
-        }
+        let symbol = fields["symbol"] ?? code
         let narrow = fields["symbol-alt-narrow"] ?? symbol
+        guard symbol != code || narrow != code else {
+            continue   // neither form is distinct; the runtime falls back to the code
+        }
         let standardSpacing = spacing(for: symbol, placement: parsed.placement, patternSpacing: parsed.patternSpacing, insertBetween: insertBetween)
         let narrowSpacing = spacing(for: narrow, placement: parsed.placement, patternSpacing: parsed.patternSpacing, insertBetween: insertBetween)
         entries.append("            \(quote(code)): CurrencyDisplay(standardSymbol: \(quote(symbol)), standardSpacing: \(quote(standardSpacing)), narrowSymbol: \(quote(narrow)), narrowSpacing: \(quote(narrowSpacing))),")
