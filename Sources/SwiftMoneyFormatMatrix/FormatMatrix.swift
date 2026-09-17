@@ -1,8 +1,8 @@
 import Foundation
 import SwiftMoneyCore
 
-/// The currency-format inputs (option cross, locales, amounts) shared by `MoneyFormatStyleGoldenTests`
-/// and the ICU deviation report, so the two can never drift onto different inputs.
+/// Currency-format inputs (option cross, locales, amounts), so multiple consumers share one set
+/// instead of drifting onto different ones.
 package enum FormatMatrix {
     /// The vocabulary `Decimal.FormatStyle.Currency` and `MoneyOf.FormatStyle` share.
     package typealias Config = CurrencyFormatStyleConfiguration
@@ -16,8 +16,7 @@ package enum FormatMatrix {
         package let separator: Config.DecimalSeparatorDisplayStrategy
 
         /// Whether this combination triggers Foundation's known symbol-drop defect: grouping off
-        /// with a non-default sign or separator drops the currency symbol. See
-        /// `MoneyFormatStyleModifierTests`.
+        /// with a non-default sign or separator drops the currency symbol.
         package var isKnownFoundationGroupingDefect: Bool {
             grouping != .automatic && (sign != .automatic || separator != .automatic)
         }

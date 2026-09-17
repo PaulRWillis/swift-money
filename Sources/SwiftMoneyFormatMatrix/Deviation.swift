@@ -13,8 +13,8 @@ extension FormatMatrix {
         package let engine: String
         package let icu: String
 
-        /// Whether this cell matches `Combination.isKnownFoundationGroupingDefect`, rather than
-        /// being new engine-vs-ICU information.
+        /// Whether this cell already matches the known Foundation defect, not new engine-vs-ICU
+        /// information.
         package let isKnownFoundationGroupingDefect: Bool
 
         // Explicit: the synthesized memberwise init would be `internal`, and tests construct a
@@ -33,8 +33,7 @@ extension FormatMatrix {
         }
     }
 
-    /// The amount, rendered by the platform's ICU through the same style
-    /// ``engineFormatted(_:localeID:combination:)`` renders it with.
+    /// The amount, rendered by the platform's ICU, using the same options the engine would.
     package static func icuFormatted(_ money: Money, localeID: String, combination: Combination) -> String {
         let style = Money.FormatStyle().locale(Locale(identifier: localeID))
             .presentation(combination.presentation).sign(strategy: combination.sign)

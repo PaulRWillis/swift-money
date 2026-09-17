@@ -9,8 +9,8 @@ import Testing
 // because ICU differs by version between platforms and so cannot gate portably; the engine's output comes
 // from committed CLDR data and is identical everywhere.
 //
-// The currencies/locales/amounts/option cross live in `FormatMatrix` (`SwiftMoneyFormatMatrix`), shared
-// with the non-gating ICU deviation report, so the two can never silently drift onto different inputs.
+// The currencies/locales/amounts/option cross live in `FormatMatrix`, so consumers of it can't
+// drift onto different inputs.
 //
 // Regenerate the digests after an intended output change: run with MONEYGOLDEN_RECORD=1 and copy the printed
 // values into `golden`.

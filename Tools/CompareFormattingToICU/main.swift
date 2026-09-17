@@ -1,8 +1,7 @@
 import SwiftMoneyCore
 import SwiftMoneyFormatMatrix
 
-// Non-gating: always exits 0. The correctness gate is MoneyFormatStyleGoldenTests, which never
-// touches ICU.
+// Non-gating: always exits 0.
 let deviations = FormatMatrix.deviations(
     currencies: Currency.allISO4217,
     localeIDs: FormatMatrix.coveredLocaleIDs,
@@ -10,8 +9,7 @@ let deviations = FormatMatrix.deviations(
     amounts: FormatMatrix.amounts
 )
 
-// One already-known defect (see MoneyFormatStyleModifierTests) otherwise dominates the count, so
-// it's reported once below instead of per cell.
+// A known defect dominates the raw count, so it's reported once below instead of per cell.
 let novel = deviations.filter { !$0.isKnownFoundationGroupingDefect }
 let knownIssueCount = deviations.count - novel.count
 
