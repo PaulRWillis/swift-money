@@ -53,9 +53,11 @@ public enum MoneyLocalization {
             placement: format.placement,
             spacing: spacing,
             decimalSeparator: format.decimalSeparator,
-            groupingSeparator: format.groupingSeparator,
-            primaryGroupingSize: format.primaryGroupingSize,
-            secondaryGroupingSize: format.secondaryGroupingSize,
+            grouping: .digits(
+                primary: format.primaryGroupingSize,
+                secondary: format.secondaryGroupingSize,
+                separator: format.groupingSeparator
+            ),
             minusSign: format.minusSign
         )
     }

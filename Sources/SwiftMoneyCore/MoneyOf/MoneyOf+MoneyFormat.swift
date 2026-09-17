@@ -15,6 +15,16 @@ public struct MoneyFormat: Equatable, Hashable, Sendable {
         case after
     }
 
+    /// How a locale groups the whole digits: not at all, or into sized groups joined by a separator.
+    public enum GroupingScheme: Equatable, Hashable, Sendable {
+        /// The whole digits are never grouped.
+        case none
+        /// Group the rightmost `primary` digits, then every `secondary` digits left of that, joined by
+        /// `separator`. A `secondary` equal to `primary` gives uniform `1,234,567`; a smaller one gives
+        /// shapes like the Indian `12,34,567`.
+        case digits(primary: Int, secondary: Int, separator: String)
+    }
+
     /// The currency symbol as the chosen presentation renders it: `"£"`, `"GBP"`, a narrow symbol, etc.
     public var symbol: String
     /// Where the symbol sits relative to the digits.
@@ -23,12 +33,8 @@ public struct MoneyFormat: Equatable, Hashable, Sendable {
     public var spacing: String
     /// What separates the whole part from the fraction, e.g. `"."` or `","`.
     public var decimalSeparator: String
-    /// What separates groups of whole digits, e.g. `","`, `"."`, or a narrow non-breaking space.
-    public var groupingSeparator: String
-    /// The size of the rightmost group of whole digits. `0` disables grouping.
-    public var primaryGroupingSize: Int
-    /// The size of every group left of the first, e.g. `2` for the Indian `1,23,456` style.
-    public var secondaryGroupingSize: Int
+    /// How the whole digits are grouped.
+    public var grouping: GroupingScheme
     /// What marks a negative amount under the automatic/always sign strategies. Defaults to `"-"`.
     public var minusSign: String
     /// What marks a non-negative amount under the always sign strategy. Defaults to `"+"`.
@@ -39,9 +45,7 @@ public struct MoneyFormat: Equatable, Hashable, Sendable {
         placement: SymbolPlacement,
         spacing: String = "",
         decimalSeparator: String = ".",
-        groupingSeparator: String = ",",
-        primaryGroupingSize: Int = 3,
-        secondaryGroupingSize: Int = 3,
+        grouping: GroupingScheme = .digits(primary: 3, secondary: 3, separator: ","),
         minusSign: String = "-",
         plusSign: String = "+"
     ) {
@@ -49,9 +53,7 @@ public struct MoneyFormat: Equatable, Hashable, Sendable {
         self.placement = placement
         self.spacing = spacing
         self.decimalSeparator = decimalSeparator
-        self.groupingSeparator = groupingSeparator
-        self.primaryGroupingSize = primaryGroupingSize
-        self.secondaryGroupingSize = secondaryGroupingSize
+        self.grouping = grouping
         self.minusSign = minusSign
         self.plusSign = plusSign
     }
@@ -136,9 +138,20 @@ public extension MoneyFormat {
         let fraction = digitsShown == 0 ? 0 : magnitude % unit
 
         let wholeDigits = MoneyFormat.digitCount(whole)
-        let grouped = options.grouping == .automatic && primaryGroupingSize > 0 && wholeDigits > primaryGroupingSize
+        let primary: Int
+        let secondary: Int
+        let separator: String
+        let grouped: Bool
+        switch grouping {
+        case .digits(let p, let s, let sep):
+            (primary, secondary, separator) = (p, s, sep)
+            grouped = options.grouping == .automatic && wholeDigits > p
+        case .none:
+            (primary, secondary, separator) = (0, 1, "")
+            grouped = false
+        }
         let separators = grouped
-            ? 1 + (wholeDigits - primaryGroupingSize - 1) / secondaryGroupingSize
+            ? 1 + (wholeDigits - primary - 1) / secondary
             : 0
         let showsSeparator = digitsShown > 0 || options.decimalSeparator == .always
 
@@ -148,7 +161,7 @@ public extension MoneyFormat {
             leading.utf8.count + trailing.utf8.count
             + symbol.utf8.count + spacing.utf8.count
             + wholeDigits
-            + separators * groupingSeparator.utf8.count
+            + separators * separator.utf8.count
             + (showsSeparator ? decimalSeparator.utf8.count : 0)
             + digitsShown
 
@@ -161,7 +174,11 @@ public extension MoneyFormat {
                 offset = MoneyFormat.copy(spacing, into: buffer, at: offset)
             }
 
-            offset = writeGroupedWhole(whole, digits: wholeDigits, grouped: grouped, into: buffer, at: offset)
+            offset = writeGroupedWhole(
+                whole, digits: wholeDigits, grouped: grouped,
+                primary: primary, secondary: secondary, separator: separator,
+                into: buffer, at: offset
+            )
 
             if showsSeparator {
                 offset = MoneyFormat.copy(decimalSeparator, into: buffer, at: offset)
@@ -205,6 +222,9 @@ public extension MoneyFormat {
         _ whole: UInt64,
         digits: Int,
         grouped: Bool,
+        primary: Int,
+        secondary: Int,
+        separator: String,
         into buffer: UnsafeMutableBufferPointer<UInt8>,
         at offset: Int
     ) -> Int {
@@ -214,9 +234,9 @@ public extension MoneyFormat {
 
         for index in 0 ..< digits {
             if index > 0, grouped {
-                let rightOf = digits - index - primaryGroupingSize
-                if rightOf >= 0, rightOf % secondaryGroupingSize == 0 {
-                    next = MoneyFormat.copy(groupingSeparator, into: buffer, at: next)
+                let rightOf = digits - index - primary
+                if rightOf >= 0, rightOf % secondary == 0 {
+                    next = MoneyFormat.copy(separator, into: buffer, at: next)
                 }
             }
 
