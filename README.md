@@ -171,6 +171,11 @@ let style = CHF.FormatStyle(locale: Locale(identifier: "en_CH")).rounded(increme
 style.format(CHF(minorUnits: 4_98))   // "CHF 5.00", Swiss cash rounding
 ```
 
+For the locales it covers (en, en-GB, de, fr, ja), the style renders without ICU, from locale data
+generated out of CLDR: faster, and with far less allocation. It also keeps the currency symbol in a case
+where `Decimal.FormatStyle.Currency` drops it — grouping turned off beside a sign or separator. Any
+locale it does not cover falls back to the system formatter, so output there is unchanged.
+
 ## Percentages and fractions
 
 A `Rate` scales an amount. Write one as a percent, a fraction, or a decimal:
