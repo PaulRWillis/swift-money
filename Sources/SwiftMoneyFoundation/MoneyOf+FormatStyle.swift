@@ -1,5 +1,6 @@
 import Foundation
 import SwiftMoneyCore
+import SwiftMoneyLocalization
 
 public extension MoneyOf {
     /// A style that renders an amount for people, in the digits and symbols of a locale.
@@ -162,7 +163,63 @@ extension MoneyOf.FormatStyle: Foundation.FormatStyle {
     ///
     /// - Parameter value: The amount to render. Its currency decides the symbol and the digits.
     public func format(_ value: MoneyOf<C>) -> String {
-        decimalStyle(for: value.currency).format(majorUnits(of: value))
+        engineFormatted(value) ?? decimalStyle(for: value.currency).format(majorUnits(of: value))
+    }
+}
+
+private extension MoneyOf.FormatStyle {
+    // The amount rendered by the Foundation-free engine, or nil to fall back to the ICU path. Taken only
+    // when the style maps exactly onto the engine's options — default (currency-scale) precision, no
+    // increment rounding, a presentation and sign the engine can express — and the amount's locale is one
+    // our CLDR data covers. Output then matches ICU except where CLDR is the agreed source of truth.
+    func engineFormatted(_ value: MoneyOf<C>) -> String? {
+        guard
+            precision == nil,
+            roundingIncrement == nil,
+            let presentation = enginePresentation,
+            let sign = engineSign,
+            let format = MoneyLocalization.moneyFormat(
+                for: value.currency,
+                locale: LocaleIdentifier(locale.identifier),
+                presentation: presentation
+            )
+        else {
+            return nil
+        }
+
+        let options = MoneyFormatOptions(
+            sign: sign,
+            grouping: engineGrouping,
+            decimalSeparator: engineDecimalSeparator,
+            precision: .currencyScale
+        )
+        return format.format(value, options: options)
+    }
+
+    // Foundation's presentation as the engine's, or nil for `.fullName`, which the CLDR data does not carry.
+    var enginePresentation: CurrencyPresentation? {
+        if presentation == .standard { .standard }
+        else if presentation == .isoCode { .isoCode }
+        else if presentation == .narrow { .narrow }
+        else { nil }
+    }
+
+    // Foundation's sign strategy as the engine's, or nil for a variant the engine cannot express exactly,
+    // e.g. `.always(includeZero: false)`.
+    var engineSign: MoneyFormatOptions.Sign? {
+        if sign == .automatic { .automatic }
+        else if sign == .never { .never }
+        else if sign == .always() { .always }
+        else if sign == .accounting { .accounting }
+        else { nil }
+    }
+
+    var engineGrouping: MoneyFormatOptions.Grouping {
+        grouping == .never ? .never : .automatic
+    }
+
+    var engineDecimalSeparator: MoneyFormatOptions.DecimalSeparator {
+        decimalSeparator == .always ? .always : .automatic
     }
 }
 

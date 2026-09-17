@@ -101,24 +101,21 @@ struct MoneyFormatStyleModifierTests {
         #expect(style.rounded(increment: 5).format(amount) == "CHF\u{00A0}5.00")
     }
 
-    @Test("Grouping turned off beside a second option loses the currency symbol")
-    func groupingOffBesideASecondOptionLosesTheSymbol() {
-        // Foundation's own currency style drops the symbol from this pairing, and ours can only
-        // pass the pairing on. Recorded rather than hidden, because losing the symbol from an
-        // amount of money is the worst thing a money formatter can quietly do. Setting an option
-        // to its own default does not trigger it, which is why the default style stays right.
-        // Verified on Swift 6.3.2.
+    @Test("Our engine keeps the currency symbol where Foundation drops it")
+    func groupingOffBesideASecondOptionKeepsTheSymbol() {
+        // Foundation's currency style drops the symbol when grouping is turned off beside a sign,
+        // separator or rounding rule — the worst thing a money formatter can quietly do. For a covered
+        // locale the non-ICU engine renders it correctly instead. The defect remains in
+        // `Decimal.FormatStyle.Currency` itself, recorded below. Verified on Swift 6.3.2.
         let sut = Self.sterling.grouping(.never).sign(strategy: .always())
 
-        withKnownIssue("Foundation drops the currency symbol") {
-            #expect(sut.format(GBP(minorUnits: 1_234_56)) == "+£1234.56")
-        }
+        #expect(sut.format(GBP(minorUnits: 1_234_56)) == "+£1234.56")
 
         let foundationStyle = Decimal.FormatStyle.Currency(code: "GBP", locale: Self.britishEnglish)
             .grouping(.never)
             .sign(strategy: .always())
 
-        withKnownIssue("Foundation's own currency style has the same defect") {
+        withKnownIssue("Foundation's own currency style still drops the symbol") {
             let value = try #require(Decimal(string: "1234.56"))
 
             #expect(foundationStyle.format(value) == "+£1234.56")

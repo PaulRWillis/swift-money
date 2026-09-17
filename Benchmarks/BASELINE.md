@@ -307,23 +307,28 @@ rebuilds the currency, which is the table check it pays for. The `Unrounded` row
 | Money Unrounded bytes decode | 241 | 0 | 6 |
 | MoneyOf unroundedBytes | 1376 | 0 | 40 |
 
-### ICU formatting (Foundation)
+### Currency formatting
+
+`MoneyOf`/`Money` formatting routes through the non-ICU engine for covered locales (en, en-GB, de, fr,
+ja). It rebuilds the descriptor from the CLDR data on each call, so it costs more than the raw engine
+below, but still ~4× less than ICU with allocation down from 15 to 1. Increment rounding, parsing, and
+uncovered locales stay on ICU.
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
-| MoneyOf currency formatting, en_GB | 32K | 15 | 1085 |
-| Money currency formatting, en_GB | 32K | 15 | 1062 |
-| Decimal currency formatting, en_GB | 22K | 10 | 762 |
-| MoneyOf currency formatting with an increment, en_GB | 35K | 18 | 1247 |
-| MoneyOf currency parsing, en_GB | 46K | 19 | 1590 |
-| Money currency parsing, en_GB | 45K | 19 | 1559 |
-| Decimal currency parsing, en_GB | 25K | 8 | 842 |
+| MoneyOf currency formatting, en_GB | 7.7K | 1 | 253 |
+| Money currency formatting, en_GB | 7.7K | 1 | 256 |
+| Decimal currency formatting (ICU reference), en_GB | 22K | 10 | 762 |
+| MoneyOf currency formatting with an increment, en_GB (ICU fallback) | 36K | 18 | 1233 |
+| MoneyOf currency parsing, en_GB (ICU) | 46K | 19 | 1590 |
+| Money currency parsing, en_GB (ICU) | 45K | 19 | 1559 |
+| Decimal currency parsing, en_GB (ICU) | 25K | 8 | 842 |
 
-### Non-ICU formatter (§15)
+### Non-ICU formatter engine (§15)
 
-The Foundation-free engine, rendering the same amounts with a prebuilt descriptor. Allocation-free, and
-~34× below the ICU rows above; grouping adds the per-separator work. (Wiring into `MoneyOf.FormatStyle`
-lands in a later phase; these measure the engine directly.)
+The Foundation-free engine measured directly, rendering with a prebuilt descriptor. Allocation-free and
+~34× below ICU; grouping adds the per-separator work. `MoneyOf.FormatStyle` now renders through this
+engine (the currency-formatting rows above), building the descriptor from CLDR data on each call.
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|

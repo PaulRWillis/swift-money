@@ -43,7 +43,7 @@ let package = Package(
         ),
         .target(
             name: "SwiftMoneyFoundation",
-            dependencies: ["SwiftMoneyCore"]
+            dependencies: ["SwiftMoneyCore", "SwiftMoneyLocalization"]
         ),
         .testTarget(
             name: "SwiftMoneyTests",
