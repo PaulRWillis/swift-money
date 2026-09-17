@@ -24,8 +24,13 @@ struct MoneyFormatICUParityTests {
     // differs from the default, since setting a modifier to its own default makes ICU drop the symbol.
     static func icu(_ minorUnits: Int64, _ iso: String, _ localeID: String, _ options: MoneyFormatOptions) -> String {
         let places = 2   // USD and GBP
+        let digits: Int
+        switch options.precision {
+        case .currencyScale: digits = places
+        case .fixed(let count): digits = count
+        }
         var style = Decimal.FormatStyle.Currency(code: iso, locale: Locale(identifier: localeID))
-            .precision(.fractionLength(options.fractionLength ?? places))
+            .precision(.fractionLength(digits))
 
         if options.grouping == .never {
             style = style.grouping(.never)
@@ -88,17 +93,17 @@ struct MoneyFormatICUParityTests {
 
     @Test("Fraction length matches ICU (round and pad)")
     func precision() {
-        expectMatchesICU(MoneyFormatOptions(fractionLength: 0), "fractionLength 0")
-        expectMatchesICU(MoneyFormatOptions(fractionLength: 1), "fractionLength 1")
-        expectMatchesICU(MoneyFormatOptions(fractionLength: 4), "fractionLength 4")
+        expectMatchesICU(MoneyFormatOptions(precision: .fixed(0)), "fixed 0")
+        expectMatchesICU(MoneyFormatOptions(precision: .fixed(1)), "fixed 1")
+        expectMatchesICU(MoneyFormatOptions(precision: .fixed(4)), "fixed 4")
     }
 
     @Test("Every rounding rule matches ICU when precision drops digits")
     func roundingRules() {
         let rules: [RoundingRule] = [.down, .up, .towardZero, .awayFromZero, .toNearestOrAwayFromZero]
         for rule in rules {
-            expectMatchesICU(MoneyFormatOptions(fractionLength: 0, roundingRule: rule), "round \(rule)")
-            expectMatchesICU(MoneyFormatOptions(fractionLength: 1, roundingRule: rule), "round \(rule) @1")
+            expectMatchesICU(MoneyFormatOptions(precision: .fixed(0), roundingRule: rule), "round \(rule)")
+            expectMatchesICU(MoneyFormatOptions(precision: .fixed(1), roundingRule: rule), "round \(rule) @1")
         }
     }
 }

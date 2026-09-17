@@ -90,26 +90,33 @@ public struct MoneyFormatOptions: Equatable, Hashable, Sendable {
         case never
     }
 
+    /// How many fraction digits are shown.
+    public enum Precision: Equatable, Hashable, Sendable {
+        /// The currency's own scale, so nothing rounds. The default.
+        case currencyScale
+        /// A fixed number of fraction digits. Fewer than the currency's scale rounds the shown value by
+        /// `roundingRule`; more pads with zeros.
+        case fixed(Int)
+    }
+
     public var sign: Sign
     public var grouping: Grouping
     public var decimalSeparator: DecimalSeparator
-    /// The number of fraction digits to show. `nil` shows the currency's own scale, so nothing rounds.
-    /// Fewer than the scale rounds the shown value by `roundingRule`; more pads with zeros.
-    public var fractionLength: Int?
-    /// How to round when `fractionLength` shows fewer digits than the currency's scale.
+    public var precision: Precision
+    /// How to round when `precision` shows fewer digits than the currency's scale.
     public var roundingRule: RoundingRule
 
     public init(
         sign: Sign = .automatic,
         grouping: Grouping = .automatic,
         decimalSeparator: DecimalSeparator = .automatic,
-        fractionLength: Int? = nil,
+        precision: Precision = .currencyScale,
         roundingRule: RoundingRule = .toNearestOrEven
     ) {
         self.sign = sign
         self.grouping = grouping
         self.decimalSeparator = decimalSeparator
-        self.fractionLength = fractionLength
+        self.precision = precision
         self.roundingRule = roundingRule
     }
 }
@@ -126,7 +133,13 @@ public extension MoneyFormat {
     @inlinable
     func format<C: CurrencyRepresentation>(_ money: MoneyOf<C>, options: MoneyFormatOptions) -> String {
         let places = money.currency.unitScale.decimalPlaces
-        let digitsShown = options.fractionLength ?? places
+        let digitsShown: Int
+        switch options.precision {
+        case .currencyScale:
+            digitsShown = places
+        case .fixed(let count):
+            digitsShown = count
+        }
         let value = MoneyFormat.displayValue(
             money.minorUnits, scalePlaces: places, showing: digitsShown, rounding: options.roundingRule
         )
