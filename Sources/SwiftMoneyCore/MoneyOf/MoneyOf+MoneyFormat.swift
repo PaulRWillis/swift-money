@@ -80,9 +80,16 @@ public struct MoneyFormatOptions: Equatable, Hashable, Sendable {
         case always
     }
 
+    /// Whether the whole digits are grouped, mirroring `Decimal.FormatStyle.Currency`'s grouping.
+    public enum Grouping: Equatable, Hashable, Sendable {
+        /// Group the whole digits using the format's grouping scheme. The default.
+        case automatic
+        /// Never group, whatever the format's scheme.
+        case never
+    }
+
     public var sign: Sign
-    /// Whether to group the whole digits. Grouping off is `Decimal.FormatStyle.Currency`'s `.never`.
-    public var grouping: Bool
+    public var grouping: Grouping
     public var decimalSeparator: DecimalSeparator
     /// The number of fraction digits to show. `nil` shows the currency's own scale, so nothing rounds.
     /// Fewer than the scale rounds the shown value by `roundingRule`; more pads with zeros.
@@ -92,7 +99,7 @@ public struct MoneyFormatOptions: Equatable, Hashable, Sendable {
 
     public init(
         sign: Sign = .automatic,
-        grouping: Bool = true,
+        grouping: Grouping = .automatic,
         decimalSeparator: DecimalSeparator = .automatic,
         fractionLength: Int? = nil,
         roundingRule: RoundingRule = .toNearestOrEven
@@ -129,7 +136,7 @@ public extension MoneyFormat {
         let fraction = digitsShown == 0 ? 0 : magnitude % unit
 
         let wholeDigits = MoneyFormat.digitCount(whole)
-        let grouped = options.grouping && primaryGroupingSize > 0 && wholeDigits > primaryGroupingSize
+        let grouped = options.grouping == .automatic && primaryGroupingSize > 0 && wholeDigits > primaryGroupingSize
         let separators = grouped
             ? 1 + (wholeDigits - primaryGroupingSize - 1) / secondaryGroupingSize
             : 0

@@ -27,7 +27,7 @@ struct MoneyFormatICUParityTests {
         var style = Decimal.FormatStyle.Currency(code: iso, locale: Locale(identifier: localeID))
             .precision(.fractionLength(options.fractionLength ?? places))
 
-        if !options.grouping {
+        if options.grouping == .never {
             style = style.grouping(.never)
         }
         if options.decimalSeparator == .always {
@@ -78,7 +78,7 @@ struct MoneyFormatICUParityTests {
 
     @Test("Grouping off matches ICU")
     func grouping() {
-        expectMatchesICU(MoneyFormatOptions(grouping: false), "no grouping")
+        expectMatchesICU(MoneyFormatOptions(grouping: .never), "no grouping")
     }
 
     @Test("Always-on decimal separator matches ICU")

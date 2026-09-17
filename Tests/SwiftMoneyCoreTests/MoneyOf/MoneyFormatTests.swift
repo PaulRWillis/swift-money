@@ -54,7 +54,7 @@ struct MoneyFormatTests {
         #expect(Self.dollar.format(Self.money(1_234_56, "USD"), options: .init(sign: .accounting)) == "$1,234.56")
 
         // Grouping off, and always-on separator on a whole amount.
-        #expect(Self.dollar.format(Self.money(1_234_56, "USD"), options: .init(grouping: false)) == "$1234.56")
+        #expect(Self.dollar.format(Self.money(1_234_56, "USD"), options: .init(grouping: .never)) == "$1234.56")
         #expect(jpy.format(Self.money(1_234, "JPY"), options: .init(decimalSeparator: .always)) == "¥1,234.")
     }
 }
