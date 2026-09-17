@@ -56,6 +56,8 @@ jobs:
         pattern: icu-deviations-*
         path: deviations
 
+    # The full per-cell listing can run to thousands of lines, so only the headline count stays
+    # visible; the raw listing goes in a collapsed <details> block a reader opens on demand.
     - name: Build the combined comment body
       run: |
         {
@@ -66,9 +68,15 @@ jobs:
           for dir in deviations/icu-deviations-*; do
             os="$(basename "$dir" | sed 's/^icu-deviations-//')"
             echo "## $os"
+            grep -E '^(Total:|No new deviations|Also skipped)' "$dir/deviations.txt" || true
+            echo
+            echo "<details><summary>Full output</summary>"
+            echo
             echo '```'
             cat "$dir/deviations.txt"
             echo '```'
+            echo
+            echo "</details>"
             echo
           done
         } > comment_body.md
