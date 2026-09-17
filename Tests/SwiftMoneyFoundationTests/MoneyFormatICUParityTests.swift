@@ -24,10 +24,16 @@ struct MoneyFormatICUParityTests {
     // differs from the default, since setting a modifier to its own default makes ICU drop the symbol.
     static func icu(_ minorUnits: Int64, _ iso: String, _ localeID: String, _ options: MoneyFormatOptions) -> String {
         let places = 2   // USD and GBP
+        let digits: Int
+        let rule: RoundingRule
+        switch options.precision {
+        case .currencyScale: (digits, rule) = (places, .toNearestOrEven)
+        case .fixed(let length, let rounding): (digits, rule) = (Int(length), rounding)
+        }
         var style = Decimal.FormatStyle.Currency(code: iso, locale: Locale(identifier: localeID))
-            .precision(.fractionLength(options.fractionLength ?? places))
+            .precision(.fractionLength(digits))
 
-        if !options.grouping {
+        if options.grouping == .never {
             style = style.grouping(.never)
         }
         if options.decimalSeparator == .always {
@@ -39,8 +45,8 @@ struct MoneyFormatICUParityTests {
         case .always: style = style.sign(strategy: .always())
         case .accounting: style = style.sign(strategy: .accounting)
         }
-        if options.roundingRule != .toNearestOrEven {
-            style = style.rounded(rule: options.roundingRule)
+        if rule != .toNearestOrEven {
+            style = style.rounded(rule: rule)
         }
 
         return style.format(Decimal(minorUnits) / Decimal(100))
@@ -78,7 +84,7 @@ struct MoneyFormatICUParityTests {
 
     @Test("Grouping off matches ICU")
     func grouping() {
-        expectMatchesICU(MoneyFormatOptions(grouping: false), "no grouping")
+        expectMatchesICU(MoneyFormatOptions(grouping: .never), "no grouping")
     }
 
     @Test("Always-on decimal separator matches ICU")
@@ -88,17 +94,17 @@ struct MoneyFormatICUParityTests {
 
     @Test("Fraction length matches ICU (round and pad)")
     func precision() {
-        expectMatchesICU(MoneyFormatOptions(fractionLength: 0), "fractionLength 0")
-        expectMatchesICU(MoneyFormatOptions(fractionLength: 1), "fractionLength 1")
-        expectMatchesICU(MoneyFormatOptions(fractionLength: 4), "fractionLength 4")
+        expectMatchesICU(MoneyFormatOptions(precision: .fixed(0, rounding: .toNearestOrEven)), "fixed 0")
+        expectMatchesICU(MoneyFormatOptions(precision: .fixed(1, rounding: .toNearestOrEven)), "fixed 1")
+        expectMatchesICU(MoneyFormatOptions(precision: .fixed(4, rounding: .toNearestOrEven)), "fixed 4")
     }
 
     @Test("Every rounding rule matches ICU when precision drops digits")
     func roundingRules() {
         let rules: [RoundingRule] = [.down, .up, .towardZero, .awayFromZero, .toNearestOrAwayFromZero]
         for rule in rules {
-            expectMatchesICU(MoneyFormatOptions(fractionLength: 0, roundingRule: rule), "round \(rule)")
-            expectMatchesICU(MoneyFormatOptions(fractionLength: 1, roundingRule: rule), "round \(rule) @1")
+            expectMatchesICU(MoneyFormatOptions(precision: .fixed(0, rounding: rule)), "round \(rule)")
+            expectMatchesICU(MoneyFormatOptions(precision: .fixed(1, rounding: rule)), "round \(rule) @1")
         }
     }
 }

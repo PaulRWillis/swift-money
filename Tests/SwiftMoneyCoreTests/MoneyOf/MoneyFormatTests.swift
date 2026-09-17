@@ -21,14 +21,17 @@ struct MoneyFormatTests {
     func assembly() {
         let eurDE = MoneyFormat(
             symbol: "€", placement: .after, spacing: "\u{00A0}",
-            decimalSeparator: ",", groupingSeparator: "."
+            decimalSeparator: ",", grouping: .repeating(3, separator: ".")
         )
         let eurFR = MoneyFormat(
             symbol: "€", placement: .after, spacing: "\u{202F}",
-            decimalSeparator: ",", groupingSeparator: "\u{202F}"
+            decimalSeparator: ",", grouping: .repeating(3, separator: "\u{202F}")
         )
         let jpy = MoneyFormat(symbol: "¥", placement: .before)
-        let inr = MoneyFormat(symbol: "₹", placement: .before, primaryGroupingSize: 3, secondaryGroupingSize: 2)
+        let inr = MoneyFormat(
+            symbol: "₹", placement: .before,
+            grouping: .digits(primary: 3, secondary: 2, separator: ",")
+        )
 
         // Symbol before, uniform grouping, sign, zero.
         #expect(Self.dollar.format(Self.money(1_234_56, "USD")) == "$1,234.56")
@@ -53,8 +56,12 @@ struct MoneyFormatTests {
         #expect(Self.dollar.format(Self.money(-1_234_56, "USD"), options: .init(sign: .accounting)) == "($1,234.56)")
         #expect(Self.dollar.format(Self.money(1_234_56, "USD"), options: .init(sign: .accounting)) == "$1,234.56")
 
+        // A descriptor with no grouping scheme never inserts separators, whatever the amount.
+        let ungrouped = MoneyFormat(symbol: "$", placement: .before, grouping: .none)
+        #expect(ungrouped.format(Self.money(1_234_567_89, "USD")) == "$1234567.89")
+
         // Grouping off, and always-on separator on a whole amount.
-        #expect(Self.dollar.format(Self.money(1_234_56, "USD"), options: .init(grouping: false)) == "$1234.56")
+        #expect(Self.dollar.format(Self.money(1_234_56, "USD"), options: .init(grouping: .never)) == "$1234.56")
         #expect(jpy.format(Self.money(1_234, "JPY"), options: .init(decimalSeparator: .always)) == "¥1,234.")
     }
 }
