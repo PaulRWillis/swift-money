@@ -45,6 +45,12 @@ let package = Package(
             name: "SwiftMoneyFoundation",
             dependencies: ["SwiftMoneyCore", "SwiftMoneyLocalization"]
         ),
+        // Dev-only. Shares the format-matrix inputs between the golden test and the ICU deviation
+        // report, so they can't drift apart. Not in any library product.
+        .target(
+            name: "SwiftMoneyFormatMatrix",
+            dependencies: ["SwiftMoneyCore", "SwiftMoneyFoundation"]
+        ),
         .testTarget(
             name: "SwiftMoneyTests",
             dependencies: ["SwiftMoney"]
@@ -59,13 +65,24 @@ let package = Package(
         ),
         .testTarget(
             name: "SwiftMoneyFoundationTests",
-            dependencies: ["SwiftMoneyFoundation"]
+            dependencies: ["SwiftMoneyFoundation", "SwiftMoneyFormatMatrix"]
+        ),
+        .testTarget(
+            name: "SwiftMoneyFormatMatrixTests",
+            dependencies: ["SwiftMoneyFormatMatrix", "SwiftMoneyCore"]
         ),
         // Dev-only. Reads the pinned CLDR JSON (Tools/cldr/node_modules) and regenerates
         // SwiftMoneyLocalization's data tables. Not in any library product.
         .executableTarget(
             name: "GenerateSwiftMoneyLocalization",
             path: "Tools/GenerateLocalization"
+        ),
+        // Dev-only. Prints where the engine and ICU disagree; always exits 0. Not in any library
+        // product.
+        .executableTarget(
+            name: "CompareFormattingToICU",
+            dependencies: ["SwiftMoneyCore", "SwiftMoneyFormatMatrix"],
+            path: "Tools/CompareFormattingToICU"
         ),
     ]
 )
