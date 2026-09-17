@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
-# Verify that SwiftMoneyCore compiles under Embedded Swift.
+# Verify that the Embedded-facing modules compile under Embedded Swift.
 #
-# The core is meant to run on Embedded Swift, which forbids Foundation, existentials, reflection, and
-# metatypes. This compiles every core source under the Embedded feature so a change that reaches for one
-# of those fails here rather than in a user's firmware build. The Codable surface is excluded from the
-# core under Embedded (see the `#if !hasFeature(Embedded)` guards), so it is not exercised here.
+# The core (and the localization data built on it) is meant to run on Embedded Swift, which forbids
+# Foundation, existentials, reflection, and metatypes. This compiles every source of each module under
+# the Embedded feature so a change that reaches for one of those fails here rather than in a user's
+# firmware build. The Codable surface is excluded from the core under Embedded (see the
+# `#if !hasFeature(Embedded)` guards), so it is not exercised here. SwiftMoneyFoundation is not checked:
+# it depends on Foundation by design.
 #
 # Usage:
 #   bash Embedded/verify.sh
@@ -20,7 +22,9 @@ REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # A bare-metal, no-OS triple: the strictest Embedded target, so passing it is the strongest guarantee.
 TARGET="arm64-apple-none-macho"
-MODULE="SwiftMoneyCore"
+PACKAGE="swift-money"
+# Embedded-facing modules, in dependency order: each emits a module the next compiles against.
+MODULES=(SwiftMoneyCore SwiftMoneyLocalization)
 
 # Locates a swiftc whose toolchain carries the Embedded standard library. Prints its path, or nothing.
 find_embedded_swiftc() {
@@ -79,26 +83,30 @@ echo "Embedded toolchain: $SWIFTC"
 "$SWIFTC" --version | head -1
 
 # `-package-name` is required because the core uses `package`-level access; `-parse-as-library` because
-# there is no top-level entry point; `-wmo` because Embedded Swift always builds whole-module.
-SOURCES=()
-while IFS= read -r file; do
-    SOURCES+=("$file")
-done < <(find "$REPO_DIR/Sources/$MODULE" -name '*.swift')
-
-echo "Compiling $MODULE (${#SOURCES[@]} files) for Embedded, target $TARGET..."
+# there is no top-level entry point; `-wmo` because Embedded Swift always builds whole-module. Each
+# module emits its `.swiftmodule` into WORKDIR so the next in dependency order can import it (`-I`).
 # `-c` (emit object), not `-typecheck`: Embedded rejects existentials, metatypes, and the like at code
-# generation, so a typecheck alone would pass code that Embedded cannot actually build. The object goes
-# to a throwaway directory that is removed on exit.
+# generation, so a typecheck alone would pass code that Embedded cannot actually build.
 WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
 
-"$SWIFTC" -c \
-    -enable-experimental-feature Embedded \
-    -wmo -parse-as-library \
-    -target "$TARGET" \
-    -module-name "$MODULE" \
-    -package-name "$MODULE" \
-    "${SOURCES[@]}" \
-    -o "$WORKDIR/$MODULE.o"
+for MODULE in "${MODULES[@]}"; do
+    SOURCES=()
+    while IFS= read -r file; do
+        SOURCES+=("$file")
+    done < <(find "$REPO_DIR/Sources/$MODULE" -name '*.swift')
 
-echo "OK: $MODULE compiles under Embedded Swift."
+    echo "Compiling $MODULE (${#SOURCES[@]} files) for Embedded, target $TARGET..."
+    "$SWIFTC" -c \
+        -enable-experimental-feature Embedded \
+        -wmo -parse-as-library \
+        -target "$TARGET" \
+        -module-name "$MODULE" \
+        -package-name "$PACKAGE" \
+        -I "$WORKDIR" \
+        "${SOURCES[@]}" \
+        -emit-module -emit-module-path "$WORKDIR/$MODULE.swiftmodule" \
+        -o "$WORKDIR/$MODULE.o"
+done
+
+echo "OK: ${MODULES[*]} compile under Embedded Swift."

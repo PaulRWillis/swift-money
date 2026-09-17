@@ -1,0 +1,63 @@
+name: CLDR localization data
+
+# The SwiftMoneyLocalization tables are generated from the CLDR JSON pinned in Tools/cldr. This keeps
+# the committed tables honest and auto-updates them:
+#   - on a PR touching the data pipeline, it regenerates and fails if the committed tables are stale
+#     (so no one can hand-edit the generated file or forget to regenerate after a CLDR bump);
+#   - on a schedule or manual run, it regenerates against the pinned CLDR and opens a PR if anything
+#     changed (paired with the Dependabot npm bump, this is the auto-update loop).
+#
+# Best-effort until it has run once on a runner (like the Embedded workflow); the swiftly/npm setup may
+# need a tweak.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 6 * * 1"
+  pull_request:
+    branches: [ main ]
+    paths:
+      - "Tools/cldr/**"
+      - "Tools/GenerateLocalization/**"
+      - "Sources/SwiftMoneyLocalization/Generated/**"
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Install a swift.org toolchain
+      run: |
+        curl -O https://download.swift.org/swiftly/linux/swiftly-$(uname -m).tar.gz
+        tar zxf swiftly-$(uname -m).tar.gz
+        ./swiftly init --quiet-shell-followup --assume-yes
+        . "${SWIFTLY_HOME_DIR:-$HOME/.local/share/swiftly}/env.sh"
+        swiftly install --use latest
+        echo "${SWIFTLY_HOME_DIR:-$HOME/.local/share/swiftly}/bin" >> "$GITHUB_PATH"
+
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 22
+
+    - name: Fetch the pinned CLDR data
+      run: cd Tools/cldr && npm ci
+
+    - name: Regenerate the localization tables
+      run: swift run GenerateSwiftMoneyLocalization
+
+    - name: Fail if the committed tables are stale
+      if: github.event_name == 'pull_request'
+      run: git diff --exit-code Sources/SwiftMoneyLocalization/Generated
+
+    - name: Open a PR when the CLDR data changes
+      if: github.event_name != 'pull_request'
+      uses: peter-evans/create-pull-request@v6
+      with:
+        branch: chore/regenerate-cldr-localization
+        title: "chore: regenerate SwiftMoneyLocalization from CLDR"
+        commit-message: "chore: regenerate SwiftMoneyLocalization from CLDR"
+        body: Automated regeneration of the CLDR-derived localization tables.
+        add-paths: Sources/SwiftMoneyLocalization/Generated

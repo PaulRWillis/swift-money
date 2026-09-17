@@ -9,4 +9,5 @@
 // re-exporting a module's whole API under an umbrella import. The choice is deliberate; the fallback, were
 // it ever removed, is a plain product that groups the two targets and leaves callers writing two imports.
 @_exported import SwiftMoneyCore
+@_exported import SwiftMoneyLocalization
 @_exported import SwiftMoneyFoundation

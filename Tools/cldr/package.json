@@ -1,0 +1,9 @@
+{
+  "name": "swift-money-cldr",
+  "private": true,
+  "description": "Pinned CLDR JSON data for generating SwiftMoneyLocalization. Dev-only; not shipped.",
+  "dependencies": {
+    "cldr-core": "48.0.0",
+    "cldr-numbers-full": "48.0.0"
+  }
+}

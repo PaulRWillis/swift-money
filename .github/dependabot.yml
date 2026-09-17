@@ -1,0 +1,10 @@
+version: 2
+updates:
+  # Watches the pinned CLDR JSON packages. A new CLDR release arrives as a version-bump PR, which the
+  # CLDR-localization-data workflow then regenerates the Swift tables against.
+  - package-ecosystem: npm
+    directory: /Tools/cldr
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore
