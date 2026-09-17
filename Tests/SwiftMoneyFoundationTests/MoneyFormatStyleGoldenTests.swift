@@ -3,16 +3,13 @@ import SwiftMoneyCore
 import SwiftMoneyFoundation
 import Testing
 
-// The portable gate for the wired `MoneyOf.FormatStyle`. It hashes the engine's output — which is derived
-// from our committed CLDR data, so it is identical on every platform — over a factored cross of currencies,
-// presentations, sign/grouping/separator options and amounts, and asserts one digest per locale. ICU is
-// deliberately NOT the oracle here: a platform's ICU can lag CLDR (Linux renders XCG as "Cg." where CLDR 48
-// and we say "Cg"), so gating on ICU is not portable. The engine-vs-ICU comparison lives in the non-gating
-// deviation report instead. `fullName` is absent until it is ported to the engine (Phase D); it then joins
-// this matrix as a fourth presentation.
+// Locks the output of `MoneyOf.FormatStyle` against a committed per-locale hash of the engine's rendering.
+// It hashes the engine's own output rather than comparing to the platform's `Decimal.FormatStyle.Currency`,
+// because ICU differs by version between platforms and so cannot gate portably; the engine's output comes
+// from committed CLDR data and is identical everywhere.
 //
-// Regenerate the digests after an intended output change: run with MONEYGOLDEN_RECORD=1 and copy the
-// printed values into `golden` below.
+// Regenerate the digests after an intended output change: run with MONEYGOLDEN_RECORD=1 and copy the printed
+// values into `golden`.
 @Suite("MoneyFormatStyle golden")
 struct MoneyFormatStyleGoldenTests {
     typealias Config = CurrencyFormatStyleConfiguration
