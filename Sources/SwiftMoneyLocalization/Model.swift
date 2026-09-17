@@ -4,10 +4,10 @@ import SwiftMoneyCore
 // time. Internal — the public surface is `MoneyLocalization.moneyFormat(for:locale:presentation:)`.
 struct LocaleNumberFormat {
     let decimalSeparator: String
-    let groupingSeparator: String
+    let groupingSeparator: GroupingSeparator
     let minusSign: String
-    let primaryGroupingSize: Int
-    let secondaryGroupingSize: Int
+    let primaryGroupingSize: GroupingSize
+    let secondaryGroupingSize: GroupingSize
     let placement: MoneyFormat.SymbolPlacement
     // The space between an ISO code (or a code used as a fallback symbol) and the digits.
     let isoCodeSpacing: String

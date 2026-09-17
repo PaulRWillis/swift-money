@@ -25,9 +25,10 @@ struct MoneyFormatICUParityTests {
     static func icu(_ minorUnits: Int64, _ iso: String, _ localeID: String, _ options: MoneyFormatOptions) -> String {
         let places = 2   // USD and GBP
         let digits: Int
+        let rule: RoundingRule
         switch options.precision {
-        case .currencyScale: digits = places
-        case .fixed(let count): digits = count
+        case .currencyScale: (digits, rule) = (places, .toNearestOrEven)
+        case .fixed(let length, let rounding): (digits, rule) = (Int(length), rounding)
         }
         var style = Decimal.FormatStyle.Currency(code: iso, locale: Locale(identifier: localeID))
             .precision(.fractionLength(digits))
@@ -44,8 +45,8 @@ struct MoneyFormatICUParityTests {
         case .always: style = style.sign(strategy: .always())
         case .accounting: style = style.sign(strategy: .accounting)
         }
-        if options.roundingRule != .toNearestOrEven {
-            style = style.rounded(rule: options.roundingRule)
+        if rule != .toNearestOrEven {
+            style = style.rounded(rule: rule)
         }
 
         return style.format(Decimal(minorUnits) / Decimal(100))
@@ -102,8 +103,8 @@ struct MoneyFormatICUParityTests {
     func roundingRules() {
         let rules: [RoundingRule] = [.down, .up, .towardZero, .awayFromZero, .toNearestOrAwayFromZero]
         for rule in rules {
-            expectMatchesICU(MoneyFormatOptions(precision: .fixed(0), roundingRule: rule), "round \(rule)")
-            expectMatchesICU(MoneyFormatOptions(precision: .fixed(1), roundingRule: rule), "round \(rule) @1")
+            expectMatchesICU(MoneyFormatOptions(precision: .fixed(0, rounding: rule)), "round \(rule)")
+            expectMatchesICU(MoneyFormatOptions(precision: .fixed(1, rounding: rule)), "round \(rule) @1")
         }
     }
 }

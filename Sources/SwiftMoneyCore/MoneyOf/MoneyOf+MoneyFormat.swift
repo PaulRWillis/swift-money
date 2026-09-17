@@ -6,6 +6,72 @@
 // `SwiftMoneyLocalization`, or a caller with a fixed format): `.standard`/`.isoCode`/`.narrow` differ
 // only in the symbol string the descriptor carries, so the engine itself is presentation-agnostic.
 
+/// The number of whole digits in a group, always at least one.
+///
+/// ```swift
+/// let size: GroupingSize = 3    // fine
+/// let bad: GroupingSize = 0     // traps
+/// ```
+public struct GroupingSize: Equatable, Hashable, Sendable {
+    @usableFromInline
+    let rawValue: Int
+
+    /// Creates a grouping size, or `nil` if `value` is below one.
+    public init?(exactly value: Int) {
+        guard value >= 1 else {
+            return nil
+        }
+
+        self.rawValue = value
+    }
+}
+
+extension GroupingSize: ExpressibleByIntegerLiteral {
+    /// Creates a grouping size from an integer literal.
+    ///
+    /// A literal is written in source, so one below one is a programmer mistake and traps. Use
+    /// ``init(exactly:)`` for a value taken from data.
+    ///
+    /// - Precondition: `value` is at least one.
+    public init(integerLiteral value: Int) {
+        guard let size = Self(exactly: value) else {
+            preconditionFailure("A grouping size must be at least 1. Value: \(value)")  // coverage:ignore
+        }
+
+        self = size
+    }
+}
+
+/// The string written between digit groups, such as `","`, `"."`, or a narrow no-break space.
+///
+/// ```swift
+/// let separator: GroupingSeparator = ","
+/// ```
+public struct GroupingSeparator: Equatable, Hashable, Sendable {
+    @usableFromInline
+    let rawValue: String
+
+    /// Creates a grouping separator, or `nil` if `value` is empty.
+    public init?(_ value: String) {
+        guard !value.isEmpty else {
+            return nil
+        }
+
+        self.rawValue = value
+    }
+}
+
+extension GroupingSeparator: ExpressibleByStringLiteral {
+    /// Creates a grouping separator from a string literal, trapping on an empty literal.
+    public init(stringLiteral value: String) {
+        guard let separator = Self(value) else {
+            preconditionFailure("A grouping separator must not be empty.")  // coverage:ignore
+        }
+
+        self = separator
+    }
+}
+
 /// The locale-dependent pieces a currency amount is rendered with, held as plain data so the amount can
 /// be formatted without consulting ICU at render time.
 public struct MoneyFormat: Equatable, Hashable, Sendable {
@@ -15,14 +81,24 @@ public struct MoneyFormat: Equatable, Hashable, Sendable {
         case after
     }
 
-    /// How a locale groups the whole digits: not at all, or into sized groups joined by a separator.
+    /// A locale's rule for splitting the whole digits into groups, like the thousands separators in
+    /// `1,234,567`.
+    ///
+    /// Most locales repeat a single group size; build those with ``repeating(_:separator:)``. A few,
+    /// such as India, use a smaller size above the first group, giving `12,34,567` for the same number.
     public enum GroupingScheme: Equatable, Hashable, Sendable {
-        /// The whole digits are never grouped.
+        /// The digits are not grouped: `1234567`.
         case none
-        /// Group the rightmost `primary` digits, then every `secondary` digits left of that, joined by
-        /// `separator`. A `secondary` equal to `primary` gives uniform `1,234,567`; a smaller one gives
-        /// shapes like the Indian `12,34,567`.
-        case digits(primary: Int, secondary: Int, separator: String)
+
+        /// Separate the least significant `primary` digits, then every `secondary` digits above them,
+        /// with `separator` between the groups.
+        ///
+        /// `primary` and `secondary` are CLDR's primary and secondary grouping sizes.
+        ///
+        /// ```swift
+        /// .digits(primary: 3, secondary: 2, separator: ",")   // 12,34,567  (India)
+        /// ```
+        case digits(primary: GroupingSize, secondary: GroupingSize, separator: GroupingSeparator)
     }
 
     /// The currency symbol as the chosen presentation renders it: `"£"`, `"GBP"`, a narrow symbol, etc.
@@ -45,7 +121,7 @@ public struct MoneyFormat: Equatable, Hashable, Sendable {
         placement: SymbolPlacement,
         spacing: String = "",
         decimalSeparator: String = ".",
-        grouping: GroupingScheme = .digits(primary: 3, secondary: 3, separator: ","),
+        grouping: GroupingScheme = .repeating(3, separator: ","),
         minusSign: String = "-",
         plusSign: String = "+"
     ) {
@@ -56,6 +132,60 @@ public struct MoneyFormat: Equatable, Hashable, Sendable {
         self.grouping = grouping
         self.minusSign = minusSign
         self.plusSign = plusSign
+    }
+}
+
+public extension MoneyFormat.GroupingScheme {
+    /// A grouping that repeats one `size` for every group, which is how most locales group.
+    ///
+    /// ```swift
+    /// .repeating(3, separator: ",")   // 1,234,567
+    /// ```
+    static func repeating(_ size: GroupingSize, separator: GroupingSeparator) -> Self {
+        .digits(primary: size, secondary: size, separator: separator)
+    }
+}
+
+/// A count of fraction digits to show, never negative.
+///
+/// ```swift
+/// let length: FractionLength = 2    // fine
+/// let bad: FractionLength = -1      // traps
+/// ```
+public struct FractionLength: Equatable, Hashable, Sendable {
+    @usableFromInline
+    let rawValue: Int
+
+    /// Creates a fraction length, or `nil` if `value` is negative.
+    public init?(exactly value: Int) {
+        guard value >= 0 else {
+            return nil
+        }
+
+        self.rawValue = value
+    }
+}
+
+extension FractionLength: ExpressibleByIntegerLiteral {
+    /// Creates a fraction length from an integer literal.
+    ///
+    /// A literal is written in source, so a negative one is a programmer mistake and traps. Use
+    /// ``init(exactly:)`` for a value taken from data.
+    ///
+    /// - Precondition: `value` is at least zero.
+    public init(integerLiteral value: Int) {
+        guard let length = Self(exactly: value) else {
+            preconditionFailure("A fraction length must not be negative. Value: \(value)")  // coverage:ignore
+        }
+
+        self = length
+    }
+}
+
+public extension Int {
+    /// The number of fraction digits.
+    init(_ length: FractionLength) {
+        self = length.rawValue
     }
 }
 
@@ -95,29 +225,36 @@ public struct MoneyFormatOptions: Equatable, Hashable, Sendable {
         /// The currency's own scale, so nothing rounds. The default.
         case currencyScale
         /// A fixed number of fraction digits. Fewer than the currency's scale rounds the shown value by
-        /// `roundingRule`; more pads with zeros.
-        case fixed(Int)
+        /// `rounding`; more pads with zeros.
+        case fixed(FractionLength, rounding: RoundingRule)
     }
 
     public var sign: Sign
     public var grouping: Grouping
     public var decimalSeparator: DecimalSeparator
     public var precision: Precision
-    /// How to round when `precision` shows fewer digits than the currency's scale.
-    public var roundingRule: RoundingRule
 
     public init(
         sign: Sign = .automatic,
         grouping: Grouping = .automatic,
         decimalSeparator: DecimalSeparator = .automatic,
-        precision: Precision = .currencyScale,
-        roundingRule: RoundingRule = .toNearestOrEven
+        precision: Precision = .currencyScale
     ) {
         self.sign = sign
         self.grouping = grouping
         self.decimalSeparator = decimalSeparator
         self.precision = precision
-        self.roundingRule = roundingRule
+    }
+}
+
+public extension MoneyFormatOptions.Precision {
+    /// A fixed number of fraction digits, rounded to the nearest with ties going to the even digit.
+    ///
+    /// ```swift
+    /// .fixed(2)   // two fraction digits, banker's rounding
+    /// ```
+    static func fixed(_ length: FractionLength) -> Self {
+        .fixed(length, rounding: .toNearestOrEven)
     }
 }
 
@@ -134,14 +271,16 @@ public extension MoneyFormat {
     func format<C: CurrencyRepresentation>(_ money: MoneyOf<C>, options: MoneyFormatOptions) -> String {
         let places = money.currency.unitScale.decimalPlaces
         let digitsShown: Int
+        let rounding: RoundingRule
         switch options.precision {
         case .currencyScale:
-            digitsShown = places
-        case .fixed(let count):
-            digitsShown = count
+            // Shows every digit the currency divides into, so nothing is dropped and rounding is moot.
+            (digitsShown, rounding) = (places, .toNearestOrEven)
+        case .fixed(let length, let rule):
+            (digitsShown, rounding) = (length.rawValue, rule)
         }
         let value = MoneyFormat.displayValue(
-            money.minorUnits, scalePlaces: places, showing: digitsShown, rounding: options.roundingRule
+            money.minorUnits, scalePlaces: places, showing: digitsShown, rounding: rounding
         )
 
         let negative = value < 0
@@ -157,8 +296,8 @@ public extension MoneyFormat {
         let grouped: Bool
         switch grouping {
         case .digits(let p, let s, let sep):
-            (primary, secondary, separator) = (p, s, sep)
-            grouped = options.grouping == .automatic && wholeDigits > p
+            (primary, secondary, separator) = (p.rawValue, s.rawValue, sep.rawValue)
+            grouped = options.grouping == .automatic && wholeDigits > p.rawValue
         case .none:
             (primary, secondary, separator) = (0, 1, "")
             grouped = false

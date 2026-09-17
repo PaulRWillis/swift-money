@@ -21,11 +21,11 @@ struct MoneyFormatTests {
     func assembly() {
         let eurDE = MoneyFormat(
             symbol: "€", placement: .after, spacing: "\u{00A0}",
-            decimalSeparator: ",", grouping: .digits(primary: 3, secondary: 3, separator: ".")
+            decimalSeparator: ",", grouping: .repeating(3, separator: ".")
         )
         let eurFR = MoneyFormat(
             symbol: "€", placement: .after, spacing: "\u{202F}",
-            decimalSeparator: ",", grouping: .digits(primary: 3, secondary: 3, separator: "\u{202F}")
+            decimalSeparator: ",", grouping: .repeating(3, separator: "\u{202F}")
         )
         let jpy = MoneyFormat(symbol: "¥", placement: .before)
         let inr = MoneyFormat(
