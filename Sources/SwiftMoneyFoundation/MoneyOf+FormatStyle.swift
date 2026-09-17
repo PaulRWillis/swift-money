@@ -234,9 +234,8 @@ extension MoneyOf.FormatStyle {
     // grouping turned off and a sign, a separator or a rounding rule set beside it. Verified on
     // Swift 6.3.2, against `Decimal.FormatStyle.Currency` itself.
     //
-    // `package` rather than `internal`: the ICU deviation report builds this same style (through
-    // this same builder chain) to compare against the engine, and must never reimplement the
-    // only-if-non-default rule above a second time.
+    // `package` rather than `internal`: the ICU deviation report reuses this builder instead of
+    // reimplementing the only-if-non-default rule above.
     package func decimalStyle(for currency: Currency) -> Decimal.FormatStyle.Currency {
         var style = Decimal.FormatStyle.Currency(code: String(currency.code), locale: locale)
             .precision(precision ?? .fractionLength(currency.unitScale.decimalPlaces))

@@ -45,9 +45,8 @@ let package = Package(
             name: "SwiftMoneyFoundation",
             dependencies: ["SwiftMoneyCore", "SwiftMoneyLocalization"]
         ),
-        // Dev-only. Shares the format-matrix inputs (currencies/locales/amounts/option cross) between
-        // the golden test and the ICU deviation report tool, so the two never drift onto different
-        // inputs. Not in any library product.
+        // Dev-only. Shares the format-matrix inputs between the golden test and the ICU deviation
+        // report, so they can't drift apart. Not in any library product.
         .target(
             name: "SwiftMoneyFormatMatrix",
             dependencies: ["SwiftMoneyCore", "SwiftMoneyFoundation"]
@@ -78,8 +77,8 @@ let package = Package(
             name: "GenerateSwiftMoneyLocalization",
             path: "Tools/GenerateLocalization"
         ),
-        // Dev-only. Prints where the engine and the platform's ICU disagree, over the full format
-        // matrix. Non-gating intelligence, not a test: always exits 0. Not in any library product.
+        // Dev-only. Prints where the engine and ICU disagree; always exits 0. Not in any library
+        // product.
         .executableTarget(
             name: "CompareFormattingToICU",
             dependencies: ["SwiftMoneyCore", "SwiftMoneyFormatMatrix"],

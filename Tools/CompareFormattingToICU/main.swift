@@ -1,10 +1,7 @@
 import SwiftMoneyCore
 import SwiftMoneyFormatMatrix
 
-// Non-gating intelligence, not a correctness check: CLDR is the source of truth, not ICU, so this
-// never fails CI. It surfaces where a platform's bundled ICU lags the CLDR 48 data the engine
-// renders from (e.g. Linux rendering XCG as "Cg." where CLDR 48, and this engine, say "Cg"). The
-// correctness gate is MoneyFormatStyleGoldenTests, which hashes the engine's own output and never
+// Non-gating: always exits 0. The correctness gate is MoneyFormatStyleGoldenTests, which never
 // touches ICU.
 let deviations = FormatMatrix.deviations(
     currencies: Currency.allISO4217,
@@ -13,10 +10,8 @@ let deviations = FormatMatrix.deviations(
     amounts: FormatMatrix.amounts
 )
 
-// Foundation's own currency style drops the symbol whenever grouping is off together with a sign
-// or separator (see MoneyFormatStyleModifierTests), regardless of currency, locale or amount. That
-// single known defect otherwise dominates the raw cell count, so it is counted once here instead of
-// printed per cell, leaving genuinely new platform/CLDR differences visible.
+// One already-known defect (see MoneyFormatStyleModifierTests) otherwise dominates the count, so
+// it's reported once below instead of per cell.
 let novel = deviations.filter { !$0.isKnownFoundationGroupingDefect }
 let knownIssueCount = deviations.count - novel.count
 

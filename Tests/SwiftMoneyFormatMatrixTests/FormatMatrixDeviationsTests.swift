@@ -2,11 +2,8 @@ import SwiftMoneyCore
 import SwiftMoneyFormatMatrix
 import Testing
 
-// The predicate and cardinality are pinned with fixture renderers rather than the real matrix: the
-// real one is 165 currencies x 5 locales x 48 combinations x 5 amounts of actual ICU calls, which
-// belongs in the report executable's own run, not in every `swift test`. `icuFormatted`/
-// `engineFormatted` get a smoke test instead of a pinned literal, since their output is real,
-// platform-dependent ICU text.
+// Fixture renderers pin the predicate/cardinality without the cost of the real matrix.
+// `icuFormatted`/`engineFormatted` get a smoke test instead, since their output is real ICU text.
 @Suite("FormatMatrix deviations")
 struct FormatMatrixDeviationsTests {
     static let currencies: [Currency] = [.gbp]

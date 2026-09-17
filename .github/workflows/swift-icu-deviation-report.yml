@@ -12,10 +12,8 @@ permissions:
   pull-requests: write
 
 jobs:
-  # Non-gating intelligence, not a correctness check: CLDR is the source of truth, not ICU, so this
-  # tool always exits 0 and this job never fails CI on its own account. It runs on both platforms
-  # because a platform's bundled ICU can lag the CLDR data the engine renders from (e.g. Linux
-  # rendering XCG as "Cg." where CLDR, and this engine, say "Cg").
+  # Non-gating: the tool always exits 0. Runs on both platforms since a platform's ICU can lag the
+  # CLDR data the engine renders from.
   report:
     timeout-minutes: 30
     strategy:
@@ -63,10 +61,7 @@ jobs:
         {
           echo "<!-- icu-deviations -->"
           echo
-          echo "Non-gating intelligence, not a correctness check: CLDR is the source of truth,"
-          echo "not ICU. Shows where a platform's ICU differs from the engine's CLDR-derived"
-          echo "output, after setting aside a known Foundation defect (see"
-          echo "MoneyFormatStyleModifierTests)."
+          echo "Non-gating: shows where a platform's ICU differs from the engine's output."
           echo
           for dir in deviations/icu-deviations-*; do
             os="$(basename "$dir" | sed 's/^icu-deviations-//')"

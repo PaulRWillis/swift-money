@@ -1,13 +1,8 @@
 import Foundation
 import SwiftMoneyCore
 
-/// The presentation x sign x grouping x separator cross, and the currencies/locales/amounts it is
-/// exercised over.
-///
-/// Shared between `MoneyFormatStyleGoldenTests` (the portable correctness gate, which hashes the
-/// engine's own output) and the ICU deviation report (non-gating intelligence, which compares the
-/// engine's output to the platform's ICU). One set of inputs, so the two can never silently drift onto
-/// different currencies, locales, options or amounts.
+/// The currency-format inputs (option cross, locales, amounts) shared by `MoneyFormatStyleGoldenTests`
+/// and the ICU deviation report, so the two can never drift onto different inputs.
 package enum FormatMatrix {
     /// The vocabulary `Decimal.FormatStyle.Currency` and `MoneyOf.FormatStyle` share.
     package typealias Config = CurrencyFormatStyleConfiguration
@@ -20,11 +15,9 @@ package enum FormatMatrix {
         package let grouping: Config.Grouping
         package let separator: Config.DecimalSeparatorDisplayStrategy
 
-        /// Whether this combination hits Foundation's own known defect: turning grouping off while
-        /// a sign or decimal-separator strategy is also set drops the currency symbol entirely,
-        /// even though both are genuinely non-default. Locale-, currency- and amount-independent,
-        /// so classifying by the combination alone is exact. Pinned directly against
-        /// `Decimal.FormatStyle.Currency` by `MoneyFormatStyleModifierTests`.
+        /// Whether this combination triggers Foundation's known symbol-drop defect: grouping off
+        /// with a non-default sign or separator drops the currency symbol. See
+        /// `MoneyFormatStyleModifierTests`.
         package var isKnownFoundationGroupingDefect: Bool {
             grouping != .automatic && (sign != .automatic || separator != .automatic)
         }

@@ -13,14 +13,12 @@ extension FormatMatrix {
         package let engine: String
         package let icu: String
 
-        /// Whether this cell matches Foundation's own known symbol-drop defect
-        /// (`Combination.isKnownFoundationGroupingDefect`), rather than being new information about
-        /// how the platform's ICU differs from CLDR.
+        /// Whether this cell matches `Combination.isKnownFoundationGroupingDefect`, rather than
+        /// being new engine-vs-ICU information.
         package let isKnownFoundationGroupingDefect: Bool
 
-        // Explicit: the synthesized memberwise initializer is `internal` regardless of the type's
-        // or its properties' own access level, and tests construct a `Deviation` from outside this
-        // module to compare against.
+        // Explicit: the synthesized memberwise init would be `internal`, and tests construct a
+        // `Deviation` from outside this module.
         package init(
             localeID: String, currencyCode: String, combinationID: String, amount: Int64,
             engine: String, icu: String, isKnownFoundationGroupingDefect: Bool
@@ -35,10 +33,8 @@ extension FormatMatrix {
         }
     }
 
-    /// The amount, rendered by the platform's ICU through the same style the engine would use for it.
-    ///
-    /// Built from the same builder chain as ``engineFormatted(_:localeID:combination:)``, so the two
-    /// sides differ only in whether `decimalStyle(for:)` or the engine renders the result.
+    /// The amount, rendered by the platform's ICU through the same style
+    /// ``engineFormatted(_:localeID:combination:)`` renders it with.
     package static func icuFormatted(_ money: Money, localeID: String, combination: Combination) -> String {
         let style = Money.FormatStyle().locale(Locale(identifier: localeID))
             .presentation(combination.presentation).sign(strategy: combination.sign)
@@ -54,8 +50,8 @@ extension FormatMatrix {
             .format(money)
     }
 
-    // The comparison core, generic over how a cell is rendered, so the predicate and cardinality can
-    // be pinned with fixture renderers instead of calling real ICU for every test run.
+    /// The comparison core. Generic over how a cell is rendered, so tests can pin the predicate and
+    /// cardinality with fixture renderers instead of calling real ICU.
     package static func deviations(
         currencies: [Currency],
         localeIDs: [String],
