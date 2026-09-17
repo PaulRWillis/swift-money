@@ -50,7 +50,7 @@ let package = Package(
         // inputs. Not in any library product.
         .target(
             name: "SwiftMoneyFormatMatrix",
-            dependencies: ["SwiftMoneyCore"]
+            dependencies: ["SwiftMoneyCore", "SwiftMoneyFoundation"]
         ),
         .testTarget(
             name: "SwiftMoneyTests",
