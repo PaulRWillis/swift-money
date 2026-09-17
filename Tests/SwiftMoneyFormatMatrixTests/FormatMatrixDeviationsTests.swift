@@ -75,6 +75,15 @@ struct FormatMatrixDeviationsTests {
         #expect(found.first { $0.combinationID == safe.id }?.isKnownFoundationGroupingDefect == false)
     }
 
+    @Test("The real entry point, with no fixture renderers, finds nothing wrong on a covered case")
+    func realEntryPointAgreesOnACoveredCase() {
+        let found = FormatMatrix.deviations(
+            currencies: Self.currencies, localeIDs: Self.localeIDs,
+            combinations: [FormatMatrix.combinations[0]], amounts: [4_99]
+        )
+        #expect(found.isEmpty)
+    }
+
     @Test("The real engine and ICU renderers produce matching, non-empty output for a covered case")
     func realRenderersAgreeOnACoveredCase() {
         let money = Money(minorUnits: 4_99, currency: .gbp)
