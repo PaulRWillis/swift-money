@@ -171,10 +171,11 @@ for locale in locales {
 
     var entries: [String] = []
     for (code, fields) in currencies(locale).sorted(by: { $0.key < $1.key }) {
-        guard let symbol = fields["symbol"], symbol != code else {
-            continue   // no distinct symbol; the runtime falls back to the code
-        }
+        let symbol = fields["symbol"] ?? code
         let narrow = fields["symbol-alt-narrow"] ?? symbol
+        guard symbol != code || narrow != code else {
+            continue   // neither form is distinct; the runtime falls back to the code
+        }
         let standardSpacing = spacing(for: symbol, placement: parsed.placement, patternSpacing: parsed.patternSpacing, insertBetween: insertBetween)
         let narrowSpacing = spacing(for: narrow, placement: parsed.placement, patternSpacing: parsed.patternSpacing, insertBetween: insertBetween)
         entries.append("            \(quote(code)): CurrencyDisplay(standardSymbol: \(quote(symbol)), standardSpacing: \(quote(standardSpacing)), narrowSymbol: \(quote(narrow)), narrowSpacing: \(quote(narrowSpacing))),")
