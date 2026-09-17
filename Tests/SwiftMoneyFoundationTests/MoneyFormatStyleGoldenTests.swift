@@ -1,5 +1,6 @@
 import Foundation
 import SwiftMoneyCore
+import SwiftMoneyFormatMatrix
 import SwiftMoneyFoundation
 import Testing
 
@@ -8,50 +9,13 @@ import Testing
 // because ICU differs by version between platforms and so cannot gate portably; the engine's output comes
 // from committed CLDR data and is identical everywhere.
 //
+// The currencies/locales/amounts/option cross live in `FormatMatrix` (`SwiftMoneyFormatMatrix`), shared
+// with the non-gating ICU deviation report, so the two can never silently drift onto different inputs.
+//
 // Regenerate the digests after an intended output change: run with MONEYGOLDEN_RECORD=1 and copy the printed
 // values into `golden`.
 @Suite("MoneyFormatStyle golden")
 struct MoneyFormatStyleGoldenTests {
-    typealias Config = CurrencyFormatStyleConfiguration
-
-    // The option cross (sign/grouping/separator) exercises currency-independent engine code, so it is
-    // measured on a few scale-spanning currencies rather than all of them: JPY (0 places), GBP (2), BHD (3).
-    static let optionCurrencies: [Currency] = [.jpy, .gbp, .bhd]
-
-    static let localeIDs = ["en_US", "en_GB", "de_DE", "fr_FR", "ja_JP"]
-    static let amounts: [Int64] = [0, 1_00, 12_34_56, -12_34_56, 1_234_567_89]
-
-    static let presentations: [(name: String, f: Config.Presentation)] =
-        [("standard", .standard), ("isoCode", .isoCode), ("narrow", .narrow)]
-    static let signs: [(name: String, f: Config.SignDisplayStrategy)] =
-        [("automatic", .automatic), ("never", .never), ("always", .always()), ("accounting", .accounting)]
-    static let groupings: [(name: String, f: Config.Grouping)] =
-        [("automatic", .automatic), ("never", .never)]
-    static let separators: [(name: String, f: Config.DecimalSeparatorDisplayStrategy)] =
-        [("automatic", .automatic), ("always", .always)]
-
-    // One point in the presentation × sign × grouping × separator cross. Precomputed once, since it is the
-    // same for every locale, so the per-locale digest walks a flat list rather than a nested loop.
-    struct Combination {
-        let id: String
-        let presentation: Config.Presentation
-        let sign: Config.SignDisplayStrategy
-        let grouping: Config.Grouping
-        let separator: Config.DecimalSeparatorDisplayStrategy
-    }
-
-    static let combinations: [Combination] = presentations.flatMap { p in
-        signs.flatMap { s in
-            groupings.flatMap { g in
-                separators.map { d in
-                    Combination(
-                        id: "\(p.name)|\(s.name)|\(g.name)|\(d.name)",
-                        presentation: p.f, sign: s.f, grouping: g.f, separator: d.f
-                    )
-                }
-            }
-        }
-    }
 
     // FNV-1a over the engine's CLDR-derived output. Regenerate with MONEYGOLDEN_RECORD=1.
     static let golden: [String: UInt64] = [
@@ -62,7 +26,7 @@ struct MoneyFormatStyleGoldenTests {
         "ja_JP": 0xbe80_33e4_dced_1820,
     ]
 
-    @Test("Engine output matches the committed golden, per locale", arguments: localeIDs)
+    @Test("Engine output matches the committed golden, per locale", arguments: FormatMatrix.coveredLocaleIDs)
     func matchesGolden(_ localeID: String) {
         let digest = Self.digest(for: localeID)
 
@@ -83,8 +47,8 @@ struct MoneyFormatStyleGoldenTests {
         // Every currency, default options, every presentation: the symbol, spacing and scale coverage.
         for currency in Currency.allISO4217 {
             let code = String(currency.code)
-            for p in presentations {
-                for amount in amounts {
+            for p in FormatMatrix.presentations {
+                for amount in FormatMatrix.amounts {
                     let out = Money.FormatStyle().locale(locale).presentation(p.f)
                         .format(Money(minorUnits: amount, currency: currency))
                     hash.combine("\(code)|\(p.name)|\(amount)=\(out)")
@@ -93,10 +57,10 @@ struct MoneyFormatStyleGoldenTests {
         }
 
         // Representative currencies, every option combination: the sign/grouping/separator coverage.
-        for currency in optionCurrencies {
+        for currency in FormatMatrix.optionCurrencies {
             let code = String(currency.code)
-            for combination in Self.combinations {
-                for amount in amounts {
+            for combination in FormatMatrix.combinations {
+                for amount in FormatMatrix.amounts {
                     let out = Money.FormatStyle().locale(locale)
                         .presentation(combination.presentation).sign(strategy: combination.sign)
                         .grouping(combination.grouping).decimalSeparator(strategy: combination.separator)

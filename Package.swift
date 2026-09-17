@@ -45,6 +45,13 @@ let package = Package(
             name: "SwiftMoneyFoundation",
             dependencies: ["SwiftMoneyCore", "SwiftMoneyLocalization"]
         ),
+        // Dev-only. Shares the format-matrix inputs (currencies/locales/amounts/option cross) between
+        // the golden test and the ICU deviation report tool, so the two never drift onto different
+        // inputs. Not in any library product.
+        .target(
+            name: "SwiftMoneyFormatMatrix",
+            dependencies: ["SwiftMoneyCore"]
+        ),
         .testTarget(
             name: "SwiftMoneyTests",
             dependencies: ["SwiftMoney"]
@@ -59,7 +66,11 @@ let package = Package(
         ),
         .testTarget(
             name: "SwiftMoneyFoundationTests",
-            dependencies: ["SwiftMoneyFoundation"]
+            dependencies: ["SwiftMoneyFoundation", "SwiftMoneyFormatMatrix"]
+        ),
+        .testTarget(
+            name: "SwiftMoneyFormatMatrixTests",
+            dependencies: ["SwiftMoneyFormatMatrix", "SwiftMoneyCore"]
         ),
         // Dev-only. Reads the pinned CLDR JSON (Tools/cldr/node_modules) and regenerates
         // SwiftMoneyLocalization's data tables. Not in any library product.
