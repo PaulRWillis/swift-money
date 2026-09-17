@@ -21,9 +21,6 @@ public struct GroupingSize: Equatable, Hashable, Sendable {
 extension GroupingSize: ExpressibleByIntegerLiteral {
     /// Creates a grouping size from an integer literal.
     ///
-    /// A literal is written in source, so one below one is a programmer mistake and traps. Use
-    /// ``init(exactly:)`` for a value taken from data.
-    ///
     /// - Precondition: `value` is at least one.
     public init(integerLiteral value: Int) {
         guard let size = Self(exactly: value) else {

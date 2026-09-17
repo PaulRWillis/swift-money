@@ -27,8 +27,6 @@ public struct MoneyFormat: Equatable, Hashable, Sendable {
         /// Separate the least significant `primary` digits, then every `secondary` digits above them,
         /// with `separator` between the groups.
         ///
-        /// `primary` and `secondary` are CLDR's primary and secondary grouping sizes.
-        ///
         /// ```swift
         /// .digits(primary: 3, secondary: 2, separator: ",")   // 12,34,567  (India)
         /// ```
@@ -138,17 +136,6 @@ public struct MoneyFormatOptions: Equatable, Hashable, Sendable {
     }
 }
 
-public extension MoneyFormatOptions.Precision {
-    /// A fixed number of fraction digits, rounded to the nearest with ties going to the even digit.
-    ///
-    /// ```swift
-    /// .fixed(2)   // two fraction digits, banker's rounding
-    /// ```
-    static func fixed(_ length: FractionLength) -> Self {
-        .fixed(length, rounding: .toNearestOrEven)
-    }
-}
-
 public extension MoneyFormat {
     /// The amount, rendered with this format and the default options (exact digits, grouped, minus only
     /// when negative).
@@ -181,21 +168,16 @@ public extension MoneyFormat {
         let fraction = digitsShown == 0 ? 0 : magnitude % unit
 
         let wholeDigits = MoneyFormat.digitCount(whole)
-        let primary: Int
-        let secondary: Int
-        let separator: String
-        let grouped: Bool
-        switch grouping {
-        case .digits(let p, let s, let sep):
-            (primary, secondary, separator) = (p.rawValue, s.rawValue, sep.rawValue)
-            grouped = options.grouping == .automatic && wholeDigits > p.rawValue
-        case .none:
-            (primary, secondary, separator) = (0, 1, "")
-            grouped = false
+        // The grouping to apply, or `nil` to write the whole part ungrouped: the format has no grouping
+        // scheme, the caller turned grouping off, or the number is too short to reach a group boundary.
+        let groups: (primary: Int, secondary: Int, separator: String)?
+        switch (grouping, options.grouping) {
+        case (.digits(let p, let s, let sep), .automatic) where wholeDigits > p.rawValue:
+            groups = (p.rawValue, s.rawValue, sep.rawValue)
+        default:
+            groups = nil
         }
-        let separators = grouped
-            ? 1 + (wholeDigits - primary - 1) / secondary
-            : 0
+        let separators = groups.map { 1 + (wholeDigits - $0.primary - 1) / $0.secondary } ?? 0
         let showsSeparator = digitsShown > 0 || options.decimalSeparator == .always
 
         let (leading, trailing) = affixes(negative: negative, sign: options.sign)
@@ -204,7 +186,7 @@ public extension MoneyFormat {
             leading.utf8.count + trailing.utf8.count
             + symbol.utf8.count + spacing.utf8.count
             + wholeDigits
-            + separators * separator.utf8.count
+            + separators * (groups?.separator.utf8.count ?? 0)
             + (showsSeparator ? decimalSeparator.utf8.count : 0)
             + digitsShown
 
@@ -217,11 +199,7 @@ public extension MoneyFormat {
                 offset = MoneyFormat.copy(spacing, into: buffer, at: offset)
             }
 
-            offset = writeGroupedWhole(
-                whole, digits: wholeDigits, grouped: grouped,
-                primary: primary, secondary: secondary, separator: separator,
-                into: buffer, at: offset
-            )
+            offset = writeGroupedWhole(whole, digits: wholeDigits, groups: groups, into: buffer, at: offset)
 
             if showsSeparator {
                 offset = MoneyFormat.copy(decimalSeparator, into: buffer, at: offset)
@@ -256,18 +234,16 @@ public extension MoneyFormat {
         }
     }
 
-    // The whole part, most significant digit first, inserting the grouping separator before a digit
-    // whenever the digits from it rightward complete a group. A separator precedes MSB-digit `i` when
+    // The whole part, most significant digit first. With `groups`, inserts the separator before a digit
+    // whenever the digits from it rightward complete a group: a separator precedes MSB-digit `i` when
     // `(digits - i - primary)` is a non-negative multiple of `secondary`, giving both the uniform
-    // `1,234,567` and Indian `12,34,567` shapes. Returns the offset just past the whole part.
+    // `1,234,567` and Indian `12,34,567` shapes. Without `groups`, the digits are written plain. Returns
+    // the offset just past the whole part.
     @inlinable
     func writeGroupedWhole(
         _ whole: UInt64,
         digits: Int,
-        grouped: Bool,
-        primary: Int,
-        secondary: Int,
-        separator: String,
+        groups: (primary: Int, secondary: Int, separator: String)?,
         into buffer: UnsafeMutableBufferPointer<UInt8>,
         at offset: Int
     ) -> Int {
@@ -276,10 +252,10 @@ public extension MoneyFormat {
         var remaining = whole
 
         for index in 0 ..< digits {
-            if index > 0, grouped {
-                let rightOf = digits - index - primary
-                if rightOf >= 0, rightOf % secondary == 0 {
-                    next = MoneyFormat.copy(separator, into: buffer, at: next)
+            if index > 0, let groups {
+                let rightOf = digits - index - groups.primary
+                if rightOf >= 0, rightOf % groups.secondary == 0 {
+                    next = MoneyFormat.copy(groups.separator, into: buffer, at: next)
                 }
             }
 

@@ -94,9 +94,9 @@ struct MoneyFormatICUParityTests {
 
     @Test("Fraction length matches ICU (round and pad)")
     func precision() {
-        expectMatchesICU(MoneyFormatOptions(precision: .fixed(0)), "fixed 0")
-        expectMatchesICU(MoneyFormatOptions(precision: .fixed(1)), "fixed 1")
-        expectMatchesICU(MoneyFormatOptions(precision: .fixed(4)), "fixed 4")
+        expectMatchesICU(MoneyFormatOptions(precision: .fixed(0, rounding: .toNearestOrEven)), "fixed 0")
+        expectMatchesICU(MoneyFormatOptions(precision: .fixed(1, rounding: .toNearestOrEven)), "fixed 1")
+        expectMatchesICU(MoneyFormatOptions(precision: .fixed(4, rounding: .toNearestOrEven)), "fixed 4")
     }
 
     @Test("Every rounding rule matches ICU when precision drops digits")
