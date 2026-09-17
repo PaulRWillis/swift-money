@@ -30,6 +30,29 @@ struct MoneyFormatStyleGoldenTests {
     static let separators: [(name: String, f: Config.DecimalSeparatorDisplayStrategy)] =
         [("automatic", .automatic), ("always", .always)]
 
+    // One point in the presentation × sign × grouping × separator cross. Precomputed once, since it is the
+    // same for every locale, so the per-locale digest walks a flat list rather than a nested loop.
+    struct Combination {
+        let id: String
+        let presentation: Config.Presentation
+        let sign: Config.SignDisplayStrategy
+        let grouping: Config.Grouping
+        let separator: Config.DecimalSeparatorDisplayStrategy
+    }
+
+    static let combinations: [Combination] = presentations.flatMap { p in
+        signs.flatMap { s in
+            groupings.flatMap { g in
+                separators.map { d in
+                    Combination(
+                        id: "\(p.name)|\(s.name)|\(g.name)|\(d.name)",
+                        presentation: p.f, sign: s.f, grouping: g.f, separator: d.f
+                    )
+                }
+            }
+        }
+    }
+
     // FNV-1a over the engine's CLDR-derived output. Regenerate with MONEYGOLDEN_RECORD=1.
     static let golden: [String: UInt64] = [
         "en_US": 0x72ea_5565_82be_017f,
@@ -72,18 +95,13 @@ struct MoneyFormatStyleGoldenTests {
         // Representative currencies, every option combination: the sign/grouping/separator coverage.
         for currency in optionCurrencies {
             let code = String(currency.code)
-            for p in presentations {
-                for s in signs {
-                    for g in groupings {
-                        for d in separators {
-                            for amount in amounts {
-                                let out = Money.FormatStyle().locale(locale).presentation(p.f)
-                                    .sign(strategy: s.f).grouping(g.f).decimalSeparator(strategy: d.f)
-                                    .format(Money(minorUnits: amount, currency: currency))
-                                hash.combine("\(code)|\(p.name)|\(s.name)|\(g.name)|\(d.name)|\(amount)=\(out)")
-                            }
-                        }
-                    }
+            for combination in Self.combinations {
+                for amount in amounts {
+                    let out = Money.FormatStyle().locale(locale)
+                        .presentation(combination.presentation).sign(strategy: combination.sign)
+                        .grouping(combination.grouping).decimalSeparator(strategy: combination.separator)
+                        .format(Money(minorUnits: amount, currency: currency))
+                    hash.combine("\(code)|\(combination.id)|\(amount)=\(out)")
                 }
             }
         }
