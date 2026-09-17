@@ -74,6 +74,23 @@ struct MoneyLocalizationTests {
         }
     }
 
+    @Test("Accounting negatives follow CLDR: de uses a minus, fr uses parentheses")
+    func accountingNegatives() throws {
+        let eur = Self.currency("EUR")
+        let negative = Money(minorUnits: -12_34_56, currency: eur)
+        let options = MoneyFormatOptions(sign: .accounting)
+
+        let de = try #require(MoneyLocalization.moneyFormat(for: eur, locale: "de_DE"))
+        let deText = de.format(negative, options: options)
+        #expect(deText.hasPrefix("-"))
+        #expect(!deText.contains("("))
+
+        let fr = try #require(MoneyLocalization.moneyFormat(for: eur, locale: "fr_FR"))
+        let frText = fr.format(negative, options: options)
+        #expect(frText.hasPrefix("("))
+        #expect(frText.hasSuffix(")"))
+    }
+
     @Test("An uncovered locale returns nil, and a region falls back to its language")
     func coverage() {
         #expect(MoneyLocalization.moneyFormat(for: Self.currency("GBP"), locale: "zz-ZZ") == nil)

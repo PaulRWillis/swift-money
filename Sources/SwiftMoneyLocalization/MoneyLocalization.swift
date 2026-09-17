@@ -58,6 +58,7 @@ public enum MoneyLocalization {
                 secondary: format.secondaryGroupingSize,
                 separator: format.groupingSeparator
             ),
+            accountingNegative: format.accountingParentheses ? .parentheses : .minusSign,
             minusSign: format.minusSign
         )
     }

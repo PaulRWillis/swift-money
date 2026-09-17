@@ -56,6 +56,15 @@ struct MoneyFormatTests {
         #expect(Self.dollar.format(Self.money(-1_234_56, "USD"), options: .init(sign: .accounting)) == "($1,234.56)")
         #expect(Self.dollar.format(Self.money(1_234_56, "USD"), options: .init(sign: .accounting)) == "$1,234.56")
 
+        // Accounting can mark a negative with a minus instead of parentheses (e.g. de); positives stay plain.
+        let euroMinus = MoneyFormat(
+            symbol: "€", placement: .after, spacing: "\u{00A0}",
+            decimalSeparator: ",", grouping: .repeating(3, separator: "."),
+            accountingNegative: .minusSign
+        )
+        #expect(euroMinus.format(Self.money(-1_234_56, "EUR"), options: .init(sign: .accounting)) == "-1.234,56\u{00A0}€")
+        #expect(euroMinus.format(Self.money(1_234_56, "EUR"), options: .init(sign: .accounting)) == "1.234,56\u{00A0}€")
+
         // A descriptor with no grouping scheme never inserts separators, whatever the amount.
         let ungrouped = MoneyFormat(symbol: "$", placement: .before, grouping: .none)
         #expect(ungrouped.format(Self.money(1_234_567_89, "USD")) == "$1234567.89")

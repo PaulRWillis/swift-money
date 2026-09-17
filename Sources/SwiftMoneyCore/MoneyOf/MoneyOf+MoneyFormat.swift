@@ -33,6 +33,14 @@ public struct MoneyFormat: Equatable, Hashable, Sendable {
         case digits(primary: GroupingSize, secondary: GroupingSize, separator: GroupingSeparator)
     }
 
+    /// How the accounting sign strategy marks a negative amount.
+    public enum AccountingNegative: Equatable, Hashable, Sendable {
+        /// Wrap the amount in parentheses, e.g. `($1,234.56)`.
+        case parentheses
+        /// Prefix the amount with the minus sign, e.g. `-1.234,56 €`.
+        case minusSign
+    }
+
     /// The currency symbol as the chosen presentation renders it: `"£"`, `"GBP"`, a narrow symbol, etc.
     public var symbol: String
     /// Where the symbol sits relative to the digits.
@@ -43,6 +51,8 @@ public struct MoneyFormat: Equatable, Hashable, Sendable {
     public var decimalSeparator: String
     /// How the whole digits are grouped.
     public var grouping: GroupingScheme
+    /// How the accounting sign strategy marks a negative amount.
+    public var accountingNegative: AccountingNegative
     /// What marks a negative amount under the automatic/always sign strategies. Defaults to `"-"`.
     public var minusSign: String
     /// What marks a non-negative amount under the always sign strategy. Defaults to `"+"`.
@@ -54,6 +64,7 @@ public struct MoneyFormat: Equatable, Hashable, Sendable {
         spacing: String = "",
         decimalSeparator: String = ".",
         grouping: GroupingScheme = .repeating(3, separator: ","),
+        accountingNegative: AccountingNegative = .parentheses,
         minusSign: String = "-",
         plusSign: String = "+"
     ) {
@@ -62,6 +73,7 @@ public struct MoneyFormat: Equatable, Hashable, Sendable {
         self.spacing = spacing
         self.decimalSeparator = decimalSeparator
         self.grouping = grouping
+        self.accountingNegative = accountingNegative
         self.minusSign = minusSign
         self.plusSign = plusSign
     }
@@ -230,7 +242,23 @@ public extension MoneyFormat {
         case .always:
             (negative ? minusSign : plusSign, "")
         case .accounting:
-            negative ? ("(", ")") : ("", "")
+            accountingAffixes(negative: negative)
+        }
+    }
+
+    // The accounting strategy's affixes for this format: parentheses around a negative, or a minus before
+    // it, per the locale. A non-negative amount is plain.
+    @inlinable
+    func accountingAffixes(negative: Bool) -> (leading: String, trailing: String) {
+        guard negative else {
+            return ("", "")
+        }
+
+        switch accountingNegative {
+        case .parentheses:
+            return ("(", ")")
+        case .minusSign:
+            return (minusSign, "")
         }
     }
 
