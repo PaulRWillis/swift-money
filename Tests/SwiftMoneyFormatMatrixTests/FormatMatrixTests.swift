@@ -25,4 +25,33 @@ struct FormatMatrixTests {
     func optionCurrenciesSpanScales() {
         #expect(FormatMatrix.optionCurrencies.map(\.unitScale.decimalPlaces) == [0, 2, 3])
     }
+
+    @Test("Grouping off together with a non-automatic sign matches the known Foundation defect")
+    func groupingOffWithSignMatchesKnownDefect() {
+        let combination = FormatMatrix.combinations.first { $0.grouping == .never && $0.sign == .always() }
+        #expect(combination?.isKnownFoundationGroupingDefect == true)
+    }
+
+    @Test("Grouping off together with a non-automatic separator matches the known Foundation defect")
+    func groupingOffWithSeparatorMatchesKnownDefect() {
+        let combination = FormatMatrix.combinations.first {
+            $0.grouping == .never && $0.sign == .automatic && $0.separator == .always
+        }
+        #expect(combination?.isKnownFoundationGroupingDefect == true)
+    }
+
+    @Test("Grouping off alone, with every other option left automatic, does not match the known defect")
+    func groupingOffAloneDoesNotMatchKnownDefect() {
+        let combination = FormatMatrix.combinations.first {
+            $0.grouping == .never && $0.sign == .automatic && $0.separator == .automatic
+        }
+        #expect(combination?.isKnownFoundationGroupingDefect == false)
+    }
+
+    @Test("Automatic grouping never matches the known defect, regardless of other options")
+    func automaticGroupingNeverMatchesKnownDefect() {
+        let withAutomaticGrouping = FormatMatrix.combinations.filter { $0.grouping == .automatic }
+        #expect(!withAutomaticGrouping.isEmpty)
+        #expect(withAutomaticGrouping.allSatisfy { !$0.isKnownFoundationGroupingDefect })
+    }
 }

@@ -49,9 +49,30 @@ struct FormatMatrixDeviationsTests {
         #expect(found == [
             FormatMatrix.Deviation(
                 localeID: "en_GB", currencyCode: "GBP", combinationID: combination.id,
-                amount: 42, engine: "E", icu: "I"
+                amount: 42, engine: "E", icu: "I",
+                isKnownFoundationGroupingDefect: combination.isKnownFoundationGroupingDefect
             ),
         ])
+    }
+
+    @Test("A deviation's known-defect flag matches its combination's classification")
+    func deviationFlagMatchesCombinationClassification() {
+        guard
+            let buggy = FormatMatrix.combinations.first(where: { $0.grouping == .never && $0.sign == .always() }),
+            let safe = FormatMatrix.combinations.first(where: { $0.grouping == .automatic })
+        else {
+            Issue.record("Expected both a grouping-off/always-sign and an automatic-grouping combination")
+            return
+        }
+
+        let found = FormatMatrix.deviations(
+            currencies: Self.currencies, localeIDs: Self.localeIDs,
+            combinations: [buggy, safe], amounts: [0],
+            engine: { _, _, _, _ in "E" }, icu: { _, _, _, _ in "I" }
+        )
+
+        #expect(found.first { $0.combinationID == buggy.id }?.isKnownFoundationGroupingDefect == true)
+        #expect(found.first { $0.combinationID == safe.id }?.isKnownFoundationGroupingDefect == false)
     }
 
     @Test("The real engine and ICU renderers produce matching, non-empty output for a covered case")

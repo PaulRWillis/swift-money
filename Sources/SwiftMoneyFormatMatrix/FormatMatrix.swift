@@ -19,6 +19,15 @@ package enum FormatMatrix {
         package let sign: Config.SignDisplayStrategy
         package let grouping: Config.Grouping
         package let separator: Config.DecimalSeparatorDisplayStrategy
+
+        /// Whether this combination hits Foundation's own known defect: turning grouping off while
+        /// a sign or decimal-separator strategy is also set drops the currency symbol entirely,
+        /// even though both are genuinely non-default. Locale-, currency- and amount-independent,
+        /// so classifying by the combination alone is exact. Pinned directly against
+        /// `Decimal.FormatStyle.Currency` by `MoneyFormatStyleModifierTests`.
+        package var isKnownFoundationGroupingDefect: Bool {
+            grouping != .automatic && (sign != .automatic || separator != .automatic)
+        }
     }
 
     package static let presentations: [(name: String, f: Config.Presentation)] =

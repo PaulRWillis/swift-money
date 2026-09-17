@@ -13,12 +13,17 @@ extension FormatMatrix {
         package let engine: String
         package let icu: String
 
+        /// Whether this cell matches Foundation's own known symbol-drop defect
+        /// (`Combination.isKnownFoundationGroupingDefect`), rather than being new information about
+        /// how the platform's ICU differs from CLDR.
+        package let isKnownFoundationGroupingDefect: Bool
+
         // Explicit: the synthesized memberwise initializer is `internal` regardless of the type's
         // or its properties' own access level, and tests construct a `Deviation` from outside this
         // module to compare against.
         package init(
-            localeID: String, currencyCode: String, combinationID: String,
-            amount: Int64, engine: String, icu: String
+            localeID: String, currencyCode: String, combinationID: String, amount: Int64,
+            engine: String, icu: String, isKnownFoundationGroupingDefect: Bool
         ) {
             self.localeID = localeID
             self.currencyCode = currencyCode
@@ -26,6 +31,7 @@ extension FormatMatrix {
             self.amount = amount
             self.engine = engine
             self.icu = icu
+            self.isKnownFoundationGroupingDefect = isKnownFoundationGroupingDefect
         }
     }
 
@@ -72,7 +78,8 @@ extension FormatMatrix {
                         found.append(Deviation(
                             localeID: localeID, currencyCode: String(currency.code),
                             combinationID: combination.id, amount: amount,
-                            engine: engineOutput, icu: icuOutput
+                            engine: engineOutput, icu: icuOutput,
+                            isKnownFoundationGroupingDefect: combination.isKnownFoundationGroupingDefect
                         ))
                     }
                 }
