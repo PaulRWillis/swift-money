@@ -14,21 +14,6 @@ import Testing
 struct MoneyFormatStyleGoldenTests {
     typealias Config = CurrencyFormatStyleConfiguration
 
-    // Every shipped ISO currency. Update if the ISO 4217 table grows.
-    static let currencies: [Currency] = [
-        .aed, .afn, .all, .amd, .aoa, .ars, .aud, .awg, .azn, .bam, .bbd, .bdt, .bhd, .bif, .bmd, .bnd,
-        .bob, .bov, .brl, .bsd, .btn, .bwp, .byn, .bzd, .cad, .cdf, .che, .chf, .chw, .clf, .clp, .cny,
-        .cop, .cou, .crc, .cup, .cve, .czk, .djf, .dkk, .dop, .dzd, .egp, .ern, .etb, .eur, .fjd, .fkp,
-        .gbp, .gel, .ghs, .gip, .gmd, .gnf, .gtq, .gyd, .hkd, .hnl, .htg, .huf, .idr, .ils, .inr, .iqd,
-        .irr, .isk, .jmd, .jod, .jpy, .kes, .kgs, .khr, .kmf, .kpw, .krw, .kwd, .kyd, .kzt, .lak, .lbp,
-        .lkr, .lrd, .lsl, .lyd, .mad, .mdl, .mga, .mkd, .mmk, .mnt, .mop, .mru, .mur, .mvr, .mwk, .mxn,
-        .mxv, .myr, .mzn, .nad, .ngn, .nio, .nok, .npr, .nzd, .omr, .pab, .pen, .pgk, .php, .pkr, .pln,
-        .pyg, .qar, .ron, .rsd, .rub, .rwf, .sar, .sbd, .scr, .sdg, .sek, .sgd, .shp, .sle, .sos, .srd,
-        .ssp, .stn, .svc, .syp, .szl, .thb, .tjs, .tmt, .tnd, .top, .ttd, .twd, .tzs, .uah, .ugx, .usd,
-        .usn, .uyi, .uyu, .uyw, .uzs, .ved, .ves, .vnd, .vuv, .wst, .xad, .xaf, .xcd, .xcg, .xof, .xpf,
-        .yer, .zar, .zmw, .zwg,
-    ]
-
     // The option cross (sign/grouping/separator) exercises currency-independent engine code, so it is
     // measured on a few scale-spanning currencies rather than all of them: JPY (0 places), GBP (2), BHD (3).
     static let optionCurrencies: [Currency] = [.jpy, .gbp, .bhd]
@@ -47,11 +32,11 @@ struct MoneyFormatStyleGoldenTests {
 
     // FNV-1a over the engine's CLDR-derived output. Regenerate with MONEYGOLDEN_RECORD=1.
     static let golden: [String: UInt64] = [
-        "en_US": 0x8bc4_0f59_310b_1a35,
-        "en_GB": 0xd0d5_0c45_35d0_6433,
-        "de_DE": 0x9888_660d_570c_0dff,
-        "fr_FR": 0x0042_e08b_1c80_9041,
-        "ja_JP": 0x4b20_c1ed_aeca_c6b2,
+        "en_US": 0x72ea_5565_82be_017f,
+        "en_GB": 0xfbaa_171e_2b04_f401,
+        "de_DE": 0xf0bc_afed_42d5_794d,
+        "fr_FR": 0x8c0d_569c_c980_18b9,
+        "ja_JP": 0xbe80_33e4_dced_1820,
     ]
 
     @Test("Engine output matches the committed golden, per locale", arguments: localeIDs)
@@ -73,7 +58,7 @@ struct MoneyFormatStyleGoldenTests {
         var hash = FNV1a()
 
         // Every currency, default options, every presentation: the symbol, spacing and scale coverage.
-        for currency in currencies {
+        for currency in Currency.allISO4217 {
             let code = String(currency.code)
             for p in presentations {
                 for amount in amounts {

@@ -154,6 +154,23 @@ def lookup(found):
     ]
 
 
+def collection(found):
+    ids = [f".{identifier(currency['code'])}" for currency in found]
+    rows = [
+        "        " + ", ".join(ids[index:index + 12]) + ","
+        for index in range(0, len(ids), 12)
+    ]
+
+    return [
+        "package extension Currency {",
+        "    /// Every ISO 4217 currency the library ships, in code order.",
+        "    static let allISO4217: [Currency] = [",
+        *rows,
+        "    ]",
+        "}",
+    ]
+
+
 def generate(published, found):
     header = [
         f"// Generated from ISO 4217's list-one.xml, published {published}. Do not edit by hand:",
@@ -166,7 +183,7 @@ def generate(published, found):
         "",
     ]
 
-    return "\n".join(header + values(found) + ["", ""] + types(found) + ["", ""] + lookup(found)) + "\n"
+    return "\n".join(header + values(found) + ["", ""] + types(found) + ["", ""] + lookup(found) + ["", ""] + collection(found)) + "\n"
 
 
 def tests(published, found):
