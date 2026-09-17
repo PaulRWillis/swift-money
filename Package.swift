@@ -78,5 +78,12 @@ let package = Package(
             name: "GenerateSwiftMoneyLocalization",
             path: "Tools/GenerateLocalization"
         ),
+        // Dev-only. Prints where the engine and the platform's ICU disagree, over the full format
+        // matrix. Non-gating intelligence, not a test: always exits 0. Not in any library product.
+        .executableTarget(
+            name: "CompareFormattingToICU",
+            dependencies: ["SwiftMoneyCore", "SwiftMoneyFormatMatrix"],
+            path: "Tools/CompareFormattingToICU"
+        ),
     ]
 )
