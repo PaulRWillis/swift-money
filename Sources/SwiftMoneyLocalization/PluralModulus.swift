@@ -5,7 +5,7 @@
 /// let bad: PluralModulus = 0         // traps
 /// ```
 package struct PluralModulus: Equatable, Sendable {
-    private let rawValue: UInt64
+    fileprivate let rawValue: UInt64
 
     /// Creates a modulus, or `nil` if `value` is below one.
     package init?(exactly value: Int) {
@@ -32,5 +32,11 @@ extension PluralModulus: ExpressibleByIntegerLiteral {
         }
 
         self = modulus
+    }
+}
+
+package extension Int {
+    init(_ modulus: PluralModulus) {
+        self = Int(modulus.rawValue)
     }
 }

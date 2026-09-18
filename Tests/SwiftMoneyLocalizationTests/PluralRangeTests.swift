@@ -14,8 +14,8 @@ struct PluralRangeTests {
     }
 
     @Test("A range contains its bounds and everything between them")
-    func rangeContainsBoundsAndInterior() throws {
-        let range = try #require(PluralRange(lowerBound: 2, upperBound: 4))
+    func rangeContainsBoundsAndInterior() {
+        let range = PluralRange(2 ... 4)
 
         #expect(range.contains(2))
         #expect(range.contains(3))
@@ -24,15 +24,13 @@ struct PluralRangeTests {
         #expect(!range.contains(5))
     }
 
-    @Test("A range whose bounds are equal holds that one value")
-    func equalBoundsHoldOneValue() throws {
-        let range = try #require(PluralRange(lowerBound: 7, upperBound: 7))
-
-        #expect(range == PluralRange(7))
+    @Test("A range of one value is the same as that value's range")
+    func singleValueBoundsMatch() {
+        #expect(PluralRange(7 ... 7) == PluralRange(7))
     }
 
-    @Test("A range whose upper bound is below its lower bound is rejected")
-    func descendingBoundsAreRejected() {
-        #expect(PluralRange(lowerBound: 4, upperBound: 2) == nil)
+    @Test("A range reports the span it covers")
+    func rangeReportsItsBounds() {
+        #expect(PluralRange(2 ... 4).bounds == 2 ... 4)
     }
 }

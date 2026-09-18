@@ -33,8 +33,8 @@ struct PluralOperandTests {
     }
 
     @Test("A whole value matches a range that covers it, and no other")
-    func wholeValueMatchesItsRange() throws {
-        let threeToFive = try #require(PluralRange(lowerBound: 3, upperBound: 5))
+    func wholeValueMatchesItsRange() {
+        let threeToFive = PluralRange(3 ... 5)
         let ranges = NonEmpty(PluralRange(0), [threeToFive])
 
         #expect(PluralOperand.Value.whole(0).matches(anyOf: ranges))
@@ -43,8 +43,8 @@ struct PluralOperandTests {
     }
 
     @Test("A fractional value matches no range, because CLDR ranges hold whole numbers only")
-    func fractionalValueMatchesNothing() throws {
-        let wide = try #require(PluralRange(lowerBound: 0, upperBound: 100_000))
+    func fractionalValueMatchesNothing() {
+        let wide = PluralRange(0 ... 100_000)
 
         #expect(!PluralOperand.Value.fractional.matches(anyOf: NonEmpty(wide)))
     }

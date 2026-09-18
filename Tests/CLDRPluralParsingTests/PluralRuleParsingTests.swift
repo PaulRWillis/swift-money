@@ -94,6 +94,18 @@ struct PluralRuleParsingTests {
         #expect(rule.matches(Self.yen(1)))
     }
 
+    // The generator writes each parsed rule back out as Swift source, so every part of a rule has to
+    // be readable.
+    @Test("A parsed rule can be read back part by part")
+    func parsedRuleReadsBack() throws {
+        let rule = try PluralRule(parsing: "i % 10 = 2..4")
+        let relation = rule.orOfAndGroups.first.first
+
+        #expect(relation.operand == .integerPart)
+        #expect(relation.modulus.map(Int.init) == 10)
+        #expect(relation.comparison == .equals(NonEmpty(PluralRange(2 ... 4))))
+    }
+
     @Test("A relation this engine does not model is named as unsupported", arguments: [
         "n within 0..2",
         "n is 1",
