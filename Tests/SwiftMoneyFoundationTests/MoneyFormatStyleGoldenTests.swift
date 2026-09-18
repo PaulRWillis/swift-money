@@ -42,15 +42,15 @@ struct MoneyFormatStyleGoldenTests {
 
     // A cell the data cannot render falls back to ICU, and a digest of ICU's text would not be
     // portable. That is only safe while the fallback stays rare, so this pins how much of the matrix
-    // the engine really renders: CLDR 48 leaves two of the shipped currencies unnamed in English and
-    // four in the other covered locales.
+    // the engine really renders: CLDR 48 leaves one of the shipped currencies unnamed in English and
+    // three in the other covered locales.
     @Test("The data names nearly every shipped currency", arguments: FormatMatrix.coveredLocaleIDs)
     func fullNamesCoverNearlyEveryCurrency(_ localeID: String) {
         let named = Currency.allISO4217.count {
             FormatMatrix.isEngineCovered($0, localeID: localeID, presentation: .fullName)
         }
 
-        #expect(named >= Currency.allISO4217.count - 5, "\(localeID) names only \(named)")
+        #expect(named >= Currency.allISO4217.count - 3, "\(localeID) names only \(named)")
     }
 
     // What a cell the CLDR data cannot render hashes as. Hashing ICU's rendering instead would tie the
