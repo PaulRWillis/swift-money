@@ -2,6 +2,10 @@
 // the Swift data tables that SwiftMoneyLocalization composes into a MoneyFormat. Not part of any library
 // product; run with `swift run GenerateSwiftMoneyLocalization` after `npm ci` in Tools/cldr.
 //
+// This tool builds against the module it writes into, so a generated file that does not compile stops
+// the tool that would replace it. Patch the generated file by hand, or restore it with `git checkout`,
+// far enough to compile, then rerun: the next run overwrites it anyway.
+//
 // CLDR encodes currency spacing two ways: a literal space inside the format pattern (e.g. the NBSP in
 // "#,##0.00 ¤"), and a currencySpacing rule that inserts a space between the number and a symbol whose
 // touching character is neither a Unicode Symbol nor a separator (so ISO codes like "GBP" get a space,
@@ -9,14 +13,28 @@
 // tables, which Embedded lacks — and bakes the resulting spacing string into the data, so the runtime
 // target needs no Unicode-category lookups.
 
+import CLDRPluralParsing
 import Foundation
+import SwiftMoneyCore
+import SwiftMoneyLocalization
 
 let cldrVersion = "48.0.0"
 let locales = ["en", "en-GB", "de", "fr", "ja"]
 
+// Plural rules are published per language, so a region keeps its language's rules.
+let languages = locales.map { String($0.prefix { $0 != "-" }) }.uniqued()
+
 let repoRoot = FileManager.default.currentDirectoryPath
 let cldrMain = "\(repoRoot)/Tools/cldr/node_modules/cldr-numbers-full/main"
+let cldrSupplemental = "\(repoRoot)/Tools/cldr/node_modules/cldr-core/supplemental"
 let outputPath = "\(repoRoot)/Sources/SwiftMoneyLocalization/Generated/CLDRTables.swift"
+
+extension Array where Element: Hashable {
+    func uniqued() -> [Element] {
+        var seen: Set<Element> = []
+        return filter { seen.insert($0).inserted }
+    }
+}
 
 // MARK: - CLDR reading
 
@@ -121,7 +139,193 @@ func spacing(for symbol: String, placement: Placement, patternSpacing: String, i
     return insertBetween
 }
 
+// MARK: - Full names
+
+// The gap between the amount and the currency's full name. CLDR writes the join as a pattern, and
+// the ones it uses for the locales here are `{0} {1}` and `{0}{1}`: the name always follows the
+// amount. A few locales put the name first or write a word between, which this tool refuses rather
+// than write out wrongly.
+func fullNameSpacing(_ patterns: [String: String], locale: String) -> Spacing {
+    let joins = Set(patterns.filter { $0.key.hasPrefix("unitPattern") }.values)
+
+    guard joins.count == 1, let join = joins.first else {
+        fatalError("\(locale) joins a currency name to an amount differently per plural category: \(joins)")
+    }
+
+    guard join.hasPrefix("{0}"), join.hasSuffix("{1}") else {
+        fatalError("\(locale) does not write a currency name after the amount: \(join)")
+    }
+
+    let gap = String(join.dropFirst(3).dropLast(3))
+    guard let spacing = Spacing(rendering: gap) else {
+        fatalError("\(locale) separates a currency name from an amount with \(quote(gap)), which is not a known gap")
+    }
+
+    return spacing
+}
+
+// What a locale calls one currency: the name CLDR always publishes, and any form that differs from
+// it. A form equal to `other` is left out, since it resolves to `other` anyway.
+struct FullName {
+    let code: String
+    let other: String
+    let byCategory: [PluralCategory: String]
+}
+
+// What a locale calls each currency the library ships. A currency CLDR does not name there is left
+// out, and the runtime falls back for it.
+func fullNames(_ currencies: [String: [String: String]]) -> [FullName] {
+    Currency.allISO4217.compactMap { currency in
+        let code = String(currency.code)
+        guard let fields = currencies[code], let other = fields["displayName-count-other"] else {
+            return nil
+        }
+
+        let byCategory = PluralCategory.allCases.reduce(into: [PluralCategory: String]()) { names, category in
+            guard category != .other, let name = fields["displayName-count-\(category.rawValue)"], name != other else {
+                return
+            }
+            names[category] = name
+        }
+
+        return FullName(code: code, other: other, byCategory: byCategory)
+    }
+}
+
+// MARK: - Plural rules
+
+// Every locale's rule text, keyed by language then by CLDR's `pluralRule-count-<category>`.
+func cardinalRuleText() -> [String: [String: String]] {
+    let root = json("\(cldrSupplemental)/plurals.json")
+    guard let supplemental = root["supplemental"] as? [String: Any],
+          let cardinal = supplemental["plurals-type-cardinal"] as? [String: [String: String]] else {
+        fatalError("Could not read the cardinal plural rules from plurals.json")
+    }
+    return cardinal
+}
+
+// One language's rules, read from CLDR's text. `other` carries no condition, so it has no rule: the
+// runtime falls back to it when no other rule holds.
+func pluralRules(for language: String, in text: [String: [String: String]]) -> [(PluralCategory, PluralRule)] {
+    guard let published = text[language] else {
+        fatalError("CLDR publishes no plural rules for \(language)")
+    }
+
+    return PluralCategory.allCases.compactMap { category in
+        guard let line = published["pluralRule-count-\(category.rawValue)"] else {
+            return nil
+        }
+
+        guard let parsed = try? PluralRuleText(parsing: line) else {
+            fatalError("Could not read \(language)'s rule for \(category.rawValue): \(line)")
+        }
+
+        return parsed.rule.map { (category, $0) }
+    }
+}
+
+// CLDR publishes, beside each rule, the values that rule is meant to cover. Running them back
+// through the rules checks the reading of every locale CLDR knows, not just the few the library
+// ships, so a rule this tool would misread surfaces now rather than when that locale is added.
+func checkEveryLocaleAgainstItsSamples(_ text: [String: [String: String]]) {
+    var checked = 0
+
+    for (language, published) in text.sorted(by: { $0.key < $1.key }) {
+        var rules: [PluralCategory: PluralRule] = [:]
+        var samples: [(category: PluralCategory, sample: PluralSample)] = []
+
+        for category in PluralCategory.allCases {
+            guard let line = published["pluralRule-count-\(category.rawValue)"] else {
+                continue
+            }
+
+            guard let parsed = try? PluralRuleText(parsing: line) else {
+                fatalError("Could not read \(language)'s rule for \(category.rawValue): \(line)")
+            }
+
+            parsed.rule.map { rules[category] = $0 }
+            samples += parsed.samples.map { (category, $0) }
+        }
+
+        for (category, sample) in samples {
+            let operands = PluralOperandValues(minorUnits: sample.minorUnits, unitScale: sample.unitScale)
+            let resolved = PluralCategory.allCases.first { rules[$0]?.matches(operands) == true } ?? .other
+
+            guard resolved == category else {
+                fatalError("\(language) \(sample) resolves to \(resolved.rawValue), CLDR publishes it under \(category.rawValue)")
+            }
+        }
+
+        checked += samples.count
+    }
+
+    print("Checked \(checked) CLDR samples across \(text.count) locales.")
+}
+
 // MARK: - Swift emission
+
+func nonEmptyLiteral(_ elements: [String]) -> String {
+    guard let first = elements.first else {
+        fatalError("A NonEmpty cannot be written from nothing")
+    }
+
+    let rest = elements.dropFirst()
+    return rest.isEmpty ? "NonEmpty(\(first))" : "NonEmpty(\(first), [\(rest.joined(separator: ", "))])"
+}
+
+func literal(_ operand: PluralOperand) -> String {
+    switch operand {
+    case .absoluteValue: ".absoluteValue"
+    case .integerPart: ".integerPart"
+    case .fractionDigitCount: ".fractionDigitCount"
+    case .significantFractionDigitCount: ".significantFractionDigitCount"
+    case .fractionDigits: ".fractionDigits"
+    case .significantFractionDigits: ".significantFractionDigits"
+    case .compactExponent: ".compactExponent"
+    }
+}
+
+func literal(_ range: PluralRange) -> String {
+    let bounds = range.bounds
+    return bounds.lowerBound == bounds.upperBound
+        ? "PluralRange(\(bounds.lowerBound))"
+        : "PluralRange(\(bounds.lowerBound) ... \(bounds.upperBound))"
+}
+
+func literal(_ comparison: PluralRelation.Comparison) -> String {
+    switch comparison {
+    case .equals(let ranges): ".equals(\(nonEmptyLiteral(ranges.map(literal))))"
+    case .notEquals(let ranges): ".notEquals(\(nonEmptyLiteral(ranges.map(literal))))"
+    }
+}
+
+func literal(_ relation: PluralRelation) -> String {
+    let modulus = relation.modulus.map { "modulus: \(Int($0)), " } ?? ""
+    return "PluralRelation(operand: \(literal(relation.operand)), \(modulus)comparison: \(literal(relation.comparison)))"
+}
+
+func literal(_ spacing: Spacing) -> String {
+    switch spacing {
+    case .none: ".none"
+    case .asciiSpace: ".asciiSpace"
+    case .nonBreakingSpace: ".nonBreakingSpace"
+    case .narrowNonBreakingSpace: ".narrowNonBreakingSpace"
+    }
+}
+
+func literal(_ name: FullName) -> String {
+    let forms = PluralCategory.allCases.compactMap { category in
+        name.byCategory[category].map { ".\(category.rawValue): \(quote($0))" }
+    }
+
+    let byCategory = forms.isEmpty ? "" : ", byCategory: [\(forms.joined(separator: ", "))]"
+    return "CurrencyFullName(other: \(quote(name.other))\(byCategory))"
+}
+
+func literal(_ rule: PluralRule) -> String {
+    let groups = rule.orOfAndGroups.map { nonEmptyLiteral($0.map(literal)) }
+    return "PluralRule(orOfAndGroups: \(nonEmptyLiteral(groups)))"
+}
 
 func quote(_ string: String) -> String {
     var escaped = ""
@@ -140,6 +344,30 @@ func quote(_ string: String) -> String {
 
 var numberFormatLines: [String] = []
 var currencyBlocks: [String] = []
+var fullNameBlocks: [String] = []
+var pluralRuleBlocks: [String] = []
+
+let ruleText = cardinalRuleText()
+checkEveryLocaleAgainstItsSamples(ruleText)
+
+for language in languages {
+    let rules = pluralRules(for: language, in: ruleText).map { category, rule in
+        "            .\(category.rawValue): \(literal(rule)),"
+    }
+
+    // A language that draws no plural distinctions, such as Japanese, has rules for no category at
+    // all: every amount takes `other`.
+    guard !rules.isEmpty else {
+        pluralRuleBlocks.append("        \(quote(language)): [:],")
+        continue
+    }
+
+    pluralRuleBlocks.append("""
+            \(quote(language)): [
+    \(rules.joined(separator: "\n"))
+            ],
+    """)
+}
 
 for locale in locales {
     let n = numbers(locale)
@@ -152,6 +380,7 @@ for locale in locales {
     let insertBetween = afterCurrency["insertBetween"] ?? " "
 
     let parsed = parse(standard: standard, accounting: accounting)
+    let nameSpacing = fullNameSpacing(formats.compactMapValues { $0 as? String }, locale: locale)
 
     // ISO code is always letters, so it takes the insertion (or the pattern's literal spacing).
     let isoSpacing = spacing(for: "AAA", placement: parsed.placement, patternSpacing: parsed.patternSpacing, insertBetween: insertBetween)
@@ -165,7 +394,8 @@ for locale in locales {
                 secondaryGroupingSize: \(parsed.secondaryGroupingSize),
                 placement: \(parsed.placement.rawValue),
                 isoCodeSpacing: \(quote(isoSpacing)),
-                accountingNegative: \(parsed.accountingNegative)
+                accountingNegative: \(parsed.accountingNegative),
+                fullNameSpacing: \(literal(nameSpacing))
             ),
     """)
 
@@ -186,6 +416,14 @@ for locale in locales {
     \(entries.joined(separator: "\n"))
             ],
     """)
+
+    let names = fullNames(currencies(locale)).map { "            \(quote($0.code)): \(literal($0))," }
+
+    fullNameBlocks.append("""
+            \(quote(locale)): [
+    \(names.joined(separator: "\n"))
+            ],
+    """)
 }
 
 let output = """
@@ -203,6 +441,18 @@ extension MoneyLocalization {
 
     static let currencyDisplays: [String: [String: CurrencyDisplay]] = [
     \(currencyBlocks.joined(separator: "\n"))
+    ]
+
+    /// What each locale calls a currency, by plural category. A currency CLDR does not name in a
+    /// locale is absent.
+    package static let currencyFullNames: [String: [CurrencyCode: CurrencyFullName]] = [
+    \(fullNameBlocks.joined(separator: "\n"))
+    ]
+
+    /// Each language's plural rules, in the order CLDR resolves them. A language with no rule for a
+    /// category takes `other`, which never carries one.
+    package static let pluralRules: [String: [PluralCategory: PluralRule]] = [
+    \(pluralRuleBlocks.joined(separator: "\n"))
     ]
 }
 """

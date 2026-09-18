@@ -1,8 +1,13 @@
 /// One comparison in a plural rule, such as CLDR's `i % 10 = 2..4`.
 package struct PluralRelation: Equatable, Sendable {
-    private let operand: PluralOperand
-    private let modulus: PluralModulus?
-    private let comparison: Comparison
+    /// The part of the amount this relation reads.
+    package let operand: PluralOperand
+
+    /// What the operand is divided by before the comparison, if anything.
+    package let modulus: PluralModulus?
+
+    /// How the operand is compared against the relation's ranges.
+    package let comparison: Comparison
 
     /// Creates a relation between one operand of an amount and a list of ranges.
     ///

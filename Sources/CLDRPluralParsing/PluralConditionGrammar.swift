@@ -115,7 +115,12 @@ enum PluralConditionGrammar {
                 return PluralRange(bounds.0)
             }
 
-            return PluralRange(lowerBound: bounds.0, upperBound: upperBound)
+            // A descending range is CLDR's own error; a closed range would trap on it.
+            guard bounds.0 <= upperBound else {
+                return nil
+            }
+
+            return PluralRange(bounds.0 ... upperBound)
         }
         .eraseToAnyParser()
     }

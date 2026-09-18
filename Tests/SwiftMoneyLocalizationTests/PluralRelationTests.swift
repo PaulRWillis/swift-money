@@ -29,12 +29,11 @@ struct PluralRelationTests {
 
     // CLDR's `i % 10 = 2..4`, from Polish's `few` rule.
     @Test("A modulus divides the operand before it is compared")
-    func modulusAppliesBeforeComparison() throws {
-        let twoToFour = try #require(PluralRange(lowerBound: 2, upperBound: 4))
+    func modulusAppliesBeforeComparison() {
         let relation = PluralRelation(
             operand: .integerPart,
             modulus: 10,
-            comparison: .equals(NonEmpty(twoToFour))
+            comparison: .equals(NonEmpty(PluralRange(2 ... 4)))
         )
 
         #expect(relation.matches(PluralOperandValues(minorUnits: 12_00, unitScale: 100)))

@@ -13,6 +13,8 @@ struct LocaleNumberFormat {
     let isoCodeSpacing: String
     // How this locale's accounting form marks a negative: parentheses (en/ja) or a minus (de).
     let accountingNegative: MoneyFormat.AccountingNegative
+    // The gap between the amount and a currency's full name, which always follows the amount.
+    let fullNameSpacing: Spacing
 }
 
 // A currency's symbol and narrow symbol in one locale, each with the spacing CLDR resolves for it. Only
