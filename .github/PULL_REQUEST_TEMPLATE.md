@@ -3,23 +3,15 @@
 
 ## Summary
 
-<!-- What does this PR do and why? 1-3 sentences. -->
+<!-- What does this PR do and why? One or two sentences. -->
 
 ## Changes
 
-<!-- Bullet list of key changes. -->
+<!-- Two or three bullets on the shape of the change. The diff lists the files; this says what moved. -->
 
 -
 
-## Verification
-
-<!-- How was this tested? Check all that apply. -->
-
-- [ ] `swift build` succeeds
-- [ ] `swift test` passes (all tests)
-- [ ] New tests added for new functionality
-- [ ] Manual verification (describe below if applicable)
-
 ## Notes
 
-<!-- Anything reviewers should know: trade-offs, follow-ups, decisions made. Delete if not needed. -->
+<!-- Only what a reviewer must decide on: trade-offs, departures from an agreed plan, what is
+     deliberately not here. Delete if not needed. -->
