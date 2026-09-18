@@ -8,3 +8,11 @@ updates:
       interval: weekly
     commit-message:
       prefix: chore
+
+  # Watches the Swift packages the dev-only targets build against.
+  - package-ecosystem: swift
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore
