@@ -68,6 +68,18 @@ struct PluralRuleTextTests {
         #expect(decimals.samples.isEmpty)
     }
 
+    // CLDR publishes no sample this large, but a value that overflows the smallest units of an
+    // amount is no more usable than one in compact notation.
+    @Test("Samples beyond what one amount can hold are left out", arguments: [
+        "@decimal 18446744073709551615.5",
+        "@integer 9223372036854775808",
+    ])
+    func oversizedSamplesAreLeftOut(_ text: String) throws {
+        let parsed = try PluralRuleText(parsing: text)
+
+        #expect(parsed.samples.isEmpty)
+    }
+
     @Test("Sample text outside CLDR's grammar is rejected", arguments: [
         "@integer",
         "@integer 1 2",
