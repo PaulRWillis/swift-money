@@ -47,12 +47,31 @@ jobs:
         swift run --package-path base CompareFormattingToICU > base-output.txt
 
     # The tool prints one deviation per line and marks everything else with `#`, so dropping those
-    # lines and sorting leaves two sets that `comm` can compare.
+    # lines and sorting leaves two sets that `comm` can compare. A comment has a hard size limit, so
+    # each list is collapsed and cut off well short of it.
     - name: Compare the two runs
+      env:
+        MAX_LISTED: 40
       run: |
-        sed '/^#/d' head-output.txt | sort > head.txt
-        sed '/^#/d' base-output.txt | sort > base.txt
+        head_format="$(sed -n 's/^# format: //p' head-output.txt)"
+        base_format="$(sed -n 's/^# format: //p' base-output.txt)"
 
+        sed '/^#/d' head-output.txt | sort > head.txt
+        summary="$(sed -n 's/^# //p' head-output.txt | grep -v '^format:' | tail -1)"
+
+        if [ "$head_format" != "$base_format" ]; then
+          echo incomparable > status.txt
+          {
+            echo "## ${{ matrix.os }}"
+            echo
+            echo "This pull request changes the report's own format, so there is nothing to compare it with."
+            echo "It finds $(wc -l < head.txt | tr -d ' ') deviation(s). $summary"
+            echo
+          } > report.md
+          exit 0
+        fi
+
+        sed '/^#/d' base-output.txt | sort > base.txt
         comm -13 base.txt head.txt > appeared.txt
         comm -23 base.txt head.txt > resolved.txt
         unchanged="$(comm -12 base.txt head.txt | wc -l | tr -d ' ')"
@@ -63,26 +82,27 @@ jobs:
           echo unchanged > status.txt
         fi
 
+        list() {
+          count="$(wc -l < "$2.txt" | tr -d ' ')"
+          [ "$count" -gt 0 ] || return 0
+
+          echo "<details><summary><b>$1: $count</b></summary>"
+          echo
+          echo '```'
+          head -n "$MAX_LISTED" "$2.txt"
+          [ "$count" -gt "$MAX_LISTED" ] && echo "... and $((count - MAX_LISTED)) more"
+          echo '```'
+          echo
+          echo "</details>"
+          echo
+        }
+
         {
           echo "## ${{ matrix.os }}"
           echo
-          if [ -s appeared.txt ]; then
-            echo "**Appeared: $(wc -l < appeared.txt | tr -d ' ')**"
-            echo
-            echo '```'
-            cat appeared.txt
-            echo '```'
-            echo
-          fi
-          if [ -s resolved.txt ]; then
-            echo "**Resolved: $(wc -l < resolved.txt | tr -d ' ')**"
-            echo
-            echo '```'
-            cat resolved.txt
-            echo '```'
-            echo
-          fi
-          echo "Unchanged: $unchanged. $(sed -n 's/^# //p' head-output.txt | tail -1)"
+          list Appeared appeared
+          list Resolved resolved
+          echo "Unchanged: $unchanged. $summary"
           echo
         } > report.md
 
@@ -120,7 +140,7 @@ jobs:
           cat deviations/icu-deviations-*/report.md
         } > comment_body.md
 
-        if grep -qx changed deviations/icu-deviations-*/status.txt; then
+        if grep -qxE 'changed|incomparable' deviations/icu-deviations-*/status.txt; then
           echo "CHANGED=true" >> "$GITHUB_ENV"
         else
           echo "CHANGED=false" >> "$GITHUB_ENV"
