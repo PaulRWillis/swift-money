@@ -11,6 +11,7 @@ struct PluralOperandTests {
         ("w", .significantFractionDigitCount),
         ("f", .fractionDigits),
         ("t", .significantFractionDigits),
+        ("e", .compactExponent),
     ])
     func lettersNameOperands(_ letter: String, _ operand: PluralOperand) {
         #expect(PluralOperand(rawValue: letter) == operand)
@@ -18,7 +19,7 @@ struct PluralOperandTests {
 
     @Test("A letter CLDR does not use names no operand")
     func unknownLetterIsRejected() {
-        #expect(PluralOperand(rawValue: "e") == nil)
+        #expect(PluralOperand(rawValue: "x") == nil)
     }
 
     @Test("A whole value keeps the remainder of dividing by a modulus")

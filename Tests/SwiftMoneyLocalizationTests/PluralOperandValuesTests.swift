@@ -39,6 +39,15 @@ struct PluralOperandValuesTests {
         #expect(yen.value(of: .absoluteValue) == .whole(3))
     }
 
+    // French's rule for `many` reads `e`, so the evaluator has to answer for it. A monetary amount is
+    // never written in compact notation, so the exponent is always zero.
+    @Test("The compact exponent is zero for any amount", arguments: [0 as Int64, 1, 1_000_000_00])
+    func compactExponentIsAlwaysZero(_ minorUnits: Int64) {
+        let values = PluralOperandValues(minorUnits: minorUnits, unitScale: 100)
+
+        #expect(values.value(of: .compactExponent) == .whole(0))
+    }
+
     @Test("An amount with a fraction has a fractional absolute value")
     func fractionalAmountHasFractionalAbsoluteValue() {
         let values = PluralOperandValues(minorUnits: 3_50, unitScale: 100)

@@ -17,6 +17,9 @@ package enum PluralOperand: String, Equatable, Sendable {
 
     /// The fraction digits shown as a whole number, once trailing zeros are dropped.
     case significantFractionDigits = "t"
+
+    /// The power of ten the amount is written against in compact notation, as in `1c6` for a million.
+    case compactExponent = "e"
 }
 
 extension PluralOperand {
