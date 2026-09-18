@@ -94,7 +94,7 @@ let package = Package(
         // SwiftMoneyLocalization's data tables. Not in any library product.
         .executableTarget(
             name: "GenerateSwiftMoneyLocalization",
-            dependencies: ["CLDRPluralParsing", "SwiftMoneyLocalization"],
+            dependencies: ["CLDRPluralParsing", "SwiftMoneyCore", "SwiftMoneyLocalization"],
             path: "Tools/GenerateLocalization"
         ),
         // Dev-only. Prints where the engine and ICU disagree; always exits 0. Not in any library
