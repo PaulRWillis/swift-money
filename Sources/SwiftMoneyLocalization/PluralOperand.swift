@@ -1,5 +1,5 @@
 /// The part of an amount a plural rule looks at, named by the letter CLDR's rule text uses for it.
-package enum PluralOperand: String, Equatable, Sendable {
+package enum PluralOperand: String, Equatable, Sendable, CaseIterable {
     /// The amount's absolute value, fraction included.
     case absoluteValue = "n"
 
@@ -17,6 +17,9 @@ package enum PluralOperand: String, Equatable, Sendable {
 
     /// The fraction digits shown as a whole number, once trailing zeros are dropped.
     case significantFractionDigits = "t"
+
+    /// The power of ten the amount is written against in compact notation, as in `1c6` for a million.
+    case compactExponent = "e"
 }
 
 extension PluralOperand {

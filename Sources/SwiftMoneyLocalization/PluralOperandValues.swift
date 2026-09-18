@@ -39,6 +39,8 @@ package struct PluralOperandValues: Equatable, Sendable {
             .whole(fractionDigits)
         case .significantFractionDigits:
             .whole(significantFractionDigits)
+        case .compactExponent:
+            .whole(0)   // a monetary amount is never written in compact notation
         }
     }
 

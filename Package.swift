@@ -29,6 +29,12 @@ let package = Package(
             targets: ["SwiftMoneyFoundation"]
         ),
     ],
+    dependencies: [
+        // Dev-only, reached by CLDRPluralParsing alone. No library product depends on it, so a
+        // consumer of SwiftMoney never resolves it. No traits: its default one parses enums through
+        // CasePaths, which nothing here needs and which would pull in swift-syntax to build.
+        .package(url: "https://github.com/pointfreeco/swift-parsing", .upToNextMinor(from: "0.15.2"), traits: []),
+    ],
     targets: [
         .target(
             name: "SwiftMoney",
@@ -51,6 +57,15 @@ let package = Package(
             name: "SwiftMoneyFormatMatrix",
             dependencies: ["SwiftMoneyCore", "SwiftMoneyFoundation"]
         ),
+        // Dev-only. Reads CLDR's plural rule text for the generator, so the shipped library never
+        // inherits a parsing dependency. Not in any library product.
+        .target(
+            name: "CLDRPluralParsing",
+            dependencies: [
+                "SwiftMoneyLocalization",
+                .product(name: "Parsing", package: "swift-parsing"),
+            ]
+        ),
         .testTarget(
             name: "SwiftMoneyTests",
             dependencies: ["SwiftMoney"]
@@ -70,6 +85,10 @@ let package = Package(
         .testTarget(
             name: "SwiftMoneyFormatMatrixTests",
             dependencies: ["SwiftMoneyFormatMatrix", "SwiftMoneyCore"]
+        ),
+        .testTarget(
+            name: "CLDRPluralParsingTests",
+            dependencies: ["CLDRPluralParsing", "SwiftMoneyLocalization"]
         ),
         // Dev-only. Reads the pinned CLDR JSON (Tools/cldr/node_modules) and regenerates
         // SwiftMoneyLocalization's data tables. Not in any library product.
