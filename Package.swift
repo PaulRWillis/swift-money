@@ -80,7 +80,7 @@ let package = Package(
         ),
         .testTarget(
             name: "SwiftMoneyFoundationTests",
-            dependencies: ["SwiftMoneyFoundation", "SwiftMoneyFormatMatrix"]
+            dependencies: ["SwiftMoneyFoundation", "SwiftMoneyFormatMatrix", "SwiftMoneyLocalization"]
         ),
         .testTarget(
             name: "SwiftMoneyFormatMatrixTests",

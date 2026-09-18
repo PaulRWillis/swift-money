@@ -176,13 +176,8 @@ private extension MoneyOf.FormatStyle {
         guard
             precision == nil,
             roundingIncrement == nil,
-            let presentation = enginePresentation,
             let sign = engineSign,
-            let format = MoneyLocalization.moneyFormat(
-                for: value.currency,
-                locale: LocaleIdentifier(locale.identifier),
-                presentation: presentation
-            )
+            let format = engineFormat(for: value)
         else {
             return nil
         }
@@ -196,7 +191,26 @@ private extension MoneyOf.FormatStyle {
         return format.format(value, options: options)
     }
 
-    // Foundation's presentation as the engine's, or nil for `.fullName`, which the CLDR data does not carry.
+    // The descriptor for this style's presentation, or nil for one the CLDR data cannot name. A full
+    // name depends on the amount, since a locale may name one unit differently from two, so it is
+    // resolved from the amount rather than from a presentation.
+    func engineFormat(for value: MoneyOf<C>) -> MoneyFormat? {
+        let identifier = LocaleIdentifier(locale.identifier)
+
+        guard presentation != .fullName else {
+            return MoneyLocalization.fullNameMoneyFormat(
+                for: value.currency,
+                minorUnits: value.minorUnits,
+                locale: identifier
+            )
+        }
+
+        return enginePresentation.flatMap {
+            MoneyLocalization.moneyFormat(for: value.currency, locale: identifier, presentation: $0)
+        }
+    }
+
+    // Foundation's presentation as the engine's, or nil for one the engine names another way.
     var enginePresentation: CurrencyPresentation? {
         if presentation == .standard { .standard }
         else if presentation == .isoCode { .isoCode }
