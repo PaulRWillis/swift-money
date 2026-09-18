@@ -105,4 +105,22 @@ struct FormatMatrixDeviationsTests {
         #expect(deviation.reportLine == "ja_JP JPY standard|automatic|automatic|automatic 100: engine '\u{FFE5}100' vs ICU '\u{00A5}100'")
         #expect(!deviation.reportLine.contains("\n"))
     }
+
+    // Renderers that always disagree still produce nothing here, because the cell is one ICU would
+    // have rendered on both sides.
+    @Test("A cell the data cannot render is not compared at all")
+    func uncoveredCellsAreSkipped() throws {
+        let unnamed = try #require(CurrencyCode(string: "XAD").flatMap(Currency.init(iso:)))
+        let fullNames = FormatMatrix.combinations.filter { $0.presentation == .fullName }
+
+        let found = FormatMatrix.deviations(
+            currencies: [unnamed], localeIDs: Self.localeIDs,
+            combinations: fullNames, amounts: Self.amounts,
+            engine: { _, _, _, _ in "engine" },
+            icu: { _, _, _, _ in "icu" }
+        )
+
+        #expect(!fullNames.isEmpty)
+        #expect(found.isEmpty)
+    }
 }
