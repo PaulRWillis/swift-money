@@ -224,6 +224,44 @@ func pluralRules(for language: String, in text: [String: [String: String]]) -> [
     }
 }
 
+// CLDR publishes, beside each rule, the values that rule is meant to cover. Running them back
+// through the rules checks the reading of every locale CLDR knows, not just the few the library
+// ships, so a rule this tool would misread surfaces now rather than when that locale is added.
+func checkEveryLocaleAgainstItsSamples(_ text: [String: [String: String]]) {
+    var checked = 0
+
+    for (language, published) in text.sorted(by: { $0.key < $1.key }) {
+        var rules: [PluralCategory: PluralRule] = [:]
+        var samples: [(category: PluralCategory, sample: PluralSample)] = []
+
+        for category in PluralCategory.allCases {
+            guard let line = published["pluralRule-count-\(category.rawValue)"] else {
+                continue
+            }
+
+            guard let parsed = try? PluralRuleText(parsing: line) else {
+                fatalError("Could not read \(language)'s rule for \(category.rawValue): \(line)")
+            }
+
+            parsed.rule.map { rules[category] = $0 }
+            samples += parsed.samples.map { (category, $0) }
+        }
+
+        for (category, sample) in samples {
+            let operands = PluralOperandValues(minorUnits: sample.minorUnits, unitScale: sample.unitScale)
+            let resolved = PluralCategory.allCases.first { rules[$0]?.matches(operands) == true } ?? .other
+
+            guard resolved == category else {
+                fatalError("\(language) \(sample) resolves to \(resolved.rawValue), CLDR publishes it under \(category.rawValue)")
+            }
+        }
+
+        checked += samples.count
+    }
+
+    print("Checked \(checked) CLDR samples across \(text.count) locales.")
+}
+
 // MARK: - Swift emission
 
 func nonEmptyLiteral(_ elements: [String]) -> String {
@@ -310,6 +348,7 @@ var fullNameBlocks: [String] = []
 var pluralRuleBlocks: [String] = []
 
 let ruleText = cardinalRuleText()
+checkEveryLocaleAgainstItsSamples(ruleText)
 
 for language in languages {
     let rules = pluralRules(for: language, in: ruleText).map { category, rule in
