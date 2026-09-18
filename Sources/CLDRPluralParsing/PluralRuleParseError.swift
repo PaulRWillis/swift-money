@@ -6,4 +6,7 @@ package enum PluralRuleParseError: Error {
     /// The text uses a relation CLDR's grammar allows but this engine does not model, such as
     /// `within`. Carries the word that named it.
     case unsupportedRelation(String)
+
+    /// The sample lists do not follow CLDR's sample grammar. Carries the parser's own diagnosis.
+    case malformedSamples(String)
 }
