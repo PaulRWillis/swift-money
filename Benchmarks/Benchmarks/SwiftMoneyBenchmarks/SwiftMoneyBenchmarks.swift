@@ -969,6 +969,31 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    // Naming a currency in full (§15 phase D) is the one presentation whose text depends on the
+    // amount: it resolves the locale's plural rules per call, on top of everything the symbol path
+    // does. Measured against the same amounts, so the difference is the naming.
+    let typedFullNameStyle = typedCurrencyStyle.presentation(.fullName)
+
+    Benchmark("MoneyOf full name formatting, en_GB", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(typedFullNameStyle.format(fourPoundAmounts[index % fourPoundAmounts.count]))
+            index &+= 1
+        }
+    }
+
+    let decimalFullNameStyle = decimalCurrencyStyle.presentation(.fullName)
+
+    Benchmark("Decimal full name formatting, en_GB", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(decimalFullNameStyle.format(decimalAmounts[index % decimalAmounts.count]))
+            index &+= 1
+        }
+    }
+
     // Formatting with a rounding increment (five smallest units, as Swiss cash rounding uses) runs the
     // whole snap-to-increment computation the plain format skips. The amounts carry nonzero remainders so
     // the rounding always has work to do.
