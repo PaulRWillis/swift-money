@@ -1,5 +1,5 @@
 /// The part of an amount a plural rule looks at, named by the letter CLDR's rule text uses for it.
-package enum PluralOperand: String, Equatable, Sendable {
+package enum PluralOperand: String, Equatable, Sendable, CaseIterable {
     /// The amount's absolute value, fraction included.
     case absoluteValue = "n"
 
