@@ -1,5 +1,6 @@
 import Foundation
 import SwiftMoneyCore
+import SwiftMoneyLocalization
 
 /// Currency-format inputs (option cross, locales, amounts), so multiple consumers share one set
 /// instead of drifting onto different ones.
@@ -54,4 +55,24 @@ package enum FormatMatrix {
     /// Scale-spanning currencies (0/2/3 decimal places), for exercising the option cross without
     /// repeating it for every currency: that cross is currency-independent engine code.
     package static let optionCurrencies: [Currency] = [.jpy, .gbp, .bhd]
+
+    /// Whether the CLDR data can render this cell with no ICU at all.
+    ///
+    /// Only a full name can be missing: every other presentation falls back to the currency's code,
+    /// but CLDR leaves a handful of the currencies the library ships unnamed. A cell this returns
+    /// `false` for is rendered by ICU, so comparing it against ICU proves nothing and hashing it
+    /// records text that differs by platform.
+    package static func isEngineCovered(
+        _ currency: Currency,
+        localeID: String,
+        presentation: Config.Presentation
+    ) -> Bool {
+        guard presentation == .fullName else {
+            return true
+        }
+
+        return MoneyLocalization.fullNameMoneyFormat(
+            for: currency, minorUnits: 1, locale: LocaleIdentifier(localeID)
+        ) != nil
+    }
 }
