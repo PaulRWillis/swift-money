@@ -65,4 +65,18 @@ struct FullNameMoneyFormatTests {
 
         #expect(format == nil)
     }
+
+    // A locale's accounting form is part of the pattern that writes a symbol, not a name, so ICU
+    // writes "-1.00 British pounds" where the symbol form would give "(£1.00)".
+    @Test("A negative keeps its minus sign when the currency is named in full")
+    func accountingKeepsTheMinusSign() throws {
+        let gbp = Self.currency("GBP")
+        let format = try #require(
+            MoneyLocalization.fullNameMoneyFormat(for: gbp, minorUnits: -1_00, locale: "en_GB")
+        )
+
+        let text = format.format(Money(minorUnits: -1_00, currency: gbp), options: MoneyFormatOptions(sign: .accounting))
+
+        #expect(text == "-1.00 British pounds")
+    }
 }
