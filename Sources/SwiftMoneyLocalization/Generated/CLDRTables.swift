@@ -615,4 +615,20 @@ extension MoneyLocalization {
             "ZMW": CurrencyDisplay(standardSymbol: "ZMW", standardSpacing: "\u{A0}", narrowSymbol: "ZK", narrowSpacing: "\u{A0}"),
         ],
     ]
+
+    /// Each language's plural rules, in the order CLDR resolves them. A language with no rule for a
+    /// category takes `other`, which never carries one.
+    package static let pluralRules: [String: [PluralCategory: PluralRule]] = [
+            "en": [
+            .one: PluralRule(orOfAndGroups: NonEmpty(NonEmpty(PluralRelation(operand: .integerPart, comparison: .equals(NonEmpty(PluralRange(1)))), [PluralRelation(operand: .fractionDigitCount, comparison: .equals(NonEmpty(PluralRange(0))))]))),
+        ],
+        "de": [
+            .one: PluralRule(orOfAndGroups: NonEmpty(NonEmpty(PluralRelation(operand: .integerPart, comparison: .equals(NonEmpty(PluralRange(1)))), [PluralRelation(operand: .fractionDigitCount, comparison: .equals(NonEmpty(PluralRange(0))))]))),
+        ],
+        "fr": [
+            .one: PluralRule(orOfAndGroups: NonEmpty(NonEmpty(PluralRelation(operand: .integerPart, comparison: .equals(NonEmpty(PluralRange(0), [PluralRange(1)])))))),
+            .many: PluralRule(orOfAndGroups: NonEmpty(NonEmpty(PluralRelation(operand: .compactExponent, comparison: .equals(NonEmpty(PluralRange(0)))), [PluralRelation(operand: .integerPart, comparison: .notEquals(NonEmpty(PluralRange(0)))), PluralRelation(operand: .integerPart, modulus: 1000000, comparison: .equals(NonEmpty(PluralRange(0)))), PluralRelation(operand: .fractionDigitCount, comparison: .equals(NonEmpty(PluralRange(0))))]), [NonEmpty(PluralRelation(operand: .compactExponent, comparison: .notEquals(NonEmpty(PluralRange(0 ... 5)))))])),
+        ],
+        "ja": [:],
+    ]
 }
