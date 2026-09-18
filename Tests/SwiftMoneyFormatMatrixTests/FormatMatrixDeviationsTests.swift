@@ -90,4 +90,19 @@ struct FormatMatrixDeviationsTests {
         #expect(engine.contains("4.99"))
         #expect(icu.contains("4.99"))
     }
+
+    // One run's output is compared against another's by sorting the lines and diffing them, so a
+    // line has to name its own cell in full and start with the fields worth grouping by.
+    @Test("A deviation reports as one line naming its own cell")
+    func deviationReportsAsOneLine() {
+        let deviation = FormatMatrix.Deviation(
+            localeID: "ja_JP", currencyCode: "JPY",
+            combinationID: "standard|automatic|automatic|automatic", amount: 100,
+            engine: "\u{FFE5}100", icu: "\u{00A5}100",
+            isKnownFoundationGroupingDefect: false
+        )
+
+        #expect(deviation.reportLine == "ja_JP JPY standard|automatic|automatic|automatic 100: engine '\u{FFE5}100' vs ICU '\u{00A5}100'")
+        #expect(!deviation.reportLine.contains("\n"))
+    }
 }

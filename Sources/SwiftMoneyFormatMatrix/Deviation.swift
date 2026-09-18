@@ -31,6 +31,12 @@ extension FormatMatrix {
             self.icu = icu
             self.isKnownFoundationGroupingDefect = isKnownFoundationGroupingDefect
         }
+
+        /// The cell and both renderings on one line, naming the locale first so a sorted report
+        /// groups by locale and two reports can be compared line by line.
+        package var reportLine: String {
+            "\(localeID) \(currencyCode) \(combinationID) \(amount): engine '\(engine)' vs ICU '\(icu)'"
+        }
     }
 
     /// The amount, rendered by the platform's ICU, using the same options the engine would.
