@@ -5,6 +5,11 @@ import SwiftMoneyFormatMatrix
 //
 // One deviation per line, sorted, so two runs of this tool can be compared by diffing their output.
 // Anything that is not a deviation is a `#` line, which a comparison drops.
+//
+// The version below rises whenever a deviation line's shape changes. A comparison that sees two
+// versions reports nothing rather than every line at once, since a reshaped line is not a changed
+// deviation.
+print("# format: 1")
 let deviations = FormatMatrix.deviations(
     currencies: Currency.allISO4217,
     localeIDs: FormatMatrix.coveredLocaleIDs,
