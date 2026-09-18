@@ -12,8 +12,9 @@
 #   bash Embedded/verify.sh
 #
 # Requirements: a toolchain whose standard library was built for Embedded Swift. Apple's Xcode toolchain
-# does NOT ship one; a swift.org toolchain (e.g. via swiftly) does. The script finds one on PATH or under
-# the usual swiftly / swift.org locations, and explains how to get one if it cannot.
+# does NOT ship one; a swift.org toolchain does. The script finds one under the usual swiftly and
+# swift.org locations or on PATH, runs it by path so it need not be anyone's default, and explains how
+# to install one if it finds none.
 
 set -euo pipefail
 
@@ -68,13 +69,20 @@ if [[ -z "$SWIFTC" ]]; then
     cat >&2 <<'EOF'
 error: no toolchain with an Embedded Swift standard library was found.
 
-Apple's Xcode toolchain does not ship one. Install a swift.org toolchain, e.g. with swiftly:
+Apple's Xcode toolchain does not ship one. Install a swift.org toolchain beside it.
 
-    curl -O https://download.swift.org/swiftly/darwin/swiftly.pkg
-    installer -pkg swiftly.pkg -target CurrentUserHomeDirectory
-    ~/.swiftly/bin/swiftly init
+On macOS, take the release package from https://www.swift.org/install/macos/ and install it into
+your home directory, which is where this script looks:
 
-then re-run this script.
+    installer -target CurrentUserHomeDirectory -pkg ~/Downloads/<the downloaded>.pkg
+
+Leave it unselected in Xcode and out of TOOLCHAINS. This script runs it by path, and a toolchain
+that takes over `swift` for every project is a good way to break an unrelated build.
+
+On Linux, follow https://www.swift.org/install/linux/. The CI job installs a toolchain with swiftly,
+which this script also finds.
+
+Then re-run this script.
 EOF
     exit 1
 fi
