@@ -8,7 +8,11 @@ struct FormatMatrixTests {
 
     @Test("The option cross has one entry per presentation, sign, grouping and separator combination")
     func combinationCount() {
-        #expect(FormatMatrix.combinations.count == 48)
+        let expected = FormatMatrix.presentations.count * FormatMatrix.signs.count
+            * FormatMatrix.groupings.count * FormatMatrix.separators.count
+
+        #expect(FormatMatrix.combinations.count == expected)
+        #expect(expected == 64)
     }
 
     @Test("Every combination has a distinct id")

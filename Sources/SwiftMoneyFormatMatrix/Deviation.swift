@@ -69,6 +69,12 @@ extension FormatMatrix {
         for currency in currencies {
             for localeID in localeIDs {
                 for combination in combinations {
+                    // A cell the data cannot render is rendered by ICU on both sides, so comparing it
+                    // would report agreement the engine had no part in.
+                    guard isEngineCovered(currency, localeID: localeID, presentation: combination.presentation) else {
+                        continue
+                    }
+
                     for amount in amounts {
                         let engineOutput = engine(currency, localeID, combination, amount)
                         let icuOutput = icu(currency, localeID, combination, amount)
