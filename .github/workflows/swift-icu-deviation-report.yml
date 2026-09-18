@@ -24,6 +24,15 @@ jobs:
     steps:
     - uses: actions/checkout@v6
 
+    # The same tool also runs against the commit this pull request targets, on the same machine, and
+    # only the difference between the two runs is reported. Deviations the branch did not introduce
+    # stay quiet, and the platform's own ICU version cancels out because both runs share it.
+    - name: Check out the target commit as well
+      uses: actions/checkout@v6
+      with:
+        ref: ${{ github.event.pull_request.base.sha || 'main' }}
+        path: base
+
     - uses: maxim-lobanov/setup-xcode@v1
       if: ${{ runner.os == 'macOS' }}
       with:
@@ -32,14 +41,59 @@ jobs:
     - name: Swift version
       run: swift --version
 
-    - name: Run the ICU deviation report
-      run: swift run CompareFormattingToICU > deviations.txt
+    - name: Run the ICU deviation report on both commits
+      run: |
+        swift run CompareFormattingToICU > head-output.txt
+        swift run --package-path base CompareFormattingToICU > base-output.txt
 
-    - name: Upload the deviations
+    # The tool prints one deviation per line and marks everything else with `#`, so dropping those
+    # lines and sorting leaves two sets that `comm` can compare.
+    - name: Compare the two runs
+      run: |
+        sed '/^#/d' head-output.txt | sort > head.txt
+        sed '/^#/d' base-output.txt | sort > base.txt
+
+        comm -13 base.txt head.txt > appeared.txt
+        comm -23 base.txt head.txt > resolved.txt
+        unchanged="$(comm -12 base.txt head.txt | wc -l | tr -d ' ')"
+
+        if [ -s appeared.txt ] || [ -s resolved.txt ]; then
+          echo changed > status.txt
+        else
+          echo unchanged > status.txt
+        fi
+
+        {
+          echo "## ${{ matrix.os }}"
+          echo
+          if [ -s appeared.txt ]; then
+            echo "**Appeared: $(wc -l < appeared.txt | tr -d ' ')**"
+            echo
+            echo '```'
+            cat appeared.txt
+            echo '```'
+            echo
+          fi
+          if [ -s resolved.txt ]; then
+            echo "**Resolved: $(wc -l < resolved.txt | tr -d ' ')**"
+            echo
+            echo '```'
+            cat resolved.txt
+            echo '```'
+            echo
+          fi
+          echo "Unchanged: $unchanged. $(sed -n 's/^# //p' head-output.txt | tail -1)"
+          echo
+        } > report.md
+
+    - name: Upload the report
       uses: actions/upload-artifact@v7
       with:
         name: icu-deviations-${{ matrix.os }}
-        path: deviations.txt
+        path: |
+          report.md
+          status.txt
+          head-output.txt
         if-no-files-found: warn
 
   # One PR comment covering both platforms, so a Linux/macOS ICU divergence is visible side by side
@@ -56,44 +110,42 @@ jobs:
         pattern: icu-deviations-*
         path: deviations
 
-    # The full per-cell listing can run to thousands of lines, so only the headline count stays
-    # visible; the raw listing goes in a collapsed <details> block a reader opens on demand.
     - name: Build the combined comment body
       run: |
         {
           echo "<!-- icu-deviations -->"
           echo
-          echo "Non-gating: shows where a platform's ICU differs from the engine's output."
+          echo "Non-gating. Engine against the platform's ICU, compared with the commit this pull request targets."
           echo
-          for dir in deviations/icu-deviations-*; do
-            os="$(basename "$dir" | sed 's/^icu-deviations-//')"
-            echo "## $os"
-            grep -E '^(Total:|No new deviations|Also skipped)' "$dir/deviations.txt" || true
-            echo
-            echo "<details><summary>Full output</summary>"
-            echo
-            echo '```'
-            cat "$dir/deviations.txt"
-            echo '```'
-            echo
-            echo "</details>"
-            echo
-          done
+          cat deviations/icu-deviations-*/report.md
         } > comment_body.md
+
+        if grep -qx changed deviations/icu-deviations-*/status.txt; then
+          echo "CHANGED=true" >> "$GITHUB_ENV"
+        else
+          echo "CHANGED=false" >> "$GITHUB_ENV"
+        fi
 
     # Mirrors swift-benchmark-delta.yml's marker/find-or-create technique: a hidden HTML comment
     # lets this workflow find and edit its own comment rather than posting a new one on every push.
-    # A distinct marker keeps it from colliding with that workflow's own comment.
+    # A distinct marker keeps it from colliding with that workflow's own comment. A run that changes
+    # nothing posts nothing, but does refresh a comment an earlier push left behind.
     - name: Comment on PR
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         MARKER: "<!-- icu-deviations -->"
         PR: ${{ github.event.pull_request.number }}
       run: |
-        body="$(cat comment_body.md)"
         existing="$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
           | jq -r --arg marker "$MARKER" \
               '[.[] | select(.body | contains($marker))] | last | .id // empty')"
+
+        if [ "$CHANGED" != "true" ] && [ -z "$existing" ]; then
+          echo "No deviation changed and there is no comment to update."
+          exit 0
+        fi
+
+        body="$(cat comment_body.md)"
 
         if [ -n "$existing" ]; then
           gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$existing" -f body="$body" > /dev/null
