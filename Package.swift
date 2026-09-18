@@ -55,7 +55,7 @@ let package = Package(
         // report, so they can't drift apart. Not in any library product.
         .target(
             name: "SwiftMoneyFormatMatrix",
-            dependencies: ["SwiftMoneyCore", "SwiftMoneyFoundation"]
+            dependencies: ["SwiftMoneyCore", "SwiftMoneyFoundation", "SwiftMoneyLocalization"]
         ),
         // Dev-only. Reads CLDR's plural rule text for the generator, so the shipped library never
         // inherits a parsing dependency. Not in any library product.

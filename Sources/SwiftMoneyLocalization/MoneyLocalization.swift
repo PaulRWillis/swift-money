@@ -84,7 +84,11 @@ public enum MoneyLocalization {
             symbol: names.name(for: category),
             placement: .after,
             spacing: format.fullNameSpacing.rendered,
-            from: format
+            from: format,
+            // A locale's accounting form belongs to the pattern that writes a currency's symbol. A
+            // name written out in words takes the plain number, so its negatives keep the minus sign
+            // even where the symbol form would wrap them in parentheses.
+            accountingNegative: .minusSign
         )
     }
 
@@ -102,7 +106,8 @@ public enum MoneyLocalization {
         symbol: String,
         placement: MoneyFormat.SymbolPlacement,
         spacing: String,
-        from format: LocaleNumberFormat
+        from format: LocaleNumberFormat,
+        accountingNegative: MoneyFormat.AccountingNegative? = nil
     ) -> MoneyFormat {
         MoneyFormat(
             symbol: symbol,
@@ -114,7 +119,7 @@ public enum MoneyLocalization {
                 secondary: format.secondaryGroupingSize,
                 separator: format.groupingSeparator
             ),
-            accountingNegative: format.accountingNegative,
+            accountingNegative: accountingNegative ?? format.accountingNegative,
             minusSign: format.minusSign
         )
     }
