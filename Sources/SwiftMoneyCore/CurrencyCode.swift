@@ -88,8 +88,9 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
         return nil
     }
 
-    // The code as one word, first character in the high byte.
-    var packedValue: UInt64 { storage }
+    // The code as one word, first character in the high byte, so codes compare and sort as one integer.
+    @usableFromInline
+    package var packedValue: UInt64 { storage }
 
     // The code packed six bits per character, so three to eight of them fit in six bytes rather than the
     // eight the whole-byte `packedValue` uses — the form the byte serializer writes. Each character is a
