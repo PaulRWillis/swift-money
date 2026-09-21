@@ -10,8 +10,18 @@ import Testing
 @Suite("MoneyFormat ICU parity")
 struct MoneyFormatICUParityTests {
 
-    static let dollar = MoneyFormat(symbol: "$", placement: .before)
-    static let sterling = MoneyFormat(symbol: "£", placement: .before)
+    // English's arrangement: the symbol, then the digits, with a minus in front of a negative and
+    // parentheses for the accounting form.
+    static let symbolFirst = MoneyFormatPattern(
+        positive: [.sign, .currency, .currencyGap, .integerDigits, .decimalSeparator, .fractionDigits],
+        negative: [.sign, .currency, .currencyGap, .integerDigits, .decimalSeparator, .fractionDigits],
+        accountingNegative: [
+            .literal("("), .currency, .currencyGap, .integerDigits, .decimalSeparator, .fractionDigits, .literal(")"),
+        ]
+    )
+
+    static let dollar = MoneyFormat(symbol: "$", pattern: symbolFirst)
+    static let sterling = MoneyFormat(symbol: "£", pattern: symbolFirst)
 
     static func money(_ minorUnits: Int64, _ iso: CurrencyCode) -> Money {
         guard let currency = Currency(iso: iso) else {

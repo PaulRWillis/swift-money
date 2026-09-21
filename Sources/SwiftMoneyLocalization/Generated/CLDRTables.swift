@@ -13,9 +13,17 @@ extension MoneyLocalization {
             minusSign: "-",
             primaryGroupingSize: 3,
             secondaryGroupingSize: 3,
-            placement: .before,
+            pattern: MoneyFormatPattern(
+            positive: [.sign, .currency, .currencyGap, .integerDigits, .decimalSeparator, .fractionDigits],
+            negative: [.sign, .currency, .currencyGap, .integerDigits, .decimalSeparator, .fractionDigits],
+            accountingNegative: [.literal("("), .currency, .currencyGap, .integerDigits, .decimalSeparator, .fractionDigits, .literal(")")]
+        ),
+            fullNamePattern: MoneyFormatPattern(
+            positive: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency],
+            negative: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency],
+            accountingNegative: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency]
+        ),
             isoCodeSpacing: "\u{A0}",
-            accountingNegative: .parentheses,
             fullNameSpacing: .asciiSpace
         ),
         "en-GB": LocaleNumberFormat(
@@ -24,9 +32,17 @@ extension MoneyLocalization {
             minusSign: "-",
             primaryGroupingSize: 3,
             secondaryGroupingSize: 3,
-            placement: .before,
+            pattern: MoneyFormatPattern(
+            positive: [.sign, .currency, .currencyGap, .integerDigits, .decimalSeparator, .fractionDigits],
+            negative: [.sign, .currency, .currencyGap, .integerDigits, .decimalSeparator, .fractionDigits],
+            accountingNegative: [.literal("("), .currency, .currencyGap, .integerDigits, .decimalSeparator, .fractionDigits, .literal(")")]
+        ),
+            fullNamePattern: MoneyFormatPattern(
+            positive: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency],
+            negative: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency],
+            accountingNegative: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency]
+        ),
             isoCodeSpacing: "\u{A0}",
-            accountingNegative: .parentheses,
             fullNameSpacing: .asciiSpace
         ),
         "de": LocaleNumberFormat(
@@ -35,9 +51,17 @@ extension MoneyLocalization {
             minusSign: "-",
             primaryGroupingSize: 3,
             secondaryGroupingSize: 3,
-            placement: .after,
+            pattern: MoneyFormatPattern(
+            positive: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency],
+            negative: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency],
+            accountingNegative: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency]
+        ),
+            fullNamePattern: MoneyFormatPattern(
+            positive: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency],
+            negative: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency],
+            accountingNegative: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency]
+        ),
             isoCodeSpacing: "\u{A0}",
-            accountingNegative: .minusSign,
             fullNameSpacing: .asciiSpace
         ),
         "fr": LocaleNumberFormat(
@@ -46,9 +70,17 @@ extension MoneyLocalization {
             minusSign: "-",
             primaryGroupingSize: 3,
             secondaryGroupingSize: 3,
-            placement: .after,
+            pattern: MoneyFormatPattern(
+            positive: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency],
+            negative: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency],
+            accountingNegative: [.literal("("), .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency, .literal(")")]
+        ),
+            fullNamePattern: MoneyFormatPattern(
+            positive: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency],
+            negative: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency],
+            accountingNegative: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency]
+        ),
             isoCodeSpacing: "\u{A0}",
-            accountingNegative: .parentheses,
             fullNameSpacing: .asciiSpace
         ),
         "ja": LocaleNumberFormat(
@@ -57,9 +89,17 @@ extension MoneyLocalization {
             minusSign: "-",
             primaryGroupingSize: 3,
             secondaryGroupingSize: 3,
-            placement: .before,
+            pattern: MoneyFormatPattern(
+            positive: [.sign, .currency, .currencyGap, .integerDigits, .decimalSeparator, .fractionDigits],
+            negative: [.sign, .currency, .currencyGap, .integerDigits, .decimalSeparator, .fractionDigits],
+            accountingNegative: [.literal("("), .currency, .currencyGap, .integerDigits, .decimalSeparator, .fractionDigits, .literal(")")]
+        ),
+            fullNamePattern: MoneyFormatPattern(
+            positive: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency],
+            negative: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency],
+            accountingNegative: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency]
+        ),
             isoCodeSpacing: "\u{A0}",
-            accountingNegative: .parentheses,
             fullNameSpacing: .none
         ),
     ]
