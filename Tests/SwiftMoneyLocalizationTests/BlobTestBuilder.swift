@@ -5,7 +5,16 @@ import SwiftMoneyLocalization
 // the string it appended.
 struct BlobTestBuilder {
     var bytes: [UInt8] = []
-    var count: Int { bytes.count }
+
+    // Where these bytes begin in the finished blob, so a section built after a header that is written
+    // later still records the offsets a reader will use.
+    let base: Int
+
+    var count: Int { base + bytes.count }
+
+    init(base: Int = 0) {
+        self.base = base
+    }
 
     mutating func digits(_ value: UInt64, width: Int) {
         for position in stride(from: width - 1, through: 0, by: -1) {
