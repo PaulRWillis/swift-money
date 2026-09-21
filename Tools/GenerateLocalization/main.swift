@@ -182,23 +182,13 @@ func index(of literal: String, in table: inout [String]) -> UInt16 {
 
 // MARK: - Currency spacing (resolved here, baked into the data)
 
-// The string CLDR inserts between a currency and the digits, once the rule around it is one this tool
-// can bake in at generation time rather than carry into the tables.
-//
-// Two assumptions are checked here rather than left implicit, because both are true of every locale in
-// CLDR 48.2 and neither is guaranteed. The first is that a locale spaces a currency the same way on
-// either side of the digits, which is what lets one resolved gap per symbol serve both arrangements.
-// The second is that the rule deciding whether to insert is the one `isSymbolOrSeparator` implements:
-// `[[:^S:]&[:^Z:]]`, meaning the character of the symbol touching the digits is neither a symbol nor a
-// separator, beside a digit. Note that is narrower than the `[:^S:]` LDML documents as the default, so
-// the code follows the published data rather than the specification.
-//
-// A locale breaking either would need the rule evaluated at render time, which the Embedded target
-// cannot do: it has no Unicode category tables, which is the whole reason this is resolved here.
+// The string CLDR inserts between a currency and the digits, refusing a locale whose rule this tool
+// cannot resolve ahead of time: one spacing the two sides differently, or matching by sets other than
+// those `isSymbolOrSeparator` implements. Those sets are narrower than the `[:^S:]` LDML documents as
+// the default, the code following the published data rather than the specification.
 func currencySpacingInsertion(_ rule: [String: Any], locale: String) -> String {
-    // Written out with every value escaped and the fields in a fixed order. Printing the dictionary
-    // instead hides the difference these messages exist to report: the gaps CLDR inserts are all spaces
-    // of one width or another, so a no-break space and a plain one look identical in a terminal.
+    // Escaped and ordered, because every gap CLDR inserts is a space of some width and two of them are
+    // indistinguishable in a message that prints them raw.
     func describe(_ side: [String: String]) -> String {
         ["currencyMatch", "surroundingMatch", "insertBetween"]
             .map { "\($0) \(side[$0].map(quote) ?? "absent")" }
@@ -587,10 +577,8 @@ for locale in locales.sorted(by: { $0.utf8.lexicographicallyPrecedes($1.utf8) })
     let spacingRule = formats["currencySpacing"] as! [String: Any]
     let insertBetween = currencySpacingInsertion(spacingRule, locale: locale)
 
-    // Refused rather than emitted wrongly: the tables hold one arrangement per locale, so a locale that
-    // rearranges itself when the currency is written with letters cannot be represented at all. Every
-    // locale listed above is clear of this; a locale added to that list is not, until this says so.
-    // Widening the covered set turns this into a skip and a report rather than a stop.
+    // Stops rather than skips because every locale emitted is listed by hand above. Widening the
+    // covered set turns this into a skip and a report.
     for (name, pattern) in [("standard", standard), ("accounting", accounting)] {
         if let unsupported = UnsupportedPattern(
             pattern: pattern,
