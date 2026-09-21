@@ -1,0 +1,129 @@
+import SwiftMoneyLocalization
+
+// The finished tables, ready to write out: every locale's records and the pool they reference.
+//
+// The layout is the header, then the pool, then the four sections, and within a section the runs a
+// directory points at come before the directory itself, so an offset is known by the time it has to be
+// written. Each section's shape is documented on the type that reads it.
+struct PackedTables {
+    // In the order the tables index them: sorted by the key's UTF-8 bytes, which is the order
+    // `LocaleTable` binary searches in.
+    let locales: [PackedLocale]
+    let pool: StringPool
+
+    func encoded() -> [UInt8] {
+        var body = BlobWriter(base: CLDRBlob.headerWidth)
+        body.append(pool.bytes)
+
+        let localeKeys = writeLocaleKeys(into: &body)
+        let numberFormats = writeNumberFormats(into: &body)
+        let currencyFullNames = writeFullNames(into: &body)
+        let currencyDisplays = writeDisplays(into: &body)
+
+        var header = BlobWriter(base: 0)
+        header.u32(locales.count)
+        header.u32(localeKeys)
+        header.u32(numberFormats)
+        header.u32(currencyDisplays)
+        header.u32(currencyFullNames)
+
+        return header.bytes + body.bytes
+    }
+
+    private func writeLocaleKeys(into body: inout BlobWriter) -> Int {
+        let offset = body.offset
+
+        for locale in locales {
+            body.ref(locale.key)
+        }
+
+        return offset
+    }
+
+    private func writeNumberFormats(into body: inout BlobWriter) -> Int {
+        let offset = body.offset
+
+        for locale in locales {
+            let format = locale.numberFormat
+            body.ref(format.decimalSeparator)
+            body.ref(format.groupingSeparator)
+            body.ref(format.minusSign)
+            body.ref(format.isoCodeSpacing)
+            body.u8(format.primaryGroupingSize)
+            body.u8(format.secondaryGroupingSize)
+            body.u8(format.fullNameSpacing.blobCode)
+            body.u16(format.patternIndex)
+            body.u16(format.fullNamePatternIndex)
+        }
+
+        return offset
+    }
+
+    // The overrides first, then the records that point at them, then the directory that points at those.
+    private func writeFullNames(into body: inout BlobWriter) -> Int {
+        let overrides = locales.map { locale in
+            locale.fullNames.map { name in writeOverrides(of: name, into: &body) }
+        }
+
+        let records = locales.enumerated().map { index, locale in
+            let run = Run(start: body.offset, count: locale.fullNames.count)
+
+            for (name, override) in zip(locale.fullNames, overrides[index]) {
+                body.u64(name.code.packedValue)
+                body.ref(name.other)
+                body.u32(override.start)
+                body.u8(UInt8(override.count))
+            }
+
+            return run
+        }
+
+        return writeDirectory(records, into: &body)
+    }
+
+    private func writeOverrides(of name: PackedLocale.FullName, into body: inout BlobWriter) -> Run {
+        let run = Run(start: body.offset, count: name.overrides.count)
+
+        for override in name.overrides {
+            body.u8(override.category.blobCode)
+            body.ref(override.name)
+        }
+
+        return run
+    }
+
+    private func writeDisplays(into body: inout BlobWriter) -> Int {
+        let records = locales.map { locale in
+            let run = Run(start: body.offset, count: locale.displays.count)
+
+            for display in locale.displays {
+                body.u64(display.code.packedValue)
+                body.ref(display.standardSymbol)
+                body.ref(display.standardSpacing)
+                body.ref(display.narrowSymbol)
+                body.ref(display.narrowSpacing)
+            }
+
+            return run
+        }
+
+        return writeDirectory(records, into: &body)
+    }
+
+    private func writeDirectory(_ records: [Run], into body: inout BlobWriter) -> Int {
+        let offset = body.offset
+
+        for run in records {
+            body.u32(run.start)
+            body.u16(UInt16(run.count))
+        }
+
+        return offset
+    }
+
+    // Where a run of records begins and how many there are: what a directory entry holds.
+    private struct Run {
+        let start: Int
+        let count: Int
+    }
+}

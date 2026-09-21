@@ -149,6 +149,18 @@ func patternLiteral(placement: Placement, accountingNegative: String) -> String 
         """
 }
 
+// The index of a pattern among the distinct ones, adding it if it is new. Patterns repeat heavily
+// across locales, so a locale's record holds an index and the pattern itself is written once.
+func index(of literal: String, in table: inout [String]) -> UInt16 {
+    if let existing = table.firstIndex(of: literal) {
+        return UInt16(existing)
+    }
+
+    table.append(literal)
+
+    return UInt16(table.count - 1)
+}
+
 // MARK: - Currency spacing (resolved here, baked into the data)
 
 func isSymbolOrSeparator(_ character: Character) -> Bool {
@@ -430,9 +442,46 @@ func quote(_ string: String) -> String {
     return "\"\(escaped)\""
 }
 
-var numberFormatLines: [String] = []
-var currencyBlocks: [String] = []
-var fullNameBlocks: [String] = []
+
+// The blob as a Swift string literal. Its bytes are valid UTF-8 by construction — printable digits in
+// the sections, the pool's own text in the pool — so everything but a literal's own punctuation passes
+// through as it is, which keeps the generated source close to the size of the data it carries.
+func blobLiteral(_ blob: [UInt8]) -> String {
+    var escaped: [UInt8] = Array("\"".utf8)
+
+    for byte in blob {
+        switch byte {
+        case UInt8(ascii: "\\"), UInt8(ascii: "\""):
+            escaped.append(UInt8(ascii: "\\"))
+            escaped.append(byte)
+        case 0 ..< 0x20, 0x7F:
+            escaped.append(contentsOf: "\\u{\(String(byte, radix: 16, uppercase: true))}".utf8)
+        default:
+            escaped.append(byte)
+        }
+    }
+
+    escaped.append(UInt8(ascii: "\""))
+
+    return String(decoding: escaped, as: UTF8.self)
+}
+
+// A symbol CLDR publishes for every locale. Missing means the data has changed shape, which is a fault
+// in how this tool reads it rather than something to format around.
+func required(_ symbols: [String: String], _ field: String, in locale: String) -> String {
+    guard let value = symbols[field] else {
+        fatalError("\(locale) publishes no \(field) symbol")
+    }
+
+    return value
+}
+
+// MARK: - Packing
+
+var pool = StringPool(base: CLDRBlob.headerWidth)
+var patterns: [String] = []
+var fullNamePatterns: [String] = []
+var packedLocales: [PackedLocale] = []
 var pluralRuleBlocks: [String] = []
 
 let ruleText = cardinalRuleText()
@@ -457,7 +506,9 @@ for language in languages {
     """)
 }
 
-for locale in locales {
+// The locale section is binary searched by UTF-8 bytes, so the tables hold the locales in that order
+// rather than in the order this tool lists them.
+for locale in locales.sorted(by: { $0.utf8.lexicographicallyPrecedes($1.utf8) }) {
     let n = numbers(locale)
     let symbols = n["symbols-numberSystem-latn"] as! [String: String]
     let formats = n["currencyFormats-numberSystem-latn"] as! [String: Any]
@@ -473,46 +524,72 @@ for locale in locales {
     // ISO code is always letters, so it takes the insertion (or the pattern's literal spacing).
     let isoSpacing = spacing(for: "AAA", placement: parsed.placement, patternSpacing: parsed.patternSpacing, insertBetween: insertBetween)
 
-    numberFormatLines.append("""
-            \(quote(locale)): LocaleNumberFormat(
-                decimalSeparator: \(quote(symbols["decimal"]!)),
-                groupingSeparator: \(quote(symbols["group"]!)),
-                minusSign: \(quote(symbols["minusSign"] ?? "-")),
-                primaryGroupingSize: \(parsed.primaryGroupingSize),
-                secondaryGroupingSize: \(parsed.secondaryGroupingSize),
-                pattern: \(patternLiteral(placement: parsed.placement, accountingNegative: parsed.accountingNegative)),
-                fullNamePattern: \(fullName.literal),
-                isoCodeSpacing: \(quote(isoSpacing)),
-                fullNameSpacing: \(literal(fullName.spacing))
-            ),
-    """)
+    let numberFormat = PackedLocale.NumberFormat(
+        decimalSeparator: pool.insert(required(symbols, "decimal", in: locale)),
+        groupingSeparator: pool.insert(required(symbols, "group", in: locale)),
+        minusSign: pool.insert(symbols["minusSign"] ?? "-"),
+        isoCodeSpacing: pool.insert(isoSpacing),
+        primaryGroupingSize: UInt8(parsed.primaryGroupingSize),
+        secondaryGroupingSize: UInt8(parsed.secondaryGroupingSize),
+        fullNameSpacing: fullName.spacing,
+        patternIndex: index(
+            of: patternLiteral(placement: parsed.placement, accountingNegative: parsed.accountingNegative),
+            in: &patterns
+        ),
+        fullNamePatternIndex: index(of: fullName.literal, in: &fullNamePatterns)
+    )
 
-    var entries: [String] = []
+    // Sorted, because a dictionary's order varies between runs and the order strings reach the pool in
+    // decides the bytes: the committed tables have to come out the same on any machine, which is what
+    // the CLDR workflow checks by regenerating them.
+    var displays: [PackedLocale.Display] = []
     for (code, fields) in currencies(locale).sorted(by: { $0.key < $1.key }) {
         let symbol = fields["symbol"] ?? code
         let narrow = fields["symbol-alt-narrow"] ?? symbol
         guard symbol != code || narrow != code else {
             continue   // neither form is distinct; the runtime falls back to the code
         }
-        let standardSpacing = spacing(for: symbol, placement: parsed.placement, patternSpacing: parsed.patternSpacing, insertBetween: insertBetween)
-        let narrowSpacing = spacing(for: narrow, placement: parsed.placement, patternSpacing: parsed.patternSpacing, insertBetween: insertBetween)
-        entries.append("            \(quote(code)): CurrencyDisplay(standardSymbol: \(quote(symbol)), standardSpacing: \(quote(standardSpacing)), narrowSymbol: \(quote(narrow)), narrowSpacing: \(quote(narrowSpacing))),")
+        guard let currencyCode = CurrencyCode(string: code) else {
+            print("Skipped \(locale)'s \(code): CLDR names it, but it is not a code a currency can carry")
+            continue
+        }
+
+        displays.append(PackedLocale.Display(
+            code: currencyCode,
+            standardSymbol: pool.insert(symbol),
+            standardSpacing: pool.insert(spacing(for: symbol, placement: parsed.placement, patternSpacing: parsed.patternSpacing, insertBetween: insertBetween)),
+            narrowSymbol: pool.insert(narrow),
+            narrowSpacing: pool.insert(spacing(for: narrow, placement: parsed.placement, patternSpacing: parsed.patternSpacing, insertBetween: insertBetween))
+        ))
     }
 
-    currencyBlocks.append("""
-            \(quote(locale)): [
-    \(entries.joined(separator: "\n"))
-            ],
-    """)
+    let names: [PackedLocale.FullName] = fullNames(currencies(locale)).compactMap { name in
+        guard let code = CurrencyCode(string: name.code) else {
+            print("Skipped \(locale)'s name for \(name.code): not a code a currency can carry")
+            return nil
+        }
 
-    let names = fullNames(currencies(locale)).map { "            \(quote($0.code)): \(literal($0))," }
+        return PackedLocale.FullName(
+            code: code,
+            other: pool.insert(name.other),
+            overrides: PluralCategory.allCases.compactMap { category in
+                name.byCategory[category].map { (category, pool.insert($0)) }
+            }
+        )
+    }
 
-    fullNameBlocks.append("""
-            \(quote(locale)): [
-    \(names.joined(separator: "\n"))
-            ],
-    """)
+    // Both runs are binary searched at runtime, so they are laid out in the order that search assumes.
+    packedLocales.append(PackedLocale(
+        key: pool.insert(locale),
+        numberFormat: numberFormat,
+        displays: displays.sorted { $0.code.packedValue < $1.code.packedValue },
+        fullNames: names.sorted { $0.code.packedValue < $1.code.packedValue }
+    ))
 }
+
+let blob = PackedTables(locales: packedLocales, pool: pool).encoded()
+
+// MARK: - Swift emission
 
 let output = """
 // Generated from CLDR \(cldrVersion) by GenerateSwiftMoneyLocalization. Do not edit by hand.
@@ -520,32 +597,38 @@ let output = """
 
 import SwiftMoneyCore
 
-// Each table is built in an `@_optimize(none)` function. Under `-O`, the Swift 6.3.2 optimizer
-// (Xcode 26.5) spends many minutes on these large literal tables, enough to stall CI; skipping
-// optimization of the builder avoids it. The table is identical either way and is built once, lazily.
+// The locale data is packed into one string literal rather than written out as Swift values: the
+// equivalent literals defeat the compiler well before every CLDR locale is covered, where a literal of
+// this size costs it nothing. `CLDRBlob` reads it, and the layout is documented on the types that do.
+//
+// What stays a Swift value is what there is little of: the distinct patterns a locale's record indexes,
+// and each language's plural rules. Those are built in `@_optimize(none)` functions because under `-O`
+// the Swift 6.3.2 optimizer (Xcode 26.5) spends many minutes on literal tables, enough to stall CI;
+// skipping optimization of the builder avoids it. The data is identical either way and built once.
 extension MoneyLocalization {
     static let cldrVersion = \(quote(cldrVersion))
 
-    static let numberFormats: [String: LocaleNumberFormat] = makeNumberFormats()
-    @_optimize(none) private static func makeNumberFormats() -> [String: LocaleNumberFormat] {
+    /// The packed CLDR tables every lookup reads.
+    package static let cldr = CLDRBlob(
+        bytes: packedTables,
+        patterns: makePatterns(),
+        fullNamePatterns: makeFullNamePatterns()
+    )
+
+    private static let packedTables: StaticString = \(blobLiteral(blob))
+
+    /// The distinct arrangements of a currency symbol, a sign and the digits, in the order a locale's
+    /// record counts them.
+    @_optimize(none) private static func makePatterns() -> [MoneyFormatPattern] {
         [
-    \(numberFormatLines.joined(separator: "\n"))
+\(patterns.map { "            \($0)," }.joined(separator: "\n"))
         ]
     }
 
-    static let currencyDisplays: [String: [String: CurrencyDisplay]] = makeCurrencyDisplays()
-    @_optimize(none) private static func makeCurrencyDisplays() -> [String: [String: CurrencyDisplay]] {
+    /// The distinct arrangements of a currency's full name beside the digits, in the same order.
+    @_optimize(none) private static func makeFullNamePatterns() -> [FullNameLayout] {
         [
-    \(currencyBlocks.joined(separator: "\n"))
-        ]
-    }
-
-    /// What each locale calls a currency, by plural category. A currency CLDR does not name in a
-    /// locale is absent.
-    package static let currencyFullNames: [String: [CurrencyCode: CurrencyFullName]] = makeCurrencyFullNames()
-    @_optimize(none) private static func makeCurrencyFullNames() -> [String: [CurrencyCode: CurrencyFullName]] {
-        [
-    \(fullNameBlocks.joined(separator: "\n"))
+\(fullNamePatterns.map { "            \($0)," }.joined(separator: "\n"))
         ]
     }
 
@@ -554,7 +637,7 @@ extension MoneyLocalization {
     package static let pluralRules: [String: [PluralCategory: PluralRule]] = makePluralRules()
     @_optimize(none) private static func makePluralRules() -> [String: [PluralCategory: PluralRule]] {
         [
-    \(pluralRuleBlocks.joined(separator: "\n"))
+\(pluralRuleBlocks.joined(separator: "\n"))
         ]
     }
 }
@@ -565,4 +648,7 @@ try? FileManager.default.createDirectory(
     withIntermediateDirectories: true
 )
 try! output.write(toFile: outputPath, atomically: true, encoding: .utf8)
-print("Wrote \(outputPath) from CLDR \(cldrVersion) for locales: \(locales.joined(separator: ", "))")
+print("""
+    Wrote \(outputPath) from CLDR \(cldrVersion) for locales: \(locales.joined(separator: ", "))
+    Packed tables: \(blob.count) bytes, \(patterns.count) pattern(s), \(fullNamePatterns.count) full-name layout(s)
+    """)
