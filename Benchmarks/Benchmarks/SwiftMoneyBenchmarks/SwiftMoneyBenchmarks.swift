@@ -997,6 +997,26 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    // Rendering as an AttributedString builds the tagged runs on top of the plain formatting, and is
+    // measured against the ICU attributed path the fallback uses so the difference is comparable.
+    Benchmark("MoneyOf attributed formatting, en_GB", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(typedCurrencyStyle.attributed.format(fourPoundAmounts[index % fourPoundAmounts.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Decimal attributed formatting, en_GB", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(decimalCurrencyStyle.attributed.format(decimalAmounts[index % decimalAmounts.count]))
+            index &+= 1
+        }
+    }
+
     // Formatting with a rounding increment (five smallest units, as Swiss cash rounding uses) runs the
     // whole snap-to-increment computation the plain format skips. The amounts carry nonzero remainders so
     // the rounding always has work to do.
