@@ -18,6 +18,7 @@ let package = Package(
             dependencies: [
                 .product(name: "SwiftMoneyCore", package: "swift-money"),
                 .product(name: "SwiftMoneyFoundation", package: "swift-money"),
+                .product(name: "SwiftMoneyLocalization", package: "swift-money"),
                 .product(name: "Benchmark", package: "package-benchmark"),
                 .product(name: "FixedPointDecimal", package: "FixedPoint"),
             ],

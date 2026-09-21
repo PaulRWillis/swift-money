@@ -3,6 +3,7 @@ import FixedPointDecimal
 import Foundation
 import SwiftMoneyCore
 import SwiftMoneyFoundation
+import SwiftMoneyLocalization
 
 // Five baselines, because one number on its own says nothing. `Int` is what the type safety costs,
 // `Double` is the fast answer that is wrong at scale, and `Decimal` is the exact answer that is slow.
@@ -947,8 +948,10 @@ let benchmarks: @Sendable () -> Void = {
     }
 
     // The Foundation-free formatter engine (§15), against the same amounts as the ICU en_GB row. The
-    // descriptor is prebuilt once, as a resolved locale format would be. Allocation-free.
-    let engineGBP = MoneyFormat(symbol: "£", placement: .before)
+    // descriptor is resolved once, as a caller formatting a column of amounts would. Allocation-free.
+    guard let engineGBP = MoneyLocalization.moneyFormat(for: .gbp, locale: "en-GB") else {
+        fatalError("en-GB is a covered locale, so it must resolve a format")
+    }
     let largePounds = operands.map { GBP(minorUnits: 1_234_567_00 + Int64($0)) }
 
     Benchmark("MoneyOf non-ICU format, en_GB", configuration: defaultConfiguration) { benchmark in

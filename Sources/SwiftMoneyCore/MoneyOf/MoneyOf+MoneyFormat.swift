@@ -10,7 +10,8 @@
 /// be formatted without consulting ICU at render time.
 public struct MoneyFormat: Equatable, Hashable, Sendable {
     /// Whether the currency symbol precedes the digits or follows them.
-    public enum SymbolPlacement: Equatable, Hashable, Sendable {
+    @usableFromInline
+    package enum SymbolPlacement: Equatable, Hashable, Sendable {
         case before
         case after
     }
@@ -20,7 +21,8 @@ public struct MoneyFormat: Equatable, Hashable, Sendable {
     ///
     /// Most locales repeat a single group size; build those with ``repeating(_:separator:)``. A few,
     /// such as India, use a smaller size above the first group, giving `12,34,567` for the same number.
-    public enum GroupingScheme: Equatable, Hashable, Sendable {
+    @usableFromInline
+    package enum GroupingScheme: Equatable, Hashable, Sendable {
         /// The digits are not grouped: `1234567`.
         case none
 
@@ -34,7 +36,8 @@ public struct MoneyFormat: Equatable, Hashable, Sendable {
     }
 
     /// How the accounting sign strategy marks a negative amount.
-    public enum AccountingNegative: Equatable, Hashable, Sendable {
+    @usableFromInline
+    package enum AccountingNegative: Equatable, Hashable, Sendable {
         /// Wrap the amount in parentheses, e.g. `($1,234.56)`.
         case parentheses
         /// Prefix the amount with the minus sign, e.g. `-1.234,56 €`.
@@ -42,23 +45,31 @@ public struct MoneyFormat: Equatable, Hashable, Sendable {
     }
 
     /// The currency symbol as the chosen presentation renders it: `"£"`, `"GBP"`, a narrow symbol, etc.
-    public var symbol: String
+    @usableFromInline
+    package let symbol: String
     /// Where the symbol sits relative to the digits.
-    public var placement: SymbolPlacement
+    @usableFromInline
+    package let placement: SymbolPlacement
     /// What separates the symbol from the digits, e.g. `""` or a non-breaking space.
-    public var spacing: String
+    @usableFromInline
+    package let spacing: String
     /// What separates the whole part from the fraction, e.g. `"."` or `","`.
-    public var decimalSeparator: String
+    @usableFromInline
+    package let decimalSeparator: String
     /// How the whole digits are grouped.
-    public var grouping: GroupingScheme
+    @usableFromInline
+    package let grouping: GroupingScheme
     /// How the accounting sign strategy marks a negative amount.
-    public var accountingNegative: AccountingNegative
+    @usableFromInline
+    package let accountingNegative: AccountingNegative
     /// What marks a negative amount under the automatic/always sign strategies. Defaults to `"-"`.
-    public var minusSign: String
+    @usableFromInline
+    package let minusSign: String
     /// What marks a non-negative amount under the always sign strategy. Defaults to `"+"`.
-    public var plusSign: String
+    @usableFromInline
+    package let plusSign: String
 
-    public init(
+    package init(
         symbol: String,
         placement: SymbolPlacement,
         spacing: String = "",
@@ -79,7 +90,7 @@ public struct MoneyFormat: Equatable, Hashable, Sendable {
     }
 }
 
-public extension MoneyFormat.GroupingScheme {
+package extension MoneyFormat.GroupingScheme {
     /// A grouping that repeats one `size` for every group, which is how most locales group.
     ///
     /// ```swift
