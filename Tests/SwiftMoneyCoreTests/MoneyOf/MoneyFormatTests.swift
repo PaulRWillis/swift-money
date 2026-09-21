@@ -11,17 +11,16 @@ struct MoneyFormatTests {
     // The two arrangements CLDR gives the locales below, written out once: currency first or last,
     // a minus in front of a negative, and parentheses for the accounting form unless stated.
     static func pattern(currencyFirst: Bool, accountingParentheses: Bool = true) -> MoneyFormatPattern {
-        let number: [MoneyFormatPart] = [.integerDigits, .decimalSeparator, .fractionDigits]
-        let body: [MoneyFormatPart] = currencyFirst
-            ? [.currency, .currencyGap] + number
-            : number + [.currencyGap, .currency]
-        let signed: [MoneyFormatPart] = [.sign] + body
+        let (prefixBody, suffixBody): ([MoneyFormatToken], [MoneyFormatToken]) = currencyFirst
+            ? ([.currency, .currencySpacing], [])
+            : ([], [.currencySpacing, .currency])
+        let signed = MoneyFormatAffixes(prefix: [.sign] + prefixBody, suffix: suffixBody)
 
         return MoneyFormatPattern(
             positive: signed,
             negative: signed,
             accountingNegative: accountingParentheses
-                ? [.literal("(")] + body + [.literal(")")]
+                ? MoneyFormatAffixes(prefix: [.literal("(")] + prefixBody, suffix: suffixBody + [.literal(")")])
                 : signed
         )
     }
@@ -38,11 +37,11 @@ struct MoneyFormatTests {
     @Test("Symbol placement, grouping, spacing, sign, zero fraction, accounting")
     func assembly() {
         let eurDE = MoneyFormat(
-            symbol: "€", pattern: Self.pattern(currencyFirst: false), currencyGap: "\u{00A0}",
+            symbol: "€", pattern: Self.pattern(currencyFirst: false), currencySpacing: "\u{00A0}",
             decimalSeparator: ",", grouping: .repeating(3, separator: ".")
         )
         let eurFR = MoneyFormat(
-            symbol: "€", pattern: Self.pattern(currencyFirst: false), currencyGap: "\u{202F}",
+            symbol: "€", pattern: Self.pattern(currencyFirst: false), currencySpacing: "\u{202F}",
             decimalSeparator: ",", grouping: .repeating(3, separator: "\u{202F}")
         )
         let jpy = MoneyFormat(symbol: "¥", pattern: Self.pattern(currencyFirst: true))
@@ -77,7 +76,7 @@ struct MoneyFormatTests {
         // Accounting can mark a negative with a minus instead of parentheses (e.g. de); positives stay plain.
         let euroMinus = MoneyFormat(
             symbol: "€", pattern: Self.pattern(currencyFirst: false, accountingParentheses: false),
-            currencyGap: "\u{00A0}",
+            currencySpacing: "\u{00A0}",
             decimalSeparator: ",", grouping: .repeating(3, separator: ".")
         )
         #expect(euroMinus.format(Self.money(-1_234_56, "EUR"), options: .init(sign: .accounting)) == "-1.234,56\u{00A0}€")

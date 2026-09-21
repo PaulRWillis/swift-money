@@ -19,7 +19,7 @@ import SwiftMoneyCore
 import SwiftMoneyLocalization
 
 let cldrVersion = "48.0.0"
-let locales = ["en", "en-GB", "de", "fr", "ja"]
+let locales = ["en", "en-GB", "de", "fr", "ja", "sw", "si", "ro"]
 
 // Plural rules are published per language, so a region keeps its language's rules.
 let languages = locales.map { String($0.prefix { $0 != "-" }) }.uniqued()
@@ -113,36 +113,38 @@ func parse(standard: String, accounting: String) -> ParsedPattern {
     )
 }
 
-// MARK: - Patterns as parts
+// MARK: - Patterns as affixes
 
-// The number itself, which every arrangement contains.
-let numberParts = [".integerDigits", ".decimalSeparator", ".fractionDigits"]
+func affixesLiteral(prefix: [String], suffix: [String]) -> String {
+    "MoneyFormatAffixes(prefix: [\(prefix.joined(separator: ", "))], suffix: [\(suffix.joined(separator: ", "))])"
+}
 
-// One arrangement of a currency beside a number. The gap is a part rather than text, because what
-// fills it depends on the currency: CLDR's currencySpacing rule resolves per symbol.
-func currencyParts(placement: Placement) -> [String] {
+// One arrangement of a currency beside the digits, as the tokens before and after the implicit number
+// body. The spacing is a token rather than text, because what fills it depends on the currency: CLDR's
+// currencySpacing rule resolves per symbol.
+func currencyAffix(placement: Placement) -> (prefix: [String], suffix: [String]) {
     placement == .before
-        ? [".currency", ".currencyGap"] + numberParts
-        : numberParts + [".currencyGap", ".currency"]
+        ? (prefix: [".currency", ".currencySpacing"], suffix: [])
+        : (prefix: [], suffix: [".currencySpacing", ".currency"])
 }
 
 // A locale's three arrangements. None of the locales here gives its standard pattern a negative
 // subpattern, so a negative is the positive arrangement with a sign in front, which is CLDR's own
 // default; the accounting form either wraps that in parentheses or falls back to the same minus.
 func patternLiteral(placement: Placement, accountingNegative: String) -> String {
-    let body = currencyParts(placement: placement)
-    // The sign slot leads both arrangements: CLDR writes a negative's minus there for every locale
-    // here, and a plus, where the options ask for one, goes wherever the minus would have gone.
-    let signed = [".sign"] + body
+    let body = currencyAffix(placement: placement)
+    // The sign slot leads the arrangement: CLDR writes a negative's minus at the very front for every
+    // locale here, and a plus, where the options ask for one, goes wherever the minus would have gone.
+    let signed = affixesLiteral(prefix: [".sign"] + body.prefix, suffix: body.suffix)
     let accounting = accountingNegative == ".parentheses"
-        ? [".literal(\"(\")"] + body + [".literal(\")\")"]
+        ? affixesLiteral(prefix: [".literal(\"(\")"] + body.prefix, suffix: body.suffix + [".literal(\")\")"])
         : signed
 
     return """
         MoneyFormatPattern(
-                    positive: [\(signed.joined(separator: ", "))],
-                    negative: [\(signed.joined(separator: ", "))],
-                    accountingNegative: [\(accounting.joined(separator: ", "))]
+                    positive: \(signed),
+                    negative: \(signed),
+                    accountingNegative: \(accounting)
                 )
         """
 }
@@ -175,27 +177,79 @@ func spacing(for symbol: String, placement: Placement, patternSpacing: String, i
 
 // MARK: - Full names
 
-// The gap between the amount and the currency's full name. CLDR writes the join as a pattern, and
-// the ones it uses for the locales here are `{0} {1}` and `{0}{1}`: the name always follows the
-// amount. A few locales put the name first or write a word between, which this tool refuses rather
-// than write out wrongly.
-func fullNameSpacing(_ patterns: [String: String], locale: String) -> Spacing {
-    let joins = Set(patterns.filter { $0.key.hasPrefix("unitPattern") }.values)
+// One CLDR unit pattern, such as "{0} {1}", "{1}{0}" or "{0} de {1}", turned into the tokens a
+// full-name layout writes before and after the digits. `{0}` is the number body and `{1}` the
+// currency; a run of a recognised gap becomes `.currencySpacing`, any other text (Romanian's " de ")
+// a `.literal`. The number is formatted with its own sign, so `.sign` sits next to the body — the end
+// of the prefix — rather than outermost as in a symbol pattern.
+struct ExpandedUnitPattern {
+    let prefix: [String]
+    let suffix: [String]
+    let spacing: Spacing?
+}
 
-    guard joins.count == 1, let join = joins.first else {
-        fatalError("\(locale) joins a currency name to an amount differently per plural category: \(joins)")
+func expandUnitPattern(_ pattern: String, locale: String) -> ExpandedUnitPattern {
+    guard let zero = pattern.range(of: "{0}") else {
+        fatalError("\(locale) unit pattern \(quote(pattern)) has no {0}")
     }
 
-    guard join.hasPrefix("{0}"), join.hasSuffix("{1}") else {
-        fatalError("\(locale) does not write a currency name after the amount: \(join)")
+    var spacing: Spacing?
+    func tokens(_ text: Substring) -> [String] {
+        var result: [String] = []
+        for (index, segment) in String(text).components(separatedBy: "{1}").enumerated() {
+            if index > 0 {
+                result.append(".currency")
+            }
+            guard !segment.isEmpty else { continue }
+            if let gap = Spacing(rendering: segment) {
+                spacing = gap
+                result.append(".currencySpacing")
+            } else {
+                result.append(".literal(\(quote(segment)))")
+            }
+        }
+        return result
     }
 
-    let gap = String(join.dropFirst(3).dropLast(3))
-    guard let spacing = Spacing(rendering: gap) else {
-        fatalError("\(locale) separates a currency name from an amount with \(quote(gap)), which is not a known gap")
+    let before = tokens(pattern[..<zero.lowerBound])
+    let after = tokens(pattern[zero.upperBound...])
+    return ExpandedUnitPattern(prefix: before + [".sign"], suffix: after, spacing: spacing)
+}
+
+// A locale's full-name layout: the `other` arrangement CLDR always publishes, any category that
+// arranges the name differently, and the one recognised gap the categories share. CLDR may join the
+// name per plural category (Romanian's `other` writes "de"), so this reads every category, not one.
+func fullNameLayout(_ patterns: [String: String], locale: String) -> (literal: String, spacing: Spacing) {
+    guard let otherPattern = patterns["unitPattern-count-other"] else {
+        fatalError("\(locale) has no unitPattern-count-other")
     }
 
-    return spacing
+    var spacings: Set<Spacing> = []
+    func expand(_ pattern: String) -> ExpandedUnitPattern {
+        let expanded = expandUnitPattern(pattern, locale: locale)
+        expanded.spacing.map { spacings.insert($0) }
+        return expanded
+    }
+
+    let other = expand(otherPattern)
+    let overrides = PluralCategory.allCases.compactMap { category -> String? in
+        guard category != .other, let pattern = patterns["unitPattern-count-\(category.rawValue)"] else {
+            return nil
+        }
+        let expanded = expand(pattern)
+        guard expanded.prefix != other.prefix || expanded.suffix != other.suffix else {
+            return nil
+        }
+        return ".\(category.rawValue): \(affixesLiteral(prefix: expanded.prefix, suffix: expanded.suffix))"
+    }
+
+    guard spacings.count <= 1 else {
+        fatalError("\(locale) writes a currency name with more than one gap: \(spacings)")
+    }
+
+    let byCategory = overrides.isEmpty ? "" : ", byCategory: [\(overrides.joined(separator: ", "))]"
+    let literal = "FullNameLayout(other: \(affixesLiteral(prefix: other.prefix, suffix: other.suffix))\(byCategory))"
+    return (literal, spacings.first ?? .none)
 }
 
 // What a locale calls one currency: the name CLDR always publishes, and any form that differs from
@@ -414,7 +468,7 @@ for locale in locales {
     let insertBetween = afterCurrency["insertBetween"] ?? " "
 
     let parsed = parse(standard: standard, accounting: accounting)
-    let nameSpacing = fullNameSpacing(formats.compactMapValues { $0 as? String }, locale: locale)
+    let fullName = fullNameLayout(formats.compactMapValues { $0 as? String }, locale: locale)
 
     // ISO code is always letters, so it takes the insertion (or the pattern's literal spacing).
     let isoSpacing = spacing(for: "AAA", placement: parsed.placement, patternSpacing: parsed.patternSpacing, insertBetween: insertBetween)
@@ -427,9 +481,9 @@ for locale in locales {
                 primaryGroupingSize: \(parsed.primaryGroupingSize),
                 secondaryGroupingSize: \(parsed.secondaryGroupingSize),
                 pattern: \(patternLiteral(placement: parsed.placement, accountingNegative: parsed.accountingNegative)),
-                fullNamePattern: \(patternLiteral(placement: .after, accountingNegative: ".minusSign")),
+                fullNamePattern: \(fullName.literal),
                 isoCodeSpacing: \(quote(isoSpacing)),
-                fullNameSpacing: \(literal(nameSpacing))
+                fullNameSpacing: \(literal(fullName.spacing))
             ),
     """)
 
@@ -466,28 +520,43 @@ let output = """
 
 import SwiftMoneyCore
 
+// Each table is built in an `@_optimize(none)` function. Under `-O`, the Swift 6.3.2 optimizer
+// (Xcode 26.5) spends many minutes on these large literal tables, enough to stall CI; skipping
+// optimization of the builder avoids it. The table is identical either way and is built once, lazily.
 extension MoneyLocalization {
     static let cldrVersion = \(quote(cldrVersion))
 
-    static let numberFormats: [String: LocaleNumberFormat] = [
+    static let numberFormats: [String: LocaleNumberFormat] = makeNumberFormats()
+    @_optimize(none) private static func makeNumberFormats() -> [String: LocaleNumberFormat] {
+        [
     \(numberFormatLines.joined(separator: "\n"))
-    ]
+        ]
+    }
 
-    static let currencyDisplays: [String: [String: CurrencyDisplay]] = [
+    static let currencyDisplays: [String: [String: CurrencyDisplay]] = makeCurrencyDisplays()
+    @_optimize(none) private static func makeCurrencyDisplays() -> [String: [String: CurrencyDisplay]] {
+        [
     \(currencyBlocks.joined(separator: "\n"))
-    ]
+        ]
+    }
 
     /// What each locale calls a currency, by plural category. A currency CLDR does not name in a
     /// locale is absent.
-    package static let currencyFullNames: [String: [CurrencyCode: CurrencyFullName]] = [
+    package static let currencyFullNames: [String: [CurrencyCode: CurrencyFullName]] = makeCurrencyFullNames()
+    @_optimize(none) private static func makeCurrencyFullNames() -> [String: [CurrencyCode: CurrencyFullName]] {
+        [
     \(fullNameBlocks.joined(separator: "\n"))
-    ]
+        ]
+    }
 
     /// Each language's plural rules, in the order CLDR resolves them. A language with no rule for a
     /// category takes `other`, which never carries one.
-    package static let pluralRules: [String: [PluralCategory: PluralRule]] = [
+    package static let pluralRules: [String: [PluralCategory: PluralRule]] = makePluralRules()
+    @_optimize(none) private static func makePluralRules() -> [String: [PluralCategory: PluralRule]] {
+        [
     \(pluralRuleBlocks.joined(separator: "\n"))
-    ]
+        ]
+    }
 }
 """
 

@@ -1,12 +1,14 @@
-/// How a locale lays out an amount, as CLDR's currency patterns describe it: one arrangement for a
-/// positive amount and one for a negative, plus the arrangement the accounting form uses.
+/// How a locale lays out an amount, as CLDR's currency patterns describe it: one arrangement of affixes
+/// for a positive amount and one for a negative, plus the arrangement the accounting form uses.
 ///
 /// ```swift
-/// // "¤#,##0.00" with "(¤#,##0.00)" for accounting, as English writes it
+/// // "¤#,##0.00" with "(¤#,##0.00)" for accounting, as English writes it.
 /// MoneyFormatPattern(
-///     positive: [.currency, .currencyGap, .integerDigits, .decimalSeparator, .fractionDigits],
-///     negative: [.sign, .currency, .currencyGap, .integerDigits, .decimalSeparator, .fractionDigits],
-///     accountingNegative: [.literal("("), .currency, .currencyGap, .integerDigits, .decimalSeparator, .fractionDigits, .literal(")")]
+///     positive: MoneyFormatAffixes(prefix: [.sign, .currency, .currencySpacing], suffix: []),
+///     negative: MoneyFormatAffixes(prefix: [.sign, .currency, .currencySpacing], suffix: []),
+///     accountingNegative: MoneyFormatAffixes(
+///         prefix: [.literal("("), .currency, .currencySpacing], suffix: [.literal(")")]
+///     )
 /// )
 /// ```
 ///
@@ -14,20 +16,20 @@
 @usableFromInline
 package struct MoneyFormatPattern: Equatable, Hashable, Sendable {
     @usableFromInline
-    package let positive: [MoneyFormatPart]
+    package let positive: MoneyFormatAffixes
 
     @usableFromInline
-    package let negative: [MoneyFormatPart]
+    package let negative: MoneyFormatAffixes
 
     /// The arrangement for a negative amount under the accounting sign strategy: parentheses in most
     /// locales, a plain minus in the rest.
     @usableFromInline
-    package let accountingNegative: [MoneyFormatPart]
+    package let accountingNegative: MoneyFormatAffixes
 
     package init(
-        positive: [MoneyFormatPart],
-        negative: [MoneyFormatPart],
-        accountingNegative: [MoneyFormatPart]
+        positive: MoneyFormatAffixes,
+        negative: MoneyFormatAffixes,
+        accountingNegative: MoneyFormatAffixes
     ) {
         self.positive = positive
         self.negative = negative
@@ -36,7 +38,7 @@ package struct MoneyFormatPattern: Equatable, Hashable, Sendable {
 
     /// The arrangement for one amount under one sign strategy.
     @usableFromInline
-    package func parts(negative isNegative: Bool, sign: MoneyFormatOptions.Sign) -> [MoneyFormatPart] {
+    package func affixes(negative isNegative: Bool, sign: MoneyFormatOptions.Sign) -> MoneyFormatAffixes {
         guard isNegative else {
             return positive
         }
