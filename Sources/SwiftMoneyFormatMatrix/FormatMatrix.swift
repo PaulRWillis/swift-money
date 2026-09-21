@@ -8,13 +8,16 @@ package enum FormatMatrix {
     /// The vocabulary `Decimal.FormatStyle.Currency` and `MoneyOf.FormatStyle` share.
     package typealias Config = CurrencyFormatStyleConfiguration
 
-    /// One point of the presentation x sign x grouping x separator cross.
+    /// One point of the presentation x sign x grouping x separator x precision cross.
     package struct Combination {
         package let id: String
         package let presentation: Config.Presentation
         package let sign: Config.SignDisplayStrategy
         package let grouping: Config.Grouping
         package let separator: Config.DecimalSeparatorDisplayStrategy
+
+        /// The precision to apply, or `nil` for the currency's own scale.
+        package let precision: Config.Precision?
 
         /// Whether this combination triggers Foundation's known symbol-drop defect: grouping off
         /// with a non-default sign or separator drops the currency symbol.
@@ -32,15 +35,26 @@ package enum FormatMatrix {
     package static let separators: [(name: String, f: Config.DecimalSeparatorDisplayStrategy)] =
         [("automatic", .automatic), ("always", .always)]
 
+    /// The precision axis: the currency's own scale, then fixed lengths that round below it (0), pad a
+    /// zero-scale currency and round a three-scale one (2), and pad past every shipped scale (4).
+    package static let precisions: [(name: String, f: Config.Precision?)] = [
+        ("defaultPrecision", nil),
+        ("fixed0", .fractionLength(0)),
+        ("fixed2", .fractionLength(2)),
+        ("fixed4", .fractionLength(4)),
+    ]
+
     /// The full cross, precomputed once since it is the same for every locale.
     package static let combinations: [Combination] = presentations.flatMap { p in
         signs.flatMap { s in
             groupings.flatMap { g in
-                separators.map { d in
-                    Combination(
-                        id: "\(p.name)|\(s.name)|\(g.name)|\(d.name)",
-                        presentation: p.f, sign: s.f, grouping: g.f, separator: d.f
-                    )
+                separators.flatMap { d in
+                    precisions.map { pr in
+                        Combination(
+                            id: "\(p.name)|\(s.name)|\(g.name)|\(d.name)|\(pr.name)",
+                            presentation: p.f, sign: s.f, grouping: g.f, separator: d.f, precision: pr.f
+                        )
+                    }
                 }
             }
         }
