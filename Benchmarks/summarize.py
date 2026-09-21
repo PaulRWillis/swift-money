@@ -131,21 +131,26 @@ TABLES = [
 
 TIME_SCALES = {"ns": 1, "μs": 1_000, "us": 1_000, "ms": 1_000_000, "s": 1_000_000_000}
 
+# The harness reports a large count in thousands or millions and says which in the metric name.
+COUNT_SCALES = {"": 1, "K": 1_000, "M": 1_000_000}
 
-def unit(metric):
+
+def unit(metric, scales=None):
     """The unit named in a metric heading, such as `ns` in `Time (wall clock) (ns)`."""
+    scales = TIME_SCALES if scales is None else scales
     units = re.findall(r"\(([^)]+)\)", metric)
+    default = "ns" if scales is TIME_SCALES else ""
 
-    return units[-1] if units and units[-1] in TIME_SCALES else "ns"
+    return units[-1] if units and units[-1] in scales else default
 
 
 def parse(raw):
-    """The p50 wall-clock time and malloc count for each benchmark in a markdown run."""
+    """The p50 instruction count, wall-clock time and malloc count for each benchmark in a run."""
     results = {}
 
     for section in SECTION.finditer(raw):
         name = section.group(1).strip()
-        time_ns, mallocs = None, None
+        time_ns, mallocs, instructions = None, None, None
 
         for row in section.group(2).splitlines():
             columns = [c.strip() for c in row.split("|") if c.strip()]
@@ -165,9 +170,17 @@ def parse(raw):
                 time_ns = p50 * TIME_SCALES[unit(metric)]
             elif "Malloc" in metric or "malloc" in metric:
                 mallocs = p50
+            elif "Instructions" in metric:
+                # Rescaled and named the same way the time is, so a benchmark reported in thousands
+                # would otherwise read as that many single instructions.
+                instructions = p50 * COUNT_SCALES[unit(metric, COUNT_SCALES)]
 
         if time_ns is not None:
-            results[name] = {"time_ns": time_ns, "mallocs": mallocs or 0}
+            results[name] = {
+                "time_ns": time_ns,
+                "mallocs": mallocs or 0,
+                "instructions": instructions or 0,
+            }
 
     return results
 
@@ -178,21 +191,44 @@ def duration(nanoseconds):
 
 
 def speedup(ours, theirs):
+    """How many times cheaper ours is, counted in instructions.
+
+    Instructions rather than elapsed time, because a runner's wall clock varies by 5% to 16% between
+    identical runs and the slowest rows here fit only one sample, which moved a published ratio by
+    twice between runs. An instruction count is the same number every time.
+    """
     if ours == 0:
         return "**∞**"
     ratio = theirs / ours
-    return f"**{ratio:.0f}×**" if ratio >= 1 else f"{ratio:.1f}×"
+    return f"**{ratio:.1f}×**" if ratio >= 1 else f"{ratio:.1f}×"
+
+
+def count(instructions):
+    """An instruction count, in thousands once it runs past four figures."""
+    if instructions >= 10_000:
+        return f"{instructions / 1_000:.0f}K"
+    return f"{instructions}"
 
 
 def cell(measurement):
-    """A time, with the allocation count alongside it when there is one to report."""
+    """An instruction count and, alongside it, the allocations and the time it took.
+
+    The instruction count leads because it is the metric the comparison is drawn from, and a reader
+    can then check a ratio against the two numbers beside it rather than having to trust it.
+    """
     if not measurement:
         return "n/a"
+
     allocations = measurement["mallocs"]
+    parts = [f"{count(measurement['instructions'])} instr"]
+
+    # An operation that allocates nothing says so by leaving the count out, since most do not.
     if allocations:
-        noun = "alloc" if allocations == 1 else "allocs"
-        return f"{duration(measurement['time_ns'])} ({allocations} {noun})"
-    return duration(measurement["time_ns"])
+        parts.append(f"{allocations} {'alloc' if allocations == 1 else 'allocs'}")
+
+    parts.append(duration(measurement["time_ns"]))
+
+    return ", ".join(parts)
 
 
 def table(spec, results):
@@ -229,7 +265,7 @@ def table(spec, results):
 
         if len(columns) == 1:
             only = baselines[0] if baselines else None
-            cells.append(speedup(ours["time_ns"], only["time_ns"]) if only else "n/a")
+            cells.append(speedup(ours["instructions"], only["instructions"]) if only else "n/a")
 
         lines.append("| " + " | ".join(c or "n/a" for c in cells) + " |")
 
