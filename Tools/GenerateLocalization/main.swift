@@ -537,6 +537,19 @@ for locale in locales.sorted(by: { $0.utf8.lexicographicallyPrecedes($1.utf8) })
     let afterCurrency = spacingRule["afterCurrency"] as! [String: String]
     let insertBetween = afterCurrency["insertBetween"] ?? " "
 
+    // Refused rather than emitted wrongly: the tables hold one arrangement per locale, so a locale that
+    // rearranges itself when the currency is written with letters cannot be represented at all. Every
+    // locale listed above is clear of this; a locale added to that list is not, until this says so.
+    // Widening the covered set turns this into a skip and a report rather than a stop.
+    for (name, pattern) in [("standard", standard), ("accounting", accounting)] {
+        if let unsupported = UnsupportedPattern(
+            pattern: pattern,
+            letterSymbolPattern: formats["\(name)-alphaNextToNumber"] as? String
+        ) {
+            fatalError("\(locale) cannot be generated from its \(name) pattern: \(unsupported)")
+        }
+    }
+
     let parsed = parse(standard: standard, accounting: accounting, locale: locale)
     let fullName = fullNameLayout(formats.compactMapValues { $0 as? String }, locale: locale)
 
