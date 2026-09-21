@@ -2,8 +2,8 @@
 /// bare pair of integers.
 @usableFromInline
 package struct StringRef: Equatable, Hashable, Sendable {
-    @usableFromInline let offset: UInt32
-    @usableFromInline let length: UInt32
+    @usableFromInline package let offset: UInt32
+    @usableFromInline package let length: UInt32
 
     @usableFromInline
     package init(offset: UInt32, length: UInt32) {
