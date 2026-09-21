@@ -920,7 +920,7 @@ let benchmarks: @Sendable () -> Void = {
     let carriedFourPoundAmounts = operands.map { Money(minorUnits: 4_00 + $0, currency: .gbp) }
 
     // Every format variant hands `blackHole` a `String`, so the harness costs the same in each.
-    Benchmark("MoneyOf currency formatting, en_GB", configuration: defaultConfiguration) { benchmark in
+    Benchmark("MoneyOf format, default, en_GB [engine]", configuration: defaultConfiguration) { benchmark in
         var index = 0
 
         for _ in benchmark.scaledIterations {
@@ -929,7 +929,7 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
-    Benchmark("Money currency formatting, en_GB", configuration: defaultConfiguration) { benchmark in
+    Benchmark("Money format, default, en_GB [engine]", configuration: defaultConfiguration) { benchmark in
         var index = 0
 
         for _ in benchmark.scaledIterations {
@@ -938,7 +938,7 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
-    Benchmark("Decimal currency formatting, en_GB", configuration: defaultConfiguration) { benchmark in
+    Benchmark("Decimal format, default, en_GB [ICU]", configuration: defaultConfiguration) { benchmark in
         var index = 0
 
         for _ in benchmark.scaledIterations {
@@ -954,7 +954,7 @@ let benchmarks: @Sendable () -> Void = {
     }
     let largePounds = operands.map { GBP(minorUnits: 1_234_567_00 + Int64($0)) }
 
-    Benchmark("MoneyOf non-ICU format, en_GB", configuration: defaultConfiguration) { benchmark in
+    Benchmark("Engine format, default, en_GB [engine]", configuration: defaultConfiguration) { benchmark in
         var index = 0
 
         for _ in benchmark.scaledIterations {
@@ -963,7 +963,7 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
-    Benchmark("MoneyOf non-ICU format, grouped", configuration: defaultConfiguration) { benchmark in
+    Benchmark("Engine format, grouped, en_GB [engine]", configuration: defaultConfiguration) { benchmark in
         var index = 0
 
         for _ in benchmark.scaledIterations {
@@ -977,7 +977,7 @@ let benchmarks: @Sendable () -> Void = {
     // does. Measured against the same amounts, so the difference is the naming.
     let typedFullNameStyle = typedCurrencyStyle.presentation(.fullName)
 
-    Benchmark("MoneyOf full name formatting, en_GB", configuration: defaultConfiguration) { benchmark in
+    Benchmark("MoneyOf format, full name, en_GB [engine]", configuration: defaultConfiguration) { benchmark in
         var index = 0
 
         for _ in benchmark.scaledIterations {
@@ -988,7 +988,7 @@ let benchmarks: @Sendable () -> Void = {
 
     let decimalFullNameStyle = decimalCurrencyStyle.presentation(.fullName)
 
-    Benchmark("Decimal full name formatting, en_GB", configuration: defaultConfiguration) { benchmark in
+    Benchmark("Decimal format, full name, en_GB [ICU]", configuration: defaultConfiguration) { benchmark in
         var index = 0
 
         for _ in benchmark.scaledIterations {
@@ -999,7 +999,7 @@ let benchmarks: @Sendable () -> Void = {
 
     // Rendering as an AttributedString builds the tagged runs on top of the plain formatting, and is
     // measured against the ICU attributed path the fallback uses so the difference is comparable.
-    Benchmark("MoneyOf attributed formatting, en_GB", configuration: defaultConfiguration) { benchmark in
+    Benchmark("MoneyOf attributed, default, en_GB [engine]", configuration: defaultConfiguration) { benchmark in
         var index = 0
 
         for _ in benchmark.scaledIterations {
@@ -1008,7 +1008,7 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
-    Benchmark("Decimal attributed formatting, en_GB", configuration: defaultConfiguration) { benchmark in
+    Benchmark("Decimal attributed, default, en_GB [ICU]", configuration: defaultConfiguration) { benchmark in
         var index = 0
 
         for _ in benchmark.scaledIterations {
@@ -1020,9 +1020,16 @@ let benchmarks: @Sendable () -> Void = {
     // Formatting with a rounding increment (five smallest units, as Swiss cash rounding uses) runs the
     // whole snap-to-increment computation the plain format skips. The amounts carry nonzero remainders so
     // the rounding always has work to do.
+    //
+    // This is the one option with no Foundation row beside it. Foundation counts its increment in whole
+    // units, where this library counts the currency's smallest, so `increment: 5` means five pounds there
+    // and five pence here; and pinning a fraction length, which every peer here does so that it matches
+    // the precision this library uses internally, makes Foundation ignore the increment altogether and
+    // drop the currency symbol as well. A peer would therefore be measuring neither the same rounding nor
+    // the same output.
     let fivePenceRoundedStyle = typedCurrencyStyle.rounded(increment: 5)
 
-    Benchmark("MoneyOf currency formatting with an increment, en_GB", configuration: defaultConfiguration) { benchmark in
+    Benchmark("MoneyOf format, increment, en_GB [ICU fallback]", configuration: defaultConfiguration) { benchmark in
         var index = 0
 
         for _ in benchmark.scaledIterations {
@@ -1030,6 +1037,163 @@ let benchmarks: @Sendable () -> Void = {
             index &+= 1
         }
     }
+
+    // MARK: Formatting, option by option
+    //
+    // One pair per option a caller can set, each against the `Decimal.FormatStyle.Currency` setting that
+    // means the same thing, so a pair differs in that option and in nothing else. Both peers keep the
+    // `fractionLength(2)` pin the default pair explains, or the comparison would be against a differently
+    // configured style.
+    //
+    // The tag in a name says which path the row runs. `[engine]` is the Foundation-free renderer, `[ICU]`
+    // is Foundation's own, and `[ICU fallback]` is this library handing the work to Foundation because the
+    // style asks for something the engine does not express: any explicit precision, any rounding
+    // increment, a sign strategy outside the four below, or a locale the CLDR data does not cover. That
+    // rule lives in `engineRenderInputs` in `MoneyOf+FormatStyle.swift`; the tags are read off it rather
+    // than measured, so they want rechecking whenever it moves.
+    //
+    // An explicit precision falls back even when it asks for the digits the engine would have shown
+    // anyway, so `precision 2dp` renders the same text as the default pair at several times the cost.
+    // That is the fallback surface priced, and it is what removing the ICU dependency would recover.
+    // `negativeDecimalAmounts`, built for the Decimal bridge above, is the same digits as
+    // `decimalAmounts` with a sign, so the two sides of a sign pair still read the same amounts.
+    let negativeFourPounds = operands.map { GBP(minorUnits: -(4_00 + $0)) }
+
+    // Both rows of a pair read the same amounts through the same loop, because a pair that drifts in its
+    // fixtures or its index arithmetic reports a difference that is not the option under test.
+    func formatPair(
+        _ option: String,
+        tag: String,
+        ours: GBP.FormatStyle,
+        theirs: Decimal.FormatStyle.Currency,
+        negative: Bool = false
+    ) {
+        let amounts = negative ? negativeFourPounds : fourPoundAmounts
+        let decimals = negative ? negativeDecimalAmounts : decimalAmounts
+
+        Benchmark("MoneyOf format, \(option), en_GB [\(tag)]", configuration: defaultConfiguration) { benchmark in
+            var index = 0
+
+            for _ in benchmark.scaledIterations {
+                blackHole(ours.format(amounts[index % amounts.count]))
+                index &+= 1
+            }
+        }
+
+        Benchmark("Decimal format, \(option), en_GB [ICU]", configuration: defaultConfiguration) { benchmark in
+            var index = 0
+
+            for _ in benchmark.scaledIterations {
+                blackHole(theirs.format(decimals[index % decimals.count]))
+                index &+= 1
+            }
+        }
+    }
+
+    // Presentation. The full-name pair sits above, with the plural resolution it needs described there.
+    formatPair(
+        "ISO code", tag: "engine",
+        ours: typedCurrencyStyle.presentation(.isoCode),
+        theirs: decimalCurrencyStyle.presentation(.isoCode)
+    )
+    formatPair(
+        "narrow", tag: "engine",
+        ours: typedCurrencyStyle.presentation(.narrow),
+        theirs: decimalCurrencyStyle.presentation(.narrow)
+    )
+
+    // Sign, against negative amounts: every strategy but `.always` leaves a positive amount as the
+    // default renders it, so positive fixtures would measure the default path under three more names.
+    formatPair(
+        "sign never", tag: "engine",
+        ours: typedCurrencyStyle.sign(strategy: .never),
+        theirs: decimalCurrencyStyle.sign(strategy: .never),
+        negative: true
+    )
+    formatPair(
+        "sign always", tag: "engine",
+        ours: typedCurrencyStyle.sign(strategy: .always()),
+        theirs: decimalCurrencyStyle.sign(strategy: .always()),
+        negative: true
+    )
+    formatPair(
+        "sign accounting", tag: "engine",
+        ours: typedCurrencyStyle.sign(strategy: .accounting),
+        theirs: decimalCurrencyStyle.sign(strategy: .accounting),
+        negative: true
+    )
+
+    // Grouping and the decimal separator. The grouped amounts are the large ones, since grouping does
+    // nothing to four pounds and the row would otherwise measure the default path.
+    Benchmark("MoneyOf format, grouping never, en_GB [engine]", configuration: defaultConfiguration) { benchmark in
+        let style = typedCurrencyStyle.grouping(.never)
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(style.format(largePounds[index % largePounds.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Decimal format, grouping never, en_GB [ICU]", configuration: defaultConfiguration) { benchmark in
+        let style = decimalCurrencyStyle.grouping(.never)
+        let amounts = decimalAmounts.map { $0 + 1_234_567 }
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(style.format(amounts[index % amounts.count]))
+            index &+= 1
+        }
+    }
+
+    formatPair(
+        "separator always", tag: "engine",
+        ours: typedCurrencyStyle.decimalSeparator(strategy: .always),
+        theirs: decimalCurrencyStyle.decimalSeparator(strategy: .always)
+    )
+
+    // Precision, which falls back however many digits it asks for: `2dp` is the count the engine shows
+    // by default, so the pair prices asking for it explicitly, and `1dp` prices rounding on top.
+    formatPair(
+        "precision 2dp", tag: "ICU fallback",
+        ours: typedCurrencyStyle.precision(.fractionLength(2)),
+        theirs: decimalCurrencyStyle.precision(.fractionLength(2))
+    )
+    formatPair(
+        "precision 1dp", tag: "ICU fallback",
+        ours: typedCurrencyStyle.precision(.fractionLength(1)),
+        theirs: decimalCurrencyStyle.precision(.fractionLength(1))
+    )
+
+    // Two options at once, one of which forces the fallback: what a caller pays for combining them.
+    formatPair(
+        "precision 1dp and accounting", tag: "ICU fallback",
+        ours: typedCurrencyStyle.precision(.fractionLength(1)).sign(strategy: .accounting),
+        theirs: decimalCurrencyStyle.precision(.fractionLength(1)).sign(strategy: .accounting),
+        negative: true
+    )
+
+    // Every comparable option at once: the worst case, and the one row where the library does none of the
+    // formatting itself. Both sides render the same text (`-4.03`, Foundation dropping the symbol and the
+    // accounting parentheses under this combination), because the fallback hands Foundation the same
+    // settings, so the gap between the two rows is what this library costs on top of the call it makes.
+    // The rounding increment is left out for the reason given beside its own row.
+    formatPair(
+        "every option", tag: "ICU fallback",
+        ours: typedCurrencyStyle
+            .presentation(.isoCode)
+            .sign(strategy: .accounting)
+            .grouping(.never)
+            .decimalSeparator(strategy: .always)
+            .precision(.fractionLength(1)),
+        theirs: decimalCurrencyStyle
+            .presentation(.isoCode)
+            .sign(strategy: .accounting)
+            .grouping(.never)
+            .decimalSeparator(strategy: .always)
+            .precision(.fractionLength(1)),
+        negative: true
+    )
 
     // Every parse variant hands `blackHole` a `Bool`, so the harness costs the same in each. All read the
     // same strings, `bareStrings` behind a pound sign. The runtime route, `parseStrategy(for:)`, has its
@@ -1045,7 +1209,7 @@ let benchmarks: @Sendable () -> Void = {
     precondition((try? decimalCurrencyStrategy.parse(poundStrings[0])) != nil,
                  "the Decimal strategy must parse the fixtures")
 
-    Benchmark("MoneyOf currency parsing, en_GB", configuration: defaultConfiguration) { benchmark in
+    Benchmark("MoneyOf parse, en_GB [ICU]", configuration: defaultConfiguration) { benchmark in
         var index = 0
 
         for _ in benchmark.scaledIterations {
@@ -1054,7 +1218,7 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
-    Benchmark("Decimal currency parsing, en_GB", configuration: defaultConfiguration) { benchmark in
+    Benchmark("Decimal parse, en_GB [ICU]", configuration: defaultConfiguration) { benchmark in
         var index = 0
 
         for _ in benchmark.scaledIterations {
@@ -1070,7 +1234,7 @@ let benchmarks: @Sendable () -> Void = {
     precondition((try? runtimeCurrencyStrategy.parse(poundStrings[0])) != nil,
                  "the runtime strategy must parse the fixtures")
 
-    Benchmark("Money currency parsing, en_GB", configuration: defaultConfiguration) { benchmark in
+    Benchmark("Money parse, en_GB [ICU]", configuration: defaultConfiguration) { benchmark in
         var index = 0
 
         for _ in benchmark.scaledIterations {
