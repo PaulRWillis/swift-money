@@ -19,14 +19,14 @@ struct MoneyFormatStyleGoldenTests {
 
     // FNV-1a over the engine's CLDR-derived output. Regenerate with MONEYGOLDEN_RECORD=1.
     static let golden: [String: UInt64] = [
-        "en_US": 0x6fc7_7cd6_a3fa_a055,
-        "en_GB": 0xe60b_8796_556d_1278,
-        "de_DE": 0x9863_40f8_a51d_e74a,
-        "fr_FR": 0x2979_06d6_a302_bddc,
-        "ja_JP": 0x03e1_ab0f_1fd2_0dbf,
-        "sw": 0xa277_7992_74fe_fff7,
-        "si": 0xd51d_73ea_ae19_8ba3,
-        "ro": 0xff55_545e_5721_ec1e,
+        "en_US": 0xf09c_21d2_bc2c_1e16,
+        "en_GB": 0x44b9_b57d_9b3a_e5ff,
+        "de_DE": 0x850f_13c1_9a89_3573,
+        "fr_FR": 0x6293_6d4d_6d0e_6967,
+        "ja_JP": 0x3070_dd17_7190_4abc,
+        "sw": 0xbbd3_fde3_2ff9_3e68,
+        "si": 0x15af_2cf5_a9f2_c33e,
+        "ro": 0x76cd_eee0_6d59_1829,
     ]
 
     @Test("Engine output matches the committed golden, per locale", arguments: FormatMatrix.coveredLocaleIDs)

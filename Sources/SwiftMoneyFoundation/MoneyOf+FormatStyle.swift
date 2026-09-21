@@ -204,11 +204,18 @@ private extension MoneyOf.FormatStyle {
     // our CLDR data covers. Shared by the string and attributed renderers so both cover the same cells.
     func engineRenderInputs(for value: MoneyOf<C>) -> (descriptor: MoneyFormat, options: MoneyFormatOptions)? {
         guard
-            precision == nil,
             roundingIncrement == nil,
+            let precision = enginePrecision,
             let sign = engineSign,
             let format = engineFormat(for: value)
         else {
+            return nil
+        }
+
+        // A full name's plural form follows the digits shown, which the engine reads from the currency
+        // scale; an explicit fraction length changes the digits without changing the scale, so it stays
+        // on ICU.
+        if presentation == .fullName, self.precision != nil {
             return nil
         }
 
@@ -216,9 +223,31 @@ private extension MoneyOf.FormatStyle {
             sign: sign,
             grouping: engineGrouping,
             decimalSeparator: engineDecimalSeparator,
-            precision: .currencyScale
+            precision: precision
         )
         return (format, options)
+    }
+
+    // Foundation's precision as the engine's, or nil to fall back. The default is the currency scale;
+    // a fixed fraction length passes through with the style's rounding rule (both rounding types are
+    // `FloatingPointRoundingRule`). Significant-digit and range forms are unrecognised and fall back.
+    var enginePrecision: MoneyFormatOptions.Precision? {
+        guard let precision else {
+            return .currencyScale
+        }
+        guard let length = Self.fractionLength(of: precision) else {
+            return nil
+        }
+        return .fixed(length, rounding: roundingRule)
+    }
+
+    // The fixed fraction length a precision asks for, or nil for any other form. `Precision` is opaque
+    // but `Equatable`, so it is matched by comparison; the bound spans every length an `Int64` holds.
+    static func fractionLength(of precision: Configuration.Precision) -> FractionLength? {
+        for length in 0...19 where precision == .fractionLength(length) {
+            return FractionLength(exactly: length)
+        }
+        return nil
     }
 
     // The amount rendered by the Foundation-free engine, or nil to fall back to ICU. Output matches

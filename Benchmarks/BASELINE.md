@@ -319,33 +319,34 @@ locale the CLDR data does not cover — the rule is `engineRenderInputs` in `Mon
 **`[ICU]`** is Foundation's own `Decimal.FormatStyle.Currency`, the peer each option is measured against
 with the same setting applied to both sides.
 
-Two things stand out. Where the engine renders, it is 2.1× to 4.7× cheaper than Foundation and, since the
-packed tables landed, allocates nothing at all against ten to twenty times. Where it falls back, it is
-about 1.4× **dearer** than calling Foundation directly, because a fallback rebuilds the underlying style
-and converts the amount on every call: `precision 2dp` asks for the digits the default already shows,
-renders identical text, and costs 3.8× the default. That gap is what removing the ICU dependency would
-recover.
+Two things stand out. Where the engine renders, it is roughly 2.3× to 4.7× cheaper than Foundation and,
+since the packed tables landed, allocates nothing at all against ten to twenty times. A fixed fraction
+length now renders in the engine too, so `precision 2dp` costs what the default does (8913 against 8596)
+rather than the ~32K it cost when it fell back. What still falls back — a rounding increment,
+significant-digit or range precision, a full name at an explicit precision, or an uncovered locale — is
+about 1.4× **dearer** than calling Foundation directly, because it rebuilds the underlying style and
+converts the amount on every call.
 
 | Operation | Instructions | Malloc | Wall (ns) | Foundation | Malloc | Wall (ns) |
 |---|--:|--:|--:|--:|--:|--:|
-| Default `[engine]` | 8531 | 0 | 434 | 22K | 10 | 761 |
-| Default, runtime currency `[engine]` | 8492 | 0 | 321 | 22K | 10 | 761 |
-| ISO code `[engine]` | 8628 | 0 | 321 | 23K | 10 | 773 |
-| Narrow symbol `[engine]` | 8566 | 0 | 361 | 23K | 10 | 769 |
-| Full name `[engine]` | 12K | 1 | 447 | 25K | 11 | 848 |
-| Sign, never `[engine]` | 8555 | 0 | 321 | 25K | 11 | 831 |
-| Sign, always `[engine]` | 8665 | 0 | 340 | 25K | 11 | 878 |
-| Sign, accounting `[engine]` | 8813 | 0 | 329 | 26K | 12 | 869 |
-| Grouping, never `[engine]` | 8715 | 0 | 323 | 41K | 21 | 1339 |
-| Decimal separator, always `[engine]` | 8511 | 0 | 312 | 24K | 11 | 827 |
-| Precision, 2dp `[ICU fallback]` | 32K | 15 | 1089 | 22K | 10 | 803 |
-| Precision, 1dp `[ICU fallback]` | 32K | 15 | 1106 | 22K | 10 | 836 |
-| Precision 1dp and accounting `[ICU fallback]` | 36K | 17 | 1199 | 25K | 12 | 872 |
-| Every option `[ICU fallback]` | 33K | 15 | 1109 | 21K | 10 | 702 |
-| Rounding increment `[ICU fallback]` | 36K | 18 | 1223 | n/a | n/a | n/a |
-| Attributed `[engine]` | 206K | 59 | 8679 | 146K | 39 | 5632 |
-| Parse `[ICU]` | 46K | 19 | 1601 | 25K | 8 | 852 |
-| Parse, runtime currency `[ICU]` | 45K | 19 | 1527 | 25K | 8 | 852 |
+| Default `[engine]` | 8596 | 0 | 317 | 22K | 10 | 789 |
+| Default, runtime currency `[engine]` | 8577 | 0 | 316 | 22K | 10 | 789 |
+| ISO code `[engine]` | 8713 | 0 | 328 | 23K | 10 | 804 |
+| Narrow symbol `[engine]` | 8651 | 0 | 323 | 23K | 10 | 803 |
+| Full name `[engine]` | 13K | 1 | 466 | 25K | 11 | 859 |
+| Sign, never `[engine]` | 8640 | 0 | 336 | 25K | 11 | 874 |
+| Sign, always `[engine]` | 8750 | 0 | 337 | 25K | 11 | 866 |
+| Sign, accounting `[engine]` | 8898 | 0 | 346 | 26K | 12 | 897 |
+| Grouping, never `[engine]` | 8800 | 0 | 339 | 41K | 21 | 1373 |
+| Decimal separator, always `[engine]` | 8596 | 0 | 317 | 24K | 11 | 840 |
+| Precision, 2dp `[engine]` | 8913 | 0 | 349 | 22K | 10 | 804 |
+| Precision, 1dp `[engine]` | 8857 | 0 | 345 | 22K | 10 | 797 |
+| Precision 1dp and accounting `[engine]` | 9183 | 0 | 343 | 25K | 12 | 900 |
+| Every option `[engine]` | 9292 | 0 | 346 | 21K | 10 | 732 |
+| Rounding increment `[ICU fallback]` | 36K | 18 | 1264 | n/a | n/a | n/a |
+| Attributed `[engine]` | 206K | 59 | 8915 | 146K | 39 | 5793 |
+| Parse `[ICU]` | 46K | 19 | 1622 | 25K | 8 | 888 |
+| Parse, runtime currency `[ICU]` | 45K | 19 | 1597 | 25K | 8 | 888 |
 
 The rounding increment has no Foundation column: Foundation counts an increment in whole units where this
 library counts the currency's smallest, and beside a pinned fraction length Foundation ignores the

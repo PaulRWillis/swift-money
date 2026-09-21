@@ -1047,14 +1047,14 @@ let benchmarks: @Sendable () -> Void = {
     //
     // The tag in a name says which path the row runs. `[engine]` is the Foundation-free renderer, `[ICU]`
     // is Foundation's own, and `[ICU fallback]` is this library handing the work to Foundation because the
-    // style asks for something the engine does not express: any explicit precision, any rounding
-    // increment, a sign strategy outside the four below, or a locale the CLDR data does not cover. That
-    // rule lives in `engineRenderInputs` in `MoneyOf+FormatStyle.swift`; the tags are read off it rather
-    // than measured, so they want rechecking whenever it moves.
+    // style asks for something the engine does not express: a rounding increment, significant-digit or
+    // range precision, a full name at an explicit precision, a sign strategy outside the four below, or a
+    // locale the CLDR data does not cover. That rule lives in `engineRenderInputs` in
+    // `MoneyOf+FormatStyle.swift`; the tags are read off it rather than measured, so they want rechecking
+    // whenever it moves.
     //
-    // An explicit precision falls back even when it asks for the digits the engine would have shown
-    // anyway, so `precision 2dp` renders the same text as the default pair at several times the cost.
-    // That is the fallback surface priced, and it is what removing the ICU dependency would recover.
+    // A fixed fraction length now renders in the engine, so `precision 2dp` (the digits the default
+    // already shows) costs what the default does instead of several times more.
     // `negativeDecimalAmounts`, built for the Decimal bridge above, is the same digits as
     // `decimalAmounts` with a sign, so the two sides of a sign pair still read the same amounts.
     let negativeFourPounds = operands.map { GBP(minorUnits: -(4_00 + $0)) }
@@ -1152,34 +1152,34 @@ let benchmarks: @Sendable () -> Void = {
         theirs: decimalCurrencyStyle.decimalSeparator(strategy: .always)
     )
 
-    // Precision, which falls back however many digits it asks for: `2dp` is the count the engine shows
-    // by default, so the pair prices asking for it explicitly, and `1dp` prices rounding on top.
+    // Precision, a fixed fraction length the engine now renders: `2dp` is the count the engine shows by
+    // default, so the pair prices asking for it explicitly, and `1dp` prices rounding on top.
     formatPair(
-        "precision 2dp", tag: "ICU fallback",
+        "precision 2dp", tag: "engine",
         ours: typedCurrencyStyle.precision(.fractionLength(2)),
         theirs: decimalCurrencyStyle.precision(.fractionLength(2))
     )
     formatPair(
-        "precision 1dp", tag: "ICU fallback",
+        "precision 1dp", tag: "engine",
         ours: typedCurrencyStyle.precision(.fractionLength(1)),
         theirs: decimalCurrencyStyle.precision(.fractionLength(1))
     )
 
-    // Two options at once, one of which forces the fallback: what a caller pays for combining them.
+    // Two options at once: a fixed fraction length beside a sign strategy, both engine-expressible.
     formatPair(
-        "precision 1dp and accounting", tag: "ICU fallback",
+        "precision 1dp and accounting", tag: "engine",
         ours: typedCurrencyStyle.precision(.fractionLength(1)).sign(strategy: .accounting),
         theirs: decimalCurrencyStyle.precision(.fractionLength(1)).sign(strategy: .accounting),
         negative: true
     )
 
-    // Every comparable option at once: the worst case, and the one row where the library does none of the
-    // formatting itself. Both sides render the same text (`-4.03`, Foundation dropping the symbol and the
-    // accounting parentheses under this combination), because the fallback hands Foundation the same
-    // settings, so the gap between the two rows is what this library costs on top of the call it makes.
-    // The rounding increment is left out for the reason given beside its own row.
+    // Every comparable option at once, all engine-expressible, so the row runs through the engine. Under
+    // this combination Foundation drops the symbol and the accounting parentheses (its grouping-off
+    // defect) while the engine keeps them, so the two peers render different text; the row prices the
+    // engine carrying every option rather than a like-for-like race. The rounding increment is left out
+    // for the reason given beside its own row.
     formatPair(
-        "every option", tag: "ICU fallback",
+        "every option", tag: "engine",
         ours: typedCurrencyStyle
             .presentation(.isoCode)
             .sign(strategy: .accounting)
