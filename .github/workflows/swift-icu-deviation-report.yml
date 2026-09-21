@@ -57,7 +57,7 @@ jobs:
         base_format="$(sed -n 's/^# format: //p' base-output.txt)"
 
         sed '/^#/d' head-output.txt | sort > head.txt
-        summary="$(sed -n 's/^# //p' head-output.txt | grep -v '^format:' | tail -1)"
+        summary="$(sed -n 's/^# //p' head-output.txt | grep -v '^format:' | paste -sd ' ' -)"
 
         if [ "$head_format" != "$base_format" ]; then
           echo incomparable > status.txt

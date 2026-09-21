@@ -123,4 +123,50 @@ struct FormatMatrixDeviationsTests {
         #expect(!fullNames.isEmpty)
         #expect(found.isEmpty)
     }
+
+    static func deviation(
+        _ localeID: String, _ currencyCode: String, _ combinationID: String,
+        _ amount: Int64, engine: String, icu: String
+    ) -> FormatMatrix.Deviation {
+        FormatMatrix.Deviation(
+            localeID: localeID, currencyCode: currencyCode, combinationID: combinationID,
+            amount: amount, engine: engine, icu: icu, isKnownFoundationGroupingDefect: false
+        )
+    }
+
+    // One currency renamed between CLDR releases shows up in every cell that names it, which ran to
+    // hundreds of identical-looking lines. A reader wants the cause once, with a count.
+    @Test("Cells differing for the same reason report as one line")
+    func cellsWithOneCauseReportOnce() {
+        let cells = [
+            Self.deviation("en_GB", "GYD", "fullName|automatic|automatic|automatic", 0, engine: "0.00 Guyanaese dollars", icu: "0.00 Guyanese dollars"),
+            Self.deviation("en_GB", "GYD", "fullName|always|automatic|automatic", 100, engine: "+1.00 Guyanaese dollars", icu: "+1.00 Guyanese dollars"),
+        ]
+
+        let lines = FormatMatrix.summaryLines(for: cells)
+
+        #expect(lines.count == 1)
+        #expect(lines.first?.hasPrefix("en_GB GYD fullName: 2 cell(s), e.g. engine ") == true)
+        // The example must not depend on the order the cells were found in.
+        #expect(FormatMatrix.summaryLines(for: cells.reversed()) == lines)
+    }
+
+    @Test("Cells differing in different places report separately, in a stable order")
+    func separateCausesReportSeparately() {
+        let cells = [
+            Self.deviation("ja_JP", "JPY", "standard|automatic|automatic|automatic", 0, engine: "\u{FFE5}0", icu: "\u{00A5}0"),
+            Self.deviation("en_GB", "GYD", "fullName|automatic|automatic|automatic", 0, engine: "0.00 Guyanaese dollars", icu: "0.00 Guyanese dollars"),
+            Self.deviation("en_GB", "GYD", "standard|automatic|automatic|automatic", 0, engine: "G$0.00", icu: "GY$0.00"),
+        ]
+
+        let lines = FormatMatrix.summaryLines(for: cells)
+
+        #expect(lines.count == 3)
+        #expect(lines.map { $0.prefix(15) } == ["en_GB GYD fullN", "en_GB GYD stand", "ja_JP JPY stand"])
+    }
+
+    @Test("Nothing to report reports nothing")
+    func noDeviationsSummarizeToNothing() {
+        #expect(FormatMatrix.summaryLines(for: []).isEmpty)
+    }
 }
