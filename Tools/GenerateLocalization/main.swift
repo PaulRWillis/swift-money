@@ -182,6 +182,57 @@ func index(of literal: String, in table: inout [String]) -> UInt16 {
 
 // MARK: - Currency spacing (resolved here, baked into the data)
 
+// The string CLDR inserts between a currency and the digits, once the rule around it is one this tool
+// can bake in at generation time rather than carry into the tables.
+//
+// Two assumptions are checked here rather than left implicit, because both are true of every locale in
+// CLDR 48.2 and neither is guaranteed. The first is that a locale spaces a currency the same way on
+// either side of the digits, which is what lets one resolved gap per symbol serve both arrangements.
+// The second is that the rule deciding whether to insert is the one `isSymbolOrSeparator` implements:
+// `[[:^S:]&[:^Z:]]`, meaning the character of the symbol touching the digits is neither a symbol nor a
+// separator, beside a digit. Note that is narrower than the `[:^S:]` LDML documents as the default, so
+// the code follows the published data rather than the specification.
+//
+// A locale breaking either would need the rule evaluated at render time, which the Embedded target
+// cannot do: it has no Unicode category tables, which is the whole reason this is resolved here.
+func currencySpacingInsertion(_ rule: [String: Any], locale: String) -> String {
+    // Written out with every value escaped and the fields in a fixed order. Printing the dictionary
+    // instead hides the difference these messages exist to report: the gaps CLDR inserts are all spaces
+    // of one width or another, so a no-break space and a plain one look identical in a terminal.
+    func describe(_ side: [String: String]) -> String {
+        ["currencyMatch", "surroundingMatch", "insertBetween"]
+            .map { "\($0) \(side[$0].map(quote) ?? "absent")" }
+            .joined(separator: ", ")
+    }
+
+    guard
+        let before = rule["beforeCurrency"] as? [String: String],
+        let after = rule["afterCurrency"] as? [String: String]
+    else {
+        fatalError("\(locale) publishes no currency spacing rule")
+    }
+
+    guard before == after else {
+        fatalError("""
+            \(locale) spaces a currency differently before and after the digits: \
+            \(describe(before)) against \(describe(after))
+            """)
+    }
+
+    guard
+        after["currencyMatch"] == "[[:^S:]&[:^Z:]]",
+        after["surroundingMatch"] == "[:digit:]"
+    else {
+        fatalError("\(locale) decides currency spacing by a rule this tool does not evaluate: \(describe(after))")
+    }
+
+    guard let insertBetween = after["insertBetween"] else {
+        fatalError("\(locale) gives its currency spacing rule nothing to insert")
+    }
+
+    return insertBetween
+}
+
 func isSymbolOrSeparator(_ character: Character) -> Bool {
     guard let scalar = character.unicodeScalars.first else { return false }
     switch scalar.properties.generalCategory {
@@ -534,8 +585,7 @@ for locale in locales.sorted(by: { $0.utf8.lexicographicallyPrecedes($1.utf8) })
     let standard = formats["standard"] as! String
     let accounting = formats["accounting"] as! String
     let spacingRule = formats["currencySpacing"] as! [String: Any]
-    let afterCurrency = spacingRule["afterCurrency"] as! [String: String]
-    let insertBetween = afterCurrency["insertBetween"] ?? " "
+    let insertBetween = currencySpacingInsertion(spacingRule, locale: locale)
 
     // Refused rather than emitted wrongly: the tables hold one arrangement per locale, so a locale that
     // rearranges itself when the currency is written with letters cannot be represented at all. Every
