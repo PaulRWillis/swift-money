@@ -13,6 +13,7 @@
 // tables, which Embedded lacks — and bakes the resulting spacing string into the data, so the runtime
 // target needs no Unicode-category lookups.
 
+import CLDRCurrencyPatterns
 import CLDRPluralParsing
 import Foundation
 import SwiftMoneyCore
@@ -85,51 +86,48 @@ func currencies(_ locale: String) -> [String: [String: String]] {
 
 // MARK: - Pattern parsing
 
-enum Placement: String { case before = ".before", after = ".after" }
-
-let numberChars: Set<Character> = ["#", "0", ".", ",", "\u{00A0}\u{00A0}".first!]  // #,0,. and , only
 let integerNumberChars: Set<Character> = ["#", "0", ",", "."]
 
 struct ParsedPattern {
-    let placement: Placement
+    let side: CurrencySide
     let patternSpacing: String
-    let primaryGroupingSize: Int
-    let secondaryGroupingSize: Int
+    let grouping: GroupSizes
     let accountingNegative: String
 }
 
-func parse(standard: String, accounting: String) -> ParsedPattern {
+func parse(standard: String, accounting: String, locale: String) -> ParsedPattern {
     let positive = String(standard.split(separator: ";").first ?? Substring(standard))
 
-    let symbolIndex = positive.firstIndex(of: "¤")!
-    let firstNumber = positive.firstIndex { integerNumberChars.contains($0) }!
-
-    let placement: Placement = symbolIndex < firstNumber ? .before : .after
-    let patternSpacing: String
-    if placement == .before {
-        // Chars between ¤ and the first number character.
-        patternSpacing = String(positive[positive.index(after: symbolIndex) ..< firstNumber])
-    } else {
-        // Chars between the last number character and ¤.
-        let lastNumber = positive.lastIndex { integerNumberChars.contains($0) }!
-        patternSpacing = String(positive[positive.index(after: lastNumber) ..< symbolIndex])
+    // `CurrencySide` reads the same two positions, so a pattern it can place is one with both of these.
+    guard
+        let side = CurrencySide(pattern: standard),
+        let symbolIndex = positive.firstIndex(of: "¤"),
+        let firstNumber = positive.firstIndex(where: { integerNumberChars.contains($0) })
+    else {
+        fatalError("\(locale) writes a currency pattern with no currency or no digits: \(standard)")
     }
 
-    // Grouping: the integer subpattern (before the decimal point), split on the group separator.
-    let integerPart = positive.prefix { $0 != "." }.filter { $0 == "#" || $0 == "0" || $0 == "," }
-    let groups = integerPart.split(separator: ",", omittingEmptySubsequences: false).map(\.count)
-    let primary = groups.last ?? 3
-    let secondary = groups.count >= 3 ? groups[groups.count - 2] : primary
+    let patternSpacing: String
+    switch side {
+    case .leading:
+        // Chars between ¤ and the first number character.
+        patternSpacing = String(positive[positive.index(after: symbolIndex) ..< firstNumber])
+    case .trailing:
+        // Chars between the last number character and ¤.
+        guard let lastNumber = positive.lastIndex(where: { integerNumberChars.contains($0) }) else {
+            fatalError("\(locale) writes a currency pattern with no digits: \(standard)")
+        }
+        patternSpacing = String(positive[positive.index(after: lastNumber) ..< symbolIndex])
+    }
 
     // Accounting wraps negatives in parentheses when its negative subpattern does, else it uses a minus.
     let negativeSubpattern = accounting.split(separator: ";").dropFirst().first ?? ""
     let accountingNegative = negativeSubpattern.contains("(") ? ".parentheses" : ".minusSign"
 
     return ParsedPattern(
-        placement: placement,
+        side: side,
         patternSpacing: patternSpacing,
-        primaryGroupingSize: primary,
-        secondaryGroupingSize: secondary,
+        grouping: GroupSizes(pattern: standard),
         accountingNegative: accountingNegative
     )
 }
@@ -143,8 +141,8 @@ func affixesLiteral(prefix: [String], suffix: [String]) -> String {
 // One arrangement of a currency beside the digits, as the tokens before and after the implicit number
 // body. The spacing is a token rather than text, because what fills it depends on the currency: CLDR's
 // currencySpacing rule resolves per symbol.
-func currencyAffix(placement: Placement) -> (prefix: [String], suffix: [String]) {
-    placement == .before
+func currencyAffix(side: CurrencySide) -> (prefix: [String], suffix: [String]) {
+    side == .leading
         ? (prefix: [".currency", ".currencySpacing"], suffix: [])
         : (prefix: [], suffix: [".currencySpacing", ".currency"])
 }
@@ -152,8 +150,8 @@ func currencyAffix(placement: Placement) -> (prefix: [String], suffix: [String])
 // A locale's three arrangements. None of the locales here gives its standard pattern a negative
 // subpattern, so a negative is the positive arrangement with a sign in front, which is CLDR's own
 // default; the accounting form either wraps that in parentheses or falls back to the same minus.
-func patternLiteral(placement: Placement, accountingNegative: String) -> String {
-    let body = currencyAffix(placement: placement)
+func patternLiteral(side: CurrencySide, accountingNegative: String) -> String {
+    let body = currencyAffix(side: side)
     // The sign slot leads the arrangement: CLDR writes a negative's minus at the very front for every
     // locale here, and a plus, where the options ask for one, goes wherever the minus would have gone.
     let signed = affixesLiteral(prefix: [".sign"] + body.prefix, suffix: body.suffix)
@@ -197,11 +195,11 @@ func isSymbolOrSeparator(_ character: Character) -> Bool {
 
 // The space between symbol and digits for a resolved symbol string: the pattern's literal spacing if it
 // has any, else the currencySpacing insertion when the touching character is not a symbol/separator.
-func spacing(for symbol: String, placement: Placement, patternSpacing: String, insertBetween: String) -> String {
+func spacing(for symbol: String, side: CurrencySide, patternSpacing: String, insertBetween: String) -> String {
     if !patternSpacing.isEmpty {
         return patternSpacing
     }
-    let boundary = placement == .before ? symbol.last : symbol.first
+    let boundary = side == .leading ? symbol.last : symbol.first
     guard let boundary, !isSymbolOrSeparator(boundary) else {
         return ""
     }
@@ -539,22 +537,35 @@ for locale in locales.sorted(by: { $0.utf8.lexicographicallyPrecedes($1.utf8) })
     let afterCurrency = spacingRule["afterCurrency"] as! [String: String]
     let insertBetween = afterCurrency["insertBetween"] ?? " "
 
-    let parsed = parse(standard: standard, accounting: accounting)
+    // Refused rather than emitted wrongly: the tables hold one arrangement per locale, so a locale that
+    // rearranges itself when the currency is written with letters cannot be represented at all. Every
+    // locale listed above is clear of this; a locale added to that list is not, until this says so.
+    // Widening the covered set turns this into a skip and a report rather than a stop.
+    for (name, pattern) in [("standard", standard), ("accounting", accounting)] {
+        if let unsupported = UnsupportedPattern(
+            pattern: pattern,
+            letterSymbolPattern: formats["\(name)-alphaNextToNumber"] as? String
+        ) {
+            fatalError("\(locale) cannot be generated from its \(name) pattern: \(unsupported)")
+        }
+    }
+
+    let parsed = parse(standard: standard, accounting: accounting, locale: locale)
     let fullName = fullNameLayout(formats.compactMapValues { $0 as? String }, locale: locale)
 
     // ISO code is always letters, so it takes the insertion (or the pattern's literal spacing).
-    let isoSpacing = spacing(for: "AAA", placement: parsed.placement, patternSpacing: parsed.patternSpacing, insertBetween: insertBetween)
+    let isoSpacing = spacing(for: "AAA", side: parsed.side, patternSpacing: parsed.patternSpacing, insertBetween: insertBetween)
 
     let numberFormat = PackedLocale.NumberFormat(
         decimalSeparator: pool.insert(required(symbols, "decimal", in: locale)),
         groupingSeparator: pool.insert(required(symbols, "group", in: locale)),
         minusSign: pool.insert(symbols["minusSign"] ?? "-"),
         isoCodeSpacing: pool.insert(isoSpacing),
-        primaryGroupingSize: UInt8(parsed.primaryGroupingSize),
-        secondaryGroupingSize: UInt8(parsed.secondaryGroupingSize),
+        primaryGroupingSize: UInt8(parsed.grouping.primary),
+        secondaryGroupingSize: UInt8(parsed.grouping.secondary),
         fullNameSpacing: fullName.spacing,
         patternIndex: index(
-            of: patternLiteral(placement: parsed.placement, accountingNegative: parsed.accountingNegative),
+            of: patternLiteral(side: parsed.side, accountingNegative: parsed.accountingNegative),
             in: &patterns
         ),
         fullNamePatternIndex: index(of: fullName.literal, in: &fullNamePatterns)
@@ -578,9 +589,9 @@ for locale in locales.sorted(by: { $0.utf8.lexicographicallyPrecedes($1.utf8) })
         displays.append(PackedLocale.Display(
             code: currencyCode,
             standardSymbol: pool.insert(symbol),
-            standardSpacing: pool.insert(spacing(for: symbol, placement: parsed.placement, patternSpacing: parsed.patternSpacing, insertBetween: insertBetween)),
+            standardSpacing: pool.insert(spacing(for: symbol, side: parsed.side, patternSpacing: parsed.patternSpacing, insertBetween: insertBetween)),
             narrowSymbol: pool.insert(narrow),
-            narrowSpacing: pool.insert(spacing(for: narrow, placement: parsed.placement, patternSpacing: parsed.patternSpacing, insertBetween: insertBetween))
+            narrowSpacing: pool.insert(spacing(for: narrow, side: parsed.side, patternSpacing: parsed.patternSpacing, insertBetween: insertBetween))
         ))
     }
 

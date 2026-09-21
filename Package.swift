@@ -66,6 +66,11 @@ let package = Package(
                 .product(name: "Parsing", package: "swift-parsing"),
             ]
         ),
+        // Dev-only. Reads the shape of CLDR's currency format patterns for the generator, and says
+        // which shapes the generated tables cannot represent. Not in any library product.
+        .target(
+            name: "CLDRCurrencyPatterns"
+        ),
         .testTarget(
             name: "SwiftMoneyTests",
             dependencies: ["SwiftMoney"]
@@ -90,11 +95,20 @@ let package = Package(
             name: "CLDRPluralParsingTests",
             dependencies: ["CLDRPluralParsing", "SwiftMoneyLocalization"]
         ),
+        .testTarget(
+            name: "CLDRCurrencyPatternsTests",
+            dependencies: ["CLDRCurrencyPatterns"]
+        ),
         // Dev-only. Reads the pinned CLDR JSON (Tools/cldr/node_modules) and regenerates
         // SwiftMoneyLocalization's data tables. Not in any library product.
         .executableTarget(
             name: "GenerateSwiftMoneyLocalization",
-            dependencies: ["CLDRPluralParsing", "SwiftMoneyCore", "SwiftMoneyLocalization"],
+            dependencies: [
+                "CLDRCurrencyPatterns",
+                "CLDRPluralParsing",
+                "SwiftMoneyCore",
+                "SwiftMoneyLocalization",
+            ],
             path: "Tools/GenerateLocalization"
         ),
         // Dev-only. Prints where the engine and ICU disagree; always exits 0. Not in any library
