@@ -48,7 +48,7 @@ public enum MoneyLocalization {
             spacing = format.isoCodeSpacing
         }
 
-        return moneyFormat(symbol: symbol, placement: format.placement, spacing: spacing, from: format)
+        return moneyFormat(symbol: symbol, pattern: format.pattern, gap: spacing, from: format)
     }
 
     /// The currency format for one amount, naming the currency in full, as in "British pounds".
@@ -82,13 +82,9 @@ public enum MoneyLocalization {
 
         return moneyFormat(
             symbol: names.name(for: category),
-            placement: .after,
-            spacing: format.fullNameSpacing.rendered,
-            from: format,
-            // A locale's accounting form belongs to the pattern that writes a currency's symbol. A
-            // name written out in words takes the plain number, so its negatives keep the minus sign
-            // even where the symbol form would wrap them in parentheses.
-            accountingNegative: .minusSign
+            pattern: format.fullNamePattern,
+            gap: format.fullNameSpacing.rendered,
+            from: format
         )
     }
 
@@ -104,22 +100,20 @@ public enum MoneyLocalization {
     // The locale's number format with a currency written beside it, however that currency is named.
     private static func moneyFormat(
         symbol: String,
-        placement: MoneyFormat.SymbolPlacement,
-        spacing: String,
-        from format: LocaleNumberFormat,
-        accountingNegative: MoneyFormat.AccountingNegative? = nil
+        pattern: MoneyFormatPattern,
+        gap: String,
+        from format: LocaleNumberFormat
     ) -> MoneyFormat {
         MoneyFormat(
             symbol: symbol,
-            placement: placement,
-            spacing: spacing,
+            pattern: pattern,
+            currencyGap: gap,
             decimalSeparator: format.decimalSeparator,
             grouping: .digits(
                 primary: format.primaryGroupingSize,
                 secondary: format.secondaryGroupingSize,
                 separator: format.groupingSeparator
             ),
-            accountingNegative: accountingNegative ?? format.accountingNegative,
             minusSign: format.minusSign
         )
     }

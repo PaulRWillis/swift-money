@@ -113,6 +113,40 @@ func parse(standard: String, accounting: String) -> ParsedPattern {
     )
 }
 
+// MARK: - Patterns as parts
+
+// The number itself, which every arrangement contains.
+let numberParts = [".integerDigits", ".decimalSeparator", ".fractionDigits"]
+
+// One arrangement of a currency beside a number. The gap is a part rather than text, because what
+// fills it depends on the currency: CLDR's currencySpacing rule resolves per symbol.
+func currencyParts(placement: Placement) -> [String] {
+    placement == .before
+        ? [".currency", ".currencyGap"] + numberParts
+        : numberParts + [".currencyGap", ".currency"]
+}
+
+// A locale's three arrangements. None of the locales here gives its standard pattern a negative
+// subpattern, so a negative is the positive arrangement with a sign in front, which is CLDR's own
+// default; the accounting form either wraps that in parentheses or falls back to the same minus.
+func patternLiteral(placement: Placement, accountingNegative: String) -> String {
+    let body = currencyParts(placement: placement)
+    // The sign slot leads both arrangements: CLDR writes a negative's minus there for every locale
+    // here, and a plus, where the options ask for one, goes wherever the minus would have gone.
+    let signed = [".sign"] + body
+    let accounting = accountingNegative == ".parentheses"
+        ? [".literal(\"(\")"] + body + [".literal(\")\")"]
+        : signed
+
+    return """
+        MoneyFormatPattern(
+                    positive: [\(signed.joined(separator: ", "))],
+                    negative: [\(signed.joined(separator: ", "))],
+                    accountingNegative: [\(accounting.joined(separator: ", "))]
+                )
+        """
+}
+
 // MARK: - Currency spacing (resolved here, baked into the data)
 
 func isSymbolOrSeparator(_ character: Character) -> Bool {
@@ -392,9 +426,9 @@ for locale in locales {
                 minusSign: \(quote(symbols["minusSign"] ?? "-")),
                 primaryGroupingSize: \(parsed.primaryGroupingSize),
                 secondaryGroupingSize: \(parsed.secondaryGroupingSize),
-                placement: \(parsed.placement.rawValue),
+                pattern: \(patternLiteral(placement: parsed.placement, accountingNegative: parsed.accountingNegative)),
+                fullNamePattern: \(patternLiteral(placement: .after, accountingNegative: ".minusSign")),
                 isoCodeSpacing: \(quote(isoSpacing)),
-                accountingNegative: \(parsed.accountingNegative),
                 fullNameSpacing: \(literal(nameSpacing))
             ),
     """)

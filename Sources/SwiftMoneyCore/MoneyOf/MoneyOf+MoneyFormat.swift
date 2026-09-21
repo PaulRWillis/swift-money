@@ -47,21 +47,18 @@ public struct MoneyFormat: Equatable, Hashable, Sendable {
     /// The currency symbol as the chosen presentation renders it: `"£"`, `"GBP"`, a narrow symbol, etc.
     @usableFromInline
     package let symbol: String
-    /// Where the symbol sits relative to the digits.
+    /// How the locale arranges the symbol, the sign and the digits.
     @usableFromInline
-    package let placement: SymbolPlacement
+    package let pattern: MoneyFormatPattern
     /// What separates the symbol from the digits, e.g. `""` or a non-breaking space.
     @usableFromInline
-    package let spacing: String
+    package let currencyGap: String
     /// What separates the whole part from the fraction, e.g. `"."` or `","`.
     @usableFromInline
     package let decimalSeparator: String
     /// How the whole digits are grouped.
     @usableFromInline
     package let grouping: GroupingScheme
-    /// How the accounting sign strategy marks a negative amount.
-    @usableFromInline
-    package let accountingNegative: AccountingNegative
     /// What marks a negative amount under the automatic/always sign strategies. Defaults to `"-"`.
     @usableFromInline
     package let minusSign: String
@@ -71,20 +68,18 @@ public struct MoneyFormat: Equatable, Hashable, Sendable {
 
     package init(
         symbol: String,
-        placement: SymbolPlacement,
-        spacing: String = "",
+        pattern: MoneyFormatPattern,
+        currencyGap: String = "",
         decimalSeparator: String = ".",
         grouping: GroupingScheme = .repeating(3, separator: ","),
-        accountingNegative: AccountingNegative = .parentheses,
         minusSign: String = "-",
         plusSign: String = "+"
     ) {
         self.symbol = symbol
-        self.placement = placement
-        self.spacing = spacing
+        self.pattern = pattern
+        self.currencyGap = currencyGap
         self.decimalSeparator = decimalSeparator
         self.grouping = grouping
-        self.accountingNegative = accountingNegative
         self.minusSign = minusSign
         self.plusSign = plusSign
     }
@@ -203,73 +198,80 @@ public extension MoneyFormat {
         let separators = groups.map { 1 + (wholeDigits - $0.primary - 1) / $0.secondary } ?? 0
         let showsSeparator = digitsShown > 0 || options.decimalSeparator == .always
 
-        let (leading, trailing) = affixes(negative: negative, sign: options.sign)
+        let parts = pattern.parts(negative: negative, sign: options.sign)
+        let sign = signText(negative: negative, strategy: options.sign)
 
-        let length =
-            leading.utf8.count + trailing.utf8.count
-            + symbol.utf8.count + spacing.utf8.count
-            + wholeDigits
-            + separators * (groups?.separator.utf8.count ?? 0)
-            + (showsSeparator ? decimalSeparator.utf8.count : 0)
-            + digitsShown
+        var length = 0
+        for part in parts {
+            length += self.length(
+                of: part, sign: sign, wholeDigits: wholeDigits, separators: separators,
+                groupSeparator: groups?.separator, showsSeparator: showsSeparator, fractionDigits: digitsShown
+            )
+        }
 
         return String(unsafeUninitializedCapacity: length) { buffer in
             var offset = 0
 
-            offset = MoneyFormat.copy(leading, into: buffer, at: offset)
-            if placement == .before {
-                offset = MoneyFormat.copy(symbol, into: buffer, at: offset)
-                offset = MoneyFormat.copy(spacing, into: buffer, at: offset)
+            for part in parts {
+                switch part {
+                case .sign:
+                    offset = MoneyFormat.copy(sign, into: buffer, at: offset)
+                case .currency:
+                    offset = MoneyFormat.copy(symbol, into: buffer, at: offset)
+                case .currencyGap:
+                    offset = MoneyFormat.copy(currencyGap, into: buffer, at: offset)
+                case .integerDigits:
+                    offset = writeGroupedWhole(whole, digits: wholeDigits, groups: groups, into: buffer, at: offset)
+                case .decimalSeparator:
+                    if showsSeparator {
+                        offset = MoneyFormat.copy(decimalSeparator, into: buffer, at: offset)
+                    }
+                case .fractionDigits:
+                    if digitsShown > 0 {
+                        offset = MoneyFormat.writeDigits(fraction, count: digitsShown, into: buffer, at: offset)
+                    }
+                case .literal(let text):
+                    offset = MoneyFormat.copy(text, into: buffer, at: offset)
+                }
             }
 
-            offset = writeGroupedWhole(whole, digits: wholeDigits, groups: groups, into: buffer, at: offset)
-
-            if showsSeparator {
-                offset = MoneyFormat.copy(decimalSeparator, into: buffer, at: offset)
-            }
-            if digitsShown > 0 {
-                offset = MoneyFormat.writeDigits(fraction, count: digitsShown, into: buffer, at: offset)
-            }
-
-            if placement == .after {
-                offset = MoneyFormat.copy(spacing, into: buffer, at: offset)
-                offset = MoneyFormat.copy(symbol, into: buffer, at: offset)
-            }
-
-            offset = MoneyFormat.copy(trailing, into: buffer, at: offset)
             return offset
         }
     }
 
-    // What goes before and after the symbol-and-digits body under each sign strategy: a sign character
-    // before, or accounting parentheses around.
+    // How many bytes a part writes, so the buffer is sized exactly before anything is written.
     @inlinable
-    func affixes(negative: Bool, sign: MoneyFormatOptions.Sign) -> (leading: String, trailing: String) {
-        switch sign {
-        case .automatic:
-            (negative ? minusSign : "", "")
-        case .never:
-            ("", "")
-        case .always:
-            (negative ? minusSign : plusSign, "")
-        case .accounting:
-            accountingAffixes(negative: negative)
+    package func length(
+        of part: MoneyFormatPart,
+        sign: String,
+        wholeDigits: Int,
+        separators: Int,
+        groupSeparator: String?,
+        showsSeparator: Bool,
+        fractionDigits: Int
+    ) -> Int {
+        switch part {
+        case .sign: sign.utf8.count
+        case .currency: symbol.utf8.count
+        case .currencyGap: currencyGap.utf8.count
+        case .integerDigits: wholeDigits + separators * (groupSeparator?.utf8.count ?? 0)
+        case .decimalSeparator: showsSeparator ? decimalSeparator.utf8.count : 0
+        case .fractionDigits: fractionDigits
+        case .literal(let text): text.utf8.count
         }
     }
 
-    // The accounting strategy's affixes for this format: parentheses around a negative, or a minus before
-    // it, per the locale. A non-negative amount is plain.
+    // What the sign slot writes. A pattern that marks a negative another way, such as with accounting
+    // parentheses, carries no sign part, so this never reaches the output there.
     @inlinable
-    func accountingAffixes(negative: Bool) -> (leading: String, trailing: String) {
-        guard negative else {
-            return ("", "")
-        }
-
-        switch accountingNegative {
-        case .parentheses:
-            return ("(", ")")
-        case .minusSign:
-            return (minusSign, "")
+    package func signText(negative: Bool, strategy: MoneyFormatOptions.Sign) -> String {
+        switch strategy {
+        case .never:
+            ""
+        case .always:
+            negative ? minusSign : plusSign
+        case .automatic, .accounting:
+            negative ? minusSign : ""
         }
     }
 
