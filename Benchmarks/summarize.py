@@ -57,6 +57,49 @@ TABLES = [
         ],
     },
     {
+        # One row per formatting option, each against the Foundation setting that means the same thing.
+        # A row's own name carries the path it runs: `[engine]` renders without ICU, `[ICU fallback]`
+        # hands the work to Foundation because the option is one the engine does not express. The
+        # rounding increment has no Foundation column: Foundation counts it in whole units and ignores
+        # it entirely beside a pinned fraction length, so there is nothing equivalent to compare.
+        "heading": "Formatting, option by option, against Foundation",
+        "columns": ["Decimal"],
+        "rows": [
+            ("Default", "MoneyOf format, default, en_GB [engine]",
+             ["Decimal format, default, en_GB [ICU]"]),
+            ("Runtime currency", "Money format, default, en_GB [engine]",
+             ["Decimal format, default, en_GB [ICU]"]),
+            ("ISO code", "MoneyOf format, ISO code, en_GB [engine]",
+             ["Decimal format, ISO code, en_GB [ICU]"]),
+            ("Narrow symbol", "MoneyOf format, narrow, en_GB [engine]",
+             ["Decimal format, narrow, en_GB [ICU]"]),
+            ("Full name", "MoneyOf format, full name, en_GB [engine]",
+             ["Decimal format, full name, en_GB [ICU]"]),
+            ("Sign, never", "MoneyOf format, sign never, en_GB [engine]",
+             ["Decimal format, sign never, en_GB [ICU]"]),
+            ("Sign, always", "MoneyOf format, sign always, en_GB [engine]",
+             ["Decimal format, sign always, en_GB [ICU]"]),
+            ("Sign, accounting", "MoneyOf format, sign accounting, en_GB [engine]",
+             ["Decimal format, sign accounting, en_GB [ICU]"]),
+            ("Grouping, never", "MoneyOf format, grouping never, en_GB [engine]",
+             ["Decimal format, grouping never, en_GB [ICU]"]),
+            ("Decimal separator, always", "MoneyOf format, separator always, en_GB [engine]",
+             ["Decimal format, separator always, en_GB [ICU]"]),
+            ("Precision, 2dp", "MoneyOf format, precision 2dp, en_GB [ICU fallback]",
+             ["Decimal format, precision 2dp, en_GB [ICU]"]),
+            ("Precision, 1dp", "MoneyOf format, precision 1dp, en_GB [ICU fallback]",
+             ["Decimal format, precision 1dp, en_GB [ICU]"]),
+            ("Precision and accounting", "MoneyOf format, precision 1dp and accounting, en_GB [ICU fallback]",
+             ["Decimal format, precision 1dp and accounting, en_GB [ICU]"]),
+            ("Every option", "MoneyOf format, every option, en_GB [ICU fallback]",
+             ["Decimal format, every option, en_GB [ICU]"]),
+            ("Rounding increment", "MoneyOf format, increment, en_GB [ICU fallback]", []),
+            ("Attributed", "MoneyOf attributed, default, en_GB [engine]",
+             ["Decimal attributed, default, en_GB [ICU]"]),
+            ("Parse", "MoneyOf parse, en_GB [ICU]", ["Decimal parse, en_GB [ICU]"]),
+        ],
+    },
+    {
         "heading": "What the measurement itself costs",
         "columns": [],
         "rows": [
