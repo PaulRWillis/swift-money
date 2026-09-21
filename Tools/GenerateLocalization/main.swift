@@ -18,7 +18,6 @@ import Foundation
 import SwiftMoneyCore
 import SwiftMoneyLocalization
 
-let cldrVersion = "48.0.0"
 let locales = ["en", "en-GB", "de", "fr", "ja", "sw", "si", "ro"]
 
 // Plural rules are published per language, so a region keeps its language's rules.
@@ -45,6 +44,28 @@ func json(_ path: String) -> [String: Any] {
     }
     return object
 }
+
+// The CLDR release the tables are built from, read from the installed packages rather than written in
+// here, so a version bump cannot leave them labelled with the release before it.
+//
+// Both packages carry one release of the same data, so a mismatch means one was bumped without the
+// other and the tables would be a mixture of two releases. Refused rather than reported, since a
+// mixture is not something to label accurately.
+let cldrVersion: String = {
+    let versions = ["cldr-core", "cldr-numbers-full"].map { package -> String in
+        let path = "\(repoRoot)/Tools/cldr/node_modules/\(package)/package.json"
+        guard let version = json(path)["version"] as? String else {
+            fatalError("Could not read the CLDR version from \(path)")
+        }
+        return version
+    }
+
+    guard let version = versions.first, versions.allSatisfy({ $0 == version }) else {
+        fatalError("The installed CLDR packages are different releases: \(versions)")
+    }
+
+    return version
+}()
 
 func numbers(_ locale: String) -> [String: Any] {
     let root = json("\(cldrMain)/\(locale)/numbers.json")

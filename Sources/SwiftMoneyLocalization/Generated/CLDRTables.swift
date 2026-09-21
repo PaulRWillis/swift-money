@@ -1,4 +1,4 @@
-// Generated from CLDR 48.0.0 by GenerateSwiftMoneyLocalization. Do not edit by hand.
+// Generated from CLDR 48.2.0 by GenerateSwiftMoneyLocalization. Do not edit by hand.
 // Regenerate with: (cd Tools/cldr && npm ci) && swift run GenerateSwiftMoneyLocalization
 
 import SwiftMoneyCore
@@ -12,7 +12,7 @@ import SwiftMoneyCore
 // the Swift 6.3.2 optimizer (Xcode 26.5) spends many minutes on literal tables, enough to stall CI;
 // skipping optimization of the builder avoids it. The data is identical either way and built once.
 extension MoneyLocalization {
-    static let cldrVersion = "48.0.0"
+    static let cldrVersion = "48.2.0"
 
     /// The packed CLDR tables every lookup reads.
     package static let cldr = CLDRBlob(
