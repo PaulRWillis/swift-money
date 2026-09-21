@@ -19,11 +19,11 @@ struct MoneyFormatStyleGoldenTests {
 
     // FNV-1a over the engine's CLDR-derived output. Regenerate with MONEYGOLDEN_RECORD=1.
     static let golden: [String: UInt64] = [
-        "en_US": 0x72ea_5565_82be_017f,
-        "en_GB": 0xfbaa_171e_2b04_f401,
-        "de_DE": 0xf0bc_afed_42d5_794d,
-        "fr_FR": 0x8c0d_569c_c980_18b9,
-        "ja_JP": 0xbe80_33e4_dced_1820,
+        "en_US": 0x1a34_d11a_de90_1160,
+        "en_GB": 0xba8c_1b25_6698_de67,
+        "de_DE": 0xc81b_7590_f342_8ecd,
+        "fr_FR": 0x1a62_c651_51fa_bfd3,
+        "ja_JP": 0x36a9_9c75_e2c1_88dd,
     ]
 
     @Test("Engine output matches the committed golden, per locale", arguments: FormatMatrix.coveredLocaleIDs)
@@ -40,6 +40,24 @@ struct MoneyFormatStyleGoldenTests {
         )
     }
 
+    // A cell the data cannot render falls back to ICU, and a digest of ICU's text would not be
+    // portable. That is only safe while the fallback stays rare, so this pins how much of the matrix
+    // the engine really renders: CLDR 48 leaves one of the shipped currencies unnamed in English and
+    // three in the other covered locales.
+    @Test("The data names nearly every shipped currency", arguments: FormatMatrix.coveredLocaleIDs)
+    func fullNamesCoverNearlyEveryCurrency(_ localeID: String) {
+        let named = Currency.allISO4217.count {
+            FormatMatrix.isEngineCovered($0, localeID: localeID, presentation: .fullName)
+        }
+
+        #expect(named >= Currency.allISO4217.count - 3, "\(localeID) names only \(named)")
+    }
+
+    // What a cell the CLDR data cannot render hashes as. Hashing ICU's rendering instead would tie the
+    // digest to a platform's ICU version, which is what this test exists to avoid; hashing a marker
+    // still catches a name that disappears, since the cell moves from its text to this.
+    static let uncovered = "(not in the data)"
+
     static func digest(for localeID: String) -> UInt64 {
         let locale = Locale(identifier: localeID)
         var hash = FNV1a()
@@ -48,9 +66,13 @@ struct MoneyFormatStyleGoldenTests {
         for currency in Currency.allISO4217 {
             let code = String(currency.code)
             for p in FormatMatrix.presentations {
+                let covered = FormatMatrix.isEngineCovered(currency, localeID: localeID, presentation: p.f)
+
                 for amount in FormatMatrix.amounts {
-                    let out = Money.FormatStyle().locale(locale).presentation(p.f)
-                        .format(Money(minorUnits: amount, currency: currency))
+                    let out = covered
+                        ? Money.FormatStyle().locale(locale).presentation(p.f)
+                            .format(Money(minorUnits: amount, currency: currency))
+                        : Self.uncovered
                     hash.combine("\(code)|\(p.name)|\(amount)=\(out)")
                 }
             }

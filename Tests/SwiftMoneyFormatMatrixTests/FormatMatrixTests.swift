@@ -1,3 +1,4 @@
+import Foundation
 import SwiftMoneyCore
 import SwiftMoneyFormatMatrix
 import Testing
@@ -7,7 +8,11 @@ struct FormatMatrixTests {
 
     @Test("The option cross has one entry per presentation, sign, grouping and separator combination")
     func combinationCount() {
-        #expect(FormatMatrix.combinations.count == 48)
+        let expected = FormatMatrix.presentations.count * FormatMatrix.signs.count
+            * FormatMatrix.groupings.count * FormatMatrix.separators.count
+
+        #expect(FormatMatrix.combinations.count == expected)
+        #expect(expected == 64)
     }
 
     @Test("Every combination has a distinct id")
@@ -53,5 +58,27 @@ struct FormatMatrixTests {
         let withAutomaticGrouping = FormatMatrix.combinations.filter { $0.grouping == .automatic }
         #expect(!withAutomaticGrouping.isEmpty)
         #expect(withAutomaticGrouping.allSatisfy { !$0.isKnownFoundationGroupingDefect })
+    }
+
+    // A cell ICU would have to render is one neither the golden hash nor the deviation report can
+    // use: ICU's text differs by platform, and comparing it against itself proves nothing.
+    @Test("A presentation that needs no data is always covered", arguments: [
+        FormatMatrix.Config.Presentation.standard, .isoCode, .narrow,
+    ])
+    func symbolPresentationsAreAlwaysCovered(_ presentation: FormatMatrix.Config.Presentation) {
+        #expect(FormatMatrix.isEngineCovered(.gbp, localeID: "en_GB", presentation: presentation))
+    }
+
+    @Test("A full name is covered only where CLDR names the currency")
+    func fullNamesAreCoveredWhereNamed() throws {
+        let unnamed = try #require(CurrencyCode(string: "XAD").flatMap(Currency.init(iso:)))
+
+        #expect(FormatMatrix.isEngineCovered(.gbp, localeID: "en_GB", presentation: .fullName))
+        #expect(!FormatMatrix.isEngineCovered(unnamed, localeID: "en_GB", presentation: .fullName))
+    }
+
+    @Test("No cell is covered in a locale the data does not carry")
+    func uncoveredLocaleCoversNothing() {
+        #expect(!FormatMatrix.isEngineCovered(.gbp, localeID: "zz_ZZ", presentation: .fullName))
     }
 }

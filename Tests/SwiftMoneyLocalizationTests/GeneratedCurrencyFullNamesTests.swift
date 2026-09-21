@@ -34,8 +34,8 @@ struct GeneratedCurrencyFullNamesTests {
         }
     }
 
-    // CLDR names 163 of the 165 currencies the library ships in English, and fewer in some locales,
-    // so a caller has to cope with a currency having no name.
+    // CLDR names 164 of the 165 currencies the library ships in English, and three fewer in the
+    // other covered locales, so a caller has to cope with a currency having no name.
     @Test("A currency CLDR does not name is absent rather than made up")
     func unnamedCurrenciesAreAbsent() throws {
         let english = try #require(MoneyLocalization.currencyFullNames["en"])

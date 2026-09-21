@@ -1,5 +1,6 @@
 import Foundation
 import SwiftMoneyCore
+import SwiftMoneyLocalization
 
 /// Currency-format inputs (option cross, locales, amounts), so multiple consumers share one set
 /// instead of drifting onto different ones.
@@ -23,7 +24,7 @@ package enum FormatMatrix {
     }
 
     package static let presentations: [(name: String, f: Config.Presentation)] =
-        [("standard", .standard), ("isoCode", .isoCode), ("narrow", .narrow)]
+        [("standard", .standard), ("isoCode", .isoCode), ("narrow", .narrow), ("fullName", .fullName)]
     package static let signs: [(name: String, f: Config.SignDisplayStrategy)] =
         [("automatic", .automatic), ("never", .never), ("always", .always()), ("accounting", .accounting)]
     package static let groupings: [(name: String, f: Config.Grouping)] =
@@ -48,10 +49,32 @@ package enum FormatMatrix {
     /// The locales the CLDR data covers.
     package static let coveredLocaleIDs = ["en_US", "en_GB", "de_DE", "fr_FR", "ja_JP"]
 
-    /// Amounts spanning zero, a typical value, a large value, and a negative value.
-    package static let amounts: [Int64] = [0, 1_00, 12_34_56, -12_34_56, 1_234_567_89]
+    /// Amounts spanning zero, one smallest unit, a typical value, a large value, and a negative
+    /// value. One smallest unit is what reaches a locale's singular naming: a currency with no
+    /// fraction digits is then exactly one whole unit.
+    package static let amounts: [Int64] = [0, 1, 1_00, 12_34_56, -12_34_56, 1_234_567_89]
 
     /// Scale-spanning currencies (0/2/3 decimal places), for exercising the option cross without
     /// repeating it for every currency: that cross is currency-independent engine code.
     package static let optionCurrencies: [Currency] = [.jpy, .gbp, .bhd]
+
+    /// Whether the CLDR data can render this cell with no ICU at all.
+    ///
+    /// Only a full name can be missing: every other presentation falls back to the currency's code,
+    /// but CLDR leaves a handful of the currencies the library ships unnamed. A cell this returns
+    /// `false` for is rendered by ICU, so comparing it against ICU proves nothing and hashing it
+    /// records text that differs by platform.
+    package static func isEngineCovered(
+        _ currency: Currency,
+        localeID: String,
+        presentation: Config.Presentation
+    ) -> Bool {
+        guard presentation == .fullName else {
+            return true
+        }
+
+        return MoneyLocalization.fullNameMoneyFormat(
+            for: currency, minorUnits: 1, locale: LocaleIdentifier(localeID)
+        ) != nil
+    }
 }
