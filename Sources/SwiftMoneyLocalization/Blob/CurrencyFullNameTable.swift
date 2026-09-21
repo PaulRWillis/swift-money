@@ -6,7 +6,7 @@ import SwiftMoneyCore
 /// Every integer is written as ``BlobDigits``, so a field's position is the width of the fields before
 /// it. The section is three runs:
 /// - a **directory** of one entry per locale, holding where that locale's records start and how many
-///   there are, indexed by locale;
+///   there are, indexed by ``LocaleIndex``;
 /// - the **records**, per locale, sorted by ``CurrencyCode/packedValue`` so a currency is found by
 ///   binary search;
 /// - the **overrides** a record points at, one per category that names the currency differently.
@@ -40,8 +40,8 @@ package struct CurrencyFullNameTable: Sendable {
     }
 
     /// What `code` is called in the locale at `localeIndex`, or `nil` if the blob does not name it there.
-    package func name(localeIndex: Int, code: CurrencyCode) -> CurrencyFullName? {
-        let entry = directoryOffset + localeIndex * Entry.stride
+    package func name(localeIndex: LocaleIndex, code: CurrencyCode) -> CurrencyFullName? {
+        let entry = directoryOffset + localeIndex.position * Entry.stride
         let recordsStart = Int(reader.u32(at: entry + Entry.recordsStart))
         let recordCount = Int(reader.u16(at: entry + Entry.recordCount))
 

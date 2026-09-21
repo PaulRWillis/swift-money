@@ -58,7 +58,7 @@ struct CurrencyFullNameTableTests {
     @Test("Decodes the other name and a per-category override")
     func decodesOtherAndOverride() {
         Self.withTable { table in
-            let usd = table.name(localeIndex: 0, code: Self.code("USD"))
+            let usd = table.name(localeIndex: LocaleIndex(position: 0), code: Self.code("USD"))
             #expect(usd?.name(for: .other) == "US dollars")
             #expect(usd?.name(for: .one) == "US dollar")
         }
@@ -67,7 +67,7 @@ struct CurrencyFullNameTableTests {
     @Test("A category with no override falls back to the other name")
     func categoryFallsBackToOther() {
         Self.withTable { table in
-            let eur = table.name(localeIndex: 0, code: Self.code("EUR"))
+            let eur = table.name(localeIndex: LocaleIndex(position: 0), code: Self.code("EUR"))
             #expect(eur?.name(for: .other) == "euros")
             #expect(eur?.name(for: .one) == "euros")
         }
@@ -76,7 +76,7 @@ struct CurrencyFullNameTableTests {
     @Test("A currency the locale does not name decodes to nil")
     func unnamedCurrencyIsNil() {
         Self.withTable { table in
-            #expect(table.name(localeIndex: 0, code: Self.code("JPY")) == nil)
+            #expect(table.name(localeIndex: LocaleIndex(position: 0), code: Self.code("JPY")) == nil)
         }
     }
 }

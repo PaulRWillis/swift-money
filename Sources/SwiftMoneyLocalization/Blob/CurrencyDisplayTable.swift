@@ -4,7 +4,7 @@ import SwiftMoneyCore
 /// their code, each with a standard and narrow symbol and their spacings.
 ///
 /// Every integer is written as ``BlobDigits``, so a field's position is the width of the fields before
-/// it. The section is a **directory** of one entry per locale, indexed by locale, and the
+/// it. The section is a **directory** of one entry per locale, indexed by ``LocaleIndex``, and the
 /// **records** it points at, sorted by ``CurrencyCode/packedValue`` so a currency is found by binary
 /// search.
 package struct CurrencyDisplayTable: Sendable {
@@ -33,8 +33,8 @@ package struct CurrencyDisplayTable: Sendable {
 
     /// How `code` is displayed in the locale at `localeIndex`, or `nil` if it has no distinct symbol
     /// there (the caller then falls back to the code).
-    package func display(localeIndex: Int, code: CurrencyCode) -> CurrencyDisplay? {
-        let entry = directoryOffset + localeIndex * Entry.stride
+    package func display(localeIndex: LocaleIndex, code: CurrencyCode) -> CurrencyDisplay? {
+        let entry = directoryOffset + localeIndex.position * Entry.stride
         let recordsStart = Int(reader.u32(at: entry + Entry.recordsStart))
         let recordCount = Int(reader.u16(at: entry + Entry.recordCount))
 

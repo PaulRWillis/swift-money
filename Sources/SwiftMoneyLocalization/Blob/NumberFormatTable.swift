@@ -4,7 +4,7 @@ import SwiftMoneyCore
 /// grouping and the indices of its symbol and full-name patterns among the interned pattern arrays.
 ///
 /// Every integer is written as ``BlobDigits``, so a field's position is the width of the fields before
-/// it. There is one fixed record per locale, indexed directly by locale with no search.
+/// it. There is one fixed record per locale, indexed directly by ``LocaleIndex`` with no search.
 /// Patterns are interned — few are distinct across all locales — so a record carries an index into the
 /// arrays passed in here rather than a packed pattern of its own.
 package struct NumberFormatTable: Sendable {
@@ -39,8 +39,8 @@ package struct NumberFormatTable: Sendable {
     }
 
     /// The number format for the locale at `localeIndex`.
-    package func numberFormat(localeIndex: Int) -> LocaleNumberFormat {
-        let record = recordsOffset + localeIndex * Record.stride
+    package func numberFormat(localeIndex: LocaleIndex) -> LocaleNumberFormat {
+        let record = recordsOffset + localeIndex.position * Record.stride
 
         let decimalSeparator = reader.string(reader.stringRef(at: record + Record.decimalSeparator))
         let groupingRaw = reader.string(reader.stringRef(at: record + Record.groupingSeparator))

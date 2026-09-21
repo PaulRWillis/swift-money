@@ -54,7 +54,7 @@ struct NumberFormatTableTests {
     @Test("Decodes the scalars and resolves the interned patterns")
     func decodesRecord() {
         Self.withTable { table in
-            let format = table.numberFormat(localeIndex: 0)
+            let format = table.numberFormat(localeIndex: LocaleIndex(position: 0))
             #expect(format.decimalSeparator == ".")
             #expect(format.groupingSeparator == ",")
             #expect(format.minusSign == "-")

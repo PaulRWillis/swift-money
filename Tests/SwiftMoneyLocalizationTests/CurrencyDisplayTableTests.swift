@@ -46,7 +46,7 @@ struct CurrencyDisplayTableTests {
     @Test("Decodes a currency's symbols and spacings")
     func decodesSymbols() {
         Self.withTable { table in
-            let usd = table.display(localeIndex: 0, code: Self.code("USD"))
+            let usd = table.display(localeIndex: LocaleIndex(position: 0), code: Self.code("USD"))
             #expect(usd == CurrencyDisplay(
                 standardSymbol: "US$", standardSpacing: "\u{00A0}", narrowSymbol: "$", narrowSpacing: ""
             ))
@@ -56,7 +56,7 @@ struct CurrencyDisplayTableTests {
     @Test("A currency with no distinct symbol decodes to nil")
     func undisplayedCurrencyIsNil() {
         Self.withTable { table in
-            #expect(table.display(localeIndex: 0, code: Self.code("EUR")) == nil)
+            #expect(table.display(localeIndex: LocaleIndex(position: 0), code: Self.code("EUR")) == nil)
         }
     }
 }
