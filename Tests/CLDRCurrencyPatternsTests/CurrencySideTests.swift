@@ -1,9 +1,7 @@
 import CLDRCurrencyPatterns
 import Testing
 
-// Which side of the digits a CLDR pattern puts the currency on. The patterns here are the real ones the
-// shipped locales use, plus the shapes that decide the edges: a negative subpattern, and text that is
-// neither currency nor digits.
+// The patterns here are the real ones the shipped locales use, plus the shapes that decide the edges.
 @Suite("Currency Side Tests")
 struct CurrencySideTests {
 
@@ -17,8 +15,6 @@ struct CurrencySideTests {
         #expect(CurrencySide(pattern: pattern) == expected)
     }
 
-    // A negative subpattern arranges the sign, not the currency, so reading it would answer a question
-    // nobody asked and, where the two subpatterns differ, answer it differently.
     @Test("Only the positive subpattern is read")
     func ignoresTheNegativeSubpattern() {
         #expect(CurrencySide(pattern: "¤#,##0.00;(¤#,##0.00)") == .leading)

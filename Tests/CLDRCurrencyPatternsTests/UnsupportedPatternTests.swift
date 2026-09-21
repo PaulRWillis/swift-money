@@ -1,14 +1,10 @@
 import CLDRCurrencyPatterns
 import Testing
 
-// Whether a locale's pair of currency patterns is one the generated tables can represent. Every pattern
-// below is a real one from CLDR 48.2, named by the locale it came from, since the point of the check is
-// to recognise the shapes CLDR actually publishes.
+// Every pattern below is a real one from CLDR 48.2, named by the locale it came from.
 @Suite("Unsupported Pattern Tests")
 struct UnsupportedPatternTests {
 
-    // What the shipped locales look like: either no variant at all, one identical to the pattern, or one
-    // that differs only by the gap beside the currency, which is resolved per symbol anyway.
     @Test("A pair that differs by no more than spacing is representable", arguments: [
         ("¤#,##0.00", "¤\u{00A0}#,##0.00"),          // en, en-GB, ja, si
         ("#,##0.00\u{00A0}¤", "#,##0.00\u{00A0}¤"),  // de, fr, ro
@@ -64,8 +60,6 @@ struct UnsupportedPatternTests {
         #expect(unsupported == .unmodelled(pattern: standard, letterSymbolPattern: "#,##0.00\u{00A0}¤"))
     }
 
-    // The report has to say enough to act on, and for a difference this tool cannot name, that means
-    // showing both patterns.
     @Test("An unmodelled difference describes both patterns")
     func unmodelledDescribesBoth() {
         let unsupported = UnsupportedPattern.unmodelled(pattern: "¤0.00", letterSymbolPattern: "¤ 0.00")

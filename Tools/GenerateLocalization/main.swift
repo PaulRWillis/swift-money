@@ -182,6 +182,47 @@ func index(of literal: String, in table: inout [String]) -> UInt16 {
 
 // MARK: - Currency spacing (resolved here, baked into the data)
 
+// The string CLDR inserts between a currency and the digits, refusing a locale whose rule this tool
+// cannot resolve ahead of time: one spacing the two sides differently, or matching by sets other than
+// those `isSymbolOrSeparator` implements. Those sets are narrower than the `[:^S:]` LDML documents as
+// the default, the code following the published data rather than the specification.
+func currencySpacingInsertion(_ rule: [String: Any], locale: String) -> String {
+    // Escaped and ordered, because every gap CLDR inserts is a space of some width and two of them are
+    // indistinguishable in a message that prints them raw.
+    func describe(_ side: [String: String]) -> String {
+        ["currencyMatch", "surroundingMatch", "insertBetween"]
+            .map { "\($0) \(side[$0].map(quote) ?? "absent")" }
+            .joined(separator: ", ")
+    }
+
+    guard
+        let before = rule["beforeCurrency"] as? [String: String],
+        let after = rule["afterCurrency"] as? [String: String]
+    else {
+        fatalError("\(locale) publishes no currency spacing rule")
+    }
+
+    guard before == after else {
+        fatalError("""
+            \(locale) spaces a currency differently before and after the digits: \
+            \(describe(before)) against \(describe(after))
+            """)
+    }
+
+    guard
+        after["currencyMatch"] == "[[:^S:]&[:^Z:]]",
+        after["surroundingMatch"] == "[:digit:]"
+    else {
+        fatalError("\(locale) decides currency spacing by a rule this tool does not evaluate: \(describe(after))")
+    }
+
+    guard let insertBetween = after["insertBetween"] else {
+        fatalError("\(locale) gives its currency spacing rule nothing to insert")
+    }
+
+    return insertBetween
+}
+
 func isSymbolOrSeparator(_ character: Character) -> Bool {
     guard let scalar = character.unicodeScalars.first else { return false }
     switch scalar.properties.generalCategory {
@@ -534,13 +575,10 @@ for locale in locales.sorted(by: { $0.utf8.lexicographicallyPrecedes($1.utf8) })
     let standard = formats["standard"] as! String
     let accounting = formats["accounting"] as! String
     let spacingRule = formats["currencySpacing"] as! [String: Any]
-    let afterCurrency = spacingRule["afterCurrency"] as! [String: String]
-    let insertBetween = afterCurrency["insertBetween"] ?? " "
+    let insertBetween = currencySpacingInsertion(spacingRule, locale: locale)
 
-    // Refused rather than emitted wrongly: the tables hold one arrangement per locale, so a locale that
-    // rearranges itself when the currency is written with letters cannot be represented at all. Every
-    // locale listed above is clear of this; a locale added to that list is not, until this says so.
-    // Widening the covered set turns this into a skip and a report rather than a stop.
+    // Stops rather than skips because every locale emitted is listed by hand above. Widening the
+    // covered set turns this into a skip and a report.
     for (name, pattern) in [("standard", standard), ("accounting", accounting)] {
         if let unsupported = UnsupportedPattern(
             pattern: pattern,

@@ -1,8 +1,7 @@
 import CLDRCurrencyPatterns
 import Testing
 
-// Reading the grouping out of a CLDR pattern. The interesting case is the Indian system, where the group
-// nearest the decimal separator is not the size of the ones beyond it.
+// Reading the grouping out of a CLDR pattern, the Indian system being the case that makes it awkward.
 @Suite("Group Sizes Tests")
 struct GroupSizesTests {
 
@@ -16,10 +15,7 @@ struct GroupSizesTests {
         #expect(GroupSizes(pattern: "¤#,##,##0.00") == GroupSizes(primary: 3, secondary: 2))
     }
 
-    // Pinned here because it is a reading, not a decision: a pattern with no separator has one group,
-    // and its width is however many digits it wrote. No CLDR locale publishes an ungrouped currency
-    // pattern, so the generator never sees this; one that did would want no grouping at all, which this
-    // type cannot say.
+    // Pinned because it is a reading rather than a decision, and an unreachable one.
     @Test("A pattern with no separator reads its digits as a single group")
     func ungrouped() {
         #expect(GroupSizes(pattern: "¤#0.00") == GroupSizes(primary: 2, secondary: 2))
