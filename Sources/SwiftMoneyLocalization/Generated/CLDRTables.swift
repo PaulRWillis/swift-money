@@ -14,14 +14,14 @@ extension MoneyLocalization {
             primaryGroupingSize: 3,
             secondaryGroupingSize: 3,
             pattern: MoneyFormatPattern(
-            positive: [.sign, .currency, .currencyGap, .integerDigits, .decimalSeparator, .fractionDigits],
-            negative: [.sign, .currency, .currencyGap, .integerDigits, .decimalSeparator, .fractionDigits],
-            accountingNegative: [.literal("("), .currency, .currencyGap, .integerDigits, .decimalSeparator, .fractionDigits, .literal(")")]
+            positive: MoneyFormatAffixes(prefix: [.sign, .currency, .currencySpacing], suffix: []),
+            negative: MoneyFormatAffixes(prefix: [.sign, .currency, .currencySpacing], suffix: []),
+            accountingNegative: MoneyFormatAffixes(prefix: [.literal("("), .currency, .currencySpacing], suffix: [.literal(")")])
         ),
             fullNamePattern: MoneyFormatPattern(
-            positive: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency],
-            negative: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency],
-            accountingNegative: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency]
+            positive: MoneyFormatAffixes(prefix: [.sign], suffix: [.currencySpacing, .currency]),
+            negative: MoneyFormatAffixes(prefix: [.sign], suffix: [.currencySpacing, .currency]),
+            accountingNegative: MoneyFormatAffixes(prefix: [.sign], suffix: [.currencySpacing, .currency])
         ),
             isoCodeSpacing: "\u{A0}",
             fullNameSpacing: .asciiSpace
@@ -33,14 +33,14 @@ extension MoneyLocalization {
             primaryGroupingSize: 3,
             secondaryGroupingSize: 3,
             pattern: MoneyFormatPattern(
-            positive: [.sign, .currency, .currencyGap, .integerDigits, .decimalSeparator, .fractionDigits],
-            negative: [.sign, .currency, .currencyGap, .integerDigits, .decimalSeparator, .fractionDigits],
-            accountingNegative: [.literal("("), .currency, .currencyGap, .integerDigits, .decimalSeparator, .fractionDigits, .literal(")")]
+            positive: MoneyFormatAffixes(prefix: [.sign, .currency, .currencySpacing], suffix: []),
+            negative: MoneyFormatAffixes(prefix: [.sign, .currency, .currencySpacing], suffix: []),
+            accountingNegative: MoneyFormatAffixes(prefix: [.literal("("), .currency, .currencySpacing], suffix: [.literal(")")])
         ),
             fullNamePattern: MoneyFormatPattern(
-            positive: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency],
-            negative: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency],
-            accountingNegative: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency]
+            positive: MoneyFormatAffixes(prefix: [.sign], suffix: [.currencySpacing, .currency]),
+            negative: MoneyFormatAffixes(prefix: [.sign], suffix: [.currencySpacing, .currency]),
+            accountingNegative: MoneyFormatAffixes(prefix: [.sign], suffix: [.currencySpacing, .currency])
         ),
             isoCodeSpacing: "\u{A0}",
             fullNameSpacing: .asciiSpace
@@ -52,14 +52,14 @@ extension MoneyLocalization {
             primaryGroupingSize: 3,
             secondaryGroupingSize: 3,
             pattern: MoneyFormatPattern(
-            positive: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency],
-            negative: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency],
-            accountingNegative: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency]
+            positive: MoneyFormatAffixes(prefix: [.sign], suffix: [.currencySpacing, .currency]),
+            negative: MoneyFormatAffixes(prefix: [.sign], suffix: [.currencySpacing, .currency]),
+            accountingNegative: MoneyFormatAffixes(prefix: [.sign], suffix: [.currencySpacing, .currency])
         ),
             fullNamePattern: MoneyFormatPattern(
-            positive: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency],
-            negative: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency],
-            accountingNegative: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency]
+            positive: MoneyFormatAffixes(prefix: [.sign], suffix: [.currencySpacing, .currency]),
+            negative: MoneyFormatAffixes(prefix: [.sign], suffix: [.currencySpacing, .currency]),
+            accountingNegative: MoneyFormatAffixes(prefix: [.sign], suffix: [.currencySpacing, .currency])
         ),
             isoCodeSpacing: "\u{A0}",
             fullNameSpacing: .asciiSpace
@@ -71,14 +71,14 @@ extension MoneyLocalization {
             primaryGroupingSize: 3,
             secondaryGroupingSize: 3,
             pattern: MoneyFormatPattern(
-            positive: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency],
-            negative: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency],
-            accountingNegative: [.literal("("), .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency, .literal(")")]
+            positive: MoneyFormatAffixes(prefix: [.sign], suffix: [.currencySpacing, .currency]),
+            negative: MoneyFormatAffixes(prefix: [.sign], suffix: [.currencySpacing, .currency]),
+            accountingNegative: MoneyFormatAffixes(prefix: [.literal("(")], suffix: [.currencySpacing, .currency, .literal(")")])
         ),
             fullNamePattern: MoneyFormatPattern(
-            positive: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency],
-            negative: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency],
-            accountingNegative: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency]
+            positive: MoneyFormatAffixes(prefix: [.sign], suffix: [.currencySpacing, .currency]),
+            negative: MoneyFormatAffixes(prefix: [.sign], suffix: [.currencySpacing, .currency]),
+            accountingNegative: MoneyFormatAffixes(prefix: [.sign], suffix: [.currencySpacing, .currency])
         ),
             isoCodeSpacing: "\u{A0}",
             fullNameSpacing: .asciiSpace
@@ -90,14 +90,14 @@ extension MoneyLocalization {
             primaryGroupingSize: 3,
             secondaryGroupingSize: 3,
             pattern: MoneyFormatPattern(
-            positive: [.sign, .currency, .currencyGap, .integerDigits, .decimalSeparator, .fractionDigits],
-            negative: [.sign, .currency, .currencyGap, .integerDigits, .decimalSeparator, .fractionDigits],
-            accountingNegative: [.literal("("), .currency, .currencyGap, .integerDigits, .decimalSeparator, .fractionDigits, .literal(")")]
+            positive: MoneyFormatAffixes(prefix: [.sign, .currency, .currencySpacing], suffix: []),
+            negative: MoneyFormatAffixes(prefix: [.sign, .currency, .currencySpacing], suffix: []),
+            accountingNegative: MoneyFormatAffixes(prefix: [.literal("("), .currency, .currencySpacing], suffix: [.literal(")")])
         ),
             fullNamePattern: MoneyFormatPattern(
-            positive: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency],
-            negative: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency],
-            accountingNegative: [.sign, .integerDigits, .decimalSeparator, .fractionDigits, .currencyGap, .currency]
+            positive: MoneyFormatAffixes(prefix: [.sign], suffix: [.currencySpacing, .currency]),
+            negative: MoneyFormatAffixes(prefix: [.sign], suffix: [.currencySpacing, .currency]),
+            accountingNegative: MoneyFormatAffixes(prefix: [.sign], suffix: [.currencySpacing, .currency])
         ),
             isoCodeSpacing: "\u{A0}",
             fullNameSpacing: .none

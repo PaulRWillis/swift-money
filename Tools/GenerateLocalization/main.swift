@@ -113,36 +113,38 @@ func parse(standard: String, accounting: String) -> ParsedPattern {
     )
 }
 
-// MARK: - Patterns as parts
+// MARK: - Patterns as affixes
 
-// The number itself, which every arrangement contains.
-let numberParts = [".integerDigits", ".decimalSeparator", ".fractionDigits"]
+func affixesLiteral(prefix: [String], suffix: [String]) -> String {
+    "MoneyFormatAffixes(prefix: [\(prefix.joined(separator: ", "))], suffix: [\(suffix.joined(separator: ", "))])"
+}
 
-// One arrangement of a currency beside a number. The gap is a part rather than text, because what
-// fills it depends on the currency: CLDR's currencySpacing rule resolves per symbol.
-func currencyParts(placement: Placement) -> [String] {
+// One arrangement of a currency beside the digits, as the tokens before and after the implicit number
+// body. The spacing is a token rather than text, because what fills it depends on the currency: CLDR's
+// currencySpacing rule resolves per symbol.
+func currencyAffix(placement: Placement) -> (prefix: [String], suffix: [String]) {
     placement == .before
-        ? [".currency", ".currencyGap"] + numberParts
-        : numberParts + [".currencyGap", ".currency"]
+        ? (prefix: [".currency", ".currencySpacing"], suffix: [])
+        : (prefix: [], suffix: [".currencySpacing", ".currency"])
 }
 
 // A locale's three arrangements. None of the locales here gives its standard pattern a negative
 // subpattern, so a negative is the positive arrangement with a sign in front, which is CLDR's own
 // default; the accounting form either wraps that in parentheses or falls back to the same minus.
 func patternLiteral(placement: Placement, accountingNegative: String) -> String {
-    let body = currencyParts(placement: placement)
-    // The sign slot leads both arrangements: CLDR writes a negative's minus there for every locale
-    // here, and a plus, where the options ask for one, goes wherever the minus would have gone.
-    let signed = [".sign"] + body
+    let body = currencyAffix(placement: placement)
+    // The sign slot leads the arrangement: CLDR writes a negative's minus at the very front for every
+    // locale here, and a plus, where the options ask for one, goes wherever the minus would have gone.
+    let signed = affixesLiteral(prefix: [".sign"] + body.prefix, suffix: body.suffix)
     let accounting = accountingNegative == ".parentheses"
-        ? [".literal(\"(\")"] + body + [".literal(\")\")"]
+        ? affixesLiteral(prefix: [".literal(\"(\")"] + body.prefix, suffix: body.suffix + [".literal(\")\")"])
         : signed
 
     return """
         MoneyFormatPattern(
-                    positive: [\(signed.joined(separator: ", "))],
-                    negative: [\(signed.joined(separator: ", "))],
-                    accountingNegative: [\(accounting.joined(separator: ", "))]
+                    positive: \(signed),
+                    negative: \(signed),
+                    accountingNegative: \(accounting)
                 )
         """
 }

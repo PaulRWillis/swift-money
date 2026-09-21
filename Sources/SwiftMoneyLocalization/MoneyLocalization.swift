@@ -107,7 +107,7 @@ public enum MoneyLocalization {
         MoneyFormat(
             symbol: symbol,
             pattern: pattern,
-            currencyGap: gap,
+            currencySpacing: gap,
             decimalSeparator: format.decimalSeparator,
             grouping: .digits(
                 primary: format.primaryGroupingSize,

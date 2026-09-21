@@ -9,13 +9,6 @@
 /// The locale-dependent pieces a currency amount is rendered with, held as plain data so the amount can
 /// be formatted without consulting ICU at render time.
 public struct MoneyFormat: Equatable, Hashable, Sendable {
-    /// Whether the currency symbol precedes the digits or follows them.
-    @usableFromInline
-    package enum SymbolPlacement: Equatable, Hashable, Sendable {
-        case before
-        case after
-    }
-
     /// A locale's rule for splitting the whole digits into groups, like the thousands separators in
     /// `1,234,567`.
     ///
@@ -52,7 +45,7 @@ public struct MoneyFormat: Equatable, Hashable, Sendable {
     package let pattern: MoneyFormatPattern
     /// What separates the symbol from the digits, e.g. `""` or a non-breaking space.
     @usableFromInline
-    package let currencyGap: String
+    package let currencySpacing: String
     /// What separates the whole part from the fraction, e.g. `"."` or `","`.
     @usableFromInline
     package let decimalSeparator: String
@@ -69,7 +62,7 @@ public struct MoneyFormat: Equatable, Hashable, Sendable {
     package init(
         symbol: String,
         pattern: MoneyFormatPattern,
-        currencyGap: String = "",
+        currencySpacing: String = "",
         decimalSeparator: String = ".",
         grouping: GroupingScheme = .repeating(3, separator: ","),
         minusSign: String = "-",
@@ -77,7 +70,7 @@ public struct MoneyFormat: Equatable, Hashable, Sendable {
     ) {
         self.symbol = symbol
         self.pattern = pattern
-        self.currencyGap = currencyGap
+        self.currencySpacing = currencySpacing
         self.decimalSeparator = decimalSeparator
         self.grouping = grouping
         self.minusSign = minusSign
@@ -198,66 +191,70 @@ public extension MoneyFormat {
         let separators = groups.map { 1 + (wholeDigits - $0.primary - 1) / $0.secondary } ?? 0
         let showsSeparator = digitsShown > 0 || options.decimalSeparator == .always
 
-        let parts = pattern.parts(negative: negative, sign: options.sign)
+        let affixes = pattern.affixes(negative: negative, sign: options.sign)
         let sign = signText(negative: negative, strategy: options.sign)
 
-        var length = 0
-        for part in parts {
-            length += self.length(
-                of: part, sign: sign, wholeDigits: wholeDigits, separators: separators,
-                groupSeparator: groups?.separator, showsSeparator: showsSeparator, fractionDigits: digitsShown
-            )
+        // The digits, their grouping separators, and the decimal separator with the fraction when both
+        // are shown: the body every affix wraps, always in this order.
+        let separatorBytes = separators * (groups?.separator.utf8.count ?? 0)
+        let decimalBytes = showsSeparator ? decimalSeparator.utf8.count : 0
+        let bodyLength = wholeDigits + separatorBytes + decimalBytes + digitsShown
+
+        var length = bodyLength
+        for token in affixes.prefix {
+            length += self.length(of: token, sign: sign)
+        }
+        for token in affixes.suffix {
+            length += self.length(of: token, sign: sign)
         }
 
         return String(unsafeUninitializedCapacity: length) { buffer in
             var offset = 0
 
-            for part in parts {
-                switch part {
-                case .sign:
-                    offset = MoneyFormat.copy(sign, into: buffer, at: offset)
-                case .currency:
-                    offset = MoneyFormat.copy(symbol, into: buffer, at: offset)
-                case .currencyGap:
-                    offset = MoneyFormat.copy(currencyGap, into: buffer, at: offset)
-                case .integerDigits:
-                    offset = writeGroupedWhole(whole, digits: wholeDigits, groups: groups, into: buffer, at: offset)
-                case .decimalSeparator:
-                    if showsSeparator {
-                        offset = MoneyFormat.copy(decimalSeparator, into: buffer, at: offset)
-                    }
-                case .fractionDigits:
-                    if digitsShown > 0 {
-                        offset = MoneyFormat.writeDigits(fraction, count: digitsShown, into: buffer, at: offset)
-                    }
-                case .literal(let text):
-                    offset = MoneyFormat.copy(text, into: buffer, at: offset)
-                }
+            for token in affixes.prefix {
+                offset = write(token, sign: sign, into: buffer, at: offset)
+            }
+
+            offset = writeGroupedWhole(whole, digits: wholeDigits, groups: groups, into: buffer, at: offset)
+            if showsSeparator {
+                offset = MoneyFormat.copy(decimalSeparator, into: buffer, at: offset)
+            }
+            if digitsShown > 0 {
+                offset = MoneyFormat.writeDigits(fraction, count: digitsShown, into: buffer, at: offset)
+            }
+
+            for token in affixes.suffix {
+                offset = write(token, sign: sign, into: buffer, at: offset)
             }
 
             return offset
         }
     }
 
-    // How many bytes a part writes, so the buffer is sized exactly before anything is written.
+    // How many bytes a token writes, so the buffer is sized exactly before anything is written.
     @inlinable
-    package func length(
-        of part: MoneyFormatPart,
-        sign: String,
-        wholeDigits: Int,
-        separators: Int,
-        groupSeparator: String?,
-        showsSeparator: Bool,
-        fractionDigits: Int
-    ) -> Int {
-        switch part {
+    package func length(of token: MoneyFormatToken, sign: String) -> Int {
+        switch token {
         case .sign: sign.utf8.count
         case .currency: symbol.utf8.count
-        case .currencyGap: currencyGap.utf8.count
-        case .integerDigits: wholeDigits + separators * (groupSeparator?.utf8.count ?? 0)
-        case .decimalSeparator: showsSeparator ? decimalSeparator.utf8.count : 0
-        case .fractionDigits: fractionDigits
+        case .currencySpacing: currencySpacing.utf8.count
         case .literal(let text): text.utf8.count
+        }
+    }
+
+    // Writes one token into the buffer, returning the offset just past it.
+    @inlinable
+    package func write(
+        _ token: MoneyFormatToken,
+        sign: String,
+        into buffer: UnsafeMutableBufferPointer<UInt8>,
+        at offset: Int
+    ) -> Int {
+        switch token {
+        case .sign: MoneyFormat.copy(sign, into: buffer, at: offset)
+        case .currency: MoneyFormat.copy(symbol, into: buffer, at: offset)
+        case .currencySpacing: MoneyFormat.copy(currencySpacing, into: buffer, at: offset)
+        case .literal(let text): MoneyFormat.copy(text, into: buffer, at: offset)
         }
     }
 
