@@ -167,12 +167,42 @@ extension MoneyOf.FormatStyle: Foundation.FormatStyle {
     }
 }
 
+public extension MoneyOf.FormatStyle {
+    /// This style, rendering an `AttributedString` whose runs carry Foundation's number attributes
+    /// (`numberPart` and `numberSymbol`), the same tagging `Decimal.FormatStyle.Currency.attributed`
+    /// applies.
+    ///
+    /// ```swift
+    /// let attributed = GBP(minorUnits: 4_99).formatted(.currency().attributed)
+    /// ```
+    var attributed: Attributed { Attributed(base: self) }
+
+    /// A currency style whose output is an `AttributedString`.
+    ///
+    /// A covered locale renders through the engine, so the text matches ``format(_:)`` exactly; an
+    /// uncovered one falls back to `Decimal.FormatStyle.Currency`'s own attributed output.
+    struct Attributed: Foundation.FormatStyle {
+        var base: MoneyOf.FormatStyle
+
+        /// The amount, rendered as an attributed string for the locale this style holds.
+        public func format(_ value: MoneyOf<C>) -> AttributedString {
+            base.engineAttributed(value)
+                ?? base.decimalStyle(for: value.currency).attributed.format(base.majorUnits(of: value))
+        }
+
+        /// The same style rendering in `locale` instead.
+        public func locale(_ locale: Locale) -> Self {
+            Attributed(base: base.locale(locale))
+        }
+    }
+}
+
 private extension MoneyOf.FormatStyle {
-    // The amount rendered by the Foundation-free engine, or nil to fall back to the ICU path. Taken only
-    // when the style maps exactly onto the engine's options — default (currency-scale) precision, no
-    // increment rounding, a presentation and sign the engine can express — and the amount's locale is one
-    // our CLDR data covers. Output then matches ICU except where CLDR is the agreed source of truth.
-    func engineFormatted(_ value: MoneyOf<C>) -> String? {
+    // The engine descriptor and options for this style, or nil to fall back to the ICU path. Non-nil
+    // only when the style maps exactly onto the engine — default (currency-scale) precision, no
+    // increment rounding, a sign and presentation the engine can express, and the amount's locale one
+    // our CLDR data covers. Shared by the string and attributed renderers so both cover the same cells.
+    func engineRenderInputs(for value: MoneyOf<C>) -> (descriptor: MoneyFormat, options: MoneyFormatOptions)? {
         guard
             precision == nil,
             roundingIncrement == nil,
@@ -188,7 +218,47 @@ private extension MoneyOf.FormatStyle {
             decimalSeparator: engineDecimalSeparator,
             precision: .currencyScale
         )
-        return format.format(value, options: options)
+        return (format, options)
+    }
+
+    // The amount rendered by the Foundation-free engine, or nil to fall back to ICU. Output matches
+    // ICU except where CLDR is the agreed source of truth.
+    func engineFormatted(_ value: MoneyOf<C>) -> String? {
+        engineRenderInputs(for: value).map { $0.descriptor.format(value, options: $0.options) }
+    }
+
+    // The amount as an AttributedString built from the engine's runs, or nil to fall back to ICU. The
+    // text is identical to `engineFormatted`; each run carries Foundation's number attribute.
+    func engineAttributed(_ value: MoneyOf<C>) -> AttributedString? {
+        engineRenderInputs(for: value).map { inputs in
+            var result = AttributedString()
+            for run in inputs.descriptor.runs(value, options: inputs.options) {
+                if let attribute = Self.attribute(for: run) {
+                    result.append(AttributedString(run.text, attributes: attribute))
+                } else {
+                    result.append(AttributedString(run.text))
+                }
+            }
+            return result
+        }
+    }
+
+    // Foundation's attribute for a run, or nil for a run it leaves untagged (spacing and literals).
+    static func attribute(for run: MoneyFormatRun) -> AttributeContainer? {
+        var container = AttributeContainer()
+        switch run {
+        case .sign: container.numberSymbol = .sign
+        case .currency: container.numberSymbol = .currency
+        case .groupingSeparator:
+            // A grouping separator sits inside the integer, so ICU tags it as both, and this matches.
+            container.numberSymbol = .groupingSeparator
+            container.numberPart = .integer
+        case .decimalSeparator: container.numberSymbol = .decimalSeparator
+        case .integerDigits: container.numberPart = .integer
+        case .fractionDigits: container.numberPart = .fraction
+        case .currencySpacing, .literal: return nil
+        }
+        return container
     }
 
     // The descriptor for this style's presentation, or nil for one the CLDR data cannot name. A full

@@ -414,3 +414,112 @@ public extension MoneyFormat {
         return quotient + (negative ? -1 : 1)
     }
 }
+
+package extension MoneyFormat {
+    /// The amount as an ordered list of typed runs: the same layout ``format(_:)`` renders, with the
+    /// sign, currency, digits, separators and literals kept apart so a caller can tag each. A piece
+    /// with no text is left out, and concatenating the runs' text gives exactly ``format(_:)``'s
+    /// string. This is the seam a Foundation `AttributedString` renderer walks.
+    func runs<C: CurrencyRepresentation>(_ money: MoneyOf<C>, options: MoneyFormatOptions) -> [MoneyFormatRun] {
+        let places = money.currency.unitScale.decimalPlaces
+        let digitsShown: Int
+        let rounding: RoundingRule
+        switch options.precision {
+        case .currencyScale:
+            (digitsShown, rounding) = (places, .toNearestOrEven)
+        case .fixed(let length, let rule):
+            (digitsShown, rounding) = (length.rawValue, rule)
+        }
+        let value = MoneyFormat.displayValue(
+            money.minorUnits, scalePlaces: places, showing: digitsShown, rounding: rounding
+        )
+
+        let negative = value < 0
+        let magnitude = value.magnitude
+        let unit = UInt64.powerOfTen(digitsShown)
+        let whole = digitsShown == 0 ? magnitude : magnitude / unit
+        let fraction = digitsShown == 0 ? 0 : magnitude % unit
+        let wholeDigits = MoneyFormat.digitCount(whole)
+
+        let groups: (primary: Int, secondary: Int, separator: String)?
+        switch (grouping, options.grouping) {
+        case (.digits(let p, let s, let sep), .automatic) where wholeDigits > p.rawValue:
+            groups = (p.rawValue, s.rawValue, sep.rawValue)
+        default:
+            groups = nil
+        }
+        let showsSeparator = digitsShown > 0 || options.decimalSeparator == .always
+
+        let affixes = pattern.affixes(negative: negative, sign: options.sign)
+        let sign = signText(negative: negative, strategy: options.sign)
+
+        var result: [MoneyFormatRun] = []
+        for token in affixes.prefix {
+            appendToken(token, sign: sign, into: &result)
+        }
+        appendInteger(whole, digits: wholeDigits, groups: groups, into: &result)
+        if showsSeparator {
+            result.append(.decimalSeparator(decimalSeparator))
+        }
+        if digitsShown > 0 {
+            result.append(.fractionDigits(MoneyFormat.digitsString(fraction, count: digitsShown)))
+        }
+        for token in affixes.suffix {
+            appendToken(token, sign: sign, into: &result)
+        }
+        return result
+    }
+
+    // Maps one affix token to a run, dropping a piece that has no text.
+    private func appendToken(_ token: MoneyFormatToken, sign: String, into runs: inout [MoneyFormatRun]) {
+        switch token {
+        case .sign where !sign.isEmpty: runs.append(.sign(sign))
+        case .currency where !symbol.isEmpty: runs.append(.currency(symbol))
+        case .currencySpacing where !currencySpacing.isEmpty: runs.append(.currencySpacing(currencySpacing))
+        case .literal(let text) where !text.isEmpty: runs.append(.literal(text))
+        default: break
+        }
+    }
+
+    // The whole digits as integer-digit runs divided by grouping-separator runs, placing a separator
+    // by the same rule as `writeGroupedWhole`: before most-significant digit `i` when
+    // `(digits - i - primary)` is a non-negative multiple of `secondary`.
+    private func appendInteger(
+        _ whole: UInt64,
+        digits: Int,
+        groups: (primary: Int, secondary: Int, separator: String)?,
+        into runs: inout [MoneyFormatRun]
+    ) {
+        var group = ""
+        var divisor = UInt64.powerOfTen(digits - 1)
+        var remaining = whole
+
+        for index in 0 ..< digits {
+            if index > 0, let groups {
+                let rightOf = digits - index - groups.primary
+                if rightOf >= 0, rightOf % groups.secondary == 0 {
+                    runs.append(.integerDigits(group))
+                    runs.append(.groupingSeparator(groups.separator))
+                    group = ""
+                }
+            }
+            group.append(Character(UnicodeScalar(UInt8(remaining / divisor) &+ UInt8(ascii: "0"))))
+            remaining %= divisor
+            divisor /= 10
+        }
+        runs.append(.integerDigits(group))
+    }
+
+    // `count` digits of `value`, zero-padded, most significant first.
+    static func digitsString(_ value: UInt64, count: Int) -> String {
+        var bytes = [UInt8](repeating: UInt8(ascii: "0"), count: count)
+        var remaining = value
+        var index = count - 1
+        while index >= 0 {
+            bytes[index] = UInt8(remaining % 10) &+ UInt8(ascii: "0")
+            remaining /= 10
+            index -= 1
+        }
+        return String(decoding: bytes, as: UTF8.self)
+    }
+}
