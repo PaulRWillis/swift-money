@@ -79,4 +79,42 @@ struct FullNameMoneyFormatTests {
 
         #expect(text == "-1.00 British pounds")
     }
+
+    // Swahili names the amount after the plural form and before the singular one, so the order of the
+    // number and the name flips with the plural category.
+    @Test("Swahili writes the name after one unit and before the rest")
+    func swahiliFlipsSidesByPlural() throws {
+        #expect(try Self.formatted(1, "JPY", "sw") == "1 yen ya Japani")
+        #expect(try Self.formatted(4, "JPY", "sw") == "yen za Japani 4")
+    }
+
+    // The number carries its own sign, so a name written first leaves the minus on the digits, not
+    // in front of the name.
+    @Test("Swahili keeps the minus on the digits when the name comes first")
+    func swahiliNegativeKeepsMinusOnDigits() throws {
+        #expect(try Self.formatted(-4, "JPY", "sw") == "yen za Japani -4")
+    }
+
+    @Test("Sinhala writes the name first with no gap")
+    func sinhalaNameFirstNoGap() throws {
+        #expect(try Self.formatted(1_00, "USD", "si") == "ඇමරිකානු ඩොලර්1.00")
+        #expect(try Self.formatted(-1_00, "USD", "si") == "ඇමරිකානු ඩොලර්-1.00")
+    }
+
+    // Romanian has three cardinal categories and writes "de" before the name for `other`, which no
+    // shipped locale did before.
+    @Test("Romanian names each plural category, writing 'de' before the name for other")
+    func romanianPluralCategories() throws {
+        #expect(try Self.formatted(1, "JPY", "ro") == "1 yen japonez")          // one
+        #expect(try Self.formatted(4, "JPY", "ro") == "4 yeni japonezi")        // few
+        #expect(try Self.formatted(20, "JPY", "ro") == "20 de yeni japonezi")   // other, "de"
+        #expect(try Self.formatted(-4, "JPY", "ro") == "-4 yeni japonezi")      // negative few
+    }
+
+    // A currency that shows fraction digits is always the `few` form in Romanian, and the decimal is
+    // a comma.
+    @Test("Romanian writes a comma decimal for a fractional amount")
+    func romanianCommaDecimal() throws {
+        #expect(try Self.formatted(4_99, "USD", "ro") == "4,99 dolari americani")
+    }
 }

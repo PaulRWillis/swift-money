@@ -19,7 +19,7 @@ import SwiftMoneyCore
 import SwiftMoneyLocalization
 
 let cldrVersion = "48.0.0"
-let locales = ["en", "en-GB", "de", "fr", "ja"]
+let locales = ["en", "en-GB", "de", "fr", "ja", "sw", "si", "ro"]
 
 // Plural rules are published per language, so a region keeps its language's rules.
 let languages = locales.map { String($0.prefix { $0 != "-" }) }.uniqued()
