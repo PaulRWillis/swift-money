@@ -3,22 +3,28 @@ import SwiftMoneyCore
 /// The number-format section of the packed blob: one record per locale, holding the locale's separators,
 /// grouping and the indices of its symbol and full-name patterns among the interned pattern arrays.
 ///
-/// Byte layout, one fixed record per locale indexed directly by locale (no search); little-endian,
-/// `StringRef` is offset then length:
-/// - `decimalSeparator`, `groupingSeparator`, `minusSign`, `isoCodeSpacing`: four `StringRef`s.
-/// - `primaryGroupingSize: UInt8`, `secondaryGroupingSize: UInt8`, `fullNameSpacing: UInt8`
-///   (a ``Spacing/blobCode``).
-/// - `patternIndex: UInt16`, `fullNamePatternIndex: UInt16` — into `patterns` / `fullNamePatterns`.
-///
-/// Stride 39. Patterns are interned (few distinct across all locales) and passed in as Swift arrays
-/// rather than packed, so the blob holds only the per-locale index.
-package struct NumberFormatTable {
+/// Every integer is written as ``BlobDigits``, so a field's position is the width of the fields before
+/// it. There is one fixed record per locale, indexed directly by locale with no search.
+/// Patterns are interned — few are distinct across all locales — so a record carries an index into the
+/// arrays passed in here rather than a packed pattern of its own.
+package struct NumberFormatTable: Sendable {
     let reader: BlobReader
     let recordsOffset: Int
     let patterns: [MoneyFormatPattern]
     let fullNamePatterns: [FullNameLayout]
 
-    static let recordStride = 39
+    private enum Record {
+        static let decimalSeparator = 0
+        static let groupingSeparator = decimalSeparator + BlobDigits.stringRef
+        static let minusSign = groupingSeparator + BlobDigits.stringRef
+        static let isoCodeSpacing = minusSign + BlobDigits.stringRef
+        static let primaryGroupingSize = isoCodeSpacing + BlobDigits.stringRef
+        static let secondaryGroupingSize = primaryGroupingSize + BlobDigits.u8
+        static let fullNameSpacing = secondaryGroupingSize + BlobDigits.u8
+        static let patternIndex = fullNameSpacing + BlobDigits.u8
+        static let fullNamePatternIndex = patternIndex + BlobDigits.u16
+        static let stride = fullNamePatternIndex + BlobDigits.u16
+    }
 
     package init(
         reader: BlobReader,
@@ -34,17 +40,17 @@ package struct NumberFormatTable {
 
     /// The number format for the locale at `localeIndex`.
     package func numberFormat(localeIndex: Int) -> LocaleNumberFormat {
-        let record = recordsOffset + localeIndex * Self.recordStride
+        let record = recordsOffset + localeIndex * Record.stride
 
-        let decimalSeparator = reader.string(reader.stringRef(at: record))
-        let groupingRaw = reader.string(reader.stringRef(at: record + 8))
-        let minusSign = reader.string(reader.stringRef(at: record + 16))
-        let isoCodeSpacing = reader.string(reader.stringRef(at: record + 24))
-        let primaryRaw = Int(reader.u8(at: record + 32))
-        let secondaryRaw = Int(reader.u8(at: record + 33))
-        let spacingCode = reader.u8(at: record + 34)
-        let patternIndex = Int(reader.u16(at: record + 35))
-        let fullNamePatternIndex = Int(reader.u16(at: record + 37))
+        let decimalSeparator = reader.string(reader.stringRef(at: record + Record.decimalSeparator))
+        let groupingRaw = reader.string(reader.stringRef(at: record + Record.groupingSeparator))
+        let minusSign = reader.string(reader.stringRef(at: record + Record.minusSign))
+        let isoCodeSpacing = reader.string(reader.stringRef(at: record + Record.isoCodeSpacing))
+        let primaryRaw = Int(reader.u8(at: record + Record.primaryGroupingSize))
+        let secondaryRaw = Int(reader.u8(at: record + Record.secondaryGroupingSize))
+        let spacingCode = reader.u8(at: record + Record.fullNameSpacing)
+        let patternIndex = Int(reader.u16(at: record + Record.patternIndex))
+        let fullNamePatternIndex = Int(reader.u16(at: record + Record.fullNamePatternIndex))
 
         // The generator writes only valid values, so a failure here is a generator bug, not input.
         guard let groupingSeparator = GroupingSeparator(groupingRaw) else {

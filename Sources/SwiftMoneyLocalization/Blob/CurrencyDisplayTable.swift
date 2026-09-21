@@ -3,17 +3,28 @@ import SwiftMoneyCore
 /// The currency-display section of the packed blob: per locale, the currencies whose symbol differs from
 /// their code, each with a standard and narrow symbol and their spacings.
 ///
-/// Byte layout (little-endian; `StringRef` is offset then length):
-/// - **directory** — `localeCount` entries of `recordsStart: UInt32`, `recordCount: UInt16` (stride 6).
-/// - **records** — per locale, `recordCount` records **sorted by** `CurrencyCode.packedValue`, each:
-///   `code: UInt64`, then four `StringRef`s — `standardSymbol`, `standardSpacing`, `narrowSymbol`,
-///   `narrowSpacing` (stride 40).
-package struct CurrencyDisplayTable {
+/// Every integer is written as ``BlobDigits``, so a field's position is the width of the fields before
+/// it. The section is a **directory** of one entry per locale, indexed by locale, and the
+/// **records** it points at, sorted by ``CurrencyCode/packedValue`` so a currency is found by binary
+/// search.
+package struct CurrencyDisplayTable: Sendable {
     let reader: BlobReader
     let directoryOffset: Int
 
-    static let directoryStride = 6
-    static let recordStride = 40
+    private enum Entry {
+        static let recordsStart = 0
+        static let recordCount = recordsStart + BlobDigits.u32
+        static let stride = recordCount + BlobDigits.u16
+    }
+
+    private enum Record {
+        static let code = 0
+        static let standardSymbol = code + BlobDigits.u64
+        static let standardSpacing = standardSymbol + BlobDigits.stringRef
+        static let narrowSymbol = standardSpacing + BlobDigits.stringRef
+        static let narrowSpacing = narrowSymbol + BlobDigits.stringRef
+        static let stride = narrowSpacing + BlobDigits.stringRef
+    }
 
     package init(reader: BlobReader, directoryOffset: Int) {
         self.reader = reader
@@ -23,21 +34,21 @@ package struct CurrencyDisplayTable {
     /// How `code` is displayed in the locale at `localeIndex`, or `nil` if it has no distinct symbol
     /// there (the caller then falls back to the code).
     package func display(localeIndex: Int, code: CurrencyCode) -> CurrencyDisplay? {
-        let entry = directoryOffset + localeIndex * Self.directoryStride
-        let recordsStart = Int(reader.u32(at: entry))
-        let recordCount = Int(reader.u16(at: entry + 4))
+        let entry = directoryOffset + localeIndex * Entry.stride
+        let recordsStart = Int(reader.u32(at: entry + Entry.recordsStart))
+        let recordCount = Int(reader.u16(at: entry + Entry.recordCount))
 
         guard let record = reader.recordOffset(
-            code: code.packedValue, start: recordsStart, count: recordCount, stride: Self.recordStride
+            code: code.packedValue, start: recordsStart, count: recordCount, stride: Record.stride
         ) else {
             return nil
         }
 
         return CurrencyDisplay(
-            standardSymbol: reader.string(reader.stringRef(at: record + 8)),
-            standardSpacing: reader.string(reader.stringRef(at: record + 16)),
-            narrowSymbol: reader.string(reader.stringRef(at: record + 24)),
-            narrowSpacing: reader.string(reader.stringRef(at: record + 32))
+            standardSymbol: reader.string(reader.stringRef(at: record + Record.standardSymbol)),
+            standardSpacing: reader.string(reader.stringRef(at: record + Record.standardSpacing)),
+            narrowSymbol: reader.string(reader.stringRef(at: record + Record.narrowSymbol)),
+            narrowSpacing: reader.string(reader.stringRef(at: record + Record.narrowSpacing))
         )
     }
 }

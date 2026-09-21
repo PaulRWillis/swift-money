@@ -1,8 +1,13 @@
 /// A Foundation-free cursor over the packed table bytes, so this module still compiles under Embedded:
-/// little-endian fixed-width integers and UTF-8 strings sliced from a static byte buffer. Offsets are
-/// written by the generator, so reads are not bounds-checked.
+/// integers written as ``BlobDigits`` and strings sliced from the pool by offset and length.
+///
+/// The bytes are a `StaticString` the generator wrote, so reads are not bounds-checked and a digit run
+/// always holds the field it is read as.
+///
+/// The reader is `Sendable` because it points at a string literal: static, read-only bytes that outlive
+/// every use of them.
 @usableFromInline
-package struct BlobReader {
+package struct BlobReader: @unchecked Sendable {
     @usableFromInline let base: UnsafePointer<UInt8>
     @usableFromInline let count: Int
 
@@ -12,50 +17,71 @@ package struct BlobReader {
         self.count = count
     }
 
-    /// The byte at `offset`.
+    /// The raw byte at `offset`, as the blob holds it: one digit of an integer, or one byte of the
+    /// pool's UTF-8.
     @usableFromInline
-    package func u8(at offset: Int) -> UInt8 {
+    package func byte(at offset: Int) -> UInt8 {
         base[offset]
     }
 
-    /// The little-endian `UInt16` at `offset`.
+    /// The integer written as `width` digits at `offset`, most significant first.
+    ///
+    /// Eleven digits carry 66 bits, two more than the widest integer the tables hold, so the leading
+    /// digit of a `UInt64` field carries four bits and the excess is never written.
+    @usableFromInline
+    package func integer(at offset: Int, width: Int) -> UInt64 {
+        var value: UInt64 = 0
+
+        for position in 0 ..< width {
+            value = value << BlobDigits.bits | UInt64(BlobDigits.value(of: base[offset + position]))
+        }
+
+        return value
+    }
+
+    /// The `UInt8` at `offset`.
+    @usableFromInline
+    package func u8(at offset: Int) -> UInt8 {
+        UInt8(truncatingIfNeeded: integer(at: offset, width: BlobDigits.u8))
+    }
+
+    /// The `UInt16` at `offset`.
     @usableFromInline
     package func u16(at offset: Int) -> UInt16 {
-        UInt16(base[offset]) | (UInt16(base[offset + 1]) << 8)
+        UInt16(truncatingIfNeeded: integer(at: offset, width: BlobDigits.u16))
     }
 
-    /// The little-endian `UInt32` at `offset`.
+    /// The `UInt32` at `offset`.
     @usableFromInline
     package func u32(at offset: Int) -> UInt32 {
-        UInt32(base[offset])
-            | (UInt32(base[offset + 1]) << 8)
-            | (UInt32(base[offset + 2]) << 16)
-            | (UInt32(base[offset + 3]) << 24)
+        UInt32(truncatingIfNeeded: integer(at: offset, width: BlobDigits.u32))
     }
 
-    /// The little-endian `UInt64` at `offset`.
+    /// The `UInt64` at `offset`.
     @usableFromInline
     package func u64(at offset: Int) -> UInt64 {
-        UInt64(u32(at: offset)) | (UInt64(u32(at: offset + 4)) << 32)
+        integer(at: offset, width: BlobDigits.u64)
     }
 
-    /// The ``StringRef`` (offset then length, each little-endian `UInt32`) at `offset`.
+    /// The ``StringRef`` (an offset then a length) at `offset`.
     @usableFromInline
     package func stringRef(at offset: Int) -> StringRef {
-        StringRef(offset: u32(at: offset), length: u32(at: offset + 4))
+        StringRef(offset: u32(at: offset), length: u32(at: offset + BlobDigits.u32))
     }
 
     /// The string a ``StringRef`` points at, decoded from the pool's UTF-8 bytes.
     @usableFromInline
     package func string(_ ref: StringRef) -> String {
         guard ref.length > 0 else { return "" }
+
         let slice = UnsafeBufferPointer(start: base + Int(ref.offset), count: Int(ref.length))
+
         return String(decoding: slice, as: UTF8.self)
     }
 
-    /// The byte offset of the fixed-`stride` record whose leading little-endian `UInt64` equals `code`,
-    /// among `count` records from `start`, by binary search; `nil` if none. Records must be sorted
-    /// ascending by that leading code.
+    /// The byte offset of the fixed-`stride` record whose leading `UInt64` equals `code`, among `count`
+    /// records from `start`, by binary search; `nil` if none. Records must be sorted ascending by that
+    /// leading code.
     package func recordOffset(code: UInt64, start: Int, count: Int, stride: Int) -> Int? {
         var low = 0
         var high = count
