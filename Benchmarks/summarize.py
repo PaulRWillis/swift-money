@@ -154,8 +154,11 @@ def cell(measurement):
 
 def table(spec, results):
     # A table whose benchmarks have all gone would otherwise render as a heading over empty columns.
+    # Empty text rather than an empty list, because the caller joins these into one document: a list
+    # here stopped a filtered run, which holds the rows of one table and none of the others, from
+    # folding at all.
     if not any(results.get(ours) for _, ours, _ in spec["rows"]):
-        return []
+        return ""
 
     columns = spec["columns"]
     headings = ["Operation", "Ours", *columns]
