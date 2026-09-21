@@ -10,9 +10,9 @@ struct LocaleNumberFormat {
     let secondaryGroupingSize: GroupingSize
     // How this locale arranges a currency symbol, a sign and the digits, from its CLDR pattern.
     let pattern: MoneyFormatPattern
-    // The same, for a currency written out in words. Its negatives keep the minus sign, since a
-    // locale's accounting form belongs to the pattern that writes a symbol.
-    let fullNamePattern: MoneyFormatPattern
+    // The same, for a currency written out in words, per plural category, from CLDR's unit patterns.
+    // A name never takes accounting parentheses, so this carries no accounting form of its own.
+    let fullNamePattern: FullNameLayout
     // The space between an ISO code (or a code used as a fallback symbol) and the digits.
     let isoCodeSpacing: String
     // The gap between the amount and a currency's full name.

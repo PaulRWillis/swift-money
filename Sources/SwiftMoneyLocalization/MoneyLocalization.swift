@@ -79,10 +79,11 @@ public enum MoneyLocalization {
 
         let operands = PluralOperandValues(minorUnits: minorUnits, unitScale: currency.unitScale)
         let category = pluralCategory(of: operands, in: key)
+        let affixes = format.fullNamePattern.affixes(for: category)
 
         return moneyFormat(
             symbol: names.name(for: category),
-            pattern: format.fullNamePattern,
+            pattern: MoneyFormatPattern(positive: affixes, negative: affixes, accountingNegative: affixes),
             gap: format.fullNameSpacing.rendered,
             from: format
         )
