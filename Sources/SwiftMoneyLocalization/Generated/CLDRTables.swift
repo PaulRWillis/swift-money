@@ -3,10 +3,15 @@
 
 import SwiftMoneyCore
 
+// Each table is built in an `@_optimize(none)` function. Under `-O`, the Swift 6.3.2 optimizer
+// (Xcode 26.5) spends many minutes on these large literal tables, enough to stall CI; skipping
+// optimization of the builder avoids it. The table is identical either way and is built once, lazily.
 extension MoneyLocalization {
     static let cldrVersion = "48.0.0"
 
-    static let numberFormats: [String: LocaleNumberFormat] = [
+    static let numberFormats: [String: LocaleNumberFormat] = makeNumberFormats()
+    @_optimize(none) private static func makeNumberFormats() -> [String: LocaleNumberFormat] {
+        [
             "en": LocaleNumberFormat(
             decimalSeparator: ".",
             groupingSeparator: ",",
@@ -127,9 +132,12 @@ extension MoneyLocalization {
             isoCodeSpacing: "\u{A0}",
             fullNameSpacing: .asciiSpace
         ),
-    ]
+        ]
+    }
 
-    static let currencyDisplays: [String: [String: CurrencyDisplay]] = [
+    static let currencyDisplays: [String: [String: CurrencyDisplay]] = makeCurrencyDisplays()
+    @_optimize(none) private static func makeCurrencyDisplays() -> [String: [String: CurrencyDisplay]] {
+        [
             "en": [
             "AFN": CurrencyDisplay(standardSymbol: "AFN", standardSpacing: "\u{A0}", narrowSymbol: "\u{60B}", narrowSpacing: ""),
             "AMD": CurrencyDisplay(standardSymbol: "AMD", standardSpacing: "\u{A0}", narrowSymbol: "\u{58F}", narrowSpacing: ""),
@@ -1013,11 +1021,14 @@ extension MoneyLocalization {
             "ZAR": CurrencyDisplay(standardSymbol: "ZAR", standardSpacing: "\u{A0}", narrowSymbol: "R", narrowSpacing: "\u{A0}"),
             "ZMW": CurrencyDisplay(standardSymbol: "ZMW", standardSpacing: "\u{A0}", narrowSymbol: "ZK", narrowSpacing: "\u{A0}"),
         ],
-    ]
+        ]
+    }
 
     /// What each locale calls a currency, by plural category. A currency CLDR does not name in a
     /// locale is absent.
-    package static let currencyFullNames: [String: [CurrencyCode: CurrencyFullName]] = [
+    package static let currencyFullNames: [String: [CurrencyCode: CurrencyFullName]] = makeCurrencyFullNames()
+    @_optimize(none) private static func makeCurrencyFullNames() -> [String: [CurrencyCode: CurrencyFullName]] {
+        [
             "en": [
             "AED": CurrencyFullName(other: "UAE dirhams", byCategory: [.one: "UAE dirham"]),
             "AFN": CurrencyFullName(other: "Afghan Afghanis", byCategory: [.one: "Afghan Afghani"]),
@@ -2310,11 +2321,14 @@ extension MoneyLocalization {
             "ZMW": CurrencyFullName(other: "kwache zambiene", byCategory: [.one: "kwacha zambian"]),
             "ZWG": CurrencyFullName(other: "Zimbabwe Gold"),
         ],
-    ]
+        ]
+    }
 
     /// Each language's plural rules, in the order CLDR resolves them. A language with no rule for a
     /// category takes `other`, which never carries one.
-    package static let pluralRules: [String: [PluralCategory: PluralRule]] = [
+    package static let pluralRules: [String: [PluralCategory: PluralRule]] = makePluralRules()
+    @_optimize(none) private static func makePluralRules() -> [String: [PluralCategory: PluralRule]] {
+        [
             "en": [
             .one: PluralRule(orOfAndGroups: NonEmpty(NonEmpty(PluralRelation(operand: .integerPart, comparison: .equals(NonEmpty(PluralRange(1)))), [PluralRelation(operand: .fractionDigitCount, comparison: .equals(NonEmpty(PluralRange(0))))]))),
         ],
@@ -2336,5 +2350,6 @@ extension MoneyLocalization {
             .one: PluralRule(orOfAndGroups: NonEmpty(NonEmpty(PluralRelation(operand: .integerPart, comparison: .equals(NonEmpty(PluralRange(1)))), [PluralRelation(operand: .fractionDigitCount, comparison: .equals(NonEmpty(PluralRange(0))))]))),
             .few: PluralRule(orOfAndGroups: NonEmpty(NonEmpty(PluralRelation(operand: .fractionDigitCount, comparison: .notEquals(NonEmpty(PluralRange(0))))), [NonEmpty(PluralRelation(operand: .absoluteValue, comparison: .equals(NonEmpty(PluralRange(0))))), NonEmpty(PluralRelation(operand: .absoluteValue, comparison: .notEquals(NonEmpty(PluralRange(1)))), [PluralRelation(operand: .absoluteValue, modulus: 100, comparison: .equals(NonEmpty(PluralRange(1 ... 19))))])])),
         ],
-    ]
+        ]
+    }
 }

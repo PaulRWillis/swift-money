@@ -520,28 +520,43 @@ let output = """
 
 import SwiftMoneyCore
 
+// Each table is built in an `@_optimize(none)` function. Under `-O`, the Swift 6.3.2 optimizer
+// (Xcode 26.5) spends many minutes on these large literal tables, enough to stall CI; skipping
+// optimization of the builder avoids it. The table is identical either way and is built once, lazily.
 extension MoneyLocalization {
     static let cldrVersion = \(quote(cldrVersion))
 
-    static let numberFormats: [String: LocaleNumberFormat] = [
+    static let numberFormats: [String: LocaleNumberFormat] = makeNumberFormats()
+    @_optimize(none) private static func makeNumberFormats() -> [String: LocaleNumberFormat] {
+        [
     \(numberFormatLines.joined(separator: "\n"))
-    ]
+        ]
+    }
 
-    static let currencyDisplays: [String: [String: CurrencyDisplay]] = [
+    static let currencyDisplays: [String: [String: CurrencyDisplay]] = makeCurrencyDisplays()
+    @_optimize(none) private static func makeCurrencyDisplays() -> [String: [String: CurrencyDisplay]] {
+        [
     \(currencyBlocks.joined(separator: "\n"))
-    ]
+        ]
+    }
 
     /// What each locale calls a currency, by plural category. A currency CLDR does not name in a
     /// locale is absent.
-    package static let currencyFullNames: [String: [CurrencyCode: CurrencyFullName]] = [
+    package static let currencyFullNames: [String: [CurrencyCode: CurrencyFullName]] = makeCurrencyFullNames()
+    @_optimize(none) private static func makeCurrencyFullNames() -> [String: [CurrencyCode: CurrencyFullName]] {
+        [
     \(fullNameBlocks.joined(separator: "\n"))
-    ]
+        ]
+    }
 
     /// Each language's plural rules, in the order CLDR resolves them. A language with no rule for a
     /// category takes `other`, which never carries one.
-    package static let pluralRules: [String: [PluralCategory: PluralRule]] = [
+    package static let pluralRules: [String: [PluralCategory: PluralRule]] = makePluralRules()
+    @_optimize(none) private static func makePluralRules() -> [String: [PluralCategory: PluralRule]] {
+        [
     \(pluralRuleBlocks.joined(separator: "\n"))
-    ]
+        ]
+    }
 }
 """
 
