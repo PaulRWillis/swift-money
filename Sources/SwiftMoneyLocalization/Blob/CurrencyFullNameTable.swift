@@ -30,7 +30,9 @@ package struct CurrencyFullNameTable {
         let recordsStart = Int(reader.u32(at: entry))
         let recordCount = Int(reader.u16(at: entry + 4))
 
-        guard let record = recordOffset(of: code, start: recordsStart, count: recordCount) else {
+        guard let record = reader.recordOffset(
+            code: code.packedValue, start: recordsStart, count: recordCount, stride: Self.recordStride
+        ) else {
             return nil
         }
 
@@ -46,27 +48,5 @@ package struct CurrencyFullNameTable {
         }
 
         return CurrencyFullName(other: other, byCategory: byCategory)
-    }
-
-    // The byte offset of the record for `code` among `count` records from `start`, by binary search on
-    // the packed code, or `nil` when absent.
-    private func recordOffset(of code: CurrencyCode, start: Int, count: Int) -> Int? {
-        let target = code.packedValue
-        var low = 0
-        var high = count
-
-        while low < high {
-            let mid = (low + high) / 2
-            let offset = start + mid * Self.recordStride
-            let value = reader.u64(at: offset)
-            if value == target {
-                return offset
-            } else if value < target {
-                low = mid + 1
-            } else {
-                high = mid
-            }
-        }
-        return nil
     }
 }

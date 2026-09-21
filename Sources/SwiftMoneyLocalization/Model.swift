@@ -21,9 +21,16 @@ struct LocaleNumberFormat {
 
 // A currency's symbol and narrow symbol in one locale, each with the spacing CLDR resolves for it. Only
 // currencies whose symbol differs from their code are stored; the rest fall back to the code.
-struct CurrencyDisplay {
-    let standardSymbol: String
-    let standardSpacing: String
-    let narrowSymbol: String
-    let narrowSpacing: String
+package struct CurrencyDisplay: Equatable {
+    package let standardSymbol: String
+    package let standardSpacing: String
+    package let narrowSymbol: String
+    package let narrowSpacing: String
+
+    package init(standardSymbol: String, standardSpacing: String, narrowSymbol: String, narrowSpacing: String) {
+        self.standardSymbol = standardSymbol
+        self.standardSpacing = standardSpacing
+        self.narrowSymbol = narrowSymbol
+        self.narrowSpacing = narrowSpacing
+    }
 }

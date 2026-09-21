@@ -7,23 +7,6 @@ import Testing
 @Suite("Currency Full Name Table Tests")
 struct CurrencyFullNameTableTests {
 
-    // A minimal byte builder mirroring the section's layout, so the test writes exactly what the decoder
-    // reads. Little-endian, matching BlobReader.
-    struct Builder {
-        var bytes: [UInt8] = []
-        var count: Int { bytes.count }
-        mutating func u8(_ v: UInt8) { bytes.append(v) }
-        mutating func u16(_ v: UInt16) { u8(UInt8(v & 0xFF)); u8(UInt8(v >> 8)) }
-        mutating func u32(_ v: UInt32) { for shift in stride(from: 0, to: 32, by: 8) { u8(UInt8((v >> shift) & 0xFF)) } }
-        mutating func u64(_ v: UInt64) { for shift in stride(from: 0, to: 64, by: 8) { u8(UInt8((v >> shift) & 0xFF)) } }
-        mutating func ref(_ r: StringRef) { u32(r.offset); u32(r.length) }
-        mutating func pool(_ s: String) -> StringRef {
-            let ref = StringRef(offset: UInt32(count), length: UInt32(s.utf8.count))
-            bytes.append(contentsOf: s.utf8)
-            return ref
-        }
-    }
-
     static func code(_ iso: String) -> CurrencyCode {
         guard let code = CurrencyCode(string: iso) else { preconditionFailure("\(iso) is not a code") }
         return code
@@ -31,7 +14,7 @@ struct CurrencyFullNameTableTests {
 
     // One locale (index 0) naming EUR (no override), GBP and USD (each with a `.one` override).
     static func makeBlob() -> (bytes: [UInt8], directoryOffset: Int) {
-        var b = Builder()
+        var b = BlobTestBuilder()
         let names: [(code: CurrencyCode, other: StringRef, one: StringRef?)] = [
             (code("EUR"), b.pool("euros"), nil),
             (code("GBP"), b.pool("British pounds"), b.pool("British pound")),

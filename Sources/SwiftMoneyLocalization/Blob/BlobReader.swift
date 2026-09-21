@@ -52,4 +52,26 @@ package struct BlobReader {
         let slice = UnsafeBufferPointer(start: base + Int(ref.offset), count: Int(ref.length))
         return String(decoding: slice, as: UTF8.self)
     }
+
+    /// The byte offset of the fixed-`stride` record whose leading little-endian `UInt64` equals `code`,
+    /// among `count` records from `start`, by binary search; `nil` if none. Records must be sorted
+    /// ascending by that leading code.
+    package func recordOffset(code: UInt64, start: Int, count: Int, stride: Int) -> Int? {
+        var low = 0
+        var high = count
+
+        while low < high {
+            let mid = (low + high) / 2
+            let offset = start + mid * stride
+            let value = u64(at: offset)
+            if value == code {
+                return offset
+            } else if value < code {
+                low = mid + 1
+            } else {
+                high = mid
+            }
+        }
+        return nil
+    }
 }
