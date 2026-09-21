@@ -2,13 +2,14 @@ import SwiftMoneyCore
 import SwiftMoneyLocalization
 import Testing
 
-// The names come from CLDR through the generator. These pin what it wrote for cases that differ in
-// kind: a currency with two forms, one with a single form, and one CLDR does not name at all.
+// The names come from CLDR through the generator, and are read back out of the packed tables. These pin
+// what it wrote for cases that differ in kind: a currency with two forms, one with a single form, and
+// one CLDR does not name at all.
 @Suite("Generated Currency Full Names Tests")
 struct GeneratedCurrencyFullNamesTests {
 
-    static func name(_ code: CurrencyCode, in locale: String, for category: PluralCategory) throws -> String {
-        let names = try #require(MoneyLocalization.currencyFullNames[locale]?[code])
+    static func name(_ code: CurrencyCode, in locale: LocaleIdentifier, for category: PluralCategory) throws -> String {
+        let names = try #require(MoneyLocalization.fullName(of: code, locale: locale))
         return names.name(for: category)
     }
 
@@ -26,21 +27,24 @@ struct GeneratedCurrencyFullNamesTests {
     }
 
     @Test("Every shipped locale names the currencies it is most likely to show", arguments: ["en", "en-GB", "de", "fr", "ja"])
-    func everyLocaleNamesTheCommonCurrencies(_ locale: String) throws {
-        let names = try #require(MoneyLocalization.currencyFullNames[locale])
-
+    func everyLocaleNamesTheCommonCurrencies(_ locale: LocaleIdentifier) {
         for code: CurrencyCode in ["GBP", "USD", "EUR", "JPY"] {
-            #expect(names[code] != nil, "\(locale) should name \(code)")
+            #expect(MoneyLocalization.fullName(of: code, locale: locale) != nil, "\(locale.value) should name \(code)")
         }
     }
 
     // CLDR names 164 of the 165 currencies the library ships in English, and three fewer in the
     // other covered locales, so a caller has to cope with a currency having no name.
     @Test("A currency CLDR does not name is absent rather than made up")
-    func unnamedCurrenciesAreAbsent() throws {
-        let english = try #require(MoneyLocalization.currencyFullNames["en"])
+    func unnamedCurrenciesAreAbsent() {
+        let named = Currency.allISO4217.count { MoneyLocalization.fullName(of: $0.code, locale: "en") != nil }
 
-        #expect(english["XAD"] == nil)
-        #expect(english.count < Currency.allISO4217.count)
+        #expect(MoneyLocalization.fullName(of: "XAD", locale: "en") == nil)
+        #expect(named < Currency.allISO4217.count)
+    }
+
+    @Test("A locale outside the tables names nothing")
+    func uncoveredLocaleNamesNothing() {
+        #expect(MoneyLocalization.fullName(of: "GBP", locale: "zz-ZZ") == nil)
     }
 }

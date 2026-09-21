@@ -27,12 +27,13 @@ public enum MoneyLocalization {
         locale: LocaleIdentifier,
         presentation: CurrencyPresentation = .standard
     ) -> MoneyFormat? {
-        guard let (key, format) = resolve(locale) else {
+        guard let localeIndex = cldr.locales.index(of: locale) else {
             return nil
         }
 
+        let format = numberFormat(at: localeIndex)
         let code = String(currency.code)
-        let display = currencyDisplays[key]?[code]
+        let display = cldr.currencyDisplays.display(localeIndex: localeIndex, code: currency.code)
 
         let symbol: String
         let spacing: String
@@ -73,16 +74,25 @@ public enum MoneyLocalization {
         minorUnits: Int64,
         locale: LocaleIdentifier
     ) -> MoneyFormat? {
-        guard let (key, format) = resolve(locale), let names = currencyFullNames[key]?[currency.code] else {
+        guard let localeIndex = cldr.locales.index(of: locale) else {
             return nil
         }
 
+        // The category first, so only the name the amount calls for is read out of the tables.
         let operands = PluralOperandValues(minorUnits: minorUnits, unitScale: currency.unitScale)
-        let category = pluralCategory(of: operands, in: key)
+        let category = pluralCategory(of: operands, inLanguageOf: locale)
+
+        guard let name = cldr.currencyFullNames.name(
+            localeIndex: localeIndex, code: currency.code, category: category
+        ) else {
+            return nil
+        }
+
+        let format = numberFormat(at: localeIndex)
         let affixes = format.fullNamePattern.affixes(for: category)
 
         return moneyFormat(
-            symbol: names.name(for: category),
+            symbol: name,
             pattern: MoneyFormatPattern(positive: affixes, negative: affixes, accountingNegative: affixes),
             gap: format.fullNameSpacing.rendered,
             from: format
@@ -90,12 +100,35 @@ public enum MoneyLocalization {
     }
 
     // The first category whose rule the amount satisfies, in the order CLDR resolves them. CLDR gives
-    // `other` no rule at all, so it stands in when none holds.
-    static func pluralCategory(of operands: PluralOperandValues, in localeKey: String) -> PluralCategory {
-        let language = String(localeKey.prefix { $0 != "-" })
+    // `other` no rule at all, so it stands in when none holds, and publishes the rules per language, so
+    // the identifier's region plays no part.
+    static func pluralCategory(
+        of operands: PluralOperandValues,
+        inLanguageOf locale: LocaleIdentifier
+    ) -> PluralCategory {
+        let language = String(locale.value.prefix { $0 != "-" && $0 != "_" })
         let rules = pluralRules[language] ?? [:]
 
         return PluralCategory.allCases.first { rules[$0]?.matches(operands) == true } ?? .other
+    }
+
+    /// What `code` is called in a locale, by plural category, or `nil` when the locale is not covered or
+    /// CLDR does not name the currency there.
+    package static func fullName(of code: CurrencyCode, locale: LocaleIdentifier) -> CurrencyFullName? {
+        cldr.locales.index(of: locale).flatMap {
+            cldr.currencyFullNames.name(localeIndex: $0, code: code)
+        }
+    }
+
+    // Every covered locale's number format, decoded once. A format holds nothing that depends on the
+    // currency or the amount, so one decode serves every call for that locale, where decoding it again
+    // would rebuild its four strings out of the pool each time.
+    private static let numberFormats: [LocaleNumberFormat] = (0 ..< cldr.locales.localeCount).map {
+        cldr.numberFormats.numberFormat(localeIndex: LocaleIndex(position: $0))
+    }
+
+    private static func numberFormat(at localeIndex: LocaleIndex) -> LocaleNumberFormat {
+        numberFormats[localeIndex.position]
     }
 
     // The locale's number format with a currency written beside it, however that currency is named.
@@ -119,21 +152,6 @@ public enum MoneyLocalization {
         )
     }
 
-    // Resolves an identifier to a table entry, normalizing the separator and falling back from a
-    // language-region tag to the bare language, as CLDR inheritance does (`de_DE` → `de`).
-    static func resolve(_ locale: LocaleIdentifier) -> (key: String, format: LocaleNumberFormat)? {
-        let normalized = String(locale.value.map { $0 == "_" ? "-" : $0 })
-        if let format = numberFormats[normalized] {
-            return (normalized, format)
-        }
-
-        let language = String(normalized.prefix { $0 != "-" })
-        if let format = numberFormats[language] {
-            return (language, format)
-        }
-
-        return nil
-    }
 }
 
 /// A locale identifier such as `"en-GB"`. A plain wrapper so the public API names a locale rather than

@@ -30,6 +30,8 @@ package struct BlobReader: @unchecked Sendable {
     /// digit of a `UInt64` field carries four bits and the excess is never written.
     @usableFromInline
     package func integer(at offset: Int, width: Int) -> UInt64 {
+        assert(offset >= 0 && offset + width <= count, "read past the packed tables")
+
         var value: UInt64 = 0
 
         for position in 0 ..< width {
@@ -73,6 +75,8 @@ package struct BlobReader: @unchecked Sendable {
     @usableFromInline
     package func string(_ ref: StringRef) -> String {
         guard ref.length > 0 else { return "" }
+
+        assert(Int(ref.offset) + Int(ref.length) <= count, "read past the packed tables")
 
         let slice = UnsafeBufferPointer(start: base + Int(ref.offset), count: Int(ref.length))
 

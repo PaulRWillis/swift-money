@@ -79,4 +79,17 @@ struct CurrencyFullNameTableTests {
             #expect(table.name(localeIndex: LocaleIndex(position: 0), code: Self.code("JPY")) == nil)
         }
     }
+
+    // Formatting an amount needs one name, not every form, so it reads the category it resolved.
+    @Test("One category's name is read without the rest")
+    func decodesOneCategory() {
+        Self.withTable { table in
+            let locale = LocaleIndex(position: 0)
+            #expect(table.name(localeIndex: locale, code: Self.code("USD"), category: .one) == "US dollar")
+            #expect(table.name(localeIndex: locale, code: Self.code("USD"), category: .other) == "US dollars")
+            #expect(table.name(localeIndex: locale, code: Self.code("USD"), category: .many) == "US dollars")
+            #expect(table.name(localeIndex: locale, code: Self.code("EUR"), category: .one) == "euros")
+            #expect(table.name(localeIndex: locale, code: Self.code("JPY"), category: .other) == nil)
+        }
+    }
 }

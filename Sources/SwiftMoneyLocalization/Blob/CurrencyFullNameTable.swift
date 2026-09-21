@@ -39,31 +39,64 @@ package struct CurrencyFullNameTable: Sendable {
         self.directoryOffset = directoryOffset
     }
 
-    /// What `code` is called in the locale at `localeIndex`, or `nil` if the blob does not name it there.
-    package func name(localeIndex: LocaleIndex, code: CurrencyCode) -> CurrencyFullName? {
-        let entry = directoryOffset + localeIndex.position * Entry.stride
-        let recordsStart = Int(reader.u32(at: entry + Entry.recordsStart))
-        let recordCount = Int(reader.u16(at: entry + Entry.recordCount))
-
-        guard let record = reader.recordOffset(
-            code: code.packedValue, start: recordsStart, count: recordCount, stride: Record.stride
-        ) else {
+    /// What `code` is called in the locale at `localeIndex` for one plural category, or `nil` if the blob
+    /// does not name it there.
+    ///
+    /// Reads the one name a caller formatting an amount needs, where ``name(localeIndex:code:)`` builds
+    /// every form the currency has and a dictionary to hold them.
+    package func name(localeIndex: LocaleIndex, code: CurrencyCode, category: PluralCategory) -> String? {
+        guard let record = recordOffset(localeIndex: localeIndex, code: code) else {
             return nil
         }
 
-        let other = reader.string(reader.stringRef(at: record + Record.other))
-        let overridesStart = Int(reader.u32(at: record + Record.overridesStart))
-        let overrideCount = Int(reader.u8(at: record + Record.overrideCount))
+        let wanted = category.blobCode
+        for override in overrides(of: record) where reader.u8(at: override + Override.category) == wanted {
+            return reader.string(reader.stringRef(at: override + Override.name))
+        }
+
+        // Every category CLDR does not name separately takes the name it always publishes.
+        return reader.string(reader.stringRef(at: record + Record.other))
+    }
+
+    /// What `code` is called in the locale at `localeIndex`, in every form it has there, or `nil` if the
+    /// blob does not name it.
+    package func name(localeIndex: LocaleIndex, code: CurrencyCode) -> CurrencyFullName? {
+        guard let record = recordOffset(localeIndex: localeIndex, code: code) else {
+            return nil
+        }
 
         var byCategory: [PluralCategory: String] = [:]
-        for index in 0 ..< overrideCount {
-            let override = overridesStart + index * Override.stride
-            guard let category = PluralCategory(blobCode: reader.u8(at: override + Override.category)) else {
-                continue
+        for override in overrides(of: record) {
+            let code = reader.u8(at: override + Override.category)
+            // The generator writes only valid codes, so a failure here is a generator bug, not input.
+            guard let category = PluralCategory(blobCode: code) else {
+                preconditionFailure("blob plural category code \(code) is unknown")  // coverage:ignore
             }
             byCategory[category] = reader.string(reader.stringRef(at: override + Override.name))
         }
 
-        return CurrencyFullName(other: other, byCategory: byCategory)
+        return CurrencyFullName(
+            other: reader.string(reader.stringRef(at: record + Record.other)),
+            byCategory: byCategory
+        )
+    }
+
+    private func recordOffset(localeIndex: LocaleIndex, code: CurrencyCode) -> Int? {
+        let entry = directoryOffset + localeIndex.position * Entry.stride
+
+        return reader.recordOffset(
+            code: code.packedValue,
+            start: Int(reader.u32(at: entry + Entry.recordsStart)),
+            count: Int(reader.u16(at: entry + Entry.recordCount)),
+            stride: Record.stride
+        )
+    }
+
+    // Where each of a record's overrides begins.
+    private func overrides(of record: Int) -> some Sequence<Int> {
+        let start = Int(reader.u32(at: record + Record.overridesStart))
+        let count = Int(reader.u8(at: record + Record.overrideCount))
+
+        return (0 ..< count).lazy.map { start + $0 * Override.stride }
     }
 }
