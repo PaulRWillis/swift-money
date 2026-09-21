@@ -319,32 +319,33 @@ locale the CLDR data does not cover — the rule is `engineRenderInputs` in `Mon
 **`[ICU]`** is Foundation's own `Decimal.FormatStyle.Currency`, the peer each option is measured against
 with the same setting applied to both sides.
 
-Two things stand out. Where the engine renders, it is 2.4× to 4.4× cheaper than Foundation and allocates
-once rather than ten to twenty times. Where it falls back, it is about 1.4× **dearer** than calling
-Foundation directly, because a fallback rebuilds the underlying style and converts the amount on every
-call: `precision 2dp` asks for the digits the default already shows, renders identical text, and costs
-3.5× the default. That gap is what removing the ICU dependency would recover.
+Two things stand out. Where the engine renders, it is 2.1× to 4.7× cheaper than Foundation and, since the
+packed tables landed, allocates nothing at all against ten to twenty times. Where it falls back, it is
+about 1.4× **dearer** than calling Foundation directly, because a fallback rebuilds the underlying style
+and converts the amount on every call: `precision 2dp` asks for the digits the default already shows,
+renders identical text, and costs 3.8× the default. That gap is what removing the ICU dependency would
+recover.
 
 | Operation | Instructions | Malloc | Wall (ns) | Foundation | Malloc | Wall (ns) |
 |---|--:|--:|--:|--:|--:|--:|
-| Default `[engine]` | 9168 | 1 | 343 | 22K | 10 | 764 |
-| Default, runtime currency `[engine]` | 9149 | 1 | 380 | 22K | 10 | 764 |
-| ISO code `[engine]` | 9285 | 1 | 340 | 23K | 10 | 919 |
-| Narrow symbol `[engine]` | 9223 | 1 | 346 | 23K | 10 | 765 |
-| Full name `[engine]` | 13K | 2 | 485 | 25K | 11 | 829 |
-| Sign, never `[engine]` | 9211 | 1 | 335 | 25K | 11 | 841 |
-| Sign, always `[engine]` | 9322 | 1 | 352 | 25K | 11 | 845 |
-| Sign, accounting `[engine]` | 9470 | 1 | 349 | 26K | 12 | 879 |
-| Grouping, never `[engine]` | 9372 | 1 | 355 | 41K | 21 | 1342 |
-| Decimal separator, always `[engine]` | 9209 | 1 | 335 | 24K | 11 | 805 |
-| Precision, 2dp `[ICU fallback]` | 32K | 15 | 1113 | 23K | 10 | 772 |
-| Precision, 1dp `[ICU fallback]` | 32K | 15 | 1094 | 22K | 10 | 784 |
-| Precision 1dp and accounting `[ICU fallback]` | 36K | 17 | 1215 | 26K | 12 | 908 |
-| Every option `[ICU fallback]` | 33K | 15 | 1113 | 21K | 10 | 754 |
-| Rounding increment `[ICU fallback]` | 36K | 18 | 1307 | n/a | n/a | n/a |
-| Attributed `[engine]` | 207K | 60 | 9315 | 146K | 39 | 5811 |
-| Parse `[ICU]` | 46K | 19 | 1584 | 25K | 8 | 857 |
-| Parse, runtime currency `[ICU]` | 45K | 19 | 1574 | 25K | 8 | 857 |
+| Default `[engine]` | 8531 | 0 | 434 | 22K | 10 | 761 |
+| Default, runtime currency `[engine]` | 8492 | 0 | 321 | 22K | 10 | 761 |
+| ISO code `[engine]` | 8628 | 0 | 321 | 23K | 10 | 773 |
+| Narrow symbol `[engine]` | 8566 | 0 | 361 | 23K | 10 | 769 |
+| Full name `[engine]` | 12K | 1 | 447 | 25K | 11 | 848 |
+| Sign, never `[engine]` | 8555 | 0 | 321 | 25K | 11 | 831 |
+| Sign, always `[engine]` | 8665 | 0 | 340 | 25K | 11 | 878 |
+| Sign, accounting `[engine]` | 8813 | 0 | 329 | 26K | 12 | 869 |
+| Grouping, never `[engine]` | 8715 | 0 | 323 | 41K | 21 | 1339 |
+| Decimal separator, always `[engine]` | 8511 | 0 | 312 | 24K | 11 | 827 |
+| Precision, 2dp `[ICU fallback]` | 32K | 15 | 1089 | 22K | 10 | 803 |
+| Precision, 1dp `[ICU fallback]` | 32K | 15 | 1106 | 22K | 10 | 836 |
+| Precision 1dp and accounting `[ICU fallback]` | 36K | 17 | 1199 | 25K | 12 | 872 |
+| Every option `[ICU fallback]` | 33K | 15 | 1109 | 21K | 10 | 702 |
+| Rounding increment `[ICU fallback]` | 36K | 18 | 1223 | n/a | n/a | n/a |
+| Attributed `[engine]` | 206K | 59 | 8679 | 146K | 39 | 5632 |
+| Parse `[ICU]` | 46K | 19 | 1601 | 25K | 8 | 852 |
+| Parse, runtime currency `[ICU]` | 45K | 19 | 1527 | 25K | 8 | 852 |
 
 The rounding increment has no Foundation column: Foundation counts an increment in whole units where this
 library counts the currency's smallest, and beside a pinned fraction length Foundation ignores the
@@ -357,13 +358,13 @@ run by run. It exists for consistency with `format(_:)` rather than for speed.
 
 The Foundation-free engine measured directly, rendering with a prebuilt descriptor. Allocation-free and
 ~19× below ICU; grouping adds the per-separator work. `MoneyOf.FormatStyle` renders through this engine
-for a covered locale (the rows above), building the descriptor from the CLDR data on each call, which is
-the whole of the gap between 1159 and 9168.
+for a covered locale (the rows above), building the descriptor from the packed CLDR tables on each call,
+which is the whole of the gap between 1159 and 8531.
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
-| Engine format, default, en_GB `[engine]` | 1159 | 0 | 34 |
-| Engine format, grouped, en_GB `[engine]` | 1640 | 0 | 53 |
+| Engine format, default, en_GB `[engine]` | 1159 | 0 | 33 |
+| Engine format, grouped, en_GB `[engine]` | 1640 | 0 | 50 |
 
 ### Harness floor
 
