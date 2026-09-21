@@ -8,6 +8,14 @@ updates:
       interval: weekly
     commit-message:
       prefix: chore
+    # Both packages carry one release of the same data, so they arrive as one pull request. Ungrouped,
+    # each came as its own, and merging either alone would generate the tables from two releases at
+    # once; the generator now refuses such a pair, which would have failed that PR rather than silently
+    # mixing them.
+    groups:
+      cldr:
+        patterns:
+          - "cldr-*"
 
   # Watches the Swift packages the dev-only targets build against.
   - package-ecosystem: swift
