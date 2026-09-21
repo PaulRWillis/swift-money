@@ -37,6 +37,33 @@ extension FormatMatrix {
         package var reportLine: String {
             "\(localeID) \(currencyCode) \(combinationID) \(amount): engine '\(engine)' vs ICU '\(icu)'"
         }
+
+        /// The presentation this cell used, which leads its combination's id.
+        package var presentationName: String {
+            String(combinationID.prefix { $0 != "|" })
+        }
+    }
+
+    /// One line per locale, currency and presentation that disagrees with ICU: how many cells differ
+    /// and one of them.
+    ///
+    /// A currency renamed between CLDR releases differs in every cell that names it, which runs to
+    /// hundreds of lines saying the same thing. Grouped, each cause reads once.
+    package static func summaryLines(for deviations: [Deviation]) -> [String] {
+        var byCause: [String: (example: Deviation, count: Int)] = [:]
+
+        // Sorted first, so the example for a cause is the same whatever order the cells arrived in.
+        for deviation in deviations.sorted(by: { $0.reportLine < $1.reportLine }) {
+            let cause = "\(deviation.localeID) \(deviation.currencyCode) \(deviation.presentationName)"
+            let found = byCause[cause]
+            byCause[cause] = (found?.example ?? deviation, (found?.count ?? 0) + 1)
+        }
+
+        return byCause
+            .map { cause, found in
+                "\(cause): \(found.count) cell(s), e.g. engine '\(found.example.engine)' vs ICU '\(found.example.icu)'"
+            }
+            .sorted()
     }
 
     /// The amount, rendered by the platform's ICU, using the same options the engine would.
