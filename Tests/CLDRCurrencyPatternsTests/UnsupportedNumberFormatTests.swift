@@ -16,14 +16,15 @@ struct UnsupportedNumberFormatTests {
         ]
     )
     func representablePatterns(_ pattern: String) {
-        #expect(UnsupportedNumberFormat(standardPattern: pattern, defaultNumberingSystem: "latn") == nil)
+        #expect(UnsupportedNumberFormat(standardPattern: pattern, defaultNumberingSystem: "latn", minimumGroupingDigits: 1) == nil)
     }
 
     @Test("A numbering system other than latn is unrepresentable whatever the pattern is")
     func nonLatinDigitsAreRefused() {
         let unsupported = UnsupportedNumberFormat(
             standardPattern: "\u{00A4}#,##0.00",
-            defaultNumberingSystem: "arab"
+            defaultNumberingSystem: "arab",
+            minimumGroupingDigits: 1
         )
 
         #expect(unsupported == .nonLatinDigits(numberingSystem: "arab"))
@@ -34,7 +35,7 @@ struct UnsupportedNumberFormatTests {
     @Test("A standard pattern with a negative subpattern is unrepresentable")
     func negativeSubpatternIsRefused() {
         let pattern = "\u{00A4}\u{00A0}#,##0.00;\u{00A4}-#,##0.00"
-        let unsupported = UnsupportedNumberFormat(standardPattern: pattern, defaultNumberingSystem: "latn")
+        let unsupported = UnsupportedNumberFormat(standardPattern: pattern, defaultNumberingSystem: "latn", minimumGroupingDigits: 1)
 
         #expect(unsupported == .negativeSubpattern(pattern: pattern))
     }
@@ -43,7 +44,7 @@ struct UnsupportedNumberFormatTests {
     @Test("A directional mark is unrepresentable", arguments: ["\u{200F}", "\u{200E}"])
     func directionalMarkIsRefused(_ mark: String) {
         let pattern = "\(mark)#,##0.00\u{00A0}\u{00A4}"
-        let unsupported = UnsupportedNumberFormat(standardPattern: pattern, defaultNumberingSystem: "latn")
+        let unsupported = UnsupportedNumberFormat(standardPattern: pattern, defaultNumberingSystem: "latn", minimumGroupingDigits: 1)
 
         #expect(unsupported == .directionalMark(pattern: pattern))
     }
@@ -54,10 +55,23 @@ struct UnsupportedNumberFormatTests {
     func digitsOutrankThePattern() {
         let unsupported = UnsupportedNumberFormat(
             standardPattern: "\u{200F}#,##0.00\u{00A0}\u{00A4}",
-            defaultNumberingSystem: "arab"
+            defaultNumberingSystem: "arab",
+            minimumGroupingDigits: 1
         )
 
         #expect(unsupported == .nonLatinDigits(numberingSystem: "arab"))
+    }
+
+    // sl: 1234 stays ungrouped, 12345 becomes 12.345. The engine groups by size alone.
+    @Test("A grouping threshold above one is unrepresentable")
+    func groupingThresholdIsRefused() {
+        let unsupported = UnsupportedNumberFormat(
+            standardPattern: "#,##0.00\u{00A0}\u{00A4}",
+            defaultNumberingSystem: "latn",
+            minimumGroupingDigits: 2
+        )
+
+        #expect(unsupported == .groupingThreshold(minimumDigits: 2))
     }
 
     @Test("Each case describes itself")
@@ -66,6 +80,7 @@ struct UnsupportedNumberFormatTests {
             UnsupportedNumberFormat.nonLatinDigits(numberingSystem: "arab"),
             .negativeSubpattern(pattern: "a;b"),
             .directionalMark(pattern: "a"),
+            .groupingThreshold(minimumDigits: 2),
         ].map(\.description)
 
         #expect(descriptions.allSatisfy { !$0.isEmpty })

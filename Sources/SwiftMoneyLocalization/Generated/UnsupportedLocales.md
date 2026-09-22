@@ -3,14 +3,12 @@
 Generated from CLDR 48.2.0 by GenerateSwiftMoneyLocalization. Do not edit by hand.
 Regenerate with: (cd Tools/cldr && npm ci) && swift run GenerateSwiftMoneyLocalization
 
-The engine formats 495 of the 766 CLDR locales this build reads. The 271 below are left out, each because it writes something the packed tables have no shape for. They keep the ICU fallback, and rejoin the list on their own once that shape exists.
+The engine formats 447 of the 766 CLDR locales this build reads. The 319 below are left out, each because it writes something the packed tables have no shape for. They keep the ICU fallback, and rejoin the list on their own once that shape exists.
 
-## arranges a currency written with letters in a way this tool does not model, in its accounting pattern (17)
+## arranges a currency written with letters in a way this tool does not model, in its accounting pattern (15)
 - bem: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
 - bm: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
 - bm-Nkoo: \u{A4}\u{A0}#,##0.00 against \u{A4}\u{A0}#,##0.00;(\u{A4}\u{A0}#,##0.00)
-- ee: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
-- ee-TG: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
 - haw: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
 - kde: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
 - lij: #,##0.00\u{A0}\u{A4} against #,##0.00\u{A0}\u{A4};(#,##0.00\u{A0}\u{A4})
@@ -207,6 +205,43 @@ The engine formats 495 of the 766 CLDR locales this build reads. The 271 below a
 - za: za
 - zgh: zgh
 
+## leaves a short integer part ungrouped (35)
+- be: below 2 grouping digits
+- be-tarask: below 2 grouping digits
+- bg: below 2 grouping digits
+- ee: below 3 grouping digits
+- ee-TG: below 3 grouping digits
+- es: below 2 grouping digits
+- es-EA: below 2 grouping digits
+- es-GQ: below 2 grouping digits
+- es-IC: below 2 grouping digits
+- es-PH: below 2 grouping digits
+- et: below 2 grouping digits
+- hu: below 2 grouping digits
+- hy: below 2 grouping digits
+- ia: below 2 grouping digits
+- it: below 2 grouping digits
+- it-SM: below 2 grouping digits
+- it-VA: below 2 grouping digits
+- ka: below 2 grouping digits
+- lv: below 2 grouping digits
+- pl: below 2 grouping digits
+- pt-CH: below 2 grouping digits
+- pt-CV: below 2 grouping digits
+- pt-GQ: below 2 grouping digits
+- pt-GW: below 2 grouping digits
+- pt-LU: below 2 grouping digits
+- pt-MO: below 2 grouping digits
+- pt-MZ: below 2 grouping digits
+- pt-PT: below 2 grouping digits
+- pt-ST: below 2 grouping digits
+- pt-TL: below 2 grouping digits
+- ru-UA: below 2 grouping digits
+- sl: below 2 grouping digits
+- sq: below 2 grouping digits
+- sq-MK: below 2 grouping digits
+- sq-XK: below 2 grouping digits
+
 ## moves the currency to the other side of the digits for a currency written with letters, in its standard pattern (11)
 - an
 - bez
@@ -219,6 +254,27 @@ The engine formats 495 of the 766 CLDR locales this build reads. The 271 below a
 - shi
 - shi-Latn
 - shi-Tfng
+
+## the currency moves to the other side of the digits in the accounting pattern (2)
+- uz
+- uz-Latn
+
+## the digits are grouped differently in the accounting pattern (7)
+- brx
+- en-IN
+- pa
+- pa-Guru
+- ta
+- ta-LK
+- te
+
+## the gap between the currency and the digits changes in the accounting pattern (6)
+- mg
+- ms-Arab-BN
+- ms-BN
+- nso
+- ta-MY
+- ta-SG
 
 ## writes amounts in digits other than 0 to 9 (66)
 - ar-BH: arab

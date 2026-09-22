@@ -12,6 +12,12 @@ public enum UnsupportedNumberFormat: Equatable, Sendable {
 
     /// The pattern carries a directional mark, which places text the affixes have no slot for.
     case directionalMark(pattern: String)
+
+    /// The locale leaves short numbers ungrouped, as Slovenian writes `1234` but `12.345`.
+    ///
+    /// CLDR calls this `minimumGroupingDigits`. The engine groups by size alone, with no threshold
+    /// on how long the number has to be first.
+    case groupingThreshold(minimumDigits: Int)
 }
 
 public extension UnsupportedNumberFormat {
@@ -21,13 +27,17 @@ public extension UnsupportedNumberFormat {
     ///   - standardPattern: The locale's `standard` currency pattern.
     ///   - defaultNumberingSystem: The numbering system the locale writes amounts in, CLDR's
     ///     `defaultNumberingSystem`.
-    init?(standardPattern: String, defaultNumberingSystem: String) {
+    ///   - minimumGroupingDigits: How long the integer part must be before the locale groups it at
+    ///     all, CLDR's `minimumGroupingDigits`. One means it always groups.
+    init?(standardPattern: String, defaultNumberingSystem: String, minimumGroupingDigits: Int) {
         if defaultNumberingSystem != Self.latinDigits {
             self = .nonLatinDigits(numberingSystem: defaultNumberingSystem)
         } else if standardPattern.contains(Self.subpatternSeparator) {
             self = .negativeSubpattern(pattern: standardPattern)
         } else if standardPattern.contains(where: Self.isDirectionalMark) {
             self = .directionalMark(pattern: standardPattern)
+        } else if minimumGroupingDigits > 1 {
+            self = .groupingThreshold(minimumDigits: minimumGroupingDigits)
         } else {
             return nil
         }
@@ -55,6 +65,8 @@ extension UnsupportedNumberFormat: CustomStringConvertible {
             "the standard pattern arranges a negative amount itself: \(pattern)"
         case .directionalMark(let pattern):
             "the standard pattern carries a directional mark: \(pattern)"
+        case .groupingThreshold(let minimumDigits):
+            "the integer part is left ungrouped below \(minimumDigits) grouping digits"
         }
     }
 }

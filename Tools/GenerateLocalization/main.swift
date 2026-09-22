@@ -580,7 +580,8 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip]) throws(
     // which is exactly why the system has to be checked rather than assumed.
     if let unsupported = UnsupportedNumberFormat(
         standardPattern: standard,
-        defaultNumberingSystem: n["defaultNumberingSystem"] as! String
+        defaultNumberingSystem: n["defaultNumberingSystem"] as! String,
+        minimumGroupingDigits: minimumGroupingDigits(n, locale: locale)
     ) {
         throw .unrepresentableNumberFormat(unsupported)
     }
@@ -593,6 +594,12 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip]) throws(
         ) {
             throw .unrepresentablePattern(unsupported, field: field)
         }
+    }
+
+    // The record holds one arrangement for both presentations, so an accounting pattern that changes
+    // more than the parentheses would be written out as the standard one and be wrong.
+    if let unsupported = UnsupportedAccountingPattern(standard: standard, accounting: accounting) {
+        throw .unrepresentableAccountingPattern(unsupported)
     }
 
     let insertBetween = try currencySpacingInsertion(spacingRule, locale: locale)
@@ -663,6 +670,20 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip]) throws(
         fullNames: names,
         unusableCurrencyCodes: unusableCodes
     )
+}
+
+// How long a locale's integer part must be before it groups at all. CLDR publishes it as text and
+// leaves it out where it is one, so anything else there is the data changing shape rather than a
+// locale writing something unusual.
+func minimumGroupingDigits(_ numbers: [String: Any], locale: String) -> Int {
+    guard let published = numbers["minimumGroupingDigits"] as? String else {
+        return 1
+    }
+    guard let digits = Int(published) else {
+        fatalError("\(locale) publishes a minimumGroupingDigits that is not a number: \(published)")
+    }
+
+    return digits
 }
 
 // Every candidate language read once, split into the ones a locale can be built on and the ones it

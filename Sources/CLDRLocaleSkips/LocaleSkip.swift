@@ -27,6 +27,10 @@ package enum LocaleSkip: Error, Equatable, Sendable {
     /// A currency written with letters rearranges the pattern, which one pattern per locale cannot say.
     case unrepresentablePattern(UnsupportedPattern, field: PatternField)
 
+    /// The accounting presentation rearranges the standard one by more than parentheses, which one
+    /// arrangement per locale cannot say.
+    case unrepresentableAccountingPattern(UnsupportedAccountingPattern)
+
     /// The pattern has no currency placeholder, or no digits to place one against.
     case noCurrencyPlaceholder(pattern: String)
 
@@ -58,6 +62,8 @@ package extension LocaleSkip {
             "states a plural rule with a relation this tool does not model"
         case .unrepresentablePattern(let pattern, let field):
             "\(Self.rearrangement(pattern)), in its \(field.rawValue) pattern"
+        case .unrepresentableAccountingPattern(let pattern):
+            pattern.description
         case .noCurrencyPlaceholder:
             "writes a currency pattern with no currency or no digits"
         case .asymmetricCurrencySpacing:
@@ -79,6 +85,8 @@ package extension LocaleSkip {
         switch self {
         case .unrepresentableNumberFormat(.nonLatinDigits(let numberingSystem)):
             numberingSystem
+        case .unrepresentableNumberFormat(.groupingThreshold(let minimumDigits)):
+            "below \(minimumDigits) grouping digits"
         case .unrepresentableNumberFormat(.negativeSubpattern(let pattern)),
              .unrepresentableNumberFormat(.directionalMark(let pattern)),
              .noCurrencyPlaceholder(let pattern):
@@ -89,7 +97,7 @@ package extension LocaleSkip {
             "\(language) uses \(Self.readable(relation))"
         case .unrepresentablePattern(.unmodelled(let pattern, let letterSymbolPattern), _):
             "\(Self.readable(pattern)) against \(Self.readable(letterSymbolPattern))"
-        case .unrepresentablePattern:
+        case .unrepresentablePattern, .unrepresentableAccountingPattern:
             ""
         case .asymmetricCurrencySpacing(let before, let after):
             "\(Self.readable(before)) against \(Self.readable(after))"
@@ -112,6 +120,8 @@ package extension LocaleSkip {
             "arranges a negative amount in its standard pattern"
         case .directionalMark:
             "carries a directional mark in its standard pattern"
+        case .groupingThreshold:
+            "leaves a short integer part ungrouped"
         }
     }
 
