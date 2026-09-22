@@ -119,6 +119,7 @@ struct LocaleSkipTests {
         .unrepresentableNumberFormat(.negativeSubpattern(pattern: "#,##0.00;-#,##0.00")),
         .unrepresentableNumberFormat(.directionalMark(pattern: "\u{200F}#,##0.00")),
         .unrepresentableNumberFormat(.groupingThreshold(minimumDigits: 2)),
+        .duplicateOfShorterIdentifier("ff"),
         .noPluralRules(language: "bem"),
         .unsupportedPluralRule(language: "bem", relation: "within"),
         .unrepresentablePattern(.currencyMovesForLetterSymbols, field: .standard),

@@ -14,6 +14,7 @@
 // target needs no Unicode-category lookups.
 
 import CLDRCurrencyPatterns
+import CLDRLocaleIdentifiers
 import CLDRLocaleSkips
 import CLDRPluralParsing
 import Foundation
@@ -672,6 +673,18 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip]) throws(
     )
 }
 
+// The script each language implies, so that a locale's data is filed under the identifier a caller
+// will really ask for rather than the one its directory happens to be named.
+func likelyScripts() -> LikelyScripts {
+    let root = json("\(cldrSupplemental)/likelySubtags.json")
+    guard let supplemental = root["supplemental"] as? [String: Any],
+          let subtags = supplemental["likelySubtags"] as? [String: String] else {
+        fatalError("Could not read the likely subtags from likelySubtags.json")
+    }
+
+    return LikelyScripts(likelySubtags: subtags)
+}
+
 // How long a locale's integer part must be before it groups at all. CLDR publishes it as text and
 // leaves it out where it is one, so anything else there is the data changing shape rather than a
 // locale writing something unusual.
@@ -684,6 +697,29 @@ func minimumGroupingDigits(_ numbers: [String: Any], locale: String) -> Int {
     }
 
     return digits
+}
+
+// Which directory each stored identifier is read from, in the order the locale section is searched.
+//
+// A locale is filed under the identifier a caller resolves to rather than under its directory name,
+// because ICU drops a script the language already implies: data filed as `ff-Latn-GH` is asked for
+// as `ff-GH` and never found. Where several directories shorten to one identifier, the one already
+// named that identifier wins and the rest are reported, CLDR publishing the same data under each.
+func localeGroups(
+    among candidates: [String],
+    shortenedBy scripts: LikelyScripts
+) -> [(key: String, directories: [String])] {
+    let grouped = Dictionary(grouping: candidates) { scripts.shortened($0) }
+
+    return grouped.keys
+        .sorted { $0.utf8.lexicographicallyPrecedes($1.utf8) }
+        .map { key in
+            let directories = grouped[key, default: []].sorted()
+            // The directory already named the identifier defines it; the rest only stand in for it.
+            let preferred = directories.filter { $0 == key } + directories.filter { $0 != key }
+
+            return (key, preferred)
+        }
 }
 
 // Every candidate language read once, split into the ones a locale can be built on and the ones it
@@ -771,20 +807,35 @@ checkEveryLanguageAgainstItsSamples(ruleText)
 let candidates = publishedLocales()
 let pluralRules = pluralRuleSets(among: candidates, in: ruleText)
 
-var emitted: [(locale: String, tables: LocaleTables)] = []
+var emitted: [(key: String, tables: LocaleTables)] = []
 var skipped: [SkippedLocale] = []
 
-for locale in candidates {
-    do {
-        emitted.append((locale, try tables(for: locale, unusableLanguages: pluralRules.unusable)))
-    } catch {
-        skipped.append(SkippedLocale(locale: locale, skip: error))
+for (key, directories) in localeGroups(among: candidates, shortenedBy: likelyScripts()) {
+    // The directory named for the identifier goes first, and whichever builds first fills it. They
+    // are the same locale to a caller, since the only thing between them is a script its language
+    // already implies, so the one that can be rendered is the best data the identifier can have.
+    // The rest are reported as duplicates, and a group where none builds is reported per directory
+    // for what each actually publishes.
+    var filled = false
+
+    for directory in directories {
+        guard !filled else {
+            skipped.append(SkippedLocale(locale: directory, skip: .duplicateOfShorterIdentifier(key)))
+            continue
+        }
+
+        do {
+            emitted.append((key, try tables(for: directory, unusableLanguages: pluralRules.unusable)))
+            filled = true
+        } catch {
+            skipped.append(SkippedLocale(locale: directory, skip: error))
+        }
     }
 }
 
 // Derived from what was emitted rather than from the candidates, so the tables carry rules only for
 // languages a locale in them actually resolves against.
-let languages = emitted.map { language(of: $0.locale) }.uniqued()
+let languages = emitted.map { language(of: $0.key) }.uniqued()
 
 // Sorted by UTF-8 bytes so the blob comes out the same on any machine; the section is decoded whole, so
 // the order is for that reproducibility rather than for a search. A language that draws no plural

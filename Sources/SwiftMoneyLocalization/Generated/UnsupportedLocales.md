@@ -3,7 +3,7 @@
 Generated from CLDR 48.2.0 by GenerateSwiftMoneyLocalization. Do not edit by hand.
 Regenerate with: (cd Tools/cldr && npm ci) && swift run GenerateSwiftMoneyLocalization
 
-The engine formats 447 of the 766 CLDR locales this build reads. The 319 below are left out, each because it writes something the packed tables have no shape for. They keep the ICU fallback, and rejoin the list on their own once that shape exists.
+The engine formats 436 of the 766 CLDR locales this build reads. The 330 below are left out, each because it writes something the packed tables have no shape for. They keep the ICU fallback, and rejoin the list on their own once that shape exists.
 
 ## arranges a currency written with letters in a way this tool does not model, in its accounting pattern (15)
 - bem: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
@@ -254,6 +254,19 @@ The engine formats 447 of the 766 CLDR locales this build reads. The 319 below a
 - shi
 - shi-Latn
 - shi-Tfng
+
+## shortens to an identifier another locale already uses (11)
+- az-Latn: az
+- bal-Arab: bal
+- bs-Latn: bs
+- ff-Latn: ff
+- kk-Cyrl: kk
+- kok-Deva: kok
+- ku-Latn: ku
+- sr-Cyrl: sr
+- su-Latn: su
+- yue-Hant: yue
+- zh-Hans: zh
 
 ## the currency moves to the other side of the digits in the accounting pattern (2)
 - uz

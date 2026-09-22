@@ -14,6 +14,13 @@ package enum LocaleSkip: Error, Equatable, Sendable {
     /// placed beside them.
     case unrepresentableNumberFormat(UnsupportedNumberFormat)
 
+    /// Another locale is already filed under the identifier this one shortens to.
+    ///
+    /// A script its language implies is dropped from the stored identifier, so `ff-Latn` and `ff`
+    /// would both be filed as `ff`. CLDR publishes the same data under both, so the longer spelling
+    /// is left out rather than allowed to overwrite the shorter.
+    case duplicateOfShorterIdentifier(String)
+
     /// CLDR publishes no plural rules for the locale's language, so a currency name cannot be chosen
     /// by amount.
     case noPluralRules(language: String)
@@ -56,6 +63,8 @@ package extension LocaleSkip {
         switch self {
         case .unrepresentableNumberFormat(let format):
             Self.numberFormat(format)
+        case .duplicateOfShorterIdentifier:
+            "shortens to an identifier another locale already uses"
         case .noPluralRules:
             "has no published plural rules for its language"
         case .unsupportedPluralRule:
@@ -91,6 +100,8 @@ package extension LocaleSkip {
              .unrepresentableNumberFormat(.directionalMark(let pattern)),
              .noCurrencyPlaceholder(let pattern):
             Self.readable(pattern)
+        case .duplicateOfShorterIdentifier(let identifier):
+            identifier
         case .noPluralRules(let language):
             language
         case .unsupportedPluralRule(let language, let relation):
