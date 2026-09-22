@@ -112,6 +112,13 @@ public enum MoneyLocalization {
         return PluralCategory.allCases.first { rules[$0]?.matches(operands) == true } ?? .other
     }
 
+    /// Every locale identifier the CLDR data covers, in the blob's sorted order. A caller enumerating
+    /// the covered locales reads them from the data rather than repeating a hardcoded list that would
+    /// drift as coverage grows.
+    package static var coveredLocaleIdentifiers: [String] {
+        cldr.locales.identifiers()
+    }
+
     /// What `code` is called in a locale, by plural category, or `nil` when the locale is not covered or
     /// CLDR does not name the currency there.
     package static func fullName(of code: CurrencyCode, locale: LocaleIdentifier) -> CurrencyFullName? {

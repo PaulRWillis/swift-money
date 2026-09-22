@@ -38,6 +38,13 @@ struct LocaleTableTests {
         }
     }
 
+    @Test("The identifiers are every key in the blob's sorted order")
+    func identifiersAreEveryKey() {
+        Self.withTable { table in
+            #expect(table.identifiers() == Self.keys)
+        }
+    }
+
     @Test("Each key resolves to its own position", arguments: Array(keys.enumerated()))
     func keysResolveToTheirPosition(_ entry: (offset: Int, element: String)) {
         Self.withTable { table in

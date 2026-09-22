@@ -60,9 +60,9 @@ package enum FormatMatrix {
         }
     }
 
-    /// The locales the CLDR data covers. The last three are named at the language level, matching the
-    /// language-level CLDR data and avoiding the region overrides a `sw_KE`-style identifier would pull.
-    package static let coveredLocaleIDs = ["en_US", "en_GB", "de_DE", "fr_FR", "ja_JP", "sw", "si", "ro"]
+    /// The locales the CLDR data covers, read from the blob so the list grows with the data rather than
+    /// being maintained by hand. The identifiers are the ones the data ships (`en`, `en-GB`, …).
+    package static let coveredLocaleIDs = MoneyLocalization.coveredLocaleIdentifiers
 
     /// Amounts spanning zero, one smallest unit, a typical value, a large value, and a negative
     /// value. One smallest unit is what reaches a locale's singular naming: a currency with no
