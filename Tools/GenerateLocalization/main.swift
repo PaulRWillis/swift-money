@@ -571,56 +571,89 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip]) throws(
     let n = numbers(locale)
     let symbols = n["symbols-numberSystem-latn"] as! [String: String]
     let formats = n["currencyFormats-numberSystem-latn"] as! [String: Any]
+
+    try refuseUnrepresentable(numbers: n, formats: formats, locale: locale)
+
+    let insertBetween = try currencySpacingInsertion(formats["currencySpacing"] as! [String: Any], locale: locale)
+    let parsed = try parse(standard: formats["standard"] as! String, accounting: formats["accounting"] as! String)
+    let fullName = try fullNameLayout(formats.compactMapValues { $0 as? String }, locale: locale)
+    let symbolForms = try displays(of: locale, parsed: parsed, insertBetween: insertBetween)
+    let names = fullNameRecords(of: locale)
+
+    return LocaleTables(
+        decimalSeparator: required(symbols, "decimal", in: locale),
+        groupingSeparator: required(symbols, "group", in: locale),
+        minusSign: symbols["minusSign"] ?? "-",
+        // An ISO code is always letters, so it takes the insertion, or the pattern's literal spacing.
+        isoCodeSpacing: try spacingCode(
+            for: "AAA",
+            side: parsed.side,
+            patternSpacing: parsed.patternSpacing,
+            insertBetween: insertBetween
+        ),
+        primaryGroupingSize: UInt8(parsed.grouping.primary),
+        secondaryGroupingSize: UInt8(parsed.grouping.secondary),
+        fullNameSpacing: fullName.spacing,
+        pattern: patternLiteral(side: parsed.side, accountingNegative: parsed.accountingNegative),
+        fullNamePattern: fullName.literal,
+        displays: symbolForms.records,
+        fullNames: names.records,
+        unusableCurrencyCodes: symbolForms.unusableCodes.union(names.unusableCodes)
+    )
+}
+
+// Everything about a locale that can be refused before any of it is read in detail.
+//
+// The number format is checked before the pattern, which answers a narrower question: the pattern
+// reader takes the part before the first `;` and looks only between the currency and the nearest
+// digit, so it would pass over a relocated negative, a directional mark or a grouping threshold
+// without noticing. The `-latn` keys are read whatever the locale's own numbering system is, which
+// is exactly why the system has to be checked rather than assumed.
+func refuseUnrepresentable(
+    numbers: [String: Any],
+    formats: [String: Any],
+    locale: String
+) throws(LocaleSkip) {
     let standard = formats["standard"] as! String
     let accounting = formats["accounting"] as! String
-    let spacingRule = formats["currencySpacing"] as! [String: Any]
 
-    // Read before the pattern, which answers a narrower question: it takes the part before the first
-    // `;` and looks only between the currency and the nearest digit, so it would pass over all three
-    // of these without noticing. The `-latn` keys above are read whatever the locale's own system is,
-    // which is exactly why the system has to be checked rather than assumed.
     if let unsupported = UnsupportedNumberFormat(
         standardPattern: standard,
-        defaultNumberingSystem: n["defaultNumberingSystem"] as! String,
-        minimumGroupingDigits: minimumGroupingDigits(n, locale: locale)
+        defaultNumberingSystem: numbers["defaultNumberingSystem"] as! String,
+        minimumGroupingDigits: minimumGroupingDigits(numbers, locale: locale)
     ) {
         throw .unrepresentableNumberFormat(unsupported)
     }
 
     for field in PatternField.allCases {
-        let pattern = field == .standard ? standard : accounting
         if let unsupported = UnsupportedPattern(
-            pattern: pattern,
+            pattern: field == .standard ? standard : accounting,
             letterSymbolPattern: formats["\(field.rawValue)-alphaNextToNumber"] as? String
         ) {
             throw .unrepresentablePattern(unsupported, field: field)
         }
     }
 
-    // The record holds one arrangement for both presentations, so an accounting pattern that changes
-    // more than the parentheses would be written out as the standard one and be wrong.
+    // One arrangement serves both presentations, so an accounting pattern that changes more than the
+    // parentheses would be written out as the standard one and be wrong.
     if let unsupported = UnsupportedAccountingPattern(standard: standard, accounting: accounting) {
         throw .unrepresentableAccountingPattern(unsupported)
     }
+}
 
-    let insertBetween = try currencySpacingInsertion(spacingRule, locale: locale)
-    let parsed = try parse(standard: standard, accounting: accounting)
-    let fullName = try fullNameLayout(formats.compactMapValues { $0 as? String }, locale: locale)
-    let gap = { (symbol: String) throws(LocaleSkip) -> Spacing in
-        try spacingCode(
-            for: symbol,
-            side: parsed.side,
-            patternSpacing: parsed.patternSpacing,
-            insertBetween: insertBetween
-        )
-    }
-
+// What a locale calls each currency in symbol form, with the gap each form takes beside the digits.
+//
+// Iterated in sorted order, because a dictionary's order varies between runs and the order strings
+// reach the pool in decides the blob's bytes: the committed tables have to come out the same on any
+// machine, which is what the CLDR workflow checks by regenerating them.
+func displays(
+    of locale: String,
+    parsed: ParsedPattern,
+    insertBetween: String
+) throws(LocaleSkip) -> (records: [LocaleTables.Display], unusableCodes: Set<String>) {
+    var records: [LocaleTables.Display] = []
     var unusableCodes: Set<String> = []
 
-    // Sorted, because a dictionary's order varies between runs and the order strings reach the pool in
-    // decides the bytes: the committed tables have to come out the same on any machine, which is what
-    // the CLDR workflow checks by regenerating them.
-    var displays: [LocaleTables.Display] = []
     for (code, fields) in currencies(locale).sorted(by: { $0.key < $1.key }) {
         let symbol = fields["symbol"] ?? code
         let narrow = fields["symbol-alt-narrow"] ?? symbol
@@ -632,7 +665,16 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip]) throws(
             continue
         }
 
-        displays.append(LocaleTables.Display(
+        let gap = { (form: String) throws(LocaleSkip) -> Spacing in
+            try spacingCode(
+                for: form,
+                side: parsed.side,
+                patternSpacing: parsed.patternSpacing,
+                insertBetween: insertBetween
+            )
+        }
+
+        records.append(LocaleTables.Display(
             code: currencyCode,
             standardSymbol: symbol,
             standardSpacing: try gap(symbol),
@@ -641,36 +683,30 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip]) throws(
         ))
     }
 
-    let names: [LocaleTables.FullName] = fullNames(currencies(locale)).compactMap { name in
+    return (records, unusableCodes)
+}
+
+// What a locale calls each currency in words, in the order `Currency.allISO4217` lists them.
+func fullNameRecords(of locale: String) -> (records: [LocaleTables.FullName], unusableCodes: Set<String>) {
+    var records: [LocaleTables.FullName] = []
+    var unusableCodes: Set<String> = []
+
+    for name in fullNames(currencies(locale)) {
         guard let code = CurrencyCode(string: name.code) else {
             unusableCodes.insert(name.code)
-            return nil
+            continue
         }
 
-        return LocaleTables.FullName(
+        records.append(LocaleTables.FullName(
             code: code,
             other: name.other,
             overrides: PluralCategory.allCases.compactMap { category in
                 name.byCategory[category].map { (category, $0) }
             }
-        )
+        ))
     }
 
-    return LocaleTables(
-        decimalSeparator: required(symbols, "decimal", in: locale),
-        groupingSeparator: required(symbols, "group", in: locale),
-        minusSign: symbols["minusSign"] ?? "-",
-        // ISO code is always letters, so it takes the insertion (or the pattern's literal spacing).
-        isoCodeSpacing: try gap("AAA"),
-        primaryGroupingSize: UInt8(parsed.grouping.primary),
-        secondaryGroupingSize: UInt8(parsed.grouping.secondary),
-        fullNameSpacing: fullName.spacing,
-        pattern: patternLiteral(side: parsed.side, accountingNegative: parsed.accountingNegative),
-        fullNamePattern: fullName.literal,
-        displays: displays,
-        fullNames: names,
-        unusableCurrencyCodes: unusableCodes
-    )
+    return (records, unusableCodes)
 }
 
 // The script each language implies, so that a locale's data is filed under the identifier a caller
