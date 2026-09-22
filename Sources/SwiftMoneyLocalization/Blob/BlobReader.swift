@@ -93,15 +93,36 @@ package struct BlobReader: @unchecked Sendable {
         while low < high {
             let mid = (low + high) / 2
             let offset = start + mid * stride
-            let value = integer(at: offset, width: codeWidth)
-            if value == code {
+            let order = compareCode(at: offset, to: code, width: codeWidth)
+            if order == 0 {
                 return offset
-            } else if value < code {
+            } else if order < 0 {
                 low = mid + 1
             } else {
                 high = mid
             }
         }
         return nil
+    }
+
+    /// The record's `width`-digit code at `offset` compared to `code`: negative if the record's is
+    /// smaller, positive if larger, zero if equal.
+    ///
+    /// Compares the stored digits against the code re-encoded a digit at a time rather than decoding the
+    /// record's into an integer: the alphabet is order-preserving and the width fixed, so digit order is
+    /// integer order, and a probe stops at the first digit that differs instead of reading all of them.
+    private func compareCode(at offset: Int, to code: UInt64, width: Int) -> Int {
+        assert(offset >= 0 && offset + width <= count, "read past the packed tables")
+
+        for position in 0 ..< width {
+            let shift = (width - 1 - position) * BlobDigits.bits
+            let queryDigit = BlobDigits.digit(for: UInt8(truncatingIfNeeded: code >> shift))
+            let recordDigit = base[offset + position]
+            if recordDigit != queryDigit {
+                return recordDigit < queryDigit ? -1 : 1
+            }
+        }
+
+        return 0
     }
 }
