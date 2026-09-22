@@ -155,7 +155,9 @@ jobs:
   # benchmark names sit at the top in plain words; the per-metric numbers are folded away.
   comment:
     needs: benchmark
-    if: ${{ github.event_name == 'pull_request' }}
+    # always(), so a failed or cancelled shard still gets a comment (the ❓ verdict) rather than the
+    # whole comment job being skipped.
+    if: ${{ always() && github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -168,25 +170,37 @@ jobs:
     - name: Build the combined comment body
       env:
         RUN_URL: "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        BENCHMARK_RESULT: ${{ needs.benchmark.result }}
       run: |
         shopt -s nullglob
         statuses=(shards/*/shard_status.txt)
         tables=(shards/*/shard_comparison.md)
         shardCount=${#statuses[@]}
 
-        # No shard produced a comparison (e.g. main has no baseline yet).
+        # A shard that failed before uploading leaves no artifact, so the job's own result is a failure
+        # signal in its own right, on top of any uploaded "failed" status.
+        jobFailed=0
+        [ "$BENCHMARK_RESULT" = "success" ] || jobFailed=1
+
+        # No shard produced a comparison: either main has no baseline yet, or every shard failed.
         if [ "$shardCount" -eq 0 ]; then
           {
             echo "<!-- benchmark-delta -->"
-            echo "### Benchmarks ran; no comparison yet"
-            echo ""
-            echo "No baseline was available to compare against. [Run details]($RUN_URL)"
+            if [ "$jobFailed" = 1 ]; then
+              echo "### ❓ Benchmarks did not complete"
+              echo ""
+              echo "No shard produced a comparison. [Run details]($RUN_URL)"
+            else
+              echo "### Benchmarks ran; no comparison yet"
+              echo ""
+              echo "No baseline was available to compare against. [Run details]($RUN_URL)"
+            fi
           } > comment_body.md
-          echo "CHANGED=false" >> "$GITHUB_ENV"
+          echo "CHANGED=$([ "$jobFailed" = 1 ] && echo true || echo false)" >> "$GITHUB_ENV"
           exit 0
         fi
 
-        hasReg=0; hasImp=0; hasFail=0
+        hasReg=0; hasImp=0; hasFail=$jobFailed
         for status in "${statuses[@]}"; do
           case "$(cat "$status")" in
             2) hasReg=1 ;;
