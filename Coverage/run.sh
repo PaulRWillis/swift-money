@@ -51,15 +51,23 @@ llvm_cov() {
     fi
 }
 
+# Pin the classic (native) build system. The newer swiftbuild layout puts products under
+# .build/out/Products/... with no .xctest bundle where the lookup below expects one, so llvm-cov ends up
+# with no test binary to read. native keeps the .build/<triple>/debug layout the rest of this relies on.
+BUILD_SYSTEM=(--build-system native)
+
 if ! $SKIP_TESTS; then
     echo "Running tests with coverage..."
-    swift test --parallel --enable-code-coverage >/dev/null
+    # Serial, not parallel: swift-corelibs-foundation's ICU is not thread-safe under `swift test
+    # --parallel` on Linux, which intermittently corrupts formatter output (the same race #199
+    # serialised the Thread Sanitizer job around). Coverage does not need the parallelism.
+    swift test "${BUILD_SYSTEM[@]}" --no-parallel --enable-code-coverage >/dev/null
 fi
 
 # Ask the build system for both paths rather than guessing at a triple. `.build/debug` is a symlink and
 # `find` does not follow it, which is how a hardcoded path quietly finds nothing.
-BIN_DIR="$(swift build --show-bin-path)"
-PROFDATA="$(dirname "$(swift test --enable-code-coverage --show-codecov-path)")/default.profdata"
+BIN_DIR="$(swift build "${BUILD_SYSTEM[@]}" --show-bin-path)"
+PROFDATA="$(dirname "$(swift test "${BUILD_SYSTEM[@]}" --enable-code-coverage --show-codecov-path)")/default.profdata"
 
 if [[ ! -f "$PROFDATA" ]]; then
     echo "Error: no coverage profile at $PROFDATA. Run without --skip-tests." >&2
