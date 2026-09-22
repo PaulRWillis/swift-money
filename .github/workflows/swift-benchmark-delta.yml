@@ -12,9 +12,20 @@ permissions:
   pull-requests: write
 
 jobs:
-  benchmark-delta:
+  # The benchmark run dominates this job's time, so it is split across shards: each leg runs a disjoint
+  # subset of the benchmarks for BOTH the PR and main on one runner, which keeps the same-machine
+  # wall-clock comparison intact while cutting wall time. The subset is derived from `benchmark list`
+  # every run, so a newly added benchmark is picked up with no change here.
+  benchmark:
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # Keep this list and SHARD_COUNT below in step.
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
     runs-on: ubuntu-latest
+    env:
+      SHARD_COUNT: "8"
 
     steps:
     - uses: actions/checkout@v6
@@ -66,10 +77,24 @@ jobs:
           sleep $((attempt * 10))
         done
 
+    # Enumerate every benchmark and keep this shard's slice as `--filter` patterns in a file the PR and
+    # main runs both read, so both cover the identical subset. shard.py fails loudly if the shards do not
+    # cover every benchmark, so a partition bug cannot silently drop one.
+    - name: Select this shard's benchmarks
+      if: ${{ env.hasBenchmark == '1' }}
+      run: |
+        swift package ${BENCHMARK_PACKAGE_PATH} --disable-sandbox benchmark list > bench-list.txt
+        grep -q "available benchmarks:" bench-list.txt || { echo "benchmark list produced no benchmarks"; exit 1; }
+        python3 Benchmarks/shard.py "${{ matrix.shard }}" "$SHARD_COUNT" < bench-list.txt > shard-filters.txt
+        echo "This shard runs $(grep -c . shard-filters.txt) benchmark(s)."
+
     - name: Run benchmarks for PR branch
       if: ${{ env.hasBenchmark == '1' }}
       run: |
-        swift package ${BENCHMARK_PACKAGE_PATH} --disable-sandbox benchmark baseline update pull_request --no-progress
+        mapfile -t FILTERS < shard-filters.txt
+        [ ${#FILTERS[@]} -gt 0 ] || { echo "empty shard, nothing to run"; exit 0; }
+        ARGS=(); for pattern in "${FILTERS[@]}"; do ARGS+=(--filter "$pattern"); done
+        swift package ${BENCHMARK_PACKAGE_PATH} --disable-sandbox benchmark baseline update pull_request "${ARGS[@]}" --no-progress
 
     - name: Switch to main
       if: ${{ env.hasBenchmark == '1' }}
@@ -83,89 +108,171 @@ jobs:
           echo "::notice::main does not have Benchmarks yet, so the comparison is skipped"
         fi
 
+    # shard-filters.txt is untracked, so it survives the checkout; main is filtered to the same subset.
     - name: Run benchmarks for main
       if: ${{ env.hasBenchmark == '1' && env.mainHasBenchmark == '1' }}
       run: |
-        swift package ${BENCHMARK_PACKAGE_PATH} --disable-sandbox benchmark baseline update main --no-progress
+        mapfile -t FILTERS < shard-filters.txt
+        [ ${#FILTERS[@]} -gt 0 ] || { echo "empty shard, nothing to run"; exit 0; }
+        ARGS=(); for pattern in "${FILTERS[@]}"; do ARGS+=(--filter "$pattern"); done
+        swift package ${BENCHMARK_PACKAGE_PATH} --disable-sandbox benchmark baseline update main "${ARGS[@]}" --no-progress
 
     - name: Compare PR and main
       if: ${{ env.hasBenchmark == '1' && env.mainHasBenchmark == '1' }}
-      id: benchmark
-      continue-on-error: true
       run: |
-        echo "$(date)" >> $GITHUB_STEP_SUMMARY
-
         # `baseline check` reports its verdict through the exit status (2 for a regression, 4 for an
-        # improvement), so a non-zero status is the normal case, not a failure. Actions runs this block
-        # as `bash -e`, which would abort here before the status could be read, taking every line below
-        # with it and leaving `exitStatus` unset.
-        # `--disable-sandbox` matches the two runs above. The flag is part of the plugin's build
-        # state, so alternating it rebuilds BenchmarkTool in release: 30 seconds against 5.
+        # improvement), so a non-zero status is the normal case. `set +e` keeps `bash -e` from aborting
+        # before the status is read. The plugin re-throws a named error, so the verdict is read from
+        # stderr rather than the numeric status. `--filter` is unnecessary here: each baseline already
+        # holds only this shard's slice, and the two-baseline check compares the stored files.
         set +e
-        swift package ${BENCHMARK_PACKAGE_PATH} --disable-sandbox benchmark baseline check main pull_request --format markdown > benchmark_comparison.md 2>benchmark_stderr
+        swift package ${BENCHMARK_PACKAGE_PATH} --disable-sandbox benchmark baseline check main pull_request --format markdown > shard_comparison.md 2>shard_stderr
         rawExitStatus=$?
         set -e
 
-        cat benchmark_comparison.md >> $GITHUB_STEP_SUMMARY
-        cat benchmark_stderr >&2
+        cat shard_stderr >&2
         if [ "$rawExitStatus" -eq 0 ]; then
-          echo "exitStatus=0" >> $GITHUB_ENV
-        elif grep -q "benchmarkThresholdRegression" benchmark_stderr; then
-          echo "exitStatus=2" >> $GITHUB_ENV
-        elif grep -q "benchmarkThresholdImprovement" benchmark_stderr; then
-          echo "exitStatus=4" >> $GITHUB_ENV
+          echo 0 > shard_status.txt
+        elif grep -q "benchmarkThresholdRegression" shard_stderr; then
+          echo 2 > shard_status.txt
+        elif grep -q "benchmarkThresholdImprovement" shard_stderr; then
+          echo 4 > shard_status.txt
         else
-          echo "exitStatus=$rawExitStatus" >> $GITHUB_ENV
+          echo "failed" > shard_status.txt
         fi
 
-    # The step summary is readable only in a browser, so the table that decides the verdict is also
-    # kept as an artifact, where it can be fetched and diffed.
-    - name: Upload the comparison table
+    - name: Upload this shard's comparison
       if: ${{ env.hasBenchmark == '1' && env.mainHasBenchmark == '1' }}
       uses: actions/upload-artifact@v7
       with:
-        name: benchmark-comparison
-        path: benchmark_comparison.md
+        name: benchmark-delta-shard${{ matrix.shard }}
+        path: |
+          shard_comparison.md
+          shard_status.txt
         if-no-files-found: warn
 
-    - name: Build PR comment
-      if: ${{ env.hasBenchmark == '1' }}
-      run: |
-        BENCHMARK_RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-        if [ "${{ env.mainHasBenchmark }}" != "1" ]; then
-          echo "_Benchmarks ran successfully. No baseline on main yet: comparison will be available after merge._" > benchmark_comment
-        elif [ "${{ env.exitStatus }}" = "0" ]; then
-          echo "_No significant benchmark changes._" > benchmark_comment
-        elif [ "${{ env.exitStatus }}" = "2" ]; then
-          echo "_⚠️ Benchmark regression detected._" > benchmark_comment
-        elif [ "${{ env.exitStatus }}" = "4" ]; then
-          echo "_✅ Benchmark improvement detected._" > benchmark_comment
-        else
-          echo "_Benchmark comparison had an unknown result._" > benchmark_comment
-        fi
-        echo "[Benchmark run details](${BENCHMARK_RUN_URL})" >> benchmark_comment
+  # One rolled-up PR comment across all shards, written to be skimmed: the verdict and the flagged
+  # benchmark names sit at the top in plain words; the per-metric numbers are folded away.
+  comment:
+    needs: benchmark
+    # always(), so a failed or cancelled shard still gets a comment (the ❓ verdict) rather than the
+    # whole comment job being skipped.
+    if: ${{ always() && github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
 
-    # One comment kept up to date rather than a new one on every push. `--edit-last` cannot do it:
-    # it edits the last comment by this actor, and the coverage workflow also comments as
-    # github-actions, so the two overwrote each other and whichever finished last won. The marker
-    # below gives this workflow a comment of its own to find.
-    # Guarded on the event too: this also runs on workflow_dispatch, where there is no pull request to
-    # comment on.
+    steps:
+    - uses: actions/download-artifact@v7
+      with:
+        pattern: benchmark-delta-shard*
+        path: shards
+
+    - name: Build the combined comment body
+      env:
+        RUN_URL: "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        BENCHMARK_RESULT: ${{ needs.benchmark.result }}
+      run: |
+        shopt -s nullglob
+        statuses=(shards/*/shard_status.txt)
+        tables=(shards/*/shard_comparison.md)
+        shardCount=${#statuses[@]}
+
+        # A shard that failed before uploading leaves no artifact, so the job's own result is a failure
+        # signal in its own right, on top of any uploaded "failed" status.
+        jobFailed=0
+        [ "$BENCHMARK_RESULT" = "success" ] || jobFailed=1
+
+        # No shard produced a comparison: either main has no baseline yet, or every shard failed.
+        if [ "$shardCount" -eq 0 ]; then
+          {
+            echo "<!-- benchmark-delta -->"
+            if [ "$jobFailed" = 1 ]; then
+              echo "### ❓ Benchmarks did not complete"
+              echo ""
+              echo "No shard produced a comparison. [Run details]($RUN_URL)"
+            else
+              echo "### Benchmarks ran; no comparison yet"
+              echo ""
+              echo "No baseline was available to compare against. [Run details]($RUN_URL)"
+            fi
+          } > comment_body.md
+          echo "CHANGED=$([ "$jobFailed" = 1 ] && echo true || echo false)" >> "$GITHUB_ENV"
+          exit 0
+        fi
+
+        hasReg=0; hasImp=0; hasFail=$jobFailed
+        for status in "${statuses[@]}"; do
+          case "$(cat "$status")" in
+            2) hasReg=1 ;;
+            4) hasImp=1 ;;
+            0) ;;
+            *) hasFail=1 ;;
+          esac
+        done
+
+        flagged="$(grep -h '^Threshold deviations for SwiftMoneyBenchmarks:' "${tables[@]}" 2>/dev/null \
+          | sed 's/^Threshold deviations for SwiftMoneyBenchmarks://' | sort -u)"
+        flaggedCount=$(printf '%s' "$flagged" | grep -c . || true)
+
+        if [ "$hasReg" = 1 ]; then
+          headline="### ⚠️ Benchmarks regressed vs main"
+          echo "CHANGED=true" >> "$GITHUB_ENV"
+        elif [ "$hasFail" = 1 ]; then
+          headline="### ❓ Benchmark comparison incomplete"
+          echo "CHANGED=true" >> "$GITHUB_ENV"
+        elif [ "$hasImp" = 1 ]; then
+          headline="### ✅ Benchmarks improved (none regressed)"
+          echo "CHANGED=true" >> "$GITHUB_ENV"
+        else
+          headline="### ✅ No significant benchmark changes"
+          echo "CHANGED=false" >> "$GITHUB_ENV"
+        fi
+
+        {
+          echo "<!-- benchmark-delta -->"
+          echo "$headline"
+          echo ""
+          echo "${flaggedCount} benchmark(s) flagged across ${shardCount} shards. [Run details]($RUN_URL)"
+          if [ "$hasFail" = 1 ]; then
+            echo ""
+            echo "> A shard failed to build or compare, so the picture may be incomplete."
+          fi
+          if [ "$flaggedCount" -gt 0 ]; then
+            echo ""
+            echo "**Flagged:**"
+            printf '%s\n' "$flagged" | sed 's/^/- /'
+            echo ""
+            echo "<details><summary>Comparison tables (numbers)</summary>"
+            echo ""
+            cat "${tables[@]}"
+            echo ""
+            echo "</details>"
+          fi
+        } > comment_body.md
+
+    # Mirrors swift-benchmark-delta's own long-standing technique: a hidden marker lets this workflow
+    # find and edit its single comment rather than posting a new one on every push. A run that changes
+    # nothing posts nothing, but does refresh a comment an earlier push left behind.
     - name: Comment on PR
-      if: ${{ env.hasBenchmark == '1' && github.event_name == 'pull_request' }}
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         MARKER: "<!-- benchmark-delta -->"
         PR: ${{ github.event.pull_request.number }}
       run: |
-        body="$(printf '%s\n\n%s' "$MARKER" "$(cat benchmark_comment)")"
         existing="$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
           | jq -r --arg marker "$MARKER" \
               '[.[] | select(.body | contains($marker))] | last | .id // empty')"
+
+        if [ "$CHANGED" != "true" ] && [ -z "$existing" ]; then
+          echo "Nothing changed and there is no comment to update."
+          exit 0
+        fi
+
+        body="$(cat comment_body.md)"
 
         if [ -n "$existing" ]; then
           gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$existing" -f body="$body" > /dev/null
           echo "Updated comment $existing"
         else
-          gh pr comment "$PR" --body "$body"
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body "$body"
         fi
