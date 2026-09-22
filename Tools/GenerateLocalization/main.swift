@@ -14,20 +14,27 @@
 // target needs no Unicode-category lookups.
 
 import CLDRCurrencyPatterns
+import CLDRLocaleSkips
 import CLDRPluralParsing
 import Foundation
 import SwiftMoneyCore
 import SwiftMoneyLocalization
 
-let locales = ["en", "en-GB", "de", "fr", "ja", "sw", "si", "ro"]
-
-// Plural rules are published per language, so a region keeps its language's rules.
-let languages = locales.map { String($0.prefix { $0 != "-" }) }.uniqued()
+let candidates = ["en", "en-GB", "de", "fr", "ja", "sw", "si", "ro"]
 
 let repoRoot = FileManager.default.currentDirectoryPath
 let cldrMain = "\(repoRoot)/Tools/cldr/node_modules/cldr-numbers-full/main"
 let cldrSupplemental = "\(repoRoot)/Tools/cldr/node_modules/cldr-core/supplemental"
 let outputPath = "\(repoRoot)/Sources/SwiftMoneyLocalization/Generated/CLDRTables.swift"
+
+// Beside the tables, so that regenerating and diffing that directory keeps the account of what was
+// left out as honest as the data itself.
+let reportPath = "\(repoRoot)/Sources/SwiftMoneyLocalization/Generated/UnsupportedLocales.md"
+
+// Plural rules are published per language, so a region keeps its language's rules.
+func language(of locale: String) -> String {
+    String(locale.prefix { $0 != "-" })
+}
 
 extension Array where Element: Hashable {
     func uniqued() -> [Element] {
@@ -95,7 +102,7 @@ struct ParsedPattern {
     let accountingNegative: String
 }
 
-func parse(standard: String, accounting: String, locale: String) -> ParsedPattern {
+func parse(standard: String, accounting: String) throws(LocaleSkip) -> ParsedPattern {
     let positive = String(standard.split(separator: ";").first ?? Substring(standard))
 
     // `CurrencySide` reads the same two positions, so a pattern it can place is one with both of these.
@@ -104,7 +111,7 @@ func parse(standard: String, accounting: String, locale: String) -> ParsedPatter
         let symbolIndex = positive.firstIndex(of: "¤"),
         let firstNumber = positive.firstIndex(where: { integerNumberChars.contains($0) })
     else {
-        fatalError("\(locale) writes a currency pattern with no currency or no digits: \(standard)")
+        throw .noCurrencyPlaceholder(pattern: standard)
     }
 
     let patternSpacing: String
@@ -115,7 +122,7 @@ func parse(standard: String, accounting: String, locale: String) -> ParsedPatter
     case .trailing:
         // Chars between the last number character and ¤.
         guard let lastNumber = positive.lastIndex(where: { integerNumberChars.contains($0) }) else {
-            fatalError("\(locale) writes a currency pattern with no digits: \(standard)")
+            throw .noCurrencyPlaceholder(pattern: standard)
         }
         patternSpacing = String(positive[positive.index(after: lastNumber) ..< symbolIndex])
     }
@@ -147,8 +154,8 @@ func currencyAffix(side: CurrencySide) -> (prefix: [String], suffix: [String]) {
         : (prefix: [], suffix: [".currencySpacing", ".currency"])
 }
 
-// A locale's three arrangements. None of the locales here gives its standard pattern a negative
-// subpattern, so a negative is the positive arrangement with a sign in front, which is CLDR's own
+// A locale's three arrangements. A locale whose standard pattern arranges a negative itself is
+// skipped, so a negative here is the positive arrangement with a sign in front, which is CLDR's own
 // default; the accounting form either wraps that in parentheses or falls back to the same minus.
 func patternLiteral(side: CurrencySide, accountingNegative: String) -> String {
     let body = currencyAffix(side: side)
@@ -186,7 +193,7 @@ func index(of literal: String, in table: inout [String]) -> UInt16 {
 // cannot resolve ahead of time: one spacing the two sides differently, or matching by sets other than
 // those `isSymbolOrSeparator` implements. Those sets are narrower than the `[:^S:]` LDML documents as
 // the default, the code following the published data rather than the specification.
-func currencySpacingInsertion(_ rule: [String: Any], locale: String) -> String {
+func currencySpacingInsertion(_ rule: [String: Any], locale: String) throws(LocaleSkip) -> String {
     // Escaped and ordered, because every gap CLDR inserts is a space of some width and two of them are
     // indistinguishable in a message that prints them raw.
     func describe(_ side: [String: String]) -> String {
@@ -203,17 +210,14 @@ func currencySpacingInsertion(_ rule: [String: Any], locale: String) -> String {
     }
 
     guard before == after else {
-        fatalError("""
-            \(locale) spaces a currency differently before and after the digits: \
-            \(describe(before)) against \(describe(after))
-            """)
+        throw .asymmetricCurrencySpacing(before: describe(before), after: describe(after))
     }
 
     guard
         after["currencyMatch"] == "[[:^S:]&[:^Z:]]",
         after["surroundingMatch"] == "[:digit:]"
     else {
-        fatalError("\(locale) decides currency spacing by a rule this tool does not evaluate: \(describe(after))")
+        throw .unreadableCurrencySpacing(rule: describe(after))
     }
 
     guard let insertBetween = after["insertBetween"] else {
@@ -247,13 +251,17 @@ func spacing(for symbol: String, side: CurrencySide, patternSpacing: String, ins
     return insertBetween
 }
 
-// The same gap as a `Spacing` case, refusing a locale whose gap is not one CLDR uses for this join: the
-// packed record holds a two-digit code, so only the four cases are representable. Stops rather than skips
-// because every emitted locale is listed by hand; widening the covered set turns this into a report.
-func spacingCode(for symbol: String, side: CurrencySide, patternSpacing: String, insertBetween: String) -> Spacing {
+// The same gap as a `Spacing` case, skipping a locale whose gap is not one CLDR uses for this join:
+// the packed record holds a two-digit code, so only the four cases are representable.
+func spacingCode(
+    for symbol: String,
+    side: CurrencySide,
+    patternSpacing: String,
+    insertBetween: String
+) throws(LocaleSkip) -> Spacing {
     let gap = spacing(for: symbol, side: side, patternSpacing: patternSpacing, insertBetween: insertBetween)
     guard let spacing = Spacing(rendering: gap) else {
-        fatalError("cannot represent currency gap \(gap.debugDescription) as a spacing code")
+        throw .unrepresentableGap(gap, symbol: symbol)
     }
     return spacing
 }
@@ -302,7 +310,7 @@ func expandUnitPattern(_ pattern: String, locale: String) -> ExpandedUnitPattern
 // A locale's full-name layout: the `other` arrangement CLDR always publishes, any category that
 // arranges the name differently, and the one recognised gap the categories share. CLDR may join the
 // name per plural category (Romanian's `other` writes "de"), so this reads every category, not one.
-func fullNameLayout(_ patterns: [String: String], locale: String) -> (literal: String, spacing: Spacing) {
+func fullNameLayout(_ patterns: [String: String], locale: String) throws(LocaleSkip) -> (literal: String, spacing: Spacing) {
     guard let otherPattern = patterns["unitPattern-count-other"] else {
         fatalError("\(locale) has no unitPattern-count-other")
     }
@@ -327,7 +335,7 @@ func fullNameLayout(_ patterns: [String: String], locale: String) -> (literal: S
     }
 
     guard spacings.count <= 1 else {
-        fatalError("\(locale) writes a currency name with more than one gap: \(spacings)")
+        throw .multipleNameGaps(spacings)
     }
 
     let byCategory = overrides.isEmpty ? "" : ", byCategory: [\(overrides.joined(separator: ", "))]"
@@ -375,50 +383,76 @@ func cardinalRuleText() -> [String: [String: String]] {
     return cardinal
 }
 
-// One language's rules, read from CLDR's text. `other` carries no condition, so it has no rule: the
-// runtime falls back to it when no other rule holds.
-func pluralRules(for language: String, in text: [String: [String: String]]) -> [(PluralCategory, PluralRule)] {
+// One language's rules and the values CLDR samples them with. `other` carries no condition, so it has
+// no rule: the runtime falls back to it when no other rule holds.
+struct LanguageRules {
+    let rules: [(PluralCategory, PluralRule)]
+    let samples: [(category: PluralCategory, sample: PluralSample)]
+
+    var byCategory: [PluralCategory: PluralRule] {
+        Dictionary(uniqueKeysWithValues: rules.map { ($0.0, $0.1) })
+    }
+}
+
+// One language's rules, read from CLDR's text. Parsed here alone, so that the run that checks the
+// rules and the run that packs them cannot read the text two different ways.
+//
+// The two failures are different in kind. A relation CLDR's grammar allows and this engine does not
+// model is a shape the tables lack, so the language's locales are skipped and the rest of the data
+// still builds. Anything else is this tool misreading CLDR, so it stops the run.
+func languageRules(for language: String, in text: [String: [String: String]]) throws(LocaleSkip) -> LanguageRules {
     guard let published = text[language] else {
-        fatalError("CLDR publishes no plural rules for \(language)")
+        throw .noPluralRules(language: language)
     }
 
-    return PluralCategory.allCases.compactMap { category in
+    var rules: [(PluralCategory, PluralRule)] = []
+    var samples: [(category: PluralCategory, sample: PluralSample)] = []
+
+    for category in PluralCategory.allCases {
         guard let line = published["pluralRule-count-\(category.rawValue)"] else {
-            return nil
+            continue
         }
 
-        guard let parsed = try? PluralRuleText(parsing: line) else {
-            fatalError("Could not read \(language)'s rule for \(category.rawValue): \(line)")
-        }
+        let parsed = try readRule(line, language: language, category: category)
+        parsed.rule.map { rules.append((category, $0)) }
+        samples += parsed.samples.map { (category, $0) }
+    }
 
-        return parsed.rule.map { (category, $0) }
+    return LanguageRules(rules: rules, samples: samples)
+}
+
+func readRule(
+    _ line: String,
+    language: String,
+    category: PluralCategory
+) throws(LocaleSkip) -> PluralRuleText {
+    do {
+        return try PluralRuleText(parsing: line)
+    } catch .unsupportedRelation(let relation) {
+        throw .unsupportedPluralRule(language: language, relation: relation)
+    } catch {
+        fatalError("Could not read \(language)'s rule for \(category.rawValue): \(line): \(error)")
     }
 }
 
 // CLDR publishes, beside each rule, the values that rule is meant to cover. Running them back
-// through the rules checks the reading of every locale CLDR knows, not just the few the library
-// ships, so a rule this tool would misread surfaces now rather than when that locale is added.
-func checkEveryLocaleAgainstItsSamples(_ text: [String: [String: String]]) {
+// through the rules checks the reading of every language CLDR knows, not just the ones a locale here
+// needs, so a rule this tool would misread surfaces now rather than when that language is added.
+//
+// A sample that resolves to the wrong category is a fault in the rule engine rather than a shape a
+// locale lacks, so it stops the run even though an unmodelled relation does not.
+func checkEveryLanguageAgainstItsSamples(_ text: [String: [String: String]]) {
     var checked = 0
+    var unmodelled = 0
 
-    for (language, published) in text.sorted(by: { $0.key < $1.key }) {
-        var rules: [PluralCategory: PluralRule] = [:]
-        var samples: [(category: PluralCategory, sample: PluralSample)] = []
-
-        for category in PluralCategory.allCases {
-            guard let line = published["pluralRule-count-\(category.rawValue)"] else {
-                continue
-            }
-
-            guard let parsed = try? PluralRuleText(parsing: line) else {
-                fatalError("Could not read \(language)'s rule for \(category.rawValue): \(line)")
-            }
-
-            parsed.rule.map { rules[category] = $0 }
-            samples += parsed.samples.map { (category, $0) }
+    for language in text.keys.sorted() {
+        guard let parsed = try? languageRules(for: language, in: text) else {
+            unmodelled += 1
+            continue
         }
 
-        for (category, sample) in samples {
+        let rules = parsed.byCategory
+        for (category, sample) in parsed.samples {
             let operands = PluralOperandValues(minorUnits: sample.minorUnits, unitScale: sample.unitScale)
             let resolved = PluralCategory.allCases.first { rules[$0]?.matches(operands) == true } ?? .other
 
@@ -427,10 +461,10 @@ func checkEveryLocaleAgainstItsSamples(_ text: [String: [String: String]]) {
             }
         }
 
-        checked += samples.count
+        checked += parsed.samples.count
     }
 
-    print("Checked \(checked) CLDR samples across \(text.count) locales.")
+    print("Checked \(checked) CLDR samples across \(text.count) languages, \(unmodelled) unmodelled.")
 }
 
 // MARK: - Swift emission
@@ -502,7 +536,172 @@ func required(_ symbols: [String: String], _ field: String, in locale: String) -
     return value
 }
 
+// MARK: - Deciding
+
+// Everything one locale contributes, read and resolved without writing anything down. A locale that
+// throws here is left out of the tables entirely and keeps the runtime's ICU fallback.
+func tables(for locale: String, unusableLanguages: [String: LocaleSkip]) throws(LocaleSkip) -> LocaleTables {
+    if let skip = unusableLanguages[language(of: locale)] {
+        throw skip
+    }
+
+    let n = numbers(locale)
+    let symbols = n["symbols-numberSystem-latn"] as! [String: String]
+    let formats = n["currencyFormats-numberSystem-latn"] as! [String: Any]
+    let standard = formats["standard"] as! String
+    let accounting = formats["accounting"] as! String
+    let spacingRule = formats["currencySpacing"] as! [String: Any]
+
+    for field in PatternField.allCases {
+        let pattern = field == .standard ? standard : accounting
+        if let unsupported = UnsupportedPattern(
+            pattern: pattern,
+            letterSymbolPattern: formats["\(field.rawValue)-alphaNextToNumber"] as? String
+        ) {
+            throw .unrepresentablePattern(unsupported, field: field)
+        }
+    }
+
+    let insertBetween = try currencySpacingInsertion(spacingRule, locale: locale)
+    let parsed = try parse(standard: standard, accounting: accounting)
+    let fullName = try fullNameLayout(formats.compactMapValues { $0 as? String }, locale: locale)
+    let gap = { (symbol: String) throws(LocaleSkip) -> Spacing in
+        try spacingCode(
+            for: symbol,
+            side: parsed.side,
+            patternSpacing: parsed.patternSpacing,
+            insertBetween: insertBetween
+        )
+    }
+
+    var unusableCodes: Set<String> = []
+
+    // Sorted, because a dictionary's order varies between runs and the order strings reach the pool in
+    // decides the bytes: the committed tables have to come out the same on any machine, which is what
+    // the CLDR workflow checks by regenerating them.
+    var displays: [LocaleTables.Display] = []
+    for (code, fields) in currencies(locale).sorted(by: { $0.key < $1.key }) {
+        let symbol = fields["symbol"] ?? code
+        let narrow = fields["symbol-alt-narrow"] ?? symbol
+        guard symbol != code || narrow != code else {
+            continue   // neither form is distinct; the runtime falls back to the code
+        }
+        guard let currencyCode = CurrencyCode(string: code) else {
+            unusableCodes.insert(code)
+            continue
+        }
+
+        displays.append(LocaleTables.Display(
+            code: currencyCode,
+            standardSymbol: symbol,
+            standardSpacing: try gap(symbol),
+            narrowSymbol: narrow,
+            narrowSpacing: try gap(narrow)
+        ))
+    }
+
+    let names: [LocaleTables.FullName] = fullNames(currencies(locale)).compactMap { name in
+        guard let code = CurrencyCode(string: name.code) else {
+            unusableCodes.insert(name.code)
+            return nil
+        }
+
+        return LocaleTables.FullName(
+            code: code,
+            other: name.other,
+            overrides: PluralCategory.allCases.compactMap { category in
+                name.byCategory[category].map { (category, $0) }
+            }
+        )
+    }
+
+    return LocaleTables(
+        decimalSeparator: required(symbols, "decimal", in: locale),
+        groupingSeparator: required(symbols, "group", in: locale),
+        minusSign: symbols["minusSign"] ?? "-",
+        // ISO code is always letters, so it takes the insertion (or the pattern's literal spacing).
+        isoCodeSpacing: try gap("AAA"),
+        primaryGroupingSize: UInt8(parsed.grouping.primary),
+        secondaryGroupingSize: UInt8(parsed.grouping.secondary),
+        fullNameSpacing: fullName.spacing,
+        pattern: patternLiteral(side: parsed.side, accountingNegative: parsed.accountingNegative),
+        fullNamePattern: fullName.literal,
+        displays: displays,
+        fullNames: names,
+        unusableCurrencyCodes: unusableCodes
+    )
+}
+
+// Every candidate language read once, split into the ones a locale can be built on and the ones it
+// cannot. A language serves many locales, so reading its rules for each of them would repeat the work
+// hundreds of times over.
+func pluralRuleSets(
+    among locales: [String],
+    in text: [String: [String: String]]
+) -> (usable: [String: LanguageRules], unusable: [String: LocaleSkip]) {
+    var usable: [String: LanguageRules] = [:]
+    var unusable: [String: LocaleSkip] = [:]
+
+    for language in locales.map(language(of:)).uniqued() {
+        do {
+            usable[language] = try languageRules(for: language, in: text)
+        } catch {
+            unusable[language] = error
+        }
+    }
+
+    return (usable, unusable)
+}
+
 // MARK: - Packing
+
+// One decided locale written into the shared pool and pattern tables. Separate from deciding so that
+// nothing of a locale reaches them until the whole of it is known to be representable.
+func pack(
+    _ tables: LocaleTables,
+    locale: String,
+    into pool: inout StringPool,
+    patterns: inout [String],
+    fullNamePatterns: inout [String]
+) -> PackedLocale {
+    let numberFormat = PackedLocale.NumberFormat(
+        decimalSeparator: pool.insert(tables.decimalSeparator),
+        groupingSeparator: pool.insert(tables.groupingSeparator),
+        minusSign: pool.insert(tables.minusSign),
+        isoCodeSpacing: tables.isoCodeSpacing,
+        primaryGroupingSize: tables.primaryGroupingSize,
+        secondaryGroupingSize: tables.secondaryGroupingSize,
+        fullNameSpacing: tables.fullNameSpacing,
+        patternIndex: index(of: tables.pattern, in: &patterns),
+        fullNamePatternIndex: index(of: tables.fullNamePattern, in: &fullNamePatterns)
+    )
+
+    let displays = tables.displays.map { display in
+        PackedLocale.Display(
+            code: display.code,
+            standardSymbol: pool.insert(display.standardSymbol),
+            standardSpacing: display.standardSpacing,
+            narrowSymbol: pool.insert(display.narrowSymbol),
+            narrowSpacing: display.narrowSpacing
+        )
+    }
+
+    let names = tables.fullNames.map { name in
+        PackedLocale.FullName(
+            code: name.code,
+            other: pool.insert(name.other),
+            overrides: name.overrides.map { ($0.category, pool.insert($0.name)) }
+        )
+    }
+
+    // Both runs are binary searched at runtime, so they are laid out in the order that search assumes.
+    return PackedLocale(
+        key: pool.insert(locale),
+        numberFormat: numberFormat,
+        displays: displays.sorted { $0.code.compactValue < $1.code.compactValue },
+        fullNames: names.sorted { $0.code.compactValue < $1.code.compactValue }
+    )
+}
 
 var pool = StringPool(base: CLDRBlob.headerWidth)
 var patterns: [String] = []
@@ -511,7 +710,27 @@ var packedLocales: [PackedLocale] = []
 var packedPluralLanguages: [PackedPluralLanguage] = []
 
 let ruleText = cardinalRuleText()
-checkEveryLocaleAgainstItsSamples(ruleText)
+checkEveryLanguageAgainstItsSamples(ruleText)
+
+// The locale section is binary searched by UTF-8 bytes, so the tables hold the locales in that order
+// rather than in the order this tool lists them.
+let ordered = candidates.sorted { $0.utf8.lexicographicallyPrecedes($1.utf8) }
+let pluralRules = pluralRuleSets(among: ordered, in: ruleText)
+
+var emitted: [(locale: String, tables: LocaleTables)] = []
+var skipped: [SkippedLocale] = []
+
+for locale in ordered {
+    do {
+        emitted.append((locale, try tables(for: locale, unusableLanguages: pluralRules.unusable)))
+    } catch {
+        skipped.append(SkippedLocale(locale: locale, skip: error))
+    }
+}
+
+// Derived from what was emitted rather than from the candidates, so the tables carry rules only for
+// languages a locale in them actually resolves against.
+let languages = emitted.map { language(of: $0.locale) }.uniqued()
 
 // Sorted by UTF-8 bytes so the blob comes out the same on any machine; the section is decoded whole, so
 // the order is for that reproducibility rather than for a search. A language that draws no plural
@@ -519,102 +738,28 @@ checkEveryLocaleAgainstItsSamples(ruleText)
 for language in languages.sorted(by: { $0.utf8.lexicographicallyPrecedes($1.utf8) }) {
     packedPluralLanguages.append(PackedPluralLanguage(
         key: pool.insert(language),
-        rules: pluralRules(for: language, in: ruleText)
+        rules: pluralRules.usable[language, default: LanguageRules(rules: [], samples: [])].rules
     ))
 }
 
-// The locale section is binary searched by UTF-8 bytes, so the tables hold the locales in that order
-// rather than in the order this tool lists them.
-for locale in locales.sorted(by: { $0.utf8.lexicographicallyPrecedes($1.utf8) }) {
-    let n = numbers(locale)
-    let symbols = n["symbols-numberSystem-latn"] as! [String: String]
-    let formats = n["currencyFormats-numberSystem-latn"] as! [String: Any]
-    let standard = formats["standard"] as! String
-    let accounting = formats["accounting"] as! String
-    let spacingRule = formats["currencySpacing"] as! [String: Any]
-    let insertBetween = currencySpacingInsertion(spacingRule, locale: locale)
-
-    // Stops rather than skips because every locale emitted is listed by hand above. Widening the
-    // covered set turns this into a skip and a report.
-    for (name, pattern) in [("standard", standard), ("accounting", accounting)] {
-        if let unsupported = UnsupportedPattern(
-            pattern: pattern,
-            letterSymbolPattern: formats["\(name)-alphaNextToNumber"] as? String
-        ) {
-            fatalError("\(locale) cannot be generated from its \(name) pattern: \(unsupported)")
-        }
-    }
-
-    let parsed = parse(standard: standard, accounting: accounting, locale: locale)
-    let fullName = fullNameLayout(formats.compactMapValues { $0 as? String }, locale: locale)
-
-    // ISO code is always letters, so it takes the insertion (or the pattern's literal spacing).
-    let isoSpacing = spacingCode(for: "AAA", side: parsed.side, patternSpacing: parsed.patternSpacing, insertBetween: insertBetween)
-
-    let numberFormat = PackedLocale.NumberFormat(
-        decimalSeparator: pool.insert(required(symbols, "decimal", in: locale)),
-        groupingSeparator: pool.insert(required(symbols, "group", in: locale)),
-        minusSign: pool.insert(symbols["minusSign"] ?? "-"),
-        isoCodeSpacing: isoSpacing,
-        primaryGroupingSize: UInt8(parsed.grouping.primary),
-        secondaryGroupingSize: UInt8(parsed.grouping.secondary),
-        fullNameSpacing: fullName.spacing,
-        patternIndex: index(
-            of: patternLiteral(side: parsed.side, accountingNegative: parsed.accountingNegative),
-            in: &patterns
-        ),
-        fullNamePatternIndex: index(of: fullName.literal, in: &fullNamePatterns)
-    )
-
-    // Sorted, because a dictionary's order varies between runs and the order strings reach the pool in
-    // decides the bytes: the committed tables have to come out the same on any machine, which is what
-    // the CLDR workflow checks by regenerating them.
-    var displays: [PackedLocale.Display] = []
-    for (code, fields) in currencies(locale).sorted(by: { $0.key < $1.key }) {
-        let symbol = fields["symbol"] ?? code
-        let narrow = fields["symbol-alt-narrow"] ?? symbol
-        guard symbol != code || narrow != code else {
-            continue   // neither form is distinct; the runtime falls back to the code
-        }
-        guard let currencyCode = CurrencyCode(string: code) else {
-            print("Skipped \(locale)'s \(code): CLDR names it, but it is not a code a currency can carry")
-            continue
-        }
-
-        displays.append(PackedLocale.Display(
-            code: currencyCode,
-            standardSymbol: pool.insert(symbol),
-            standardSpacing: spacingCode(for: symbol, side: parsed.side, patternSpacing: parsed.patternSpacing, insertBetween: insertBetween),
-            narrowSymbol: pool.insert(narrow),
-            narrowSpacing: spacingCode(for: narrow, side: parsed.side, patternSpacing: parsed.patternSpacing, insertBetween: insertBetween)
-        ))
-    }
-
-    let names: [PackedLocale.FullName] = fullNames(currencies(locale)).compactMap { name in
-        guard let code = CurrencyCode(string: name.code) else {
-            print("Skipped \(locale)'s name for \(name.code): not a code a currency can carry")
-            return nil
-        }
-
-        return PackedLocale.FullName(
-            code: code,
-            other: pool.insert(name.other),
-            overrides: PluralCategory.allCases.compactMap { category in
-                name.byCategory[category].map { (category, pool.insert($0)) }
-            }
-        )
-    }
-
-    // Both runs are binary searched at runtime, so they are laid out in the order that search assumes.
-    packedLocales.append(PackedLocale(
-        key: pool.insert(locale),
-        numberFormat: numberFormat,
-        displays: displays.sorted { $0.code.compactValue < $1.code.compactValue },
-        fullNames: names.sorted { $0.code.compactValue < $1.code.compactValue }
+for (locale, tables) in emitted {
+    packedLocales.append(pack(
+        tables,
+        locale: locale,
+        into: &pool,
+        patterns: &patterns,
+        fullNamePatterns: &fullNamePatterns
     ))
 }
 
 let blob = PackedTables(locales: packedLocales, pool: pool, pluralLanguages: packedPluralLanguages).encoded()
+
+let report = SkipReport(
+    cldrVersion: cldrVersion,
+    candidates: candidates.count,
+    skipped: skipped,
+    unusableCurrencyCodes: emitted.reduce(into: Set<String>()) { $0.formUnion($1.tables.unusableCurrencyCodes) }
+)
 
 // MARK: - Swift emission
 
@@ -666,7 +811,9 @@ try? FileManager.default.createDirectory(
     withIntermediateDirectories: true
 )
 try! output.write(toFile: outputPath, atomically: true, encoding: .utf8)
+try! report.rendered.write(toFile: reportPath, atomically: true, encoding: .utf8)
 print("""
-    Wrote \(outputPath) from CLDR \(cldrVersion) for locales: \(locales.joined(separator: ", "))
+    Wrote \(outputPath) from CLDR \(cldrVersion)
+    Covered \(report.emitted) of \(candidates.count) locales; \(skipped.count) skipped, see \(reportPath)
     Packed tables: \(blob.count) bytes, \(patterns.count) pattern(s), \(fullNamePatterns.count) full-name layout(s)
     """)
