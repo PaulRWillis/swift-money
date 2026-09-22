@@ -167,6 +167,21 @@ jobs:
           echo "CHANGED=false" >> "$GITHUB_ENV"
         fi
 
+        # GitHub refuses a comment over 65536 characters, and a run that widens locale coverage
+        # reports something for every shard at once, which is far past that. Whole lines are dropped
+        # from the end until it fits, so the body stays valid markdown and the artifacts stay
+        # complete. A run reporting a handful of locales never reaches this.
+        limit=60000
+        if [ "$(wc -c < comment_body.md)" -gt "$limit" ]; then
+          LC_ALL=C awk -v limit="$limit" '{ total += length($0) + 1; if (total > limit) exit; print }' \
+            comment_body.md > trimmed.md
+          {
+            echo
+            echo "_Cut to fit a comment. Every shard's full report is in this run's artifacts._"
+          } >> trimmed.md
+          mv trimmed.md comment_body.md
+        fi
+
     # Mirrors swift-benchmark-delta.yml's marker/find-or-create technique: a hidden HTML comment
     # lets this workflow find and edit its own comment rather than posting a new one on every push.
     # A distinct marker keeps it from colliding with that workflow's own comment. A run that changes
@@ -186,11 +201,12 @@ jobs:
           exit 0
         fi
 
-        body="$(cat comment_body.md)"
-
+        # Read from the file rather than passed as an argument: the report runs to tens of kilobytes
+        # once many locales are covered, and a command line that size fails to execute at all.
         if [ -n "$existing" ]; then
-          gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$existing" -f body="$body" > /dev/null
+          jq -n --rawfile body comment_body.md '{body: $body}' \
+            | gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$existing" --input - > /dev/null
           echo "Updated comment $existing"
         else
-          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body "$body"
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body-file comment_body.md
         fi
