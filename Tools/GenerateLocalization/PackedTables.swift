@@ -11,6 +11,10 @@ struct PackedTables {
     let locales: [PackedLocale]
     let pool: StringPool
 
+    // One entry per language, sorted by the key's UTF-8 bytes. Keyed by language rather than locale,
+    // since CLDR publishes plural rules per language.
+    let pluralLanguages: [PackedPluralLanguage]
+
     func encoded() -> [UInt8] {
         var body = BlobWriter(base: CLDRBlob.headerWidth)
         body.append(pool.bytes)
@@ -19,6 +23,7 @@ struct PackedTables {
         let numberFormats = writeNumberFormats(into: &body)
         let currencyFullNames = writeFullNames(into: &body)
         let currencyDisplays = writeDisplays(into: &body)
+        let pluralRules = writePluralRules(into: &body)
 
         var header = BlobWriter(base: 0)
         header.u32(locales.count)
@@ -26,6 +31,7 @@ struct PackedTables {
         header.u32(numberFormats)
         header.u32(currencyDisplays)
         header.u32(currencyFullNames)
+        header.u32(pluralRules)
 
         return header.bytes + body.bytes
     }
@@ -108,6 +114,73 @@ struct PackedTables {
         }
 
         return writeDirectory(records, into: &body)
+    }
+
+    // Each language's rule entries first, then the directory (a language count and one entry per
+    // language) that points back at them. An entry is a category byte then a flat, self-delimiting rule.
+    private func writePluralRules(into body: inout BlobWriter) -> Int {
+        let runs = pluralLanguages.map { language -> Run in
+            let start = body.offset
+
+            for (category, rule) in language.rules {
+                body.u8(category.blobCode)
+                writeRule(rule, into: &body)
+            }
+
+            return Run(start: start, count: language.rules.count)
+        }
+
+        let offset = body.offset
+        body.u32(pluralLanguages.count)
+
+        for (language, run) in zip(pluralLanguages, runs) {
+            body.ref(language.key)
+            body.u32(run.start)
+            body.u8(UInt8(run.count))
+        }
+
+        return offset
+    }
+
+    private func writeRule(_ rule: PluralRule, into body: inout BlobWriter) {
+        let groups = Array(rule.orOfAndGroups)
+        body.u8(UInt8(groups.count))
+
+        for group in groups {
+            let relations = Array(group)
+            body.u8(UInt8(relations.count))
+            relations.forEach { writeRelation($0, into: &body) }
+        }
+    }
+
+    private func writeRelation(_ relation: PluralRelation, into body: inout BlobWriter) {
+        body.u8(relation.operand.blobCode)
+        body.u32(relation.modulus.map(Int.init) ?? 0)   // 0 means no modulus, which is always ≥ 1
+
+        let (sign, ranges) = signAndRanges(of: relation.comparison)
+        body.u8(sign)
+
+        let bounds = Array(ranges)
+        body.u8(UInt8(bounds.count))
+
+        for range in bounds {
+            body.u32(codeValue(range.bounds.lowerBound))
+            body.u32(codeValue(range.bounds.upperBound))
+        }
+    }
+
+    private func signAndRanges(of comparison: PluralRelation.Comparison) -> (UInt8, NonEmpty<PluralRange>) {
+        switch comparison {
+        case .equals(let ranges): (0, ranges)
+        case .notEquals(let ranges): (1, ranges)
+        }
+    }
+
+    // A modulus (≤ 1,000,000) and a range bound both fit u32; a value that did not would truncate on the
+    // wire, so refuse it here rather than ship a rule that reads back wrong.
+    private func codeValue(_ value: UInt64) -> Int {
+        precondition(value <= UInt64(UInt32.max), "plural value \(value) does not fit a u32 field")
+        return Int(value)
     }
 
     private func writeDirectory(_ records: [Run], into body: inout BlobWriter) -> Int {
