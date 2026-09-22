@@ -53,7 +53,10 @@ llvm_cov() {
 
 if ! $SKIP_TESTS; then
     echo "Running tests with coverage..."
-    swift test --parallel --enable-code-coverage >/dev/null
+    # Serial, not parallel: swift-corelibs-foundation's ICU is not thread-safe under `swift test
+    # --parallel` on Linux, which intermittently corrupts formatter output and fails the run (the same
+    # race #199 serialised the Thread Sanitizer job around). Coverage does not need the parallelism.
+    swift test --no-parallel --enable-code-coverage >/dev/null
 fi
 
 # Ask the build system for both paths rather than guessing at a triple. `.build/debug` is a symlink and
