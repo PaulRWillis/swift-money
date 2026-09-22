@@ -118,5 +118,12 @@ let package = Package(
             dependencies: ["SwiftMoneyCore", "SwiftMoneyFormatMatrix"],
             path: "Tools/CompareFormattingToICU"
         ),
+        // Dev-only. Writes the committed golden digests the MoneyFormatStyle golden test reads. Not in
+        // any library product.
+        .executableTarget(
+            name: "RecordGoldenDigests",
+            dependencies: ["SwiftMoneyFormatMatrix"],
+            path: "Tools/RecordGoldenDigests"
+        ),
     ]
 )
