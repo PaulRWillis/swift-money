@@ -7,7 +7,7 @@ import SwiftMoneyCore
 /// it. The section is three runs:
 /// - a **directory** of one entry per locale, holding where that locale's records start and how many
 ///   there are, indexed by ``LocaleIndex``;
-/// - the **records**, per locale, sorted by ``CurrencyCode/packedValue`` so a currency is found by
+/// - the **records**, per locale, sorted by ``CurrencyCode/compactValue`` so a currency is found by
 ///   binary search;
 /// - the **overrides** a record points at, one per category that names the currency differently.
 package struct CurrencyFullNameTable: Sendable {
@@ -22,7 +22,7 @@ package struct CurrencyFullNameTable: Sendable {
 
     private enum Record {
         static let code = 0
-        static let other = code + BlobDigits.u64
+        static let other = code + BlobDigits.currencyCode
         static let overridesStart = other + BlobDigits.stringRef
         static let overrideCount = overridesStart + BlobDigits.u32
         static let stride = overrideCount + BlobDigits.u8
@@ -85,7 +85,8 @@ package struct CurrencyFullNameTable: Sendable {
         let entry = directoryOffset + localeIndex.position * Entry.stride
 
         return reader.recordOffset(
-            code: code.packedValue,
+            code: code.compactValue,
+            codeWidth: BlobDigits.currencyCode,
             start: Int(reader.u32(at: entry + Entry.recordsStart)),
             count: Int(reader.u16(at: entry + Entry.recordCount)),
             stride: Record.stride

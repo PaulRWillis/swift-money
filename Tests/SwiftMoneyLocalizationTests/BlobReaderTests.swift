@@ -109,13 +109,13 @@ struct BlobReaderTests {
         Self.withReader(builder.bytes) { reader in
             for (index, code) in codes.enumerated() {
                 let offset = reader.recordOffset(
-                    code: code, start: start, count: codes.count, stride: BlobDigits.u64
+                    code: code, codeWidth: BlobDigits.u64, start: start, count: codes.count, stride: BlobDigits.u64
                 )
                 #expect(offset == start + index * BlobDigits.u64)
             }
 
             #expect(reader.recordOffset(
-                code: 25, start: start, count: codes.count, stride: BlobDigits.u64
+                code: 25, codeWidth: BlobDigits.u64, start: start, count: codes.count, stride: BlobDigits.u64
             ) == nil)
         }
     }

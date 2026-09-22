@@ -17,7 +17,7 @@ struct PackedLocale {
         let decimalSeparator: StringRef
         let groupingSeparator: StringRef
         let minusSign: StringRef
-        let isoCodeSpacing: StringRef
+        let isoCodeSpacing: Spacing
         let primaryGroupingSize: UInt8
         let secondaryGroupingSize: UInt8
         let fullNameSpacing: Spacing
@@ -29,9 +29,9 @@ struct PackedLocale {
     struct Display {
         let code: CurrencyCode
         let standardSymbol: StringRef
-        let standardSpacing: StringRef
+        let standardSpacing: Spacing
         let narrowSymbol: StringRef
-        let narrowSpacing: StringRef
+        let narrowSpacing: Spacing
     }
 
     // What this locale calls one currency: the name it always publishes, and any category that names it

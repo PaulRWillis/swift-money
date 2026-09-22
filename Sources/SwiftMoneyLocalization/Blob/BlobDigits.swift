@@ -18,6 +18,9 @@ package enum BlobDigits {
     /// How many digits a ``StringRef`` takes: an offset and a length.
     package static let stringRef = u32 * 2
 
+    /// How many digits a currency code takes: its `compactValue` is 48 bits, six per symbol.
+    package static let currencyCode = 8
+
     /// The digit standing for a six-bit value: `-`, `.`, `0`–`9`, `A`–`Z`, then `a`–`z`.
     ///
     /// - Parameter value: A value below 64. A wider one wraps into the alphabet rather than failing,

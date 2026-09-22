@@ -5,7 +5,7 @@ import SwiftMoneyCore
 ///
 /// Every integer is written as ``BlobDigits``, so a field's position is the width of the fields before
 /// it. The section is a **directory** of one entry per locale, indexed by ``LocaleIndex``, and the
-/// **records** it points at, sorted by ``CurrencyCode/packedValue`` so a currency is found by binary
+/// **records** it points at, sorted by ``CurrencyCode/compactValue`` so a currency is found by binary
 /// search.
 package struct CurrencyDisplayTable: Sendable {
     let reader: BlobReader
@@ -19,11 +19,11 @@ package struct CurrencyDisplayTable: Sendable {
 
     private enum Record {
         static let code = 0
-        static let standardSymbol = code + BlobDigits.u64
+        static let standardSymbol = code + BlobDigits.currencyCode
         static let standardSpacing = standardSymbol + BlobDigits.stringRef
-        static let narrowSymbol = standardSpacing + BlobDigits.stringRef
+        static let narrowSymbol = standardSpacing + BlobDigits.u8
         static let narrowSpacing = narrowSymbol + BlobDigits.stringRef
-        static let stride = narrowSpacing + BlobDigits.stringRef
+        static let stride = narrowSpacing + BlobDigits.u8
     }
 
     package init(reader: BlobReader, directoryOffset: Int) {
@@ -39,16 +39,26 @@ package struct CurrencyDisplayTable: Sendable {
         let recordCount = Int(reader.u16(at: entry + Entry.recordCount))
 
         guard let record = reader.recordOffset(
-            code: code.packedValue, start: recordsStart, count: recordCount, stride: Record.stride
+            code: code.compactValue, codeWidth: BlobDigits.currencyCode,
+            start: recordsStart, count: recordCount, stride: Record.stride
         ) else {
             return nil
         }
 
         return CurrencyDisplay(
             standardSymbol: reader.string(reader.stringRef(at: record + Record.standardSymbol)),
-            standardSpacing: reader.string(reader.stringRef(at: record + Record.standardSpacing)),
+            standardSpacing: spacing(at: record + Record.standardSpacing),
             narrowSymbol: reader.string(reader.stringRef(at: record + Record.narrowSymbol)),
-            narrowSpacing: reader.string(reader.stringRef(at: record + Record.narrowSpacing))
+            narrowSpacing: spacing(at: record + Record.narrowSpacing)
         )
+    }
+
+    // The generator writes only valid codes, so an unknown one is a generator bug, not input.
+    private func spacing(at offset: Int) -> Spacing {
+        let code = reader.u8(at: offset)
+        guard let spacing = Spacing(blobCode: code) else {
+            preconditionFailure("blob currency spacing code \(code) is unknown")  // coverage:ignore
+        }
+        return spacing
     }
 }

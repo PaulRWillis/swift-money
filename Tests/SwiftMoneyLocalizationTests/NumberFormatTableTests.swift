@@ -23,13 +23,12 @@ struct NumberFormatTableTests {
         let decimal = b.pool(".")
         let grouping = b.pool(",")
         let minus = b.pool("-")
-        let iso = b.pool("\u{00A0}")
 
         let recordsOffset = b.count
         b.ref(decimal)
         b.ref(grouping)
         b.ref(minus)
-        b.ref(iso)
+        b.u8(Spacing.nonBreakingSpace.blobCode)
         b.u8(3)
         b.u8(3)
         b.u8(Spacing.asciiSpace.blobCode)
@@ -58,7 +57,7 @@ struct NumberFormatTableTests {
             #expect(format.decimalSeparator == ".")
             #expect(format.groupingSeparator == ",")
             #expect(format.minusSign == "-")
-            #expect(format.isoCodeSpacing == "\u{00A0}")
+            #expect(format.isoCodeSpacing == .nonBreakingSpace)
             #expect(format.primaryGroupingSize == 3)
             #expect(format.secondaryGroupingSize == 3)
             #expect(format.fullNameSpacing == .asciiSpace)
