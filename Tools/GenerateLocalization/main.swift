@@ -20,11 +20,6 @@ import Foundation
 import SwiftMoneyCore
 import SwiftMoneyLocalization
 
-// `ar-EG` and `nl` are here to be left out, not to be emitted: one writes Arabic-Indic digits and the
-// other arranges its own negatives, so they exercise the skip path and keep the committed report from
-// being empty while the covered set is still listed by hand.
-let candidates = ["en", "en-GB", "de", "fr", "ja", "sw", "si", "ro", "ar-EG", "nl"]
-
 let repoRoot = FileManager.default.currentDirectoryPath
 let cldrMain = "\(repoRoot)/Tools/cldr/node_modules/cldr-numbers-full/main"
 let cldrSupplemental = "\(repoRoot)/Tools/cldr/node_modules/cldr-core/supplemental"
@@ -83,6 +78,30 @@ func numbers(_ locale: String) -> [String: Any] {
     let main = root["main"] as! [String: Any]
     let entry = main[locale] as! [String: Any]
     return entry["numbers"] as! [String: Any]
+}
+
+// Every locale CLDR publishes, in the order the locale section is binary searched in.
+//
+// Sorted here rather than taken as the file system gives it: that order is arbitrary, and the order
+// strings reach the pool decides the blob's bytes, which the CLDR workflow regenerates and diffs.
+// A directory that turns out not to hold a locale's two files stops the run, since every directory
+// under `main` is one and a missing file means the packages are not what this tool expects.
+func publishedLocales() -> [String] {
+    guard
+        let contents = try? FileManager.default.contentsOfDirectory(atPath: cldrMain),
+        !contents.isEmpty
+    else {
+        fatalError("Found no CLDR locales in \(cldrMain). Run `npm ci` in Tools/cldr.")
+    }
+
+    return contents
+        .filter { isDirectory("\(cldrMain)/\($0)") }
+        .sorted { $0.utf8.lexicographicallyPrecedes($1.utf8) }
+}
+
+func isDirectory(_ path: String) -> Bool {
+    var directory: ObjCBool = false
+    return FileManager.default.fileExists(atPath: path, isDirectory: &directory) && directory.boolValue
 }
 
 func currencies(_ locale: String) -> [String: [String: String]] {
@@ -726,15 +745,15 @@ var packedPluralLanguages: [PackedPluralLanguage] = []
 let ruleText = cardinalRuleText()
 checkEveryLanguageAgainstItsSamples(ruleText)
 
-// The locale section is binary searched by UTF-8 bytes, so the tables hold the locales in that order
-// rather than in the order this tool lists them.
-let ordered = candidates.sorted { $0.utf8.lexicographicallyPrecedes($1.utf8) }
-let pluralRules = pluralRuleSets(among: ordered, in: ruleText)
+// Every locale CLDR publishes is a candidate. What the tables end up covering is whatever of that
+// this tool can render, which grows on its own as the shapes it cannot represent are added.
+let candidates = publishedLocales()
+let pluralRules = pluralRuleSets(among: candidates, in: ruleText)
 
 var emitted: [(locale: String, tables: LocaleTables)] = []
 var skipped: [SkippedLocale] = []
 
-for locale in ordered {
+for locale in candidates {
     do {
         emitted.append((locale, try tables(for: locale, unusableLanguages: pluralRules.unusable)))
     } catch {

@@ -26,15 +26,18 @@ struct GeneratedCurrencyFullNamesTests {
         #expect(try Self.name("JPY", in: "ja", for: .other) == "円")
     }
 
-    @Test("Every shipped locale names the currencies it is most likely to show", arguments: ["en", "en-GB", "de", "fr", "ja"])
-    func everyLocaleNamesTheCommonCurrencies(_ locale: LocaleIdentifier) {
+    // A handful of widely used locales, pinned by name. Most covered locales name these four too, but
+    // a thin one names nothing at all, so this is a spot check rather than a rule over the whole set.
+    @Test("A widely used locale names the currencies it is most likely to show", arguments: ["en", "en-GB", "de", "fr", "ja"])
+    func commonLocalesNameTheCommonCurrencies(_ locale: LocaleIdentifier) {
         for code: CurrencyCode in ["GBP", "USD", "EUR", "JPY"] {
             #expect(MoneyLocalization.fullName(of: code, locale: locale) != nil, "\(locale.value) should name \(code)")
         }
     }
 
-    // CLDR names 164 of the 165 currencies the library ships in English, and three fewer in the
-    // other covered locales, so a caller has to cope with a currency having no name.
+    // CLDR names 164 of the 165 currencies the library ships in English, and fewer in every other
+    // locale, down to none at all in one that inherits from CLDR's root. A caller has to cope with a
+    // currency having no name.
     @Test("A currency CLDR does not name is absent rather than made up")
     func unnamedCurrenciesAreAbsent() {
         let named = Currency.allISO4217.count { MoneyLocalization.fullName(of: $0.code, locale: "en") != nil }

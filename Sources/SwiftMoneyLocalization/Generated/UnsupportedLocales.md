@@ -3,10 +3,287 @@
 Generated from CLDR 48.2.0 by GenerateSwiftMoneyLocalization. Do not edit by hand.
 Regenerate with: (cd Tools/cldr && npm ci) && swift run GenerateSwiftMoneyLocalization
 
-The engine formats 8 of the 10 CLDR locales this build reads. The 2 below are left out, each because it writes something the packed tables have no shape for. They keep the ICU fallback, and rejoin the list on their own once that shape exists.
+The engine formats 495 of the 766 CLDR locales this build reads. The 271 below are left out, each because it writes something the packed tables have no shape for. They keep the ICU fallback, and rejoin the list on their own once that shape exists.
 
-## arranges a negative amount in its standard pattern (1)
+## arranges a currency written with letters in a way this tool does not model, in its accounting pattern (17)
+- bem: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
+- bm: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
+- bm-Nkoo: \u{A4}\u{A0}#,##0.00 against \u{A4}\u{A0}#,##0.00;(\u{A4}\u{A0}#,##0.00)
+- ee: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
+- ee-TG: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
+- haw: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
+- kde: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
+- lij: #,##0.00\u{A0}\u{A4} against #,##0.00\u{A0}\u{A4};(#,##0.00\u{A0}\u{A4})
+- mas: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
+- mas-TZ: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
+- ms-ID: \u{A4}#,##0.00 against \u{A4}\u{A0}#,##0.00;(\u{A4}\u{A0}#,##0.00)
+- nd: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
+- saq: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
+- sn: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
+- teo: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
+- teo-KE: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
+- ug: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
+
+## arranges a negative amount in its standard pattern (33)
+- ar: \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
+- ar-AE: \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
+- ar-DZ: \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
+- ar-EH: \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
+- ar-LY: \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
+- ar-MA: \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
+- ar-TN: \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
+- blo: \u{A4}\u{A0}#,##0.00;\u{A4}\u{A0}-#,##0.00
+- de-CH: \u{A4}\u{A0}#,##0.00;\u{A4}-#,##0.00
+- en-CH: \u{A4}\u{A0}#,##0.00;\u{A4}-#,##0.00
+- en-NL: \u{A4}\u{A0}#,##0.00;\u{A4}\u{A0}-#,##0.00
+- es-CL: \u{A4}#,##0.00;\u{A4}-#,##0.00
+- es-EC: \u{A4}#,##0.00;\u{A4}-#,##0.00
+- es-PY: \u{A4}\u{A0}#,##0.00;\u{A4}\u{A0}-#,##0.00
+- es-VE: \u{A4}#,##0.00;\u{A4}-#,##0.00
+- fy: \u{A4}\u{A0}#,##0.00;\u{A4}\u{A0}#,##0.00-
+- he: \u{200F}#,##0.00\u{A0}\u{200F}\u{A4};\u{200F}-#,##0.00\u{A0}\u{200F}\u{A4}
+- ie: \u{A4}\u{A0}#,##0.00;\u{A4}\u{A0}-#,##0.00
+- it-CH: \u{A4}\u{A0}#,##0.00;\u{A4}-#,##0.00
+- kl: \u{A4}#,##0.00;\u{A4}-#,##0.00
+- lo: \u{A4}#,##0.00;\u{A4}-#,##0.00
+- nb: #,##0.00\u{A0}\u{A4};-#,##0.00\u{A0}\u{A4}
+- nb-SJ: #,##0.00\u{A0}\u{A4};-#,##0.00\u{A0}\u{A4}
 - nl: \u{A4}\u{A0}#,##0.00;\u{A4}\u{A0}-#,##0.00
+- nl-AW: \u{A4}\u{A0}#,##0.00;\u{A4}\u{A0}-#,##0.00
+- nl-BE: \u{A4}\u{A0}#,##0.00;\u{A4}\u{A0}-#,##0.00
+- nl-BQ: \u{A4}\u{A0}#,##0.00;\u{A4}\u{A0}-#,##0.00
+- nl-CW: \u{A4}\u{A0}#,##0.00;\u{A4}\u{A0}-#,##0.00
+- nl-SR: \u{A4}\u{A0}#,##0.00;\u{A4}\u{A0}-#,##0.00
+- nl-SX: \u{A4}\u{A0}#,##0.00;\u{A4}\u{A0}-#,##0.00
+- nn: #,##0.00\u{A0}\u{A4};-#,##0.00\u{A0}\u{A4}
+- no: #,##0.00\u{A0}\u{A4};-#,##0.00\u{A0}\u{A4}
+- sg: \u{A4}#,##0.00;\u{A4}-#,##0.00
 
-## writes amounts in digits other than 0 to 9 (1)
+## groups the digits differently for a currency written with letters, in its standard pattern (1)
+- dv
+
+## has no published plural rules for its language (143)
+- aa: aa
+- aa-DJ: aa
+- aa-ER: aa
+- ab: ab
+- agq: agq
+- ann: ann
+- apc: apc
+- arn: arn
+- ba: ba
+- bas: bas
+- bew: bew
+- bgc: bgc
+- bgn: bgn
+- bgn-AE: bgn
+- bgn-AF: bgn
+- bgn-IR: bgn
+- bgn-OM: bgn
+- blt: blt
+- bqi: bqi
+- bss: bss
+- bua: bua
+- byn: byn
+- cad: cad
+- cch: cch
+- ccp: ccp
+- ccp-IN: ccp
+- cho: cho
+- cic: cic
+- co: co
+- cop: cop
+- cu: cu
+- dav: dav
+- dje: dje
+- dua: dua
+- dyo: dyo
+- ebu: ebu
+- ewo: ewo
+- frr: frr
+- gaa: gaa
+- gez: gez
+- gez-ER: gez
+- gn: gn
+- guz: guz
+- ht: ht
+- kaa: kaa
+- kaa-Cyrl: kaa
+- kaa-Latn: kaa
+- kam: kam
+- kek: kek
+- ken: ken
+- kgp: kgp
+- khq: khq
+- ki: ki
+- kln: kln
+- kpe: kpe
+- kpe-GN: kpe
+- ksf: ksf
+- kxv: kxv
+- kxv-Deva: kxv
+- kxv-Latn: kxv
+- kxv-Orya: kxv
+- kxv-Telu: kxv
+- la: la
+- lmo: lmo
+- lrc: lrc
+- lrc-IQ: lrc
+- ltg: ltg
+- lu: lu
+- luo: luo
+- luy: luy
+- lzz: lzz
+- mai: mai
+- mdf: mdf
+- mer: mer
+- mfe: mfe
+- mgh: mgh
+- mhn: mhn
+- mi: mi
+- mic: mic
+- mni: mni
+- mni-Beng: mni
+- mni-Mtei: mni
+- moh: moh
+- mua: mua
+- mus: mus
+- mww: mww
+- mww-Hmnp: mww
+- myv: myv
+- mzn: mzn
+- nds: nds
+- nds-NL: nds
+- nmg: nmg
+- nus: nus
+- nv: nv
+- oc: oc
+- oc-ES: oc
+- oka: oka
+- oka-US: oka
+- pi: pi
+- pi-Latn: pi
+- pis: pis
+- pms: pms
+- qu: qu
+- qu-BO: qu
+- qu-EC: qu
+- quc: quc
+- raj: raj
+- rhg: rhg
+- rhg-Rohg: rhg
+- rhg-Rohg-BD: rhg
+- rif: rif
+- rn: rn
+- rw: rw
+- sa: sa
+- sbp: sbp
+- shn: shn
+- shn-TH: shn
+- sid: sid
+- skr: skr
+- suz: suz
+- suz-Deva: suz
+- suz-Sunu: suz
+- szl: szl
+- tg: tg
+- tok: tok
+- trv: trv
+- trw: trw
+- tt: tt
+- twq: twq
+- tyv: tyv
+- vai: vai
+- vai-Latn: vai
+- vai-Vaii: vai
+- vmw: vmw
+- wal: wal
+- wbp: wbp
+- xnr: xnr
+- yav: yav
+- yrl: yrl
+- yrl-CO: yrl
+- yrl-VE: yrl
+- za: za
+- zgh: zgh
+
+## moves the currency to the other side of the digits for a currency written with letters, in its standard pattern (11)
+- an
+- bez
+- kab
+- ksb
+- lg
+- rwk
+- seh
+- ses
+- shi
+- shi-Latn
+- shi-Tfng
+
+## writes amounts in digits other than 0 to 9 (66)
+- ar-BH: arab
+- ar-DJ: arab
 - ar-EG: arab
+- ar-ER: arab
+- ar-IL: arab
+- ar-IQ: arab
+- ar-JO: arab
+- ar-KM: arab
+- ar-KW: arab
+- ar-LB: arab
+- ar-MR: arab
+- ar-OM: arab
+- ar-PS: arab
+- ar-QA: arab
+- ar-SA: arab
+- ar-SD: arab
+- ar-SO: arab
+- ar-SS: arab
+- ar-SY: arab
+- ar-TD: arab
+- ar-YE: arab
+- as: beng
+- az-Arab: arabext
+- az-Arab-IQ: arabext
+- az-Arab-TR: arabext
+- bho: deva
+- bn: beng
+- bn-IN: beng
+- ckb: arab
+- ckb-IR: arab
+- dz: tibt
+- fa: arabext
+- fa-AF: arabext
+- ff-Adlm: adlm
+- ff-Adlm-BF: adlm
+- ff-Adlm-CM: adlm
+- ff-Adlm-GH: adlm
+- ff-Adlm-GM: adlm
+- ff-Adlm-GW: adlm
+- ff-Adlm-LR: adlm
+- ff-Adlm-MR: adlm
+- ff-Adlm-NE: adlm
+- ff-Adlm-NG: adlm
+- ff-Adlm-SL: adlm
+- ff-Adlm-SN: adlm
+- hnj: hmnp
+- hnj-Hmnp: hmnp
+- ks: arabext
+- ks-Arab: arabext
+- mr: deva
+- my: mymr
+- ne: deva
+- ne-IN: deva
+- nqo: nkoo
+- pa-Arab: arabext
+- ps: arabext
+- ps-PK: arabext
+- sat: olck
+- sat-Deva: deva
+- sat-Olck: olck
+- sd: arab
+- sd-Arab: arab
+- sdh: arab
+- sdh-IQ: arab
+- ur-IN: arabext
+- uz-Arab: arabext

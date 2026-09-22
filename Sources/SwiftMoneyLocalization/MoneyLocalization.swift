@@ -5,8 +5,9 @@ import SwiftMoneyCore
 /// including Embedded. The Foundation `MoneyOf.FormatStyle` uses this where a locale is covered and
 /// falls back to ICU otherwise.
 ///
-/// The data is generated from CLDR by the `GenerateSwiftMoneyLocalization` tool; it currently covers a
-/// small starter set of locales and grows over time.
+/// The data is generated from CLDR by the `GenerateSwiftMoneyLocalization` tool, which emits every
+/// locale it can render and lists the rest, with the reason for each, in `UnsupportedLocales.md`
+/// beside the generated tables. Coverage therefore widens as those reasons are worked through.
 public enum MoneyLocalization {
 
     /// The currency format for an amount's currency in a locale, or `nil` if the locale is not covered.
