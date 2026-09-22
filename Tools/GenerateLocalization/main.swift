@@ -247,6 +247,17 @@ func spacing(for symbol: String, side: CurrencySide, patternSpacing: String, ins
     return insertBetween
 }
 
+// The same gap as a `Spacing` case, refusing a locale whose gap is not one CLDR uses for this join: the
+// packed record holds a two-digit code, so only the four cases are representable. Stops rather than skips
+// because every emitted locale is listed by hand; widening the covered set turns this into a report.
+func spacingCode(for symbol: String, side: CurrencySide, patternSpacing: String, insertBetween: String) -> Spacing {
+    let gap = spacing(for: symbol, side: side, patternSpacing: patternSpacing, insertBetween: insertBetween)
+    guard let spacing = Spacing(rendering: gap) else {
+        fatalError("cannot represent currency gap \(gap.debugDescription) as a spacing code")
+    }
+    return spacing
+}
+
 // MARK: - Full names
 
 // One CLDR unit pattern, such as "{0} {1}", "{1}{0}" or "{0} de {1}", turned into the tokens a
@@ -592,13 +603,13 @@ for locale in locales.sorted(by: { $0.utf8.lexicographicallyPrecedes($1.utf8) })
     let fullName = fullNameLayout(formats.compactMapValues { $0 as? String }, locale: locale)
 
     // ISO code is always letters, so it takes the insertion (or the pattern's literal spacing).
-    let isoSpacing = spacing(for: "AAA", side: parsed.side, patternSpacing: parsed.patternSpacing, insertBetween: insertBetween)
+    let isoSpacing = spacingCode(for: "AAA", side: parsed.side, patternSpacing: parsed.patternSpacing, insertBetween: insertBetween)
 
     let numberFormat = PackedLocale.NumberFormat(
         decimalSeparator: pool.insert(required(symbols, "decimal", in: locale)),
         groupingSeparator: pool.insert(required(symbols, "group", in: locale)),
         minusSign: pool.insert(symbols["minusSign"] ?? "-"),
-        isoCodeSpacing: pool.insert(isoSpacing),
+        isoCodeSpacing: isoSpacing,
         primaryGroupingSize: UInt8(parsed.grouping.primary),
         secondaryGroupingSize: UInt8(parsed.grouping.secondary),
         fullNameSpacing: fullName.spacing,
@@ -627,9 +638,9 @@ for locale in locales.sorted(by: { $0.utf8.lexicographicallyPrecedes($1.utf8) })
         displays.append(PackedLocale.Display(
             code: currencyCode,
             standardSymbol: pool.insert(symbol),
-            standardSpacing: pool.insert(spacing(for: symbol, side: parsed.side, patternSpacing: parsed.patternSpacing, insertBetween: insertBetween)),
+            standardSpacing: spacingCode(for: symbol, side: parsed.side, patternSpacing: parsed.patternSpacing, insertBetween: insertBetween),
             narrowSymbol: pool.insert(narrow),
-            narrowSpacing: pool.insert(spacing(for: narrow, side: parsed.side, patternSpacing: parsed.patternSpacing, insertBetween: insertBetween))
+            narrowSpacing: spacingCode(for: narrow, side: parsed.side, patternSpacing: parsed.patternSpacing, insertBetween: insertBetween)
         ))
     }
 
@@ -652,8 +663,8 @@ for locale in locales.sorted(by: { $0.utf8.lexicographicallyPrecedes($1.utf8) })
     packedLocales.append(PackedLocale(
         key: pool.insert(locale),
         numberFormat: numberFormat,
-        displays: displays.sorted { $0.code.packedValue < $1.code.packedValue },
-        fullNames: names.sorted { $0.code.packedValue < $1.code.packedValue }
+        displays: displays.sorted { $0.code.compactValue < $1.code.compactValue },
+        fullNames: names.sorted { $0.code.compactValue < $1.code.compactValue }
     ))
 }
 

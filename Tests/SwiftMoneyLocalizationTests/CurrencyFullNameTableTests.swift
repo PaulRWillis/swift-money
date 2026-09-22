@@ -19,7 +19,7 @@ struct CurrencyFullNameTableTests {
             (code("EUR"), b.pool("euros"), nil),
             (code("GBP"), b.pool("British pounds"), b.pool("British pound")),
             (code("USD"), b.pool("US dollars"), b.pool("US dollar")),
-        ].sorted { $0.code.packedValue < $1.code.packedValue }
+        ].sorted { $0.code.compactValue < $1.code.compactValue }
 
         var overrides: [(start: UInt32, count: UInt8)] = []
         for name in names {
@@ -35,7 +35,7 @@ struct CurrencyFullNameTableTests {
 
         let recordsStart = UInt32(b.count)
         for (index, name) in names.enumerated() {
-            b.u64(name.code.packedValue)
+            b.currencyCode(name.code.compactValue)
             b.ref(name.other)
             b.u32(overrides[index].start)
             b.u8(overrides[index].count)

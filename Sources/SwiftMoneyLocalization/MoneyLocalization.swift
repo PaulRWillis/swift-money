@@ -36,7 +36,7 @@ public enum MoneyLocalization {
         let display = cldr.currencyDisplays.display(localeIndex: localeIndex, code: currency.code)
 
         let symbol: String
-        let spacing: String
+        let spacing: Spacing
         switch presentation {
         case .standard:
             symbol = display?.standardSymbol ?? code
@@ -49,7 +49,7 @@ public enum MoneyLocalization {
             spacing = format.isoCodeSpacing
         }
 
-        return moneyFormat(symbol: symbol, pattern: format.pattern, gap: spacing, from: format)
+        return moneyFormat(symbol: symbol, pattern: format.pattern, gap: spacing.rendered, from: format)
     }
 
     /// The currency format for one amount, naming the currency in full, as in "British pounds".

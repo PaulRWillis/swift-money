@@ -18,7 +18,7 @@ package struct NumberFormatTable: Sendable {
         static let groupingSeparator = decimalSeparator + BlobDigits.stringRef
         static let minusSign = groupingSeparator + BlobDigits.stringRef
         static let isoCodeSpacing = minusSign + BlobDigits.stringRef
-        static let primaryGroupingSize = isoCodeSpacing + BlobDigits.stringRef
+        static let primaryGroupingSize = isoCodeSpacing + BlobDigits.u8
         static let secondaryGroupingSize = primaryGroupingSize + BlobDigits.u8
         static let fullNameSpacing = secondaryGroupingSize + BlobDigits.u8
         static let patternIndex = fullNameSpacing + BlobDigits.u8
@@ -45,7 +45,7 @@ package struct NumberFormatTable: Sendable {
         let decimalSeparator = reader.string(reader.stringRef(at: record + Record.decimalSeparator))
         let groupingRaw = reader.string(reader.stringRef(at: record + Record.groupingSeparator))
         let minusSign = reader.string(reader.stringRef(at: record + Record.minusSign))
-        let isoCodeSpacing = reader.string(reader.stringRef(at: record + Record.isoCodeSpacing))
+        let isoSpacingCode = reader.u8(at: record + Record.isoCodeSpacing)
         let primaryRaw = Int(reader.u8(at: record + Record.primaryGroupingSize))
         let secondaryRaw = Int(reader.u8(at: record + Record.secondaryGroupingSize))
         let spacingCode = reader.u8(at: record + Record.fullNameSpacing)
@@ -61,6 +61,9 @@ package struct NumberFormatTable: Sendable {
             let secondaryGroupingSize = GroupingSize(exactly: secondaryRaw)
         else {
             preconditionFailure("blob grouping size is not positive")  // coverage:ignore
+        }
+        guard let isoCodeSpacing = Spacing(blobCode: isoSpacingCode) else {
+            preconditionFailure("blob iso-code spacing code \(isoSpacingCode) is unknown")  // coverage:ignore
         }
         guard let fullNameSpacing = Spacing(blobCode: spacingCode) else {
             preconditionFailure("blob full-name spacing code \(spacingCode) is unknown")  // coverage:ignore
