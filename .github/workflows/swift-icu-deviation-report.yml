@@ -15,15 +15,17 @@ jobs:
   # Non-gating: the tool always exits 0. Runs on both platforms since a platform's ICU can lag the
   # CLDR data the engine renders from.
   report:
-    timeout-minutes: 30
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-26]
         # The locales are split across these shards so the report scales past a handful of locales
         # without a leg timing out; each leg walks only its shard. Keep the index list and the count
-        # below in step, and raise both as locale coverage grows.
-        shard: [0, 1, 2, 3]
+        # below in step, and raise both as locale coverage grows. At the coverage this sizing was
+        # measured against, one locale costs around ten seconds, so a shard is a few hundred seconds
+        # of work before the two builds.
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -52,7 +54,7 @@ jobs:
     - name: Run the ICU deviation report on both commits
       env:
         ICU_SHARD_INDEX: ${{ matrix.shard }}
-        ICU_SHARD_COUNT: "4"
+        ICU_SHARD_COUNT: "16"
       run: |
         swift run CompareFormattingToICU > head-output.txt
         swift run --package-path base CompareFormattingToICU > base-output.txt
