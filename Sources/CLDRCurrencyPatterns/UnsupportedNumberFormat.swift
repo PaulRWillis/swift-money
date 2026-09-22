@@ -1,0 +1,60 @@
+/// Something in a locale's number format that the generated tables cannot represent.
+///
+/// These are read before the pattern itself, because the pattern reader answers a narrower question
+/// and would pass over all three without noticing: it looks only between the currency placeholder and
+/// the nearest digit, and takes the part before the first `;`.
+public enum UnsupportedNumberFormat: Equatable, Sendable {
+    /// The locale writes amounts in digits other than `0` to `9`, as Arabic-Indic and Devanagari do.
+    case nonLatinDigits(numberingSystem: String)
+
+    /// The standard pattern arranges a negative amount itself, as in `#,##0.00¤;¤-#,##0.00`.
+    case negativeSubpattern(pattern: String)
+
+    /// The pattern carries a directional mark, which places text the affixes have no slot for.
+    case directionalMark(pattern: String)
+}
+
+public extension UnsupportedNumberFormat {
+    /// What a locale's number format publishes that cannot be represented, or `nil` when it can.
+    ///
+    /// - Parameters:
+    ///   - standardPattern: The locale's `standard` currency pattern.
+    ///   - defaultNumberingSystem: The numbering system the locale writes amounts in, CLDR's
+    ///     `defaultNumberingSystem`.
+    init?(standardPattern: String, defaultNumberingSystem: String) {
+        if defaultNumberingSystem != Self.latinDigits {
+            self = .nonLatinDigits(numberingSystem: defaultNumberingSystem)
+        } else if standardPattern.contains(Self.subpatternSeparator) {
+            self = .negativeSubpattern(pattern: standardPattern)
+        } else if standardPattern.contains(where: Self.isDirectionalMark) {
+            self = .directionalMark(pattern: standardPattern)
+        } else {
+            return nil
+        }
+    }
+
+    // CLDR's name for the digits 0 to 9.
+    private static let latinDigits = "latn"
+
+    // What separates a pattern's positive arrangement from its negative one.
+    private static let subpatternSeparator: Character = ";"
+
+    // Left-to-right and right-to-left marks. They carry no width, so a pattern holding one looks
+    // identical to a pattern without.
+    private static func isDirectionalMark(_ character: Character) -> Bool {
+        character == "\u{200E}" || character == "\u{200F}"
+    }
+}
+
+extension UnsupportedNumberFormat: CustomStringConvertible {
+    public var description: String {
+        switch self {
+        case .nonLatinDigits(let numberingSystem):
+            "amounts are written in the \(numberingSystem) digits rather than 0 to 9"
+        case .negativeSubpattern(let pattern):
+            "the standard pattern arranges a negative amount itself: \(pattern)"
+        case .directionalMark(let pattern):
+            "the standard pattern carries a directional mark: \(pattern)"
+        }
+    }
+}

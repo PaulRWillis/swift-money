@@ -20,7 +20,10 @@ import Foundation
 import SwiftMoneyCore
 import SwiftMoneyLocalization
 
-let candidates = ["en", "en-GB", "de", "fr", "ja", "sw", "si", "ro"]
+// `ar-EG` and `nl` are here to be left out, not to be emitted: one writes Arabic-Indic digits and the
+// other arranges its own negatives, so they exercise the skip path and keep the committed report from
+// being empty while the covered set is still listed by hand.
+let candidates = ["en", "en-GB", "de", "fr", "ja", "sw", "si", "ro", "ar-EG", "nl"]
 
 let repoRoot = FileManager.default.currentDirectoryPath
 let cldrMain = "\(repoRoot)/Tools/cldr/node_modules/cldr-numbers-full/main"
@@ -551,6 +554,17 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip]) throws(
     let standard = formats["standard"] as! String
     let accounting = formats["accounting"] as! String
     let spacingRule = formats["currencySpacing"] as! [String: Any]
+
+    // Read before the pattern, which answers a narrower question: it takes the part before the first
+    // `;` and looks only between the currency and the nearest digit, so it would pass over all three
+    // of these without noticing. The `-latn` keys above are read whatever the locale's own system is,
+    // which is exactly why the system has to be checked rather than assumed.
+    if let unsupported = UnsupportedNumberFormat(
+        standardPattern: standard,
+        defaultNumberingSystem: n["defaultNumberingSystem"] as! String
+    ) {
+        throw .unrepresentableNumberFormat(unsupported)
+    }
 
     for field in PatternField.allCases {
         let pattern = field == .standard ? standard : accounting

@@ -10,12 +10,9 @@ import SwiftMoneyLocalization
 /// A fault in how the generator *reads* CLDR is not one of these. That stops the run, because it would
 /// otherwise be recorded as a property of the locale rather than of the generator.
 package enum LocaleSkip: Error, Equatable, Sendable {
-    /// The locale writes amounts in digits other than `0` to `9`.
-    case nonLatinDigits(numberingSystem: String)
-
-    /// The locale's standard pattern arranges a negative amount itself, instead of leaving the leading
-    /// sign the tables assume.
-    case negativeSubpattern(pattern: String)
+    /// The locale writes its amounts in a way the tables have no shape for, before any currency is
+    /// placed beside them.
+    case unrepresentableNumberFormat(UnsupportedNumberFormat)
 
     /// CLDR publishes no plural rules for the locale's language, so a currency name cannot be chosen
     /// by amount.
@@ -53,10 +50,8 @@ package extension LocaleSkip {
     /// same string. Anything that varies between them belongs in ``detail``.
     var reason: String {
         switch self {
-        case .nonLatinDigits:
-            "writes amounts in digits other than 0 to 9"
-        case .negativeSubpattern:
-            "arranges a negative amount in its standard pattern"
+        case .unrepresentableNumberFormat(let format):
+            Self.numberFormat(format)
         case .noPluralRules:
             "has no published plural rules for its language"
         case .unsupportedPluralRule:
@@ -82,9 +77,11 @@ package extension LocaleSkip {
     /// because most of what appears here is spacing and two widths of space look alike on a page.
     var detail: String {
         switch self {
-        case .nonLatinDigits(let numberingSystem):
+        case .unrepresentableNumberFormat(.nonLatinDigits(let numberingSystem)):
             numberingSystem
-        case .negativeSubpattern(let pattern), .noCurrencyPlaceholder(let pattern):
+        case .unrepresentableNumberFormat(.negativeSubpattern(let pattern)),
+             .unrepresentableNumberFormat(.directionalMark(let pattern)),
+             .noCurrencyPlaceholder(let pattern):
             Self.readable(pattern)
         case .noPluralRules(let language):
             language
@@ -102,6 +99,19 @@ package extension LocaleSkip {
             "\(Self.escapingEveryScalar(gap)) beside \(Self.readable(symbol))"
         case .multipleNameGaps(let spacings):
             spacings.map(Self.readable).sorted().joined(separator: ", ")
+        }
+    }
+
+    // The three shapes `UnsupportedNumberFormat` distinguishes, said as a category. Its own
+    // description carries the pattern, which belongs in the detail rather than the group heading.
+    private static func numberFormat(_ format: UnsupportedNumberFormat) -> String {
+        switch format {
+        case .nonLatinDigits:
+            "writes amounts in digits other than 0 to 9"
+        case .negativeSubpattern:
+            "arranges a negative amount in its standard pattern"
+        case .directionalMark:
+            "carries a directional mark in its standard pattern"
         }
     }
 

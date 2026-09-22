@@ -21,8 +21,8 @@ struct LocaleSkipTests {
     @Test("A reason carries nothing specific to the locale that raised it")
     func reasonsCarryNoDetail() {
         let skips = [
-            LocaleSkip.nonLatinDigits(numberingSystem: "arab"),
-            .negativeSubpattern(pattern: "#,##0.00;(#,##0.00)"),
+            LocaleSkip.unrepresentableNumberFormat(.nonLatinDigits(numberingSystem: "arab")),
+            .unrepresentableNumberFormat(.negativeSubpattern(pattern: "#,##0.00;(#,##0.00)")),
             .noPluralRules(language: "bem"),
             .noCurrencyPlaceholder(pattern: "#,##0.00"),
             .unreadableCurrencySpacing(rule: "currencyMatch [:^S:]"),
@@ -57,7 +57,7 @@ struct LocaleSkipTests {
     // carries is spacing, so a reader needs them spelled out.
     @Test("Detail escapes characters outside printable ASCII")
     func detailEscapesInvisibleCharacters() {
-        let skip = LocaleSkip.negativeSubpattern(pattern: "\u{200F}-#,##0.00\u{00A0}\u{00A4}")
+        let skip = LocaleSkip.unrepresentableNumberFormat(.directionalMark(pattern: "\u{200F}-#,##0.00\u{00A0}\u{00A4}"))
 
         #expect(skip.detail == "\\u{200F}-#,##0.00\\u{A0}\\u{A4}")
     }
@@ -98,8 +98,9 @@ struct LocaleSkipTests {
     // Kept deliberately exhaustive: a new case added without a reason would otherwise go unnoticed
     // until it appeared unlabelled in the committed report.
     static let oneOfEachCase: [LocaleSkip] = [
-        .nonLatinDigits(numberingSystem: "arab"),
-        .negativeSubpattern(pattern: "#,##0.00;-#,##0.00"),
+        .unrepresentableNumberFormat(.nonLatinDigits(numberingSystem: "arab")),
+        .unrepresentableNumberFormat(.negativeSubpattern(pattern: "#,##0.00;-#,##0.00")),
+        .unrepresentableNumberFormat(.directionalMark(pattern: "\u{200F}#,##0.00")),
         .noPluralRules(language: "bem"),
         .unsupportedPluralRule(language: "bem", relation: "within"),
         .unrepresentablePattern(.currencyMovesForLetterSymbols, field: .standard),
