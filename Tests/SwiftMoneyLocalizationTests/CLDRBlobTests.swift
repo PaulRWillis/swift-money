@@ -65,12 +65,25 @@ struct CLDRBlobTests {
         body.u32(UInt32(fullNameRecordsStart))
         body.u16(1)
 
+        // "en" with a single .one rule: i = 1 and v = 0.
+        let pluralRuleEntry = body.count
+        body.u8(PluralCategory.one.blobCode)
+        body.u8(1)   // one group
+        body.u8(2)   // two relations
+        body.u8(PluralOperand.integerPart.blobCode); body.u32(0); body.u8(0); body.u8(1); body.u32(1); body.u32(1)
+        body.u8(PluralOperand.fractionDigitCount.blobCode); body.u32(0); body.u8(0); body.u8(1); body.u32(0); body.u32(0)
+
+        let pluralRulesOffset = body.count
+        body.u32(1)   // one language
+        body.ref(key); body.u32(UInt32(pluralRuleEntry)); body.u8(1)
+
         var header = BlobTestBuilder()
         header.u32(1)
         header.u32(UInt32(localesOffset))
         header.u32(UInt32(numberFormatsOffset))
         header.u32(UInt32(displaysOffset))
         header.u32(UInt32(fullNamesOffset))
+        header.u32(UInt32(pluralRulesOffset))
 
         return header.bytes + body.bytes
     }
@@ -107,11 +120,12 @@ struct CLDRBlobTests {
             #expect(blob.currencyDisplays.display(localeIndex: locale, code: Self.gbp)?.standardSymbol == "£")
             #expect(blob.currencyFullNames.name(localeIndex: locale, code: Self.gbp)?.name(for: .other)
                 == "British pounds")
+            #expect(blob.pluralRules.allRules()["en"]?[.one] != nil)
         }
     }
 
     @Test("A header offset is where the generator lays out the first section")
     func headerPrecedesTheSections() {
-        #expect(CLDRBlob.headerWidth == BlobDigits.u32 * 5)
+        #expect(CLDRBlob.headerWidth == BlobDigits.u32 * 6)
     }
 }

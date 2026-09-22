@@ -7,8 +7,8 @@ import SwiftMoneyCore
 /// the generator can lay the sections out as it likes and a reader needs nothing but the bytes. Every
 /// field is written as ``BlobDigits``, and the header is:
 /// - `localeCount: UInt32`;
-/// - the offsets of the locale, number-format, currency-display and currency-full-name sections, each a
-///   `UInt32`.
+/// - the offsets of the locale, number-format, currency-display, currency-full-name and plural-rule
+///   sections, each a `UInt32`.
 ///
 /// Patterns stay Swift values rather than packed bytes: only a handful are distinct across every locale,
 /// so a record carries an index into these arrays.
@@ -25,13 +25,17 @@ package struct CLDRBlob: Sendable {
     /// What each locale calls a currency in full.
     package let currencyFullNames: CurrencyFullNameTable
 
+    /// Each language's plural rules, for choosing a full name's wording.
+    package let pluralRules: PluralRuleTable
+
     private enum Header {
         static let localeCount = 0
         static let locales = localeCount + BlobDigits.u32
         static let numberFormats = locales + BlobDigits.u32
         static let currencyDisplays = numberFormats + BlobDigits.u32
         static let currencyFullNames = currencyDisplays + BlobDigits.u32
-        static let width = currencyFullNames + BlobDigits.u32
+        static let pluralRules = currencyFullNames + BlobDigits.u32
+        static let width = pluralRules + BlobDigits.u32
     }
 
     /// How many bytes the header takes, which is where the generator lays out the first section.
@@ -79,6 +83,10 @@ package struct CLDRBlob: Sendable {
         currencyFullNames = CurrencyFullNameTable(
             reader: reader,
             directoryOffset: Int(reader.u32(at: Header.currencyFullNames))
+        )
+        pluralRules = PluralRuleTable(
+            reader: reader,
+            sectionOffset: Int(reader.u32(at: Header.pluralRules))
         )
     }
 }

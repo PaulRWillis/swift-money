@@ -435,46 +435,6 @@ func checkEveryLocaleAgainstItsSamples(_ text: [String: [String: String]]) {
 
 // MARK: - Swift emission
 
-func nonEmptyLiteral(_ elements: [String]) -> String {
-    guard let first = elements.first else {
-        fatalError("A NonEmpty cannot be written from nothing")
-    }
-
-    let rest = elements.dropFirst()
-    return rest.isEmpty ? "NonEmpty(\(first))" : "NonEmpty(\(first), [\(rest.joined(separator: ", "))])"
-}
-
-func literal(_ operand: PluralOperand) -> String {
-    switch operand {
-    case .absoluteValue: ".absoluteValue"
-    case .integerPart: ".integerPart"
-    case .fractionDigitCount: ".fractionDigitCount"
-    case .significantFractionDigitCount: ".significantFractionDigitCount"
-    case .fractionDigits: ".fractionDigits"
-    case .significantFractionDigits: ".significantFractionDigits"
-    case .compactExponent: ".compactExponent"
-    }
-}
-
-func literal(_ range: PluralRange) -> String {
-    let bounds = range.bounds
-    return bounds.lowerBound == bounds.upperBound
-        ? "PluralRange(\(bounds.lowerBound))"
-        : "PluralRange(\(bounds.lowerBound) ... \(bounds.upperBound))"
-}
-
-func literal(_ comparison: PluralRelation.Comparison) -> String {
-    switch comparison {
-    case .equals(let ranges): ".equals(\(nonEmptyLiteral(ranges.map(literal))))"
-    case .notEquals(let ranges): ".notEquals(\(nonEmptyLiteral(ranges.map(literal))))"
-    }
-}
-
-func literal(_ relation: PluralRelation) -> String {
-    let modulus = relation.modulus.map { "modulus: \(Int($0)), " } ?? ""
-    return "PluralRelation(operand: \(literal(relation.operand)), \(modulus)comparison: \(literal(relation.comparison)))"
-}
-
 func literal(_ spacing: Spacing) -> String {
     switch spacing {
     case .none: ".none"
@@ -491,11 +451,6 @@ func literal(_ name: FullName) -> String {
 
     let byCategory = forms.isEmpty ? "" : ", byCategory: [\(forms.joined(separator: ", "))]"
     return "CurrencyFullName(other: \(quote(name.other))\(byCategory))"
-}
-
-func literal(_ rule: PluralRule) -> String {
-    let groups = rule.orOfAndGroups.map { nonEmptyLiteral($0.map(literal)) }
-    return "PluralRule(orOfAndGroups: \(nonEmptyLiteral(groups)))"
 }
 
 func quote(_ string: String) -> String {
@@ -553,28 +508,19 @@ var pool = StringPool(base: CLDRBlob.headerWidth)
 var patterns: [String] = []
 var fullNamePatterns: [String] = []
 var packedLocales: [PackedLocale] = []
-var pluralRuleBlocks: [String] = []
+var packedPluralLanguages: [PackedPluralLanguage] = []
 
 let ruleText = cardinalRuleText()
 checkEveryLocaleAgainstItsSamples(ruleText)
 
-for language in languages {
-    let rules = pluralRules(for: language, in: ruleText).map { category, rule in
-        "            .\(category.rawValue): \(literal(rule)),"
-    }
-
-    // A language that draws no plural distinctions, such as Japanese, has rules for no category at
-    // all: every amount takes `other`.
-    guard !rules.isEmpty else {
-        pluralRuleBlocks.append("        \(quote(language)): [:],")
-        continue
-    }
-
-    pluralRuleBlocks.append("""
-            \(quote(language)): [
-    \(rules.joined(separator: "\n"))
-            ],
-    """)
+// Sorted by UTF-8 bytes so the blob comes out the same on any machine; the section is decoded whole, so
+// the order is for that reproducibility rather than for a search. A language that draws no plural
+// distinctions, such as Japanese, has rules for no category and takes `other` for every amount.
+for language in languages.sorted(by: { $0.utf8.lexicographicallyPrecedes($1.utf8) }) {
+    packedPluralLanguages.append(PackedPluralLanguage(
+        key: pool.insert(language),
+        rules: pluralRules(for: language, in: ruleText)
+    ))
 }
 
 // The locale section is binary searched by UTF-8 bytes, so the tables hold the locales in that order
@@ -668,7 +614,7 @@ for locale in locales.sorted(by: { $0.utf8.lexicographicallyPrecedes($1.utf8) })
     ))
 }
 
-let blob = PackedTables(locales: packedLocales, pool: pool).encoded()
+let blob = PackedTables(locales: packedLocales, pool: pool, pluralLanguages: packedPluralLanguages).encoded()
 
 // MARK: - Swift emission
 
@@ -682,10 +628,10 @@ import SwiftMoneyCore
 // equivalent literals defeat the compiler well before every CLDR locale is covered, where a literal of
 // this size costs it nothing. `CLDRBlob` reads it, and the layout is documented on the types that do.
 //
-// What stays a Swift value is what there is little of: the distinct patterns a locale's record indexes,
-// and each language's plural rules. Those are built in `@_optimize(none)` functions because under `-O`
-// the Swift 6.3.2 optimizer (Xcode 26.5) spends many minutes on literal tables, enough to stall CI;
-// skipping optimization of the builder avoids it. The data is identical either way and built once.
+// What stays a Swift value is what there is little of: the distinct patterns a locale's record indexes.
+// Those are built in `@_optimize(none)` functions because under `-O` the Swift 6.3.2 optimizer (Xcode
+// 26.5) spends many minutes on literal tables, enough to stall CI; skipping optimization of the builder
+// avoids it. The data is identical either way and built once.
 extension MoneyLocalization {
     static let cldrVersion = \(quote(cldrVersion))
 
@@ -710,15 +656,6 @@ extension MoneyLocalization {
     @_optimize(none) private static func makeFullNamePatterns() -> [FullNameLayout] {
         [
 \(fullNamePatterns.map { "            \($0)," }.joined(separator: "\n"))
-        ]
-    }
-
-    /// Each language's plural rules, in the order CLDR resolves them. A language with no rule for a
-    /// category takes `other`, which never carries one.
-    package static let pluralRules: [String: [PluralCategory: PluralRule]] = makePluralRules()
-    @_optimize(none) private static func makePluralRules() -> [String: [PluralCategory: PluralRule]] {
-        [
-\(pluralRuleBlocks.joined(separator: "\n"))
         ]
     }
 }

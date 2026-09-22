@@ -131,6 +131,10 @@ public enum MoneyLocalization {
         numberFormats[localeIndex.position]
     }
 
+    // Every language's plural rules, decoded once from the blob. A language with no rule for a category
+    // takes `other`, which carries none; a language absent here does too, through the `?? [:]` above.
+    private static let pluralRules = cldr.pluralRules.allRules()
+
     // The locale's number format with a currency written beside it, however that currency is named.
     private static func moneyFormat(
         symbol: String,
