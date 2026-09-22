@@ -171,7 +171,7 @@ let style = CHF.FormatStyle(locale: Locale(identifier: "en_CH")).rounded(increme
 style.format(CHF(minorUnits: 4_98))   // "CHF 5.00", Swiss cash rounding
 ```
 
-For the locales it covers (en, en-GB, de, fr, ja), the style renders without ICU, from locale data
+For the eight locales it covers (de, en, en-GB, fr, ja, ro, si, sw), the style renders without ICU, from locale data
 generated out of CLDR: faster, and with far less allocation. It also keeps the currency symbol in a case
 where `Decimal.FormatStyle.Currency` drops it — grouping turned off beside a sign or separator. Any
 locale it does not cover falls back to the system formatter, so output there is unchanged.
@@ -295,6 +295,36 @@ when it has an exact decimal form: any `2^a * 5^b`, to at most eighteen decimal 
 - **`Double` never touches arithmetic.** Fractions go through `Rate`, decimal fixed point.
 - **No global state.** There is no currency registry. Every type is a value, and every value the
   library produces is `Sendable`.
+
+## How it compares
+
+**Storing an amount.** Swift code usually holds money in one of three ways, and each has a catch:
+
+- **`Double`** is the classic bug. `0.1 + 0.2` is not `0.3`, so amounts drift and a total lands a penny
+  out.
+- **`Decimal`** is exact but slow. It allocates memory on every operation, and still holds no currency.
+- **A plain `Int`** of pennies or cents is exact and fast, but nothing stops you adding pounds to dollars.
+
+SwiftMoney is that last approach made safe. It is exact, as fast as a raw `Int`, and allocates nothing,
+and the currency is part of the value, so adding GBP to USD does not compile. Fractions stay exact until
+you choose where to round, so a run of calculations cannot quietly lose a penny. The
+[benchmarks](https://github.com/PaulRWillis/swift-money/blob/assets/BENCHMARKS.md) have the numbers,
+measured against `Int`, `Double`, `Decimal` and [ordo-one/FixedPoint](https://github.com/ordo-one/FixedPoint).
+
+**Formatting for a locale.** Swift already formats currency through Foundation, so why include another
+formatter? Because Foundation's has two problems for money:
+
+- With some option combinations it drops the currency symbol and prints a bare number, for example with
+  grouping turned off next to a plus or minus sign. A missing symbol on an amount is dangerous.
+- Underneath it uses ICU, which on Linux is not safe to call from several threads at once and can return
+  wrong output under concurrent use.
+- It is built for standard ISO currencies, so it cannot properly format a custom one, such as loyalty
+  points or in-game credits. It loses the symbol or shows the wrong number of decimals.
+
+For the locales it covers, SwiftMoney formats amounts itself, without ICU. It keeps the symbol, is safe
+from any thread, and is faster with no allocation. It also formats your own custom currencies, at the
+scale you gave them. Any other locale falls back to Foundation, so nothing breaks, and there it is no
+faster than Foundation.
 
 ## Building and testing
 
