@@ -36,9 +36,13 @@ extension FormatMatrix {
         for currency in optionCurrencies {
             let code = String(currency.code)
             for combination in combinations {
+                let covered = isEngineCovered(currency, localeID: localeID, combination: combination)
                 let style = combination.style(locale: locale)
+
                 for amount in amounts {
-                    let out = style.format(Money(minorUnits: amount, currency: currency))
+                    let out = covered
+                        ? style.format(Money(minorUnits: amount, currency: currency))
+                        : uncovered
                     hash.combine("\(code)|\(combination.id)|\(amount)=\(out)")
                 }
             }

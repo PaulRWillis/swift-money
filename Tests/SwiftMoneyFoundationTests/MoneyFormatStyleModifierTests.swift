@@ -68,7 +68,11 @@ struct MoneyFormatStyleModifierTests {
 
         #expect(Self.sterling.format(amount) == "£4.99")
         #expect(Self.sterling.precision(.fractionLength(0)).format(amount) == "£5")
+#if canImport(Darwin)
+        // Significant digits is not engine-expressible, so this falls back to Foundation, whose ICU
+        // output differs and races under parallel tests on swift-corelibs-foundation.
         #expect(Self.sterling.precision(.significantDigits(2)).format(amount) == "£5.0")
+#endif
     }
 
     @Test("A rounding rule decides which way the shown digits go")
@@ -98,7 +102,11 @@ struct MoneyFormatStyleModifierTests {
         let amount = CHF(minorUnits: 4_98)
 
         #expect(style.format(amount) == "CHF\u{00A0}4.98")
+#if canImport(Darwin)
+        // A rounding increment is not engine-expressible, so this falls back to Foundation, whose ICU
+        // output differs and races under parallel tests on swift-corelibs-foundation.
         #expect(style.rounded(increment: 5).format(amount) == "CHF\u{00A0}5.00")
+#endif
     }
 
     @Test("Our engine keeps the currency symbol where Foundation drops it")
@@ -111,6 +119,9 @@ struct MoneyFormatStyleModifierTests {
 
         #expect(sut.format(GBP(minorUnits: 1_234_56)) == "+£1234.56")
 
+#if canImport(Darwin)
+        // The recorded Foundation defect: only Apple's Foundation drops the symbol here. On
+        // swift-corelibs-foundation it does not, and its ICU races under parallel tests.
         let foundationStyle = Decimal.FormatStyle.Currency(code: "GBP", locale: Self.britishEnglish)
             .grouping(.never)
             .sign(strategy: .always())
@@ -120,6 +131,7 @@ struct MoneyFormatStyleModifierTests {
 
             #expect(foundationStyle.format(value) == "+£1234.56")
         }
+#endif
     }
 
     @Test("A recognised fraction length renders through the engine, keeping the symbol Foundation drops")
@@ -131,6 +143,9 @@ struct MoneyFormatStyleModifierTests {
         #expect(sut.format(GBP(minorUnits: 1_234_56)) == "+£1234.56")
     }
 
+#if canImport(Darwin)
+    // The whole test asserts Foundation's fallback output (the dropped symbol), which only Apple's
+    // Foundation produces; swift-corelibs-foundation differs and races under parallel tests.
     @Test("An unrecognised precision falls back to Foundation")
     func significantDigitsFallsBack() {
         // Significant digits is not engine-expressible, so the style hands the render to Foundation,
@@ -140,6 +155,7 @@ struct MoneyFormatStyleModifierTests {
 
         #expect(sut.format(GBP(minorUnits: 1_234_56)) == "1234.56")
     }
+#endif
 
     @Test("A full name at an explicit precision follows the plural of the digits shown")
     func fullNamePrecisionUsesShownDigitsForPlural() {
@@ -150,7 +166,11 @@ struct MoneyFormatStyleModifierTests {
         let style = Self.sterling.presentation(.fullName)
 
         #expect(style.format(GBP(minorUnits: 1_00)) == "1.00 British pounds")
+#if canImport(Darwin)
+        // A full name at an explicit precision renders through ICU, whose output differs and races
+        // under parallel tests on swift-corelibs-foundation.
         #expect(style.precision(.fractionLength(0)).format(GBP(minorUnits: 1_00)) == "1 British pound")
+#endif
     }
 
     @Test("Each modifier keeps every option set before it")
