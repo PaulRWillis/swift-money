@@ -106,4 +106,31 @@ struct FormatMatrixTests {
     func uncoveredLocaleCoversNothing() {
         #expect(!FormatMatrix.isEngineCovered(.gbp, localeID: "zz_ZZ", presentation: .fullName))
     }
+
+    @Test("A full name at an explicit precision is not covered, since it renders through ICU")
+    func fullNameAtExplicitPrecisionIsNotCovered() throws {
+        let combination = try #require(
+            FormatMatrix.combinations.first { $0.presentation == .fullName && $0.precision == .fractionLength(2) }
+        )
+        #expect(!FormatMatrix.isEngineCovered(.gbp, localeID: "en_GB", combination: combination))
+    }
+
+    @Test("A full name at the default precision is covered only where CLDR names the currency")
+    func fullNameAtDefaultPrecisionFollowsTheName() throws {
+        let combination = try #require(
+            FormatMatrix.combinations.first { $0.presentation == .fullName && $0.precision == nil }
+        )
+        let unnamed = try #require(CurrencyCode(string: "XAD").flatMap(Currency.init(iso:)))
+
+        #expect(FormatMatrix.isEngineCovered(.gbp, localeID: "en_GB", combination: combination))
+        #expect(!FormatMatrix.isEngineCovered(unnamed, localeID: "en_GB", combination: combination))
+    }
+
+    @Test("A symbol presentation stays covered even at an explicit precision")
+    func symbolPresentationAtExplicitPrecisionIsCovered() throws {
+        let combination = try #require(
+            FormatMatrix.combinations.first { $0.presentation == .standard && $0.precision == .fractionLength(2) }
+        )
+        #expect(FormatMatrix.isEngineCovered(.gbp, localeID: "en_GB", combination: combination))
+    }
 }

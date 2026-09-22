@@ -92,4 +92,21 @@ package enum FormatMatrix {
             for: currency, minorUnits: 1, locale: LocaleIdentifier(localeID)
         ) != nil
     }
+
+    /// Whether the engine renders this whole cell with no ICU, precision included.
+    ///
+    /// A full name at an explicit fraction length routes to ICU regardless of the currency: the plural
+    /// form follows the currency scale, which a fixed length would contradict. This mirrors
+    /// `MoneyOf.FormatStyle.engineRenderInputs`, the single place the real fallback is decided.
+    package static func isEngineCovered(
+        _ currency: Currency,
+        localeID: String,
+        combination: Combination
+    ) -> Bool {
+        if combination.presentation == .fullName, combination.precision != nil {
+            return false
+        }
+
+        return isEngineCovered(currency, localeID: localeID, presentation: combination.presentation)
+    }
 }
