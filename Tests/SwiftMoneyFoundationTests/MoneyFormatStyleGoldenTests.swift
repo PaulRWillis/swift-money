@@ -19,14 +19,14 @@ struct MoneyFormatStyleGoldenTests {
 
     // FNV-1a over the engine's CLDR-derived output. Regenerate with MONEYGOLDEN_RECORD=1.
     static let golden: [String: UInt64] = [
-        "en_US": 0x1a34_d11a_de90_1160,
-        "en_GB": 0xba8c_1b25_6698_de67,
-        "de_DE": 0xc81b_7590_f342_8ecd,
-        "fr_FR": 0x1a62_c651_51fa_bfd3,
-        "ja_JP": 0x36a9_9c75_e2c1_88dd,
-        "sw": 0x82c0_fad7_74f4_6c4d,
-        "si": 0x06dc_25c2_1f7d_c509,
-        "ro": 0x1fd2_f52d_2cd4_e716,
+        "en_US": 0xf09c_21d2_bc2c_1e16,
+        "en_GB": 0x44b9_b57d_9b3a_e5ff,
+        "de_DE": 0x850f_13c1_9a89_3573,
+        "fr_FR": 0x6293_6d4d_6d0e_6967,
+        "ja_JP": 0x3070_dd17_7190_4abc,
+        "sw": 0xbbd3_fde3_2ff9_3e68,
+        "si": 0x15af_2cf5_a9f2_c33e,
+        "ro": 0x76cd_eee0_6d59_1829,
     ]
 
     @Test("Engine output matches the committed golden, per locale", arguments: FormatMatrix.coveredLocaleIDs)
@@ -82,15 +82,14 @@ struct MoneyFormatStyleGoldenTests {
             }
         }
 
-        // Representative currencies, every option combination: the sign/grouping/separator coverage.
+        // Representative currencies, every option combination: the sign/grouping/separator/precision
+        // coverage.
         for currency in FormatMatrix.optionCurrencies {
             let code = String(currency.code)
             for combination in FormatMatrix.combinations {
+                let style = combination.style(locale: locale)
                 for amount in FormatMatrix.amounts {
-                    let out = Money.FormatStyle().locale(locale)
-                        .presentation(combination.presentation).sign(strategy: combination.sign)
-                        .grouping(combination.grouping).decimalSeparator(strategy: combination.separator)
-                        .format(Money(minorUnits: amount, currency: currency))
+                    let out = style.format(Money(minorUnits: amount, currency: currency))
                     hash.combine("\(code)|\(combination.id)|\(amount)=\(out)")
                 }
             }

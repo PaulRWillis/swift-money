@@ -6,13 +6,13 @@ import Testing
 @Suite("FormatMatrix")
 struct FormatMatrixTests {
 
-    @Test("The option cross has one entry per presentation, sign, grouping and separator combination")
+    @Test("The option cross has one entry per presentation, sign, grouping, separator and precision combination")
     func combinationCount() {
         let expected = FormatMatrix.presentations.count * FormatMatrix.signs.count
-            * FormatMatrix.groupings.count * FormatMatrix.separators.count
+            * FormatMatrix.groupings.count * FormatMatrix.separators.count * FormatMatrix.precisions.count
 
         #expect(FormatMatrix.combinations.count == expected)
-        #expect(expected == 64)
+        #expect(expected == 256)
     }
 
     @Test("Every combination has a distinct id")

@@ -9,7 +9,7 @@ import SwiftMoneyFormatMatrix
 //
 // The version below rises whenever a line's shape changes. A comparison that sees two versions
 // reports nothing rather than every line at once, since a reshaped line is not a changed deviation.
-print("# format: 2")
+print("# format: 3")
 let deviations = FormatMatrix.deviations(
     currencies: Currency.allISO4217,
     localeIDs: FormatMatrix.coveredLocaleIDs,

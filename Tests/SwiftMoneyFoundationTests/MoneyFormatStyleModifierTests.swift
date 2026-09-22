@@ -122,6 +122,37 @@ struct MoneyFormatStyleModifierTests {
         }
     }
 
+    @Test("A recognised fraction length renders through the engine, keeping the symbol Foundation drops")
+    func fixedPrecisionRendersThroughTheEngine() {
+        // The grouping-off-beside-a-sign defect again: with the currency symbol kept, the render came
+        // from the engine, not the fallback. A fixed fraction length is engine-expressible, so it does.
+        let sut = Self.sterling.grouping(.never).sign(strategy: .always()).precision(.fractionLength(2))
+
+        #expect(sut.format(GBP(minorUnits: 1_234_56)) == "+£1234.56")
+    }
+
+    @Test("An unrecognised precision falls back to Foundation")
+    func significantDigitsFallsBack() {
+        // Significant digits is not engine-expressible, so the style hands the render to Foundation,
+        // which under this option combination drops the symbol. The dropped symbol is the tell that it
+        // fell back, in contrast to the fixed-length case above.
+        let sut = Self.sterling.grouping(.never).sign(strategy: .always()).precision(.significantDigits(2))
+
+        #expect(sut.format(GBP(minorUnits: 1_234_56)) == "1234.56")
+    }
+
+    @Test("A full name at an explicit precision follows the plural of the digits shown")
+    func fullNamePrecisionUsesShownDigitsForPlural() {
+        // One pound shown at no decimals is "1", which is singular; at the natural two decimals it is
+        // "1.00", which is plural ("pounds"). The name has to follow the digits actually shown, which
+        // the engine reads from the scale rather than the fixed length, so a full name at an explicit
+        // precision renders through ICU.
+        let style = Self.sterling.presentation(.fullName)
+
+        #expect(style.format(GBP(minorUnits: 1_00)) == "1.00 British pounds")
+        #expect(style.precision(.fractionLength(0)).format(GBP(minorUnits: 1_00)) == "1 British pound")
+    }
+
     @Test("Each modifier keeps every option set before it")
     func modifiersKeepEarlierOptions() {
         let sut = Self.sterling

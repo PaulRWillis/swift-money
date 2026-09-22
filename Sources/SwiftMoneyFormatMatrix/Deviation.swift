@@ -2,6 +2,19 @@ import Foundation
 import SwiftMoneyCore
 import SwiftMoneyFoundation
 
+extension FormatMatrix.Combination {
+    /// A `Money.FormatStyle` carrying this cell's options, before the engine-vs-ICU choice.
+    package func style(locale: Locale) -> Money.FormatStyle {
+        let style = Money.FormatStyle().locale(locale)
+            .presentation(presentation).sign(strategy: sign)
+            .grouping(grouping).decimalSeparator(strategy: separator)
+        guard let precision else {
+            return style
+        }
+        return style.precision(precision)
+    }
+}
+
 extension FormatMatrix {
     /// One (currency, locale, option combination, amount) cell where the engine's rendering and the
     /// platform's ICU rendering disagree.
@@ -68,18 +81,13 @@ extension FormatMatrix {
 
     /// The amount, rendered by the platform's ICU, using the same options the engine would.
     package static func icuFormatted(_ money: Money, localeID: String, combination: Combination) -> String {
-        let style = Money.FormatStyle().locale(Locale(identifier: localeID))
-            .presentation(combination.presentation).sign(strategy: combination.sign)
-            .grouping(combination.grouping).decimalSeparator(strategy: combination.separator)
+        let style = combination.style(locale: Locale(identifier: localeID))
         return style.decimalStyle(for: money.currency).format(Decimal(majorUnitsOf: money))
     }
 
     /// The amount, rendered by the Foundation-free engine.
     package static func engineFormatted(_ money: Money, localeID: String, combination: Combination) -> String {
-        Money.FormatStyle().locale(Locale(identifier: localeID))
-            .presentation(combination.presentation).sign(strategy: combination.sign)
-            .grouping(combination.grouping).decimalSeparator(strategy: combination.separator)
-            .format(money)
+        combination.style(locale: Locale(identifier: localeID)).format(money)
     }
 
     /// The comparison core. Generic over how a cell is rendered, so tests can pin the predicate and
