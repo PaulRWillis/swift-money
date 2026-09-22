@@ -33,6 +33,29 @@ struct FormatMatrixTests {
         #expect(FormatMatrix.optionCurrencies.map(\.unitScale.decimalPlaces) == [0, 2, 3])
     }
 
+    @Test("A locale's shard is within the count and the same every time", arguments: FormatMatrix.coveredLocaleIDs)
+    func shardIsInRangeAndDeterministic(_ localeID: String) {
+        let count = 4
+        let shard = FormatMatrix.shard(ofLocale: localeID, count: count)
+
+        #expect((0 ..< count).contains(shard))
+        #expect(FormatMatrix.shard(ofLocale: localeID, count: count) == shard)
+    }
+
+    @Test("The shards partition the covered locales with nothing lost or shared")
+    func shardsPartitionTheCoveredLocales() {
+        let count = 3
+        let shards = (0 ..< count).map { FormatMatrix.localeIDs(inShard: $0, of: count) }
+
+        #expect(shards.flatMap { $0 }.sorted() == FormatMatrix.coveredLocaleIDs.sorted())
+        #expect(Set(shards.flatMap { $0 }).count == FormatMatrix.coveredLocaleIDs.count)
+    }
+
+    @Test("A count of one means no sharding")
+    func countOfOneReturnsEveryLocale() {
+        #expect(FormatMatrix.localeIDs(inShard: 0, of: 1) == FormatMatrix.coveredLocaleIDs)
+    }
+
     @Test("Grouping off together with a non-automatic sign matches the known Foundation defect")
     func groupingOffWithSignMatchesKnownDefect() {
         let combination = FormatMatrix.combinations.first { $0.grouping == .never && $0.sign == .always() }

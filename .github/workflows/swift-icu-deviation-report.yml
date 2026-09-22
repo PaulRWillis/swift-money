@@ -17,8 +17,13 @@ jobs:
   report:
     timeout-minutes: 30
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-26]
+        # The locales are split across these shards so the report scales past a handful of locales
+        # without a leg timing out; each leg walks only its shard. Keep the index list and the count
+        # below in step, and raise both as locale coverage grows.
+        shard: [0, 1, 2, 3]
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -41,7 +46,13 @@ jobs:
     - name: Swift version
       run: swift --version
 
+    # Both runs read the same shard selection, so head and base cover the identical locales and their
+    # outputs stay comparable. A base commit whose tool predates sharding ignores these and runs the
+    # whole set.
     - name: Run the ICU deviation report on both commits
+      env:
+        ICU_SHARD_INDEX: ${{ matrix.shard }}
+        ICU_SHARD_COUNT: "4"
       run: |
         swift run CompareFormattingToICU > head-output.txt
         swift run --package-path base CompareFormattingToICU > base-output.txt
@@ -59,15 +70,18 @@ jobs:
         sed '/^#/d' head-output.txt | sort > head.txt
         summary="$(sed -n 's/^# //p' head-output.txt | grep -v '^format:' | paste -sd ' ' -)"
 
+        # A format change makes every shard incomparable for the same reason, so only the first writes
+        # the note and it quotes no count (a shard would see only its own slice).
         if [ "$head_format" != "$base_format" ]; then
           echo incomparable > status.txt
-          {
-            echo "## ${{ matrix.os }}"
-            echo
-            echo "This pull request changes the report's own format, so there is nothing to compare it with."
-            echo "It finds $(wc -l < head.txt | tr -d ' ') deviation(s). $summary"
-            echo
-          } > report.md
+          if [ "${{ matrix.shard }}" = "0" ]; then
+            {
+              echo "## ${{ matrix.os }}"
+              echo
+              echo "This pull request changes the report's own format, so there is nothing to compare it with."
+              echo
+            } > report.md
+          fi
           exit 0
         fi
 
@@ -97,19 +111,23 @@ jobs:
           echo
         }
 
-        {
-          echo "## ${{ matrix.os }}"
-          echo
-          list Appeared appeared
-          list Resolved resolved
-          echo "Unchanged: $unchanged. $summary"
-          echo
-        } > report.md
+        # An unchanged shard writes no report, so the comment carries only the shards with findings
+        # rather than an empty section per leg.
+        if [ "$(cat status.txt)" = "changed" ]; then
+          {
+            echo "## ${{ matrix.os }} (shard ${{ matrix.shard }})"
+            echo
+            list Appeared appeared
+            list Resolved resolved
+            echo "Unchanged: $unchanged. $summary"
+            echo
+          } > report.md
+        fi
 
     - name: Upload the report
       uses: actions/upload-artifact@v7
       with:
-        name: icu-deviations-${{ matrix.os }}
+        name: icu-deviations-${{ matrix.os }}-shard${{ matrix.shard }}
         path: |
           report.md
           status.txt
@@ -137,7 +155,8 @@ jobs:
           echo
           echo "Non-gating. Engine against the platform's ICU, compared with the commit this pull request targets."
           echo
-          cat deviations/icu-deviations-*/report.md
+          # Unchanged shards upload no report, so a run with nothing to say matches no file here.
+          cat deviations/icu-deviations-*/report.md 2>/dev/null || true
         } > comment_body.md
 
         if grep -qxE 'changed|incomparable' deviations/icu-deviations-*/status.txt; then
