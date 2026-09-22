@@ -15,18 +15,18 @@ struct CurrencyDisplayTableTests {
     // One locale (index 0) displaying GBP (£, no gap) and USD (US$ standard, $ narrow).
     static func makeBlob() -> (bytes: [UInt8], directoryOffset: Int) {
         var b = BlobTestBuilder()
-        let records: [(code: CurrencyCode, standard: StringRef, standardGap: StringRef, narrow: StringRef, narrowGap: StringRef)] = [
-            (code("GBP"), b.pool("£"), b.pool(""), b.pool("£"), b.pool("")),
-            (code("USD"), b.pool("US$"), b.pool("\u{00A0}"), b.pool("$"), b.pool("")),
+        let records: [(code: CurrencyCode, standard: StringRef, standardGap: Spacing, narrow: StringRef, narrowGap: Spacing)] = [
+            (code("GBP"), b.pool("£"), .none, b.pool("£"), .none),
+            (code("USD"), b.pool("US$"), .nonBreakingSpace, b.pool("$"), .none),
         ].sorted { $0.code.packedValue < $1.code.packedValue }
 
         let recordsStart = UInt32(b.count)
         for record in records {
             b.u64(record.code.packedValue)
             b.ref(record.standard)
-            b.ref(record.standardGap)
+            b.u8(record.standardGap.blobCode)
             b.ref(record.narrow)
-            b.ref(record.narrowGap)
+            b.u8(record.narrowGap.blobCode)
         }
 
         let directoryOffset = b.count
@@ -48,7 +48,7 @@ struct CurrencyDisplayTableTests {
         Self.withTable { table in
             let usd = table.display(localeIndex: LocaleIndex(position: 0), code: Self.code("USD"))
             #expect(usd == CurrencyDisplay(
-                standardSymbol: "US$", standardSpacing: "\u{00A0}", narrowSymbol: "$", narrowSpacing: ""
+                standardSymbol: "US$", standardSpacing: .nonBreakingSpace, narrowSymbol: "$", narrowSpacing: .none
             ))
         }
     }

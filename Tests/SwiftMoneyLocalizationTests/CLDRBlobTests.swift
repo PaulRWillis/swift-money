@@ -27,9 +27,7 @@ struct CLDRBlobTests {
         let decimalSeparator = body.pool(".")
         let groupingSeparator = body.pool(",")
         let minusSign = body.pool("-")
-        let isoCodeSpacing = body.pool("\u{00A0}")
         let symbol = body.pool("£")
-        let noSpacing = body.pool("")
         let name = body.pool("British pounds")
 
         let localesOffset = body.count
@@ -39,7 +37,7 @@ struct CLDRBlobTests {
         body.ref(decimalSeparator)
         body.ref(groupingSeparator)
         body.ref(minusSign)
-        body.ref(isoCodeSpacing)
+        body.u8(Spacing.nonBreakingSpace.blobCode)
         body.u8(3)
         body.u8(3)
         body.u8(Spacing.asciiSpace.blobCode)
@@ -49,9 +47,9 @@ struct CLDRBlobTests {
         let displayRecordsStart = body.count
         body.u64(gbp.packedValue)
         body.ref(symbol)
-        body.ref(noSpacing)
+        body.u8(Spacing.none.blobCode)
         body.ref(symbol)
-        body.ref(noSpacing)
+        body.u8(Spacing.none.blobCode)
 
         let displaysOffset = body.count
         body.u32(UInt32(displayRecordsStart))

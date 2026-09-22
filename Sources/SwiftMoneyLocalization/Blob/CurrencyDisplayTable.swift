@@ -21,9 +21,9 @@ package struct CurrencyDisplayTable: Sendable {
         static let code = 0
         static let standardSymbol = code + BlobDigits.u64
         static let standardSpacing = standardSymbol + BlobDigits.stringRef
-        static let narrowSymbol = standardSpacing + BlobDigits.stringRef
+        static let narrowSymbol = standardSpacing + BlobDigits.u8
         static let narrowSpacing = narrowSymbol + BlobDigits.stringRef
-        static let stride = narrowSpacing + BlobDigits.stringRef
+        static let stride = narrowSpacing + BlobDigits.u8
     }
 
     package init(reader: BlobReader, directoryOffset: Int) {
@@ -46,9 +46,18 @@ package struct CurrencyDisplayTable: Sendable {
 
         return CurrencyDisplay(
             standardSymbol: reader.string(reader.stringRef(at: record + Record.standardSymbol)),
-            standardSpacing: reader.string(reader.stringRef(at: record + Record.standardSpacing)),
+            standardSpacing: spacing(at: record + Record.standardSpacing),
             narrowSymbol: reader.string(reader.stringRef(at: record + Record.narrowSymbol)),
-            narrowSpacing: reader.string(reader.stringRef(at: record + Record.narrowSpacing))
+            narrowSpacing: spacing(at: record + Record.narrowSpacing)
         )
+    }
+
+    // The generator writes only valid codes, so an unknown one is a generator bug, not input.
+    private func spacing(at offset: Int) -> Spacing {
+        let code = reader.u8(at: offset)
+        guard let spacing = Spacing(blobCode: code) else {
+            preconditionFailure("blob currency spacing code \(code) is unknown")  // coverage:ignore
+        }
+        return spacing
     }
 }

@@ -48,7 +48,7 @@ struct PackedTables {
             body.ref(format.decimalSeparator)
             body.ref(format.groupingSeparator)
             body.ref(format.minusSign)
-            body.ref(format.isoCodeSpacing)
+            body.u8(format.isoCodeSpacing.blobCode)
             body.u8(format.primaryGroupingSize)
             body.u8(format.secondaryGroupingSize)
             body.u8(format.fullNameSpacing.blobCode)
@@ -99,9 +99,9 @@ struct PackedTables {
             for display in locale.displays {
                 body.u64(display.code.packedValue)
                 body.ref(display.standardSymbol)
-                body.ref(display.standardSpacing)
+                body.u8(display.standardSpacing.blobCode)
                 body.ref(display.narrowSymbol)
-                body.ref(display.narrowSpacing)
+                body.u8(display.narrowSpacing.blobCode)
             }
 
             return run

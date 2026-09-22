@@ -15,7 +15,7 @@ package struct LocaleNumberFormat: Equatable {
     // A name never takes accounting parentheses, so this carries no accounting form of its own.
     package let fullNamePattern: FullNameLayout
     // The space between an ISO code (or a code used as a fallback symbol) and the digits.
-    package let isoCodeSpacing: String
+    package let isoCodeSpacing: Spacing
     // The gap between the amount and a currency's full name.
     package let fullNameSpacing: Spacing
 
@@ -27,7 +27,7 @@ package struct LocaleNumberFormat: Equatable {
         secondaryGroupingSize: GroupingSize,
         pattern: MoneyFormatPattern,
         fullNamePattern: FullNameLayout,
-        isoCodeSpacing: String,
+        isoCodeSpacing: Spacing,
         fullNameSpacing: Spacing
     ) {
         self.decimalSeparator = decimalSeparator
@@ -46,11 +46,11 @@ package struct LocaleNumberFormat: Equatable {
 // currencies whose symbol differs from their code are stored; the rest fall back to the code.
 package struct CurrencyDisplay: Equatable {
     package let standardSymbol: String
-    package let standardSpacing: String
+    package let standardSpacing: Spacing
     package let narrowSymbol: String
-    package let narrowSpacing: String
+    package let narrowSpacing: Spacing
 
-    package init(standardSymbol: String, standardSpacing: String, narrowSymbol: String, narrowSpacing: String) {
+    package init(standardSymbol: String, standardSpacing: Spacing, narrowSymbol: String, narrowSpacing: Spacing) {
         self.standardSymbol = standardSymbol
         self.standardSpacing = standardSpacing
         self.narrowSymbol = narrowSymbol
