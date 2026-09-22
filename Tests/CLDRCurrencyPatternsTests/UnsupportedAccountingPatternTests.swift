@@ -59,6 +59,14 @@ struct UnsupportedAccountingPatternTests {
         #expect(spacingOnly == .spacingChangesForAccounting)
     }
 
+    // A pattern with no currency or no digits has no gap to compare. It is reported by the pattern
+    // reader rather than here, so this only has to not claim a difference it cannot see.
+    @Test("A pattern with nothing to measure reports no accounting difference")
+    func unmeasurablePatternIsNotRefused() {
+        #expect(UnsupportedAccountingPattern(standard: "#,##0.00", accounting: "#,##0.00") == nil)
+        #expect(UnsupportedAccountingPattern(standard: "\u{00A4}", accounting: "\u{00A4}") == nil)
+    }
+
     @Test("Each case describes itself")
     func casesDescribeThemselves() {
         let descriptions = [

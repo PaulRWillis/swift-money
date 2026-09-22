@@ -86,6 +86,23 @@ struct LocaleSkipTests {
         #expect(LocaleSkip.unrepresentablePattern(.groupingChangesForLetterSymbols, field: .standard).detail.isEmpty)
     }
 
+    // Every case has to render, not just the ones a report happens to contain today: a case whose
+    // detail crashed or came out blank would only show up once some CLDR release started using it.
+    @Test("Every case renders a detail the description ends with")
+    func everyCaseRendersADetail() {
+        for skip in Self.oneOfEachCase {
+            #expect(skip.description.hasSuffix(skip.detail), "\(skip.reason) drops its detail")
+        }
+
+        // Only a rearrangement the reason already names in full renders bare.
+        let bare = Self.oneOfEachCase.filter(\.detail.isEmpty)
+        #expect(bare.allSatisfy {
+            if case .unrepresentablePattern = $0 { return true }
+            if case .unrepresentableAccountingPattern = $0 { return true }
+            return false
+        })
+    }
+
     @Test("Description joins the reason and the detail")
     func descriptionJoinsBoth() {
         let withDetail = LocaleSkip.noPluralRules(language: "bem")
