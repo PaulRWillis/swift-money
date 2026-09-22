@@ -13,3 +13,11 @@ let goldenDigests: [String: UInt64] = [
     "si": 0xad5c0b8039bf4115,
     "sw": 0x24f2725cf3f2630d,
 ]
+
+// How many (locale, currency) pairs the engine can name in words, across every covered locale. A
+// digest says a locale's output moved; this says whether coverage of it grew or shrank.
+let goldenNamedCurrencyTotal = 1276
+
+// How many covered locales name no currency at all. A locale inheriting CLDR's root has the symbols
+// and none of the names, which ICU renders the same way, so this is recorded rather than forbidden.
+let goldenLocalesNamingNoCurrency = 0
