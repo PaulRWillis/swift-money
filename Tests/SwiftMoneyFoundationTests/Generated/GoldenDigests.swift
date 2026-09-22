@@ -4,11 +4,11 @@
 // A portable FNV-1a hash of the engine's CLDR-derived output, one per covered locale. The golden test
 // fails when a locale's digest drifts from the value committed here.
 let goldenDigests: [String: UInt64] = [
-    "de_DE": 0x850f13c19a893573,
-    "en_GB": 0x44b9b57d9b3ae5ff,
-    "en_US": 0xf09c21d2bc2c1e16,
-    "fr_FR": 0x62936d4d6d0e6967,
-    "ja_JP": 0x3070dd1771904abc,
+    "de": 0x850f13c19a893573,
+    "en": 0xf09c21d2bc2c1e16,
+    "en-GB": 0x44b9b57d9b3ae5ff,
+    "fr": 0x62936d4d6d0e6967,
+    "ja": 0x3070dd1771904abc,
     "ro": 0x76cdeee06d591829,
     "si": 0x15af2cf5a9f2c33e,
     "sw": 0xbbd3fde32ff93e68,

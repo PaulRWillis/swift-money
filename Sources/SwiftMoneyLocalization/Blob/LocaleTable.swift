@@ -20,6 +20,14 @@ package struct LocaleTable: Sendable {
         self.localeCount = localeCount
     }
 
+    /// Every covered locale's identifier, in the blob's sorted order. The identifiers are the ones the
+    /// data ships (`en`, `en-GB`, …), not region variants that inherit from them.
+    package func identifiers() -> [String] {
+        (0 ..< localeCount).map {
+            reader.string(reader.stringRef(at: entriesOffset + $0 * Entry.stride + Entry.key))
+        }
+    }
+
     /// The index of the locale `identifier` names, or of the language it belongs to when its region is
     /// not covered on its own, as CLDR inheritance resolves it (`de_DE` to `de`).
     ///

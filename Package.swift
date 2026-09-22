@@ -89,7 +89,7 @@ let package = Package(
         ),
         .testTarget(
             name: "SwiftMoneyFormatMatrixTests",
-            dependencies: ["SwiftMoneyFormatMatrix", "SwiftMoneyCore"]
+            dependencies: ["SwiftMoneyFormatMatrix", "SwiftMoneyCore", "SwiftMoneyLocalization"]
         ),
         .testTarget(
             name: "CLDRPluralParsingTests",

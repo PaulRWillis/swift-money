@@ -1,6 +1,7 @@
 import Foundation
 import SwiftMoneyCore
 import SwiftMoneyFormatMatrix
+import SwiftMoneyLocalization
 import Testing
 
 @Suite("FormatMatrix")
@@ -21,9 +22,10 @@ struct FormatMatrixTests {
         #expect(ids.count == FormatMatrix.combinations.count)
     }
 
-    @Test("The covered locales are the eight the CLDR data ships")
+    @Test("The covered locales are those the CLDR blob ships")
     func coveredLocales() {
-        #expect(FormatMatrix.coveredLocaleIDs == ["en_US", "en_GB", "de_DE", "fr_FR", "ja_JP", "sw", "si", "ro"])
+        #expect(!FormatMatrix.coveredLocaleIDs.isEmpty)
+        #expect(FormatMatrix.coveredLocaleIDs == MoneyLocalization.coveredLocaleIdentifiers)
     }
 
     @Test("The option-cross currencies span 0, 2 and 3 decimal places")
