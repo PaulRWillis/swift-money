@@ -45,7 +45,7 @@ struct CLDRBlobTests {
         body.u16(0)
 
         let displayRecordsStart = body.count
-        body.u64(gbp.packedValue)
+        body.currencyCode(gbp.compactValue)
         body.ref(symbol)
         body.u8(Spacing.none.blobCode)
         body.ref(symbol)
@@ -56,7 +56,7 @@ struct CLDRBlobTests {
         body.u16(1)
 
         let fullNameRecordsStart = body.count
-        body.u64(gbp.packedValue)
+        body.currencyCode(gbp.compactValue)
         body.ref(name)
         body.u32(0)
         body.u8(0)

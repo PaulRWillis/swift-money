@@ -663,8 +663,8 @@ for locale in locales.sorted(by: { $0.utf8.lexicographicallyPrecedes($1.utf8) })
     packedLocales.append(PackedLocale(
         key: pool.insert(locale),
         numberFormat: numberFormat,
-        displays: displays.sorted { $0.code.packedValue < $1.code.packedValue },
-        fullNames: names.sorted { $0.code.packedValue < $1.code.packedValue }
+        displays: displays.sorted { $0.code.compactValue < $1.code.compactValue },
+        fullNames: names.sorted { $0.code.compactValue < $1.code.compactValue }
     ))
 }
 

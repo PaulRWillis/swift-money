@@ -83,17 +83,17 @@ package struct BlobReader: @unchecked Sendable {
         return String(decoding: slice, as: UTF8.self)
     }
 
-    /// The byte offset of the fixed-`stride` record whose leading `UInt64` equals `code`, among `count`
-    /// records from `start`, by binary search; `nil` if none. Records must be sorted ascending by that
-    /// leading code.
-    package func recordOffset(code: UInt64, start: Int, count: Int, stride: Int) -> Int? {
+    /// The byte offset of the fixed-`stride` record whose leading `codeWidth`-digit key equals `code`,
+    /// among `count` records from `start`, by binary search; `nil` if none. Records must be sorted
+    /// ascending by that leading code.
+    package func recordOffset(code: UInt64, codeWidth: Int, start: Int, count: Int, stride: Int) -> Int? {
         var low = 0
         var high = count
 
         while low < high {
             let mid = (low + high) / 2
             let offset = start + mid * stride
-            let value = u64(at: offset)
+            let value = integer(at: offset, width: codeWidth)
             if value == code {
                 return offset
             } else if value < code {

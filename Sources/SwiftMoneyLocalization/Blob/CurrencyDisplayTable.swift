@@ -5,7 +5,7 @@ import SwiftMoneyCore
 ///
 /// Every integer is written as ``BlobDigits``, so a field's position is the width of the fields before
 /// it. The section is a **directory** of one entry per locale, indexed by ``LocaleIndex``, and the
-/// **records** it points at, sorted by ``CurrencyCode/packedValue`` so a currency is found by binary
+/// **records** it points at, sorted by ``CurrencyCode/compactValue`` so a currency is found by binary
 /// search.
 package struct CurrencyDisplayTable: Sendable {
     let reader: BlobReader
@@ -19,7 +19,7 @@ package struct CurrencyDisplayTable: Sendable {
 
     private enum Record {
         static let code = 0
-        static let standardSymbol = code + BlobDigits.u64
+        static let standardSymbol = code + BlobDigits.currencyCode
         static let standardSpacing = standardSymbol + BlobDigits.stringRef
         static let narrowSymbol = standardSpacing + BlobDigits.u8
         static let narrowSpacing = narrowSymbol + BlobDigits.stringRef
@@ -39,7 +39,8 @@ package struct CurrencyDisplayTable: Sendable {
         let recordCount = Int(reader.u16(at: entry + Entry.recordCount))
 
         guard let record = reader.recordOffset(
-            code: code.packedValue, start: recordsStart, count: recordCount, stride: Record.stride
+            code: code.compactValue, codeWidth: BlobDigits.currencyCode,
+            start: recordsStart, count: recordCount, stride: Record.stride
         ) else {
             return nil
         }

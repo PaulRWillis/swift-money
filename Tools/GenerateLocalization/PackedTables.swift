@@ -69,7 +69,7 @@ struct PackedTables {
             let run = Run(start: body.offset, count: locale.fullNames.count)
 
             for (name, override) in zip(locale.fullNames, overrides[index]) {
-                body.u64(name.code.packedValue)
+                body.currencyCode(name.code.compactValue)
                 body.ref(name.other)
                 body.u32(override.start)
                 body.u8(UInt8(override.count))
@@ -97,7 +97,7 @@ struct PackedTables {
             let run = Run(start: body.offset, count: locale.displays.count)
 
             for display in locale.displays {
-                body.u64(display.code.packedValue)
+                body.currencyCode(display.code.compactValue)
                 body.ref(display.standardSymbol)
                 body.u8(display.standardSpacing.blobCode)
                 body.ref(display.narrowSymbol)

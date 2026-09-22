@@ -18,11 +18,11 @@ struct CurrencyDisplayTableTests {
         let records: [(code: CurrencyCode, standard: StringRef, standardGap: Spacing, narrow: StringRef, narrowGap: Spacing)] = [
             (code("GBP"), b.pool("£"), .none, b.pool("£"), .none),
             (code("USD"), b.pool("US$"), .nonBreakingSpace, b.pool("$"), .none),
-        ].sorted { $0.code.packedValue < $1.code.packedValue }
+        ].sorted { $0.code.compactValue < $1.code.compactValue }
 
         let recordsStart = UInt32(b.count)
         for record in records {
-            b.u64(record.code.packedValue)
+            b.currencyCode(record.code.compactValue)
             b.ref(record.standard)
             b.u8(record.standardGap.blobCode)
             b.ref(record.narrow)
