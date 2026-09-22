@@ -214,6 +214,11 @@ jobs:
           | sed 's/^Threshold deviations for SwiftMoneyBenchmarks://' | sort -u)"
         flaggedCount=$(printf '%s' "$flagged" | grep -c . || true)
 
+        # A within-threshold shard's comparison file is just a one-line "WITHIN thresholds" notice, so
+        # concatenating every shard repeats that line once per clean shard around the one real table.
+        # Keep only the files that actually carry a deviations table.
+        mapfile -t flaggedTables < <(grep -l '^Threshold deviations for SwiftMoneyBenchmarks:' "${tables[@]}" 2>/dev/null || true)
+
         if [ "$hasReg" = 1 ]; then
           headline="### ⚠️ Benchmarks regressed vs main"
           echo "CHANGED=true" >> "$GITHUB_ENV"
@@ -244,7 +249,7 @@ jobs:
             echo ""
             echo "<details><summary>Comparison tables (numbers)</summary>"
             echo ""
-            cat "${tables[@]}"
+            cat "${flaggedTables[@]}"
             echo ""
             echo "</details>"
           fi
