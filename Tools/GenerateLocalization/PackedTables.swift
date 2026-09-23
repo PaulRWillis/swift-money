@@ -77,17 +77,11 @@ struct PackedTables {
             }
         }
 
+        var recordPool = RunPool()
+
         let records = locales.enumerated().map { index, locale in
-            let run = Run(start: body.offset, count: locale.fullNames.count)
-
-            for (name, override) in zip(locale.fullNames, overrides[index]) {
-                body.currencyCode(name.code.compactValue)
-                body.ref(name.other)
-                body.u32(override.start)
-                body.u8(UInt8(override.count))
-            }
-
-            return run
+            let start = recordPool.offset(of: recordRunImage(of: locale, overrides: overrides[index]), appendingTo: &body)
+            return Run(start: start, count: locale.fullNames.count)
         }
 
         return writeDirectory(records, into: &body)
@@ -99,6 +93,20 @@ struct PackedTables {
         for override in name.overrides {
             image.u8(override.category.blobCode)
             image.ref(override.name)
+        }
+
+        return image.bytes
+    }
+
+    // The override starts are shared, so two locales with the same names produce the same record image.
+    private func recordRunImage(of locale: PackedLocale, overrides: [Run]) -> [UInt8] {
+        var image = BlobWriter(base: 0)
+
+        for (name, override) in zip(locale.fullNames, overrides) {
+            image.currencyCode(name.code.compactValue)
+            image.ref(name.other)
+            image.u32(override.start)
+            image.u8(UInt8(override.count))
         }
 
         return image.bytes
