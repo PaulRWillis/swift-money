@@ -17,12 +17,13 @@ struct NumberFormatTableTests {
     )
 
     // One locale (index 0): "." decimal, "," grouping of 3, "-", NBSP iso spacing, ascii full-name gap,
-    // pattern index 0, full-name pattern index 0.
-    static func makeBlob() -> (bytes: [UInt8], recordsOffset: Int) {
+    // pattern index 0, full-name pattern index 0, and the given digit glyphs (empty = ASCII).
+    static func makeBlob(digitGlyphs: String = "") -> (bytes: [UInt8], recordsOffset: Int) {
         var b = BlobTestBuilder()
         let decimal = b.pool(".")
         let grouping = b.pool(",")
         let minus = b.pool("-")
+        let digits = digitGlyphs.isEmpty ? StringRef.empty : b.pool(digitGlyphs)
 
         let recordsOffset = b.count
         b.ref(decimal)
@@ -34,11 +35,12 @@ struct NumberFormatTableTests {
         b.u8(Spacing.asciiSpace.blobCode)
         b.u16(0)
         b.u16(0)
+        b.ref(digits)
         return (b.bytes, recordsOffset)
     }
 
-    static func withTable(_ body: (NumberFormatTable) -> Void) {
-        let (bytes, recordsOffset) = makeBlob()
+    static func withTable(digitGlyphs: String = "", _ body: (NumberFormatTable) -> Void) {
+        let (bytes, recordsOffset) = makeBlob(digitGlyphs: digitGlyphs)
         bytes.withUnsafeBufferPointer { buffer in
             let reader = BlobReader(base: buffer.baseAddress!, count: buffer.count)
             body(NumberFormatTable(
@@ -63,6 +65,22 @@ struct NumberFormatTableTests {
             #expect(format.fullNameSpacing == .asciiSpace)
             #expect(format.pattern == Self.symbolPattern)
             #expect(format.fullNamePattern == Self.fullName)
+        }
+    }
+
+    @Test("An empty digit ref decodes as the ASCII digit set")
+    func decodesAsciiDigits() {
+        Self.withTable { table in
+            #expect(table.numberFormat(localeIndex: LocaleIndex(position: 0)).digits == .ascii)
+        }
+    }
+
+    @Test("A digit ref decodes as the locale's own glyphs")
+    func decodesGlyphDigits() throws {
+        let expected = try #require(DigitGlyphs("০১২৩৪৫৬৭৮৯"))
+        Self.withTable(digitGlyphs: "০১২৩৪৫৬৭৮৯") { table in
+            let digits = table.numberFormat(localeIndex: LocaleIndex(position: 0)).digits
+            #expect(digits == .glyphs(expected))
         }
     }
 }

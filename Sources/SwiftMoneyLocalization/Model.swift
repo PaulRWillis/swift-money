@@ -18,6 +18,8 @@ package struct LocaleNumberFormat: Equatable {
     package let isoCodeSpacing: Spacing
     // The gap between the amount and a currency's full name.
     package let fullNameSpacing: Spacing
+    // The glyphs this locale writes the digits with: ASCII, or its own set.
+    package let digits: Digits
 
     package init(
         decimalSeparator: String,
@@ -28,7 +30,8 @@ package struct LocaleNumberFormat: Equatable {
         pattern: MoneyFormatPattern,
         fullNamePattern: FullNameLayout,
         isoCodeSpacing: Spacing,
-        fullNameSpacing: Spacing
+        fullNameSpacing: Spacing,
+        digits: Digits = .ascii
     ) {
         self.decimalSeparator = decimalSeparator
         self.groupingSeparator = groupingSeparator
@@ -39,6 +42,7 @@ package struct LocaleNumberFormat: Equatable {
         self.fullNamePattern = fullNamePattern
         self.isoCodeSpacing = isoCodeSpacing
         self.fullNameSpacing = fullNameSpacing
+        self.digits = digits
     }
 }
 

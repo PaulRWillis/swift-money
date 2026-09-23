@@ -35,6 +35,9 @@ struct LocaleTables {
     let secondaryGroupingSize: UInt8
     let fullNameSpacing: Spacing
 
+    // The locale's ten digit glyphs concatenated, or nil when it writes the ASCII 0 to 9.
+    let digits: String?
+
     // Swift source for the two interned tables, deduplicated by text when packed.
     let pattern: String
     let fullNamePattern: String

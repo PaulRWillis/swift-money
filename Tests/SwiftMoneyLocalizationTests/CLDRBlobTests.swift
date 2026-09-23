@@ -43,6 +43,7 @@ struct CLDRBlobTests {
         body.u8(Spacing.asciiSpace.blobCode)
         body.u16(0)
         body.u16(0)
+        body.ref(StringRef.empty)
 
         let displayRecordsStart = body.count
         body.currencyCode(gbp.compactValue)

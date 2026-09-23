@@ -60,6 +60,7 @@ struct PackedTables {
             body.u8(format.fullNameSpacing.blobCode)
             body.u16(format.patternIndex)
             body.u16(format.fullNamePatternIndex)
+            body.ref(format.digits)
         }
 
         return offset

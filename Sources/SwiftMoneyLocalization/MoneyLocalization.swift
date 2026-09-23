@@ -161,7 +161,8 @@ public enum MoneyLocalization {
                 secondary: format.secondaryGroupingSize,
                 separator: format.groupingSeparator
             ),
-            minusSign: format.minusSign
+            minusSign: format.minusSign,
+            digits: format.digits
         )
     }
 

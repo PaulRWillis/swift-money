@@ -23,7 +23,8 @@ package struct NumberFormatTable: Sendable {
         static let fullNameSpacing = secondaryGroupingSize + BlobDigits.u8
         static let patternIndex = fullNameSpacing + BlobDigits.u8
         static let fullNamePatternIndex = patternIndex + BlobDigits.u16
-        static let stride = fullNamePatternIndex + BlobDigits.u16
+        static let digits = fullNamePatternIndex + BlobDigits.u16
+        static let stride = digits + BlobDigits.stringRef
     }
 
     package init(
@@ -51,6 +52,7 @@ package struct NumberFormatTable: Sendable {
         let spacingCode = reader.u8(at: record + Record.fullNameSpacing)
         let patternIndex = Int(reader.u16(at: record + Record.patternIndex))
         let fullNamePatternIndex = Int(reader.u16(at: record + Record.fullNamePatternIndex))
+        let digitGlyphs = reader.string(reader.stringRef(at: record + Record.digits))
 
         // The generator writes only valid values, so a failure here is a generator bug, not input.
         guard let groupingSeparator = GroupingSeparator(groupingRaw) else {
@@ -69,6 +71,17 @@ package struct NumberFormatTable: Sendable {
             preconditionFailure("blob full-name spacing code \(spacingCode) is unknown")  // coverage:ignore
         }
 
+        // An empty glyph string marks a locale that writes ASCII digits, which is most of them; the rest
+        // carry their own ten glyphs.
+        let digits: Digits
+        if digitGlyphs.isEmpty {
+            digits = .ascii
+        } else if let glyphs = DigitGlyphs(digitGlyphs) {
+            digits = .glyphs(glyphs)
+        } else {
+            preconditionFailure("blob digit set is not ten uniform-width glyphs")  // coverage:ignore
+        }
+
         return LocaleNumberFormat(
             decimalSeparator: decimalSeparator,
             groupingSeparator: groupingSeparator,
@@ -78,7 +91,8 @@ package struct NumberFormatTable: Sendable {
             pattern: patterns[patternIndex],
             fullNamePattern: fullNamePatterns[fullNamePatternIndex],
             isoCodeSpacing: isoCodeSpacing,
-            fullNameSpacing: fullNameSpacing
+            fullNameSpacing: fullNameSpacing,
+            digits: digits
         )
     }
 }
