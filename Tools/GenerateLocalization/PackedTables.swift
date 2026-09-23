@@ -98,22 +98,30 @@ struct PackedTables {
         return run
     }
 
+    // A display record is self-contained, so identical display runs are byte-identical and share one run.
     private func writeDisplays(into body: inout BlobWriter) -> Int {
+        var pool = RunPool()
+
         let records = locales.map { locale in
-            let run = Run(start: body.offset, count: locale.displays.count)
-
-            for display in locale.displays {
-                body.currencyCode(display.code.compactValue)
-                body.ref(display.standardSymbol)
-                body.u8(display.standardSpacing.blobCode)
-                body.ref(display.narrowSymbol)
-                body.u8(display.narrowSpacing.blobCode)
-            }
-
-            return run
+            let start = pool.offset(of: displayRunImage(of: locale), appendingTo: &body)
+            return Run(start: start, count: locale.displays.count)
         }
 
         return writeDirectory(records, into: &body)
+    }
+
+    private func displayRunImage(of locale: PackedLocale) -> [UInt8] {
+        var image = BlobWriter(base: 0)
+
+        for display in locale.displays {
+            image.currencyCode(display.code.compactValue)
+            image.ref(display.standardSymbol)
+            image.u8(display.standardSpacing.blobCode)
+            image.ref(display.narrowSymbol)
+            image.u8(display.narrowSpacing.blobCode)
+        }
+
+        return image.bytes
     }
 
     // Each language's rule entries first, then the directory (a language count and one entry per
