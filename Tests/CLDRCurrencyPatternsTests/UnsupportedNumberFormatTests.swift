@@ -30,14 +30,14 @@ struct UnsupportedNumberFormatTests {
         #expect(unsupported == .nonLatinDigits(numberingSystem: "arab"))
     }
 
-    // de-CH: the tables hold one arrangement plus a leading sign, so a locale that writes its own
-    // negative would come out with the minus in the wrong place.
-    @Test("A standard pattern with a negative subpattern is unrepresentable")
-    func negativeSubpatternIsRefused() {
+    // de-CH: the affixes carry a locale's own negative arrangement, so a negative subpattern is no
+    // longer refused at the number-format level. The generator reads it for a Latin-script locale, and
+    // raises `.negativeSubpattern` itself where it does not, so this check does not.
+    @Test("A standard pattern with a negative subpattern is representable")
+    func negativeSubpatternIsRepresentable() {
         let pattern = "\u{00A4}\u{00A0}#,##0.00;\u{00A4}-#,##0.00"
-        let unsupported = UnsupportedNumberFormat(standardPattern: pattern, defaultNumberingSystem: "latn", minimumGroupingDigits: 1)
 
-        #expect(unsupported == .negativeSubpattern(pattern: pattern))
+        #expect(UnsupportedNumberFormat(standardPattern: pattern, defaultNumberingSystem: "latn", minimumGroupingDigits: 1) == nil)
     }
 
     // A mark is zero width, so this pattern is indistinguishable from a representable one by eye.

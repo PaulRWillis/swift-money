@@ -3,7 +3,7 @@
 Generated from CLDR 48.2.0 by GenerateSwiftMoneyLocalization. Do not edit by hand.
 Regenerate with: (cd Tools/cldr && npm ci) && swift run GenerateSwiftMoneyLocalization
 
-The engine formats 525 of the 766 CLDR locales this build reads. The 241 below are left out, each because it writes something the packed tables have no shape for. They keep the ICU fallback, and rejoin the list on their own once that shape exists.
+The engine formats 544 of the 766 CLDR locales this build reads. The 222 below are left out, each because it writes something the packed tables have no shape for. They keep the ICU fallback, and rejoin the list on their own once that shape exists.
 
 ## arranges a currency written with letters in a way this tool does not model, in its accounting pattern (29)
 - bem: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
@@ -36,10 +36,17 @@ The engine formats 525 of the 766 CLDR locales this build reads. The 241 below a
 - vai-Latn: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
 - vai-Vaii: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
 
-## arranges a currency written with letters in a way this tool does not model, in its standard pattern (1)
+## arranges a currency written with letters in a way this tool does not model, in its standard pattern (5)
 - bqi: \u{A4}\u{A0}#,##0.00 against \u{200E}\u{A4}\u{A0}#,##0.00
+- nb: #,##0.00\u{A0}\u{A4};-#,##0.00\u{A0}\u{A4} against #,##0.00\u{A0}\u{A4}
+- nb-SJ: #,##0.00\u{A0}\u{A4};-#,##0.00\u{A0}\u{A4} against #,##0.00\u{A0}\u{A4}
+- nn: #,##0.00\u{A0}\u{A4};-#,##0.00\u{A0}\u{A4} against #,##0.00\u{A0}\u{A4}
+- no: #,##0.00\u{A0}\u{A4};-#,##0.00\u{A0}\u{A4} against #,##0.00\u{A0}\u{A4}
 
-## arranges a negative amount in its standard pattern (34)
+## arranges a negative amount in its standard pattern (1)
+- lo: \u{A4}#,##0.00;\u{A4}-#,##0.00
+
+## carries a directional mark in its standard pattern (8)
 - ar: \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
 - ar-AE: \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
 - ar-DZ: \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
@@ -47,38 +54,12 @@ The engine formats 525 of the 766 CLDR locales this build reads. The 241 below a
 - ar-LY: \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
 - ar-MA: \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
 - ar-TN: \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
-- blo: \u{A4}\u{A0}#,##0.00;\u{A4}\u{A0}-#,##0.00
-- de-CH: \u{A4}\u{A0}#,##0.00;\u{A4}-#,##0.00
-- en-CH: \u{A4}\u{A0}#,##0.00;\u{A4}-#,##0.00
-- en-NL: \u{A4}\u{A0}#,##0.00;\u{A4}\u{A0}-#,##0.00
-- es-CL: \u{A4}#,##0.00;\u{A4}-#,##0.00
-- es-EC: \u{A4}#,##0.00;\u{A4}-#,##0.00
-- es-PY: \u{A4}\u{A0}#,##0.00;\u{A4}\u{A0}-#,##0.00
-- es-VE: \u{A4}#,##0.00;\u{A4}-#,##0.00
-- fy: \u{A4}\u{A0}#,##0.00;\u{A4}\u{A0}#,##0.00-
 - he: \u{200F}#,##0.00\u{A0}\u{200F}\u{A4};\u{200F}-#,##0.00\u{A0}\u{200F}\u{A4}
-- ie: \u{A4}\u{A0}#,##0.00;\u{A4}\u{A0}-#,##0.00
-- it-CH: \u{A4}\u{A0}#,##0.00;\u{A4}-#,##0.00
-- kl: \u{A4}#,##0.00;\u{A4}-#,##0.00
-- lo: \u{A4}#,##0.00;\u{A4}-#,##0.00
-- luy: \u{A4}#,##0.00;\u{A4}-\u{A0}#,##0.00
-- nb: #,##0.00\u{A0}\u{A4};-#,##0.00\u{A0}\u{A4}
-- nb-SJ: #,##0.00\u{A0}\u{A4};-#,##0.00\u{A0}\u{A4}
-- nl: \u{A4}\u{A0}#,##0.00;\u{A4}\u{A0}-#,##0.00
-- nl-AW: \u{A4}\u{A0}#,##0.00;\u{A4}\u{A0}-#,##0.00
-- nl-BE: \u{A4}\u{A0}#,##0.00;\u{A4}\u{A0}-#,##0.00
-- nl-BQ: \u{A4}\u{A0}#,##0.00;\u{A4}\u{A0}-#,##0.00
-- nl-CW: \u{A4}\u{A0}#,##0.00;\u{A4}\u{A0}-#,##0.00
-- nl-SR: \u{A4}\u{A0}#,##0.00;\u{A4}\u{A0}-#,##0.00
-- nl-SX: \u{A4}\u{A0}#,##0.00;\u{A4}\u{A0}-#,##0.00
-- nn: #,##0.00\u{A0}\u{A4};-#,##0.00\u{A0}\u{A4}
-- no: #,##0.00\u{A0}\u{A4};-#,##0.00\u{A0}\u{A4}
-- sg: \u{A4}#,##0.00;\u{A4}-#,##0.00
 
 ## groups the digits differently for a currency written with letters, in its standard pattern (1)
 - dv
 
-## leaves a short integer part ungrouped (35)
+## leaves a short integer part ungrouped (37)
 - be: below 2 grouping digits
 - be-tarask: below 2 grouping digits
 - bg: below 2 grouping digits
@@ -93,7 +74,9 @@ The engine formats 525 of the 766 CLDR locales this build reads. The 241 below a
 - hu: below 2 grouping digits
 - hy: below 2 grouping digits
 - ia: below 2 grouping digits
+- ie: below 2 grouping digits
 - it: below 2 grouping digits
+- it-CH: below 2 grouping digits
 - it-SM: below 2 grouping digits
 - it-VA: below 2 grouping digits
 - ka: below 2 grouping digits

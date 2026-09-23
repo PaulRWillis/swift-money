@@ -123,6 +123,15 @@ struct ParsedPattern {
     let patternSpacing: String
     let grouping: GroupSizes
     let accountingNegative: String
+    // The negative and accounting arrangements read from CLDR's own subpatterns, present only for a
+    // locale that arranges its negative itself. `nil` means the default: the positive with a leading
+    // sign, and the accounting form derived from `accountingNegative`.
+    let negative: (prefix: [String], suffix: [String])?
+    let accounting: (prefix: [String], suffix: [String])?
+}
+
+func negativeSubpattern(of pattern: String) -> String? {
+    pattern.split(separator: ";").dropFirst().first.map(String.init)
 }
 
 func parse(standard: String, accounting: String) throws(LocaleSkip) -> ParsedPattern {
@@ -151,14 +160,31 @@ func parse(standard: String, accounting: String) throws(LocaleSkip) -> ParsedPat
     }
 
     // Accounting wraps negatives in parentheses when its negative subpattern does, else it uses a minus.
-    let negativeSubpattern = accounting.split(separator: ";").dropFirst().first ?? ""
-    let accountingNegative = negativeSubpattern.contains("(") ? ".parentheses" : ".minusSign"
+    let accountingNegative = (negativeSubpattern(of: accounting) ?? "").contains("(") ? ".parentheses" : ".minusSign"
+
+    // A locale that arranges its own negative has that arrangement, and its accounting form, read here
+    // so the sign lands where CLDR places it rather than at the front.
+    let negative: (prefix: [String], suffix: [String])?
+    let accountingAffixes: (prefix: [String], suffix: [String])?
+    if let standardNegative = negativeSubpattern(of: standard) {
+        negative = try subpatternAffixes(standardNegative)
+        if let accountingNeg = negativeSubpattern(of: accounting) {
+            accountingAffixes = try subpatternAffixes(accountingNeg)
+        } else {
+            accountingAffixes = nil
+        }
+    } else {
+        negative = nil
+        accountingAffixes = nil
+    }
 
     return ParsedPattern(
         side: side,
         patternSpacing: patternSpacing,
         grouping: GroupSizes(pattern: standard),
-        accountingNegative: accountingNegative
+        accountingNegative: accountingNegative,
+        negative: negative,
+        accounting: accountingAffixes
     )
 }
 
@@ -177,23 +203,100 @@ func currencyAffix(side: CurrencySide) -> (prefix: [String], suffix: [String]) {
         : (prefix: [], suffix: [".currencySpacing", ".currency"])
 }
 
-// A locale's three arrangements. A locale whose standard pattern arranges a negative itself is
-// skipped, so a negative here is the positive arrangement with a sign in front, which is CLDR's own
-// default; the accounting form either wraps that in parentheses or falls back to the same minus.
-func patternLiteral(side: CurrencySide, accountingNegative: String) -> String {
+// The affix tokens for one subpattern, reading where CLDR places the sign, the currency, and the
+// spacing around the digits. Unlike the positive arrangement the sign is not assumed to lead: a locale
+// may write it after the symbol (¤-#,##0.00), after a space (¤ -#,##0.00) or at the end (¤ #,##0.00-),
+// and the accounting form may wrap the amount in parentheses. The tokens before the digits are the
+// prefix and those after are the suffix.
+func subpatternAffixes(_ subpattern: String) throws(LocaleSkip) -> (prefix: [String], suffix: [String]) {
+    guard
+        let firstNumber = subpattern.firstIndex(where: { integerNumberChars.contains($0) }),
+        let lastNumber = subpattern.lastIndex(where: { integerNumberChars.contains($0) })
+    else {
+        throw .noCurrencyPlaceholder(pattern: subpattern)
+    }
+
+    return (
+        affixTokens(of: subpattern[..<firstNumber]),
+        affixTokens(of: subpattern[subpattern.index(after: lastNumber)...])
+    )
+}
+
+// One side of a subpattern turned into tokens. Whitespace touching the currency is the per-symbol
+// spacing token, so it resolves the same way the positive arrangement's does; any other run of
+// whitespace or text is a literal, and the two markers CLDR writes become `.currency` and `.sign`.
+func affixTokens(of region: Substring) -> [String] {
+    enum Segment: Equatable { case currency, sign, space(String), text(String) }
+
+    var segments: [Segment] = []
+    var run = ""
+    var runIsSpace = false
+    func flushRun() {
+        guard !run.isEmpty else { return }
+        segments.append(runIsSpace ? .space(run) : .text(run))
+        run = ""
+    }
+
+    for character in region {
+        switch character {
+        case "¤":
+            flushRun()
+            segments.append(.currency)
+        case "-":
+            flushRun()
+            segments.append(.sign)
+        case _ where character.isWhitespace:
+            if !runIsSpace { flushRun(); runIsSpace = true }
+            run.append(character)
+        default:
+            if runIsSpace { flushRun(); runIsSpace = false }
+            run.append(character)
+        }
+    }
+    flushRun()
+
+    return segments.enumerated().map { index, segment in
+        switch segment {
+        case .currency: ".currency"
+        case .sign: ".sign"
+        case .text(let text): ".literal(\(quote(text)))"
+        case .space(let text):
+            (index > 0 && segments[index - 1] == .currency)
+                || (index < segments.count - 1 && segments[index + 1] == .currency)
+                ? ".currencySpacing"
+                : ".literal(\(quote(text)))"
+        }
+    }
+}
+
+// A locale's three arrangements. The positive arrangement leads with the sign slot, which renders
+// nothing until the options ask for a plus. The negative and accounting arrangements are CLDR's own
+// where the locale writes them (the sign moved off the front, or parentheses), and default to the
+// positive-with-leading-sign otherwise.
+func patternLiteral(
+    side: CurrencySide,
+    accountingNegative: String,
+    negative: (prefix: [String], suffix: [String])?,
+    accounting: (prefix: [String], suffix: [String])?
+) -> String {
     let body = currencyAffix(side: side)
-    // The sign slot leads the arrangement: CLDR writes a negative's minus at the very front for every
-    // locale here, and a plus, where the options ask for one, goes wherever the minus would have gone.
     let signed = affixesLiteral(prefix: [".sign"] + body.prefix, suffix: body.suffix)
-    let accounting = accountingNegative == ".parentheses"
-        ? affixesLiteral(prefix: [".literal(\"(\")"] + body.prefix, suffix: body.suffix + [".literal(\")\")"])
-        : signed
+    let negativeLiteral = negative.map { affixesLiteral(prefix: $0.prefix, suffix: $0.suffix) } ?? signed
+
+    let accountingLiteral: String
+    if let accounting {
+        accountingLiteral = affixesLiteral(prefix: accounting.prefix, suffix: accounting.suffix)
+    } else if accountingNegative == ".parentheses" {
+        accountingLiteral = affixesLiteral(prefix: [".literal(\"(\")"] + body.prefix, suffix: body.suffix + [".literal(\")\")"])
+    } else {
+        accountingLiteral = signed
+    }
 
     return """
         MoneyFormatPattern(
                     positive: \(signed),
-                    negative: \(signed),
-                    accountingNegative: \(accounting)
+                    negative: \(negativeLiteral),
+                    accountingNegative: \(accountingLiteral)
                 )
         """
 }
@@ -567,7 +670,7 @@ func required(_ symbols: [String: String], _ field: String, in locale: String) -
 
 // Everything one locale contributes, read and resolved without writing anything down. A locale that
 // throws here is left out of the tables entirely and keeps the runtime's ICU fallback.
-func tables(for locale: String, unusableLanguages: [String: LocaleSkip]) throws(LocaleSkip) -> LocaleTables {
+func tables(for locale: String, unusableLanguages: [String: LocaleSkip], scripts: LikelyScripts) throws(LocaleSkip) -> LocaleTables {
     if let skip = unusableLanguages[language(of: locale)] {
         throw skip
     }
@@ -576,7 +679,10 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip]) throws(
     let symbols = n["symbols-numberSystem-latn"] as! [String: String]
     let formats = n["currencyFormats-numberSystem-latn"] as! [String: Any]
 
-    try refuseUnrepresentable(numbers: n, formats: formats, locale: locale)
+    try refuseUnrepresentable(
+        numbers: n, formats: formats, locale: locale,
+        isLatinScript: scripts.impliedScript(of: locale) == "Latn"
+    )
 
     let insertBetween = try currencySpacingInsertion(formats["currencySpacing"] as! [String: Any], locale: locale)
     let parsed = try parse(standard: formats["standard"] as! String, accounting: formats["accounting"] as! String)
@@ -598,7 +704,12 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip]) throws(
         primaryGroupingSize: UInt8(parsed.grouping.primary),
         secondaryGroupingSize: UInt8(parsed.grouping.secondary),
         fullNameSpacing: fullName.spacing,
-        pattern: patternLiteral(side: parsed.side, accountingNegative: parsed.accountingNegative),
+        pattern: patternLiteral(
+            side: parsed.side,
+            accountingNegative: parsed.accountingNegative,
+            negative: parsed.negative,
+            accounting: parsed.accounting
+        ),
         fullNamePattern: fullName.literal,
         displays: symbolForms.records,
         fullNames: names.records,
@@ -616,7 +727,8 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip]) throws(
 func refuseUnrepresentable(
     numbers: [String: Any],
     formats: [String: Any],
-    locale: String
+    locale: String,
+    isLatinScript: Bool
 ) throws(LocaleSkip) {
     let standard = formats["standard"] as! String
     let accounting = formats["accounting"] as! String
@@ -627,6 +739,12 @@ func refuseUnrepresentable(
         minimumGroupingDigits: minimumGroupingDigits(numbers, locale: locale)
     ) {
         throw .unrepresentableNumberFormat(unsupported)
+    }
+
+    // A locale's own negative arrangement is read for Latin-script locales only; the rest, which raise
+    // right-to-left and other-script questions, keep the ICU fallback for now.
+    if !isLatinScript, negativeSubpattern(of: standard) != nil {
+        throw .unrepresentableNumberFormat(.negativeSubpattern(pattern: standard))
     }
 
     for field in PatternField.allCases {
@@ -850,7 +968,9 @@ let pluralRules = pluralRuleSets(among: candidates, in: ruleText)
 var emitted: [(key: String, tables: LocaleTables)] = []
 var skipped: [SkippedLocale] = []
 
-for (key, directories) in localeGroups(among: candidates, shortenedBy: likelyScripts()) {
+let scripts = likelyScripts()
+
+for (key, directories) in localeGroups(among: candidates, shortenedBy: scripts) {
     // The directory named for the identifier goes first, and whichever builds first fills it. They
     // are the same locale to a caller, since the only thing between them is a script its language
     // already implies, so the one that can be rendered is the best data the identifier can have.
@@ -865,7 +985,7 @@ for (key, directories) in localeGroups(among: candidates, shortenedBy: likelyScr
         }
 
         do {
-            emitted.append((key, try tables(for: directory, unusableLanguages: pluralRules.unusable)))
+            emitted.append((key, try tables(for: directory, unusableLanguages: pluralRules.unusable, scripts: scripts)))
             filled = true
         } catch {
             skipped.append(SkippedLocale(locale: directory, skip: error))

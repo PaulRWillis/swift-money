@@ -91,6 +91,20 @@ struct MoneyLocalizationTests {
         #expect(frText.hasSuffix(")"))
     }
 
+    // Swiss German carries a negative subpattern (¤ #,##0.00;¤-#,##0.00) that writes the minus after
+    // the currency, not at the front, and drops the space before it. The generator used to refuse it.
+    @Test("A Latin locale's negative subpattern puts the minus after the symbol")
+    func negativeSubpatternMinusAfterSymbol() throws {
+        let chf = Self.currency("CHF")
+        let format = try #require(
+            MoneyLocalization.moneyFormat(for: chf, locale: "de_CH"),
+            "de_CH should be a covered locale"
+        )
+
+        #expect(format.format(Money(minorUnits: -1_00, currency: chf)) == "CHF-1.00")
+        #expect(format.format(Money(minorUnits: 1_00, currency: chf)) == "CHF\u{00A0}1.00")
+    }
+
     @Test("An uncovered locale returns nil, and a region falls back to its language")
     func coverage() {
         #expect(MoneyLocalization.moneyFormat(for: Self.currency("GBP"), locale: "zz-ZZ") == nil)
