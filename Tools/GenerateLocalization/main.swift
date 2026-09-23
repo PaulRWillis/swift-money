@@ -420,12 +420,16 @@ struct LanguageRules {
 // One language's rules, read from CLDR's text. Parsed here alone, so that the run that checks the
 // rules and the run that packs them cannot read the text two different ways.
 //
-// The two failures are different in kind. A relation CLDR's grammar allows and this engine does not
-// model is a shape the tables lack, so the language's locales are skipped and the rest of the data
-// still builds. Anything else is this tool misreading CLDR, so it stops the run.
+// A language CLDR gives no rules takes the LDML default of a single `other` category, so it builds
+// on empty rules rather than being turned away. The one failure is a relation CLDR's grammar allows
+// and this engine does not model: a shape the tables lack, so the language's locales are skipped and
+// the rest of the data still builds. Anything else is this tool misreading CLDR, so it stops the run.
 func languageRules(for language: String, in text: [String: [String: String]]) throws(LocaleSkip) -> LanguageRules {
     guard let published = text[language] else {
-        throw .noPluralRules(language: language)
+        // CLDR gives some languages no cardinal rules. LDML defaults such a language to a single
+        // `other` category, which the runtime resolves, so it takes `other` for every amount rather
+        // than being skipped.
+        return LanguageRules(rules: [], samples: [])
     }
 
     var rules: [(PluralCategory, PluralRule)] = []
