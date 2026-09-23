@@ -68,7 +68,10 @@ package struct BlobReader: @unchecked Sendable {
     /// The ``StringRef`` (an offset then a length) at `offset`.
     @usableFromInline
     package func stringRef(at offset: Int) -> StringRef {
-        StringRef(offset: u32(at: offset), length: u32(at: offset + BlobDigits.u32))
+        StringRef(
+            offset: UInt32(truncatingIfNeeded: integer(at: offset, width: BlobDigits.offset)),
+            length: UInt32(truncatingIfNeeded: integer(at: offset + BlobDigits.offset, width: BlobDigits.length))
+        )
     }
 
     /// The string a ``StringRef`` points at, decoded from the pool's UTF-8 bytes.

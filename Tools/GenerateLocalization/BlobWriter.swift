@@ -35,8 +35,16 @@ struct BlobWriter {
     }
 
     mutating func ref(_ ref: StringRef) {
-        u32(Int(ref.offset))
-        u32(Int(ref.length))
+        precondition(
+            UInt64(ref.offset) < (UInt64(1) << (BlobDigits.offset * BlobDigits.bits)),
+            "blob offset \(ref.offset) does not fit its field"
+        )
+        precondition(
+            UInt64(ref.length) < (UInt64(1) << (BlobDigits.length * BlobDigits.bits)),
+            "string length \(ref.length) does not fit its field"
+        )
+        digits(UInt64(ref.offset), width: BlobDigits.offset)
+        digits(UInt64(ref.length), width: BlobDigits.length)
     }
 
     mutating func append(_ raw: [UInt8]) {

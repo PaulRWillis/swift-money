@@ -15,8 +15,14 @@ package enum BlobDigits {
     package static let u32 = 6
     package static let u64 = 11
 
+    /// How many digits a blob offset takes: 24 bits, enough for a blob far larger than any this ships.
+    package static let offset = 4
+
+    /// How many digits a pooled string's byte length takes: 12 bits, well above the longest name.
+    package static let length = 2
+
     /// How many digits a ``StringRef`` takes: an offset and a length.
-    package static let stringRef = u32 * 2
+    package static let stringRef = offset + length
 
     /// How many digits a currency code takes. The blob stores only three-letter ISO codes, so it keeps
     /// three of the eight symbols `compactValue` can hold.

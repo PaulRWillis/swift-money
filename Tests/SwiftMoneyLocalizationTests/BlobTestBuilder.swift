@@ -33,7 +33,10 @@ struct BlobTestBuilder {
         }
         digits(wire, width: BlobDigits.currencyCode)
     }
-    mutating func ref(_ ref: StringRef) { u32(ref.offset); u32(ref.length) }
+    mutating func ref(_ ref: StringRef) {
+        digits(UInt64(ref.offset), width: BlobDigits.offset)
+        digits(UInt64(ref.length), width: BlobDigits.length)
+    }
 
     mutating func pool(_ string: String) -> StringRef {
         let ref = StringRef(offset: UInt32(count), length: UInt32(string.utf8.count))
