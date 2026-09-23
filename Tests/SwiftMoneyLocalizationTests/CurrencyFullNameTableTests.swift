@@ -33,16 +33,16 @@ struct CurrencyFullNameTableTests {
             }
         }
 
-        let recordsStart = UInt32(b.count)
+        let recordsStart = b.count
         for (index, name) in names.enumerated() {
             b.currencyCode(name.code.compactValue)
             b.ref(name.other)
-            b.u32(overrides[index].start)
+            b.offsetField(Int(overrides[index].start))
             b.u8(overrides[index].count)
         }
 
         let directoryOffset = b.count
-        b.u32(recordsStart)
+        b.offsetField(recordsStart)
         b.u16(UInt16(names.count))
         return (b.bytes, directoryOffset)
     }

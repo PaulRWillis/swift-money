@@ -1,3 +1,4 @@
+import SwiftMoneyCore
 import SwiftMoneyLocalization
 import Testing
 
@@ -42,5 +43,24 @@ struct BlobDigitsTests {
         #expect(BlobDigits.u16 * BlobDigits.bits >= 16)
         #expect(BlobDigits.u32 * BlobDigits.bits >= 32)
         #expect(BlobDigits.u64 * BlobDigits.bits >= 64)
+    }
+
+    // The blob stores only three-letter codes, so a code that is exactly three symbols has a wire form
+    // and any longer code does not, which is what keeps a longer code from aliasing onto a stored one.
+    @Test("A three-symbol code has a wire form; a longer one does not")
+    func currencyCodeWire() throws {
+        let gbp: CurrencyCode = "GBP"
+        let eur: CurrencyCode = "EUR"
+        let usdt: CurrencyCode = "USDT"
+
+        let gbpWire = try #require(BlobDigits.currencyCodeWire(gbp.compactValue))
+        let eurWire = try #require(BlobDigits.currencyCodeWire(eur.compactValue))
+
+        #expect(BlobDigits.currencyCodeWire(usdt.compactValue) == nil)
+        #expect(gbpWire != eurWire)
+        // Order preserved, so a run stays sorted for the binary search: G is after E.
+        #expect(gbpWire > eurWire)
+        // The wire form fits the field's width.
+        #expect(gbpWire >> (BlobDigits.currencyCode * BlobDigits.bits) == 0)
     }
 }

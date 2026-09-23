@@ -20,7 +20,7 @@ struct CurrencyDisplayTableTests {
             (code("USD"), b.pool("US$"), .nonBreakingSpace, b.pool("$"), .none),
         ].sorted { $0.code.compactValue < $1.code.compactValue }
 
-        let recordsStart = UInt32(b.count)
+        let recordsStart = b.count
         for record in records {
             b.currencyCode(record.code.compactValue)
             b.ref(record.standard)
@@ -30,7 +30,7 @@ struct CurrencyDisplayTableTests {
         }
 
         let directoryOffset = b.count
-        b.u32(recordsStart)
+        b.offsetField(recordsStart)
         b.u16(UInt16(records.count))
         return (b.bytes, directoryOffset)
     }

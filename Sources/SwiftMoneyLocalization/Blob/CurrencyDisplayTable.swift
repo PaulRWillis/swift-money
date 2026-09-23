@@ -13,7 +13,7 @@ package struct CurrencyDisplayTable: Sendable {
 
     private enum Entry {
         static let recordsStart = 0
-        static let recordCount = recordsStart + BlobDigits.u32
+        static let recordCount = recordsStart + BlobDigits.offset
         static let stride = recordCount + BlobDigits.u16
     }
 
@@ -34,12 +34,17 @@ package struct CurrencyDisplayTable: Sendable {
     /// How `code` is displayed in the locale at `localeIndex`, or `nil` if it has no distinct symbol
     /// there (the caller then falls back to the code).
     package func display(localeIndex: LocaleIndex, code: CurrencyCode) -> CurrencyDisplay? {
+        // Only three-letter codes are stored, so a longer one cannot be here and falls back.
+        guard let wire = BlobDigits.currencyCodeWire(code.compactValue) else {
+            return nil
+        }
+
         let entry = directoryOffset + localeIndex.position * Entry.stride
-        let recordsStart = Int(reader.u32(at: entry + Entry.recordsStart))
+        let recordsStart = reader.offsetField(at: entry + Entry.recordsStart)
         let recordCount = Int(reader.u16(at: entry + Entry.recordCount))
 
         guard let record = reader.recordOffset(
-            code: code.compactValue, codeWidth: BlobDigits.currencyCode,
+            code: wire, codeWidth: BlobDigits.currencyCode,
             start: recordsStart, count: recordCount, stride: Record.stride
         ) else {
             return nil
