@@ -16,7 +16,7 @@ package struct CurrencyFullNameTable: Sendable {
 
     private enum Entry {
         static let recordsStart = 0
-        static let recordCount = recordsStart + BlobDigits.u32
+        static let recordCount = recordsStart + BlobDigits.offset
         static let stride = recordCount + BlobDigits.u16
     }
 
@@ -24,7 +24,7 @@ package struct CurrencyFullNameTable: Sendable {
         static let code = 0
         static let other = code + BlobDigits.currencyCode
         static let overridesStart = other + BlobDigits.stringRef
-        static let overrideCount = overridesStart + BlobDigits.u32
+        static let overrideCount = overridesStart + BlobDigits.offset
         static let stride = overrideCount + BlobDigits.u8
     }
 
@@ -92,7 +92,7 @@ package struct CurrencyFullNameTable: Sendable {
         return reader.recordOffset(
             code: wire,
             codeWidth: BlobDigits.currencyCode,
-            start: Int(reader.u32(at: entry + Entry.recordsStart)),
+            start: reader.offsetField(at: entry + Entry.recordsStart),
             count: Int(reader.u16(at: entry + Entry.recordCount)),
             stride: Record.stride
         )
@@ -100,7 +100,7 @@ package struct CurrencyFullNameTable: Sendable {
 
     // Where each of a record's overrides begins.
     private func overrides(of record: Int) -> some Sequence<Int> {
-        let start = Int(reader.u32(at: record + Record.overridesStart))
+        let start = reader.offsetField(at: record + Record.overridesStart)
         let count = Int(reader.u8(at: record + Record.overrideCount))
 
         return (0 ..< count).lazy.map { start + $0 * Override.stride }

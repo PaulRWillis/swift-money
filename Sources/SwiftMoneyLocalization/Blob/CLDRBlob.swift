@@ -28,14 +28,15 @@ package struct CLDRBlob: Sendable {
     /// Each language's plural rules, for choosing a full name's wording.
     package let pluralRules: PluralRuleTable
 
+    // The locale count is a count and stays a u32; the five section positions are blob offsets.
     private enum Header {
         static let localeCount = 0
         static let locales = localeCount + BlobDigits.u32
-        static let numberFormats = locales + BlobDigits.u32
-        static let currencyDisplays = numberFormats + BlobDigits.u32
-        static let currencyFullNames = currencyDisplays + BlobDigits.u32
-        static let pluralRules = currencyFullNames + BlobDigits.u32
-        static let width = pluralRules + BlobDigits.u32
+        static let numberFormats = locales + BlobDigits.offset
+        static let currencyDisplays = numberFormats + BlobDigits.offset
+        static let currencyFullNames = currencyDisplays + BlobDigits.offset
+        static let pluralRules = currencyFullNames + BlobDigits.offset
+        static let width = pluralRules + BlobDigits.offset
     }
 
     /// How many bytes the header takes, which is where the generator lays out the first section.
@@ -67,26 +68,26 @@ package struct CLDRBlob: Sendable {
     ) {
         locales = LocaleTable(
             reader: reader,
-            entriesOffset: Int(reader.u32(at: Header.locales)),
+            entriesOffset: reader.offsetField(at: Header.locales),
             localeCount: Int(reader.u32(at: Header.localeCount))
         )
         numberFormats = NumberFormatTable(
             reader: reader,
-            recordsOffset: Int(reader.u32(at: Header.numberFormats)),
+            recordsOffset: reader.offsetField(at: Header.numberFormats),
             patterns: patterns,
             fullNamePatterns: fullNamePatterns
         )
         currencyDisplays = CurrencyDisplayTable(
             reader: reader,
-            directoryOffset: Int(reader.u32(at: Header.currencyDisplays))
+            directoryOffset: reader.offsetField(at: Header.currencyDisplays)
         )
         currencyFullNames = CurrencyFullNameTable(
             reader: reader,
-            directoryOffset: Int(reader.u32(at: Header.currencyFullNames))
+            directoryOffset: reader.offsetField(at: Header.currencyFullNames)
         )
         pluralRules = PluralRuleTable(
             reader: reader,
-            sectionOffset: Int(reader.u32(at: Header.pluralRules))
+            sectionOffset: reader.offsetField(at: Header.pluralRules)
         )
     }
 }

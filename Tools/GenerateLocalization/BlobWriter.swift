@@ -34,16 +34,20 @@ struct BlobWriter {
         digits(wire, width: BlobDigits.currencyCode)
     }
 
-    mutating func ref(_ ref: StringRef) {
+    mutating func offsetField(_ value: Int) {
         precondition(
-            UInt64(ref.offset) < (UInt64(1) << (BlobDigits.offset * BlobDigits.bits)),
-            "blob offset \(ref.offset) does not fit its field"
+            UInt64(value) < (UInt64(1) << (BlobDigits.offset * BlobDigits.bits)),
+            "blob offset \(value) does not fit its field"
         )
+        digits(UInt64(value), width: BlobDigits.offset)
+    }
+
+    mutating func ref(_ ref: StringRef) {
+        offsetField(Int(ref.offset))
         precondition(
             UInt64(ref.length) < (UInt64(1) << (BlobDigits.length * BlobDigits.bits)),
             "string length \(ref.length) does not fit its field"
         )
-        digits(UInt64(ref.offset), width: BlobDigits.offset)
         digits(UInt64(ref.length), width: BlobDigits.length)
     }
 

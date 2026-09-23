@@ -34,8 +34,8 @@ struct PluralRuleTableTests {
 
         let sectionOffset = b.count
         b.u32(2)   // language count
-        b.ref(en); b.u32(UInt32(enRules)); b.u8(1)
-        b.ref(fr); b.u32(UInt32(frRules)); b.u8(1)
+        b.ref(en); b.offsetField(enRules); b.u8(1)
+        b.ref(fr); b.offsetField(frRules); b.u8(1)
 
         return (b.bytes, sectionOffset)
     }

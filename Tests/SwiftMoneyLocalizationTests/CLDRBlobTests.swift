@@ -52,17 +52,17 @@ struct CLDRBlobTests {
         body.u8(Spacing.none.blobCode)
 
         let displaysOffset = body.count
-        body.u32(UInt32(displayRecordsStart))
+        body.offsetField(displayRecordsStart)
         body.u16(1)
 
         let fullNameRecordsStart = body.count
         body.currencyCode(gbp.compactValue)
         body.ref(name)
-        body.u32(0)
+        body.offsetField(0)
         body.u8(0)
 
         let fullNamesOffset = body.count
-        body.u32(UInt32(fullNameRecordsStart))
+        body.offsetField(fullNameRecordsStart)
         body.u16(1)
 
         // "en" with a single .one rule: i = 1 and v = 0.
@@ -75,15 +75,15 @@ struct CLDRBlobTests {
 
         let pluralRulesOffset = body.count
         body.u32(1)   // one language
-        body.ref(key); body.u32(UInt32(pluralRuleEntry)); body.u8(1)
+        body.ref(key); body.offsetField(pluralRuleEntry); body.u8(1)
 
         var header = BlobTestBuilder()
         header.u32(1)
-        header.u32(UInt32(localesOffset))
-        header.u32(UInt32(numberFormatsOffset))
-        header.u32(UInt32(displaysOffset))
-        header.u32(UInt32(fullNamesOffset))
-        header.u32(UInt32(pluralRulesOffset))
+        header.offsetField(localesOffset)
+        header.offsetField(numberFormatsOffset)
+        header.offsetField(displaysOffset)
+        header.offsetField(fullNamesOffset)
+        header.offsetField(pluralRulesOffset)
 
         return header.bytes + body.bytes
     }
@@ -126,6 +126,7 @@ struct CLDRBlobTests {
 
     @Test("A header offset is where the generator lays out the first section")
     func headerPrecedesTheSections() {
-        #expect(CLDRBlob.headerWidth == BlobDigits.u32 * 6)
+        // A locale count then five section offsets.
+        #expect(CLDRBlob.headerWidth == BlobDigits.u32 + BlobDigits.offset * 5)
     }
 }

@@ -13,7 +13,7 @@ package struct CurrencyDisplayTable: Sendable {
 
     private enum Entry {
         static let recordsStart = 0
-        static let recordCount = recordsStart + BlobDigits.u32
+        static let recordCount = recordsStart + BlobDigits.offset
         static let stride = recordCount + BlobDigits.u16
     }
 
@@ -40,7 +40,7 @@ package struct CurrencyDisplayTable: Sendable {
         }
 
         let entry = directoryOffset + localeIndex.position * Entry.stride
-        let recordsStart = Int(reader.u32(at: entry + Entry.recordsStart))
+        let recordsStart = reader.offsetField(at: entry + Entry.recordsStart)
         let recordCount = Int(reader.u16(at: entry + Entry.recordCount))
 
         guard let record = reader.recordOffset(

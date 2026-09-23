@@ -33,8 +33,10 @@ struct BlobTestBuilder {
         }
         digits(wire, width: BlobDigits.currencyCode)
     }
+    mutating func offsetField(_ value: Int) { digits(UInt64(value), width: BlobDigits.offset) }
+
     mutating func ref(_ ref: StringRef) {
-        digits(UInt64(ref.offset), width: BlobDigits.offset)
+        offsetField(Int(ref.offset))
         digits(UInt64(ref.length), width: BlobDigits.length)
     }
 

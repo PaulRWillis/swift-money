@@ -65,6 +65,12 @@ package struct BlobReader: @unchecked Sendable {
         integer(at: offset, width: BlobDigits.u64)
     }
 
+    /// The blob offset written as ``BlobDigits/offset`` digits at `position`.
+    @usableFromInline
+    package func offsetField(at position: Int) -> Int {
+        Int(integer(at: position, width: BlobDigits.offset))
+    }
+
     /// The ``StringRef`` (an offset then a length) at `offset`.
     @usableFromInline
     package func stringRef(at offset: Int) -> StringRef {

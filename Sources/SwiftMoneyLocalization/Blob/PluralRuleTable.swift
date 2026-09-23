@@ -17,7 +17,7 @@ package struct PluralRuleTable: Sendable {
     private enum Entry {
         static let languageKey = 0
         static let rulesStart = languageKey + BlobDigits.stringRef
-        static let ruleCount = rulesStart + BlobDigits.u32
+        static let ruleCount = rulesStart + BlobDigits.offset
         static let stride = ruleCount + BlobDigits.u8
     }
 
@@ -37,7 +37,7 @@ package struct PluralRuleTable: Sendable {
         for index in 0 ..< languageCount {
             let entry = entriesOffset + index * Entry.stride
             let language = reader.string(reader.stringRef(at: entry + Entry.languageKey))
-            let rulesStart = Int(reader.u32(at: entry + Entry.rulesStart))
+            let rulesStart = reader.offsetField(at: entry + Entry.rulesStart)
             let ruleCount = Int(reader.u8(at: entry + Entry.ruleCount))
             result[language] = rules(at: rulesStart, count: ruleCount)
         }

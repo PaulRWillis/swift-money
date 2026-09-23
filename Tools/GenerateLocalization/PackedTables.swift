@@ -27,11 +27,11 @@ struct PackedTables {
 
         var header = BlobWriter(base: 0)
         header.u32(locales.count)
-        header.u32(localeKeys)
-        header.u32(numberFormats)
-        header.u32(currencyDisplays)
-        header.u32(currencyFullNames)
-        header.u32(pluralRules)
+        header.offsetField(localeKeys)
+        header.offsetField(numberFormats)
+        header.offsetField(currencyDisplays)
+        header.offsetField(currencyFullNames)
+        header.offsetField(pluralRules)
 
         return header.bytes + body.bytes
     }
@@ -105,7 +105,7 @@ struct PackedTables {
         for (name, override) in zip(locale.fullNames, overrides) {
             image.currencyCode(name.code.compactValue)
             image.ref(name.other)
-            image.u32(override.start)
+            image.offsetField(override.start)
             image.u8(UInt8(override.count))
         }
 
@@ -157,7 +157,7 @@ struct PackedTables {
 
         for (language, run) in zip(pluralLanguages, runs) {
             body.ref(language.key)
-            body.u32(run.start)
+            body.offsetField(run.start)
             body.u8(UInt8(run.count))
         }
 
@@ -209,7 +209,7 @@ struct PackedTables {
         let offset = body.offset
 
         for run in records {
-            body.u32(run.start)
+            body.offsetField(run.start)
             body.u16(UInt16(run.count))
         }
 
