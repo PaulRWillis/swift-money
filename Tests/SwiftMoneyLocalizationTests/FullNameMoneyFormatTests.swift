@@ -117,4 +117,13 @@ struct FullNameMoneyFormatTests {
     func romanianCommaDecimal() throws {
         #expect(try Self.formatted(4_99, "USD", "ro") == "4,99 dolari americani")
     }
+
+    // Haitian Creole has no CLDR plural rules. LDML defaults such a language to a single `other`
+    // category, which the runtime resolves for every amount, so one unit is named in the plural even
+    // though CLDR also publishes a distinct `one` form ("gourde haïtienne") that no rule can reach.
+    @Test("A locale without plural rules names every amount in the other form")
+    func noPluralRuleLocaleUsesTheOtherName() throws {
+        #expect(try Self.formatted(1_00, "HTG", "ht") == "1,00 gourdes haïtiennes")
+        #expect(try Self.formatted(2_00, "HTG", "ht") == "2,00 gourdes haïtiennes")
+    }
 }

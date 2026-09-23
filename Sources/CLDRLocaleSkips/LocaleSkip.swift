@@ -21,10 +21,6 @@ package enum LocaleSkip: Error, Equatable, Sendable {
     /// is left out rather than allowed to overwrite the shorter.
     case duplicateOfShorterIdentifier(String)
 
-    /// CLDR publishes no plural rules for the locale's language, so a currency name cannot be chosen
-    /// by amount.
-    case noPluralRules(language: String)
-
     /// The language's plural rules use a relation the rule engine does not model, such as `within`.
     ///
     /// Distinct from a rule this tool simply misreads, which stops the run: this one CLDR's grammar
@@ -65,8 +61,6 @@ package extension LocaleSkip {
             Self.numberFormat(format)
         case .duplicateOfShorterIdentifier:
             "shortens to an identifier another locale already uses"
-        case .noPluralRules:
-            "has no published plural rules for its language"
         case .unsupportedPluralRule:
             "states a plural rule with a relation this tool does not model"
         case .unrepresentablePattern(let pattern, let field):
@@ -102,8 +96,6 @@ package extension LocaleSkip {
             Self.readable(pattern)
         case .duplicateOfShorterIdentifier(let identifier):
             identifier
-        case .noPluralRules(let language):
-            language
         case .unsupportedPluralRule(let language, let relation):
             "\(language) uses \(Self.readable(relation))"
         case .unrepresentablePattern(.unmodelled(let pattern, let letterSymbolPattern), _):

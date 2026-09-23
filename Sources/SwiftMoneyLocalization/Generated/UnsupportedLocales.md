@@ -3,26 +3,43 @@
 Generated from CLDR 48.2.0 by GenerateSwiftMoneyLocalization. Do not edit by hand.
 Regenerate with: (cd Tools/cldr && npm ci) && swift run GenerateSwiftMoneyLocalization
 
-The engine formats 436 of the 766 CLDR locales this build reads. The 330 below are left out, each because it writes something the packed tables have no shape for. They keep the ICU fallback, and rejoin the list on their own once that shape exists.
+The engine formats 525 of the 766 CLDR locales this build reads. The 241 below are left out, each because it writes something the packed tables have no shape for. They keep the ICU fallback, and rejoin the list on their own once that shape exists.
 
-## arranges a currency written with letters in a way this tool does not model, in its accounting pattern (15)
+## arranges a currency written with letters in a way this tool does not model, in its accounting pattern (29)
 - bem: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
 - bm: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
 - bm-Nkoo: \u{A4}\u{A0}#,##0.00 against \u{A4}\u{A0}#,##0.00;(\u{A4}\u{A0}#,##0.00)
+- dav: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
+- ebu: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
+- gaa: \u{A4}\u{A0}#,##0.00 against \u{A4}\u{A0}#,##0.00;(\u{A4}\u{A0}#,##0.00)
+- guz: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
 - haw: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
+- kam: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
 - kde: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
+- ki: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
+- kln: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
 - lij: #,##0.00\u{A0}\u{A4} against #,##0.00\u{A0}\u{A4};(#,##0.00\u{A0}\u{A4})
 - mas: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
 - mas-TZ: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
+- mer: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
 - ms-ID: \u{A4}#,##0.00 against \u{A4}\u{A0}#,##0.00;(\u{A4}\u{A0}#,##0.00)
+- mua: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
 - nd: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
+- nus: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
+- oc: #,##0.00\u{A4} against #,##0.00\u{A0}\u{A4};(#,##0.00\u{A0}\u{A4})
 - saq: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
 - sn: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
 - teo: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
 - teo-KE: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
 - ug: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
+- vai: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
+- vai-Latn: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
+- vai-Vaii: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
 
-## arranges a negative amount in its standard pattern (33)
+## arranges a currency written with letters in a way this tool does not model, in its standard pattern (1)
+- bqi: \u{A4}\u{A0}#,##0.00 against \u{200E}\u{A4}\u{A0}#,##0.00
+
+## arranges a negative amount in its standard pattern (34)
 - ar: \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
 - ar-AE: \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
 - ar-DZ: \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
@@ -44,6 +61,7 @@ The engine formats 436 of the 766 CLDR locales this build reads. The 330 below a
 - it-CH: \u{A4}\u{A0}#,##0.00;\u{A4}-#,##0.00
 - kl: \u{A4}#,##0.00;\u{A4}-#,##0.00
 - lo: \u{A4}#,##0.00;\u{A4}-#,##0.00
+- luy: \u{A4}#,##0.00;\u{A4}-\u{A0}#,##0.00
 - nb: #,##0.00\u{A0}\u{A4};-#,##0.00\u{A0}\u{A4}
 - nb-SJ: #,##0.00\u{A0}\u{A4};-#,##0.00\u{A0}\u{A4}
 - nl: \u{A4}\u{A0}#,##0.00;\u{A4}\u{A0}-#,##0.00
@@ -59,151 +77,6 @@ The engine formats 436 of the 766 CLDR locales this build reads. The 330 below a
 
 ## groups the digits differently for a currency written with letters, in its standard pattern (1)
 - dv
-
-## has no published plural rules for its language (143)
-- aa: aa
-- aa-DJ: aa
-- aa-ER: aa
-- ab: ab
-- agq: agq
-- ann: ann
-- apc: apc
-- arn: arn
-- ba: ba
-- bas: bas
-- bew: bew
-- bgc: bgc
-- bgn: bgn
-- bgn-AE: bgn
-- bgn-AF: bgn
-- bgn-IR: bgn
-- bgn-OM: bgn
-- blt: blt
-- bqi: bqi
-- bss: bss
-- bua: bua
-- byn: byn
-- cad: cad
-- cch: cch
-- ccp: ccp
-- ccp-IN: ccp
-- cho: cho
-- cic: cic
-- co: co
-- cop: cop
-- cu: cu
-- dav: dav
-- dje: dje
-- dua: dua
-- dyo: dyo
-- ebu: ebu
-- ewo: ewo
-- frr: frr
-- gaa: gaa
-- gez: gez
-- gez-ER: gez
-- gn: gn
-- guz: guz
-- ht: ht
-- kaa: kaa
-- kaa-Cyrl: kaa
-- kaa-Latn: kaa
-- kam: kam
-- kek: kek
-- ken: ken
-- kgp: kgp
-- khq: khq
-- ki: ki
-- kln: kln
-- kpe: kpe
-- kpe-GN: kpe
-- ksf: ksf
-- kxv: kxv
-- kxv-Deva: kxv
-- kxv-Latn: kxv
-- kxv-Orya: kxv
-- kxv-Telu: kxv
-- la: la
-- lmo: lmo
-- lrc: lrc
-- lrc-IQ: lrc
-- ltg: ltg
-- lu: lu
-- luo: luo
-- luy: luy
-- lzz: lzz
-- mai: mai
-- mdf: mdf
-- mer: mer
-- mfe: mfe
-- mgh: mgh
-- mhn: mhn
-- mi: mi
-- mic: mic
-- mni: mni
-- mni-Beng: mni
-- mni-Mtei: mni
-- moh: moh
-- mua: mua
-- mus: mus
-- mww: mww
-- mww-Hmnp: mww
-- myv: myv
-- mzn: mzn
-- nds: nds
-- nds-NL: nds
-- nmg: nmg
-- nus: nus
-- nv: nv
-- oc: oc
-- oc-ES: oc
-- oka: oka
-- oka-US: oka
-- pi: pi
-- pi-Latn: pi
-- pis: pis
-- pms: pms
-- qu: qu
-- qu-BO: qu
-- qu-EC: qu
-- quc: quc
-- raj: raj
-- rhg: rhg
-- rhg-Rohg: rhg
-- rhg-Rohg-BD: rhg
-- rif: rif
-- rn: rn
-- rw: rw
-- sa: sa
-- sbp: sbp
-- shn: shn
-- shn-TH: shn
-- sid: sid
-- skr: skr
-- suz: suz
-- suz-Deva: suz
-- suz-Sunu: suz
-- szl: szl
-- tg: tg
-- tok: tok
-- trv: trv
-- trw: trw
-- tt: tt
-- twq: twq
-- tyv: tyv
-- vai: vai
-- vai-Latn: vai
-- vai-Vaii: vai
-- vmw: vmw
-- wal: wal
-- wbp: wbp
-- xnr: xnr
-- yav: yav
-- yrl: yrl
-- yrl-CO: yrl
-- yrl-VE: yrl
-- za: za
-- zgh: zgh
 
 ## leaves a short integer part ungrouped (35)
 - be: below 2 grouping digits
@@ -242,29 +115,49 @@ The engine formats 436 of the 766 CLDR locales this build reads. The 330 below a
 - sq-MK: below 2 grouping digits
 - sq-XK: below 2 grouping digits
 
-## moves the currency to the other side of the digits for a currency written with letters, in its standard pattern (11)
+## moves the currency to the other side of the digits for a currency written with letters, in its accounting pattern (1)
+- szl
+
+## moves the currency to the other side of the digits for a currency written with letters, in its standard pattern (24)
+- ab
+- agq
 - an
 - bez
+- co
+- cu
+- dje
 - kab
+- khq
 - ksb
 - lg
+- lu
+- luo
+- rif
+- rn
 - rwk
+- sbp
 - seh
 - ses
 - shi
 - shi-Latn
 - shi-Tfng
+- twq
+- zgh
 
-## shortens to an identifier another locale already uses (11)
+## shortens to an identifier another locale already uses (15)
 - az-Latn: az
 - bal-Arab: bal
 - bs-Latn: bs
 - ff-Latn: ff
+- kaa-Cyrl: kaa
 - kk-Cyrl: kk
 - kok-Deva: kok
 - ku-Latn: ku
+- pi-Latn: pi
+- rhg-Rohg: rhg
 - sr-Cyrl: sr
 - su-Latn: su
+- suz-Deva: suz
 - yue-Hant: yue
 - zh-Hans: zh
 
@@ -272,9 +165,11 @@ The engine formats 436 of the 766 CLDR locales this build reads. The 330 below a
 - uz
 - uz-Latn
 
-## the digits are grouped differently in the accounting pattern (7)
+## the digits are grouped differently in the accounting pattern (9)
 - brx
 - en-IN
+- kxv
+- kxv-Latn
 - pa
 - pa-Guru
 - ta
@@ -289,7 +184,7 @@ The engine formats 436 of the 766 CLDR locales this build reads. The 330 below a
 - ta-MY
 - ta-SG
 
-## writes amounts in digits other than 0 to 9 (66)
+## writes amounts in digits other than 0 to 9 (84)
 - ar-BH: arab
 - ar-DJ: arab
 - ar-EG: arab
@@ -315,9 +210,17 @@ The engine formats 436 of the 766 CLDR locales this build reads. The 330 below a
 - az-Arab: arabext
 - az-Arab-IQ: arabext
 - az-Arab-TR: arabext
+- bgc: deva
+- bgn: arabext
+- bgn-AE: arabext
+- bgn-AF: arabext
+- bgn-IR: arabext
+- bgn-OM: arabext
 - bho: deva
 - bn: beng
 - bn-IN: beng
+- ccp: cakm
+- ccp-IN: cakm
 - ckb: arab
 - ckb-IR: arab
 - dz: tibt
@@ -339,14 +242,24 @@ The engine formats 436 of the 766 CLDR locales this build reads. The 330 below a
 - hnj-Hmnp: hmnp
 - ks: arabext
 - ks-Arab: arabext
+- lrc: arabext
+- lrc-IQ: arabext
+- mni: beng
+- mni-Beng: beng
+- mni-Mtei: mtei
 - mr: deva
+- mww: hmnp
+- mww-Hmnp: hmnp
 - my: mymr
+- mzn: arabext
 - ne: deva
 - ne-IN: deva
 - nqo: nkoo
 - pa-Arab: arabext
 - ps: arabext
 - ps-PK: arabext
+- raj: deva
+- sa: deva
 - sat: olck
 - sat-Deva: deva
 - sat-Olck: olck

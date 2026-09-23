@@ -23,7 +23,7 @@ struct LocaleSkipTests {
         let skips = [
             LocaleSkip.unrepresentableNumberFormat(.nonLatinDigits(numberingSystem: "arab")),
             .unrepresentableNumberFormat(.negativeSubpattern(pattern: "#,##0.00;(#,##0.00)")),
-            .noPluralRules(language: "bem"),
+            .unsupportedPluralRule(language: "bem", relation: "within"),
             .noCurrencyPlaceholder(pattern: "#,##0.00"),
             .unreadableCurrencySpacing(rule: "currencyMatch [:^S:]"),
         ]
@@ -105,10 +105,10 @@ struct LocaleSkipTests {
 
     @Test("Description joins the reason and the detail")
     func descriptionJoinsBoth() {
-        let withDetail = LocaleSkip.noPluralRules(language: "bem")
+        let withDetail = LocaleSkip.unsupportedPluralRule(language: "bem", relation: "within")
         let withoutDetail = LocaleSkip.unrepresentablePattern(.currencyMovesForLetterSymbols, field: .standard)
 
-        #expect(withDetail.description == "\(withDetail.reason): bem")
+        #expect(withDetail.description == "\(withDetail.reason): bem uses within")
         #expect(withoutDetail.description == withoutDetail.reason)
     }
 
@@ -120,7 +120,6 @@ struct LocaleSkipTests {
         .unrepresentableNumberFormat(.directionalMark(pattern: "\u{200F}#,##0.00")),
         .unrepresentableNumberFormat(.groupingThreshold(minimumDigits: 2)),
         .duplicateOfShorterIdentifier("ff"),
-        .noPluralRules(language: "bem"),
         .unsupportedPluralRule(language: "bem", relation: "within"),
         .unrepresentablePattern(.currencyMovesForLetterSymbols, field: .standard),
         .unrepresentablePattern(.groupingChangesForLetterSymbols, field: .standard),

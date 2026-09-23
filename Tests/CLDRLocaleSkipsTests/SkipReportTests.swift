@@ -7,7 +7,7 @@ struct SkipReportTests {
     private static let skipped = [
         SkippedLocale(locale: "nl", skip: .unrepresentableNumberFormat(.negativeSubpattern(pattern: "#,##0.00;-#,##0.00"))),
         SkippedLocale(locale: "ar", skip: .unrepresentableNumberFormat(.nonLatinDigits(numberingSystem: "arab"))),
-        SkippedLocale(locale: "bem", skip: .noPluralRules(language: "bem")),
+        SkippedLocale(locale: "bem", skip: .unsupportedPluralRule(language: "bem", relation: "within")),
         SkippedLocale(locale: "aa", skip: .unrepresentableNumberFormat(.nonLatinDigits(numberingSystem: "arab"))),
     ]
 
