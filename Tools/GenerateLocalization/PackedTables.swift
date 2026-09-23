@@ -66,54 +66,76 @@ struct PackedTables {
     }
 
     // The overrides first, then the records that point at them, then the directory that points at those.
+    // Identical override runs are shared, so a record points at whichever locale wrote the run first.
     private func writeFullNames(into body: inout BlobWriter) -> Int {
+        var overridePool = RunPool()
+
         let overrides = locales.map { locale in
-            locale.fullNames.map { name in writeOverrides(of: name, into: &body) }
+            locale.fullNames.map { name -> Run in
+                let start = overridePool.offset(of: overrideRunImage(of: name), appendingTo: &body)
+                return Run(start: start, count: name.overrides.count)
+            }
         }
+
+        var recordPool = RunPool()
 
         let records = locales.enumerated().map { index, locale in
-            let run = Run(start: body.offset, count: locale.fullNames.count)
-
-            for (name, override) in zip(locale.fullNames, overrides[index]) {
-                body.currencyCode(name.code.compactValue)
-                body.ref(name.other)
-                body.u32(override.start)
-                body.u8(UInt8(override.count))
-            }
-
-            return run
+            let start = recordPool.offset(of: recordRunImage(of: locale, overrides: overrides[index]), appendingTo: &body)
+            return Run(start: start, count: locale.fullNames.count)
         }
 
         return writeDirectory(records, into: &body)
     }
 
-    private func writeOverrides(of name: PackedLocale.FullName, into body: inout BlobWriter) -> Run {
-        let run = Run(start: body.offset, count: name.overrides.count)
+    private func overrideRunImage(of name: PackedLocale.FullName) -> [UInt8] {
+        var image = BlobWriter(base: 0)
 
         for override in name.overrides {
-            body.u8(override.category.blobCode)
-            body.ref(override.name)
+            image.u8(override.category.blobCode)
+            image.ref(override.name)
         }
 
-        return run
+        return image.bytes
     }
 
+    // The override starts are shared, so two locales with the same names produce the same record image.
+    private func recordRunImage(of locale: PackedLocale, overrides: [Run]) -> [UInt8] {
+        var image = BlobWriter(base: 0)
+
+        for (name, override) in zip(locale.fullNames, overrides) {
+            image.currencyCode(name.code.compactValue)
+            image.ref(name.other)
+            image.u32(override.start)
+            image.u8(UInt8(override.count))
+        }
+
+        return image.bytes
+    }
+
+    // A display record is self-contained, so identical display runs are byte-identical and share one run.
     private func writeDisplays(into body: inout BlobWriter) -> Int {
+        var pool = RunPool()
+
         let records = locales.map { locale in
-            let run = Run(start: body.offset, count: locale.displays.count)
-
-            for display in locale.displays {
-                body.currencyCode(display.code.compactValue)
-                body.ref(display.standardSymbol)
-                body.u8(display.standardSpacing.blobCode)
-                body.ref(display.narrowSymbol)
-                body.u8(display.narrowSpacing.blobCode)
-            }
-
-            return run
+            let start = pool.offset(of: displayRunImage(of: locale), appendingTo: &body)
+            return Run(start: start, count: locale.displays.count)
         }
 
         return writeDirectory(records, into: &body)
+    }
+
+    private func displayRunImage(of locale: PackedLocale) -> [UInt8] {
+        var image = BlobWriter(base: 0)
+
+        for display in locale.displays {
+            image.currencyCode(display.code.compactValue)
+            image.ref(display.standardSymbol)
+            image.u8(display.standardSpacing.blobCode)
+            image.ref(display.narrowSymbol)
+            image.u8(display.narrowSpacing.blobCode)
+        }
+
+        return image.bytes
     }
 
     // Each language's rule entries first, then the directory (a language count and one entry per
