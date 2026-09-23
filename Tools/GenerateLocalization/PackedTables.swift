@@ -66,9 +66,15 @@ struct PackedTables {
     }
 
     // The overrides first, then the records that point at them, then the directory that points at those.
+    // Identical override runs are shared, so a record points at whichever locale wrote the run first.
     private func writeFullNames(into body: inout BlobWriter) -> Int {
+        var overridePool = RunPool()
+
         let overrides = locales.map { locale in
-            locale.fullNames.map { name in writeOverrides(of: name, into: &body) }
+            locale.fullNames.map { name -> Run in
+                let start = overridePool.offset(of: overrideRunImage(of: name), appendingTo: &body)
+                return Run(start: start, count: name.overrides.count)
+            }
         }
 
         let records = locales.enumerated().map { index, locale in
@@ -87,15 +93,15 @@ struct PackedTables {
         return writeDirectory(records, into: &body)
     }
 
-    private func writeOverrides(of name: PackedLocale.FullName, into body: inout BlobWriter) -> Run {
-        let run = Run(start: body.offset, count: name.overrides.count)
+    private func overrideRunImage(of name: PackedLocale.FullName) -> [UInt8] {
+        var image = BlobWriter(base: 0)
 
         for override in name.overrides {
-            body.u8(override.category.blobCode)
-            body.ref(override.name)
+            image.u8(override.category.blobCode)
+            image.ref(override.name)
         }
 
-        return run
+        return image.bytes
     }
 
     // A display record is self-contained, so identical display runs are byte-identical and share one run.
