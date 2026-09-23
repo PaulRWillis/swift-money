@@ -105,6 +105,30 @@ struct MoneyLocalizationTests {
         #expect(format.format(Money(minorUnits: 1_00, currency: chf)) == "CHF\u{00A0}1.00")
     }
 
+    // A locale whose default numbering system is not `latn` renders the amount in its own digits, with
+    // the separators the system's own symbols carry. CLDR 48 is the source of truth here: the platform
+    // ICU renders some of these locales in ASCII digits, a stale-ICU deviation the audit accepts.
+    @Test(
+        "A non-Latin-digit locale renders the amount in its own digits",
+        arguments: [
+            (locale: "bn", zero: "০", amount: "১,২৩৪.৫৬"),   // Bengali, Indian grouping
+            (locale: "mr", zero: "०", amount: "१,२३४.५६"),   // Devanagari, Western grouping
+            (locale: "ne", zero: "०", amount: "१,२३४.५६"),   // Devanagari
+        ]
+    )
+    func nonLatinDigits(_ row: (locale: String, zero: String, amount: String)) throws {
+        let usd = Self.currency("USD")
+        let format = try #require(
+            MoneyLocalization.moneyFormat(for: usd, locale: LocaleIdentifier(row.locale)),
+            "\(row.locale) should be a covered locale"
+        )
+
+        let text = format.format(Money(minorUnits: 12_34_56, currency: usd))
+        #expect(text.contains(row.amount), "\(row.locale): '\(text)' should contain '\(row.amount)'")
+        #expect(!text.contains { $0.isNumber && $0.isASCII }, "\(row.locale): '\(text)' has ASCII digits")
+        #expect(format.format(Money(minorUnits: 0, currency: usd)).contains(row.zero))
+    }
+
     @Test("An uncovered locale returns nil, and a region falls back to its language")
     func coverage() {
         #expect(MoneyLocalization.moneyFormat(for: Self.currency("GBP"), locale: "zz-ZZ") == nil)

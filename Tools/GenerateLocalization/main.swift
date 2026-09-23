@@ -81,6 +81,53 @@ func numbers(_ locale: String) -> [String: Any] {
     return entry["numbers"] as! [String: Any]
 }
 
+// The ten digit glyphs of every numbering system that writes with them, keyed by system name, from
+// CLDR's numberingSystems.json. Algorithmic systems (Roman, spellout) have no glyphs and are left out,
+// so a locale defaulting to one is refused rather than rendered with the wrong digits.
+let digitSets: [String: String] = {
+    let root = json("\(cldrSupplemental)/numberingSystems.json")
+    guard
+        let supplemental = root["supplemental"] as? [String: Any],
+        let systems = supplemental["numberingSystems"] as? [String: [String: String]]
+    else {
+        fatalError("Could not read the numbering systems from numberingSystems.json")
+    }
+
+    return systems.compactMapValues { $0["_type"] == "numeric" ? $0["_digits"] : nil }
+}()
+
+// The digit glyphs a locale's default numbering system writes with, as the tables carry them: nil for
+// `latn` (the ASCII digits the engine writes directly), the ten glyphs for a representable non-Latin
+// system, or a refusal for a system with no glyphs or one the engine cannot render.
+func digitGlyphs(forSystem system: String) throws(LocaleSkip) -> String? {
+    guard system != "latn" else {
+        return nil
+    }
+    guard let glyphs = digitSets[system], DigitGlyphs(glyphs) != nil else {
+        throw .unrepresentableNumberFormat(.nonLatinDigits(numberingSystem: system))
+    }
+    return glyphs
+}
+
+// A locale's number symbols for `system`, taking the system's own block and falling back to the `latn`
+// block for any key it does not carry. CLDR files the separators under each numbering system it publishes.
+func numberSymbols(_ numbers: [String: Any], system: String) -> [String: String] {
+    let latn = numbers["symbols-numberSystem-latn"] as! [String: String]
+    guard system != "latn", let own = numbers["symbols-numberSystem-\(system)"] as? [String: String] else {
+        return latn
+    }
+    return latn.merging(own) { _, ownValue in ownValue }
+}
+
+// A locale's currency formats for `system`, with the same `latn` fallback as ``numberSymbols(_:system:)``.
+func currencyFormats(_ numbers: [String: Any], system: String) -> [String: Any] {
+    let latn = numbers["currencyFormats-numberSystem-latn"] as! [String: Any]
+    guard system != "latn", let own = numbers["currencyFormats-numberSystem-\(system)"] as? [String: Any] else {
+        return latn
+    }
+    return latn.merging(own) { _, ownValue in ownValue }
+}
+
 // Every locale CLDR publishes, in the order the locale section is binary searched in.
 //
 // Sorted here rather than taken as the file system gives it: that order is arbitrary, and the order
@@ -676,8 +723,12 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip], scripts
     }
 
     let n = numbers(locale)
-    let symbols = n["symbols-numberSystem-latn"] as! [String: String]
-    let formats = n["currencyFormats-numberSystem-latn"] as! [String: Any]
+    // The separators, pattern and digits all come from the locale's default numbering system, which is
+    // `latn` for most locales and its own set (Bengali, Devanagari, ...) for the rest.
+    let system = n["defaultNumberingSystem"] as! String
+    let digits = try digitGlyphs(forSystem: system)
+    let symbols = numberSymbols(n, system: system)
+    let formats = currencyFormats(n, system: system)
 
     try refuseUnrepresentable(
         numbers: n, formats: formats, locale: locale,
@@ -704,7 +755,7 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip], scripts
         primaryGroupingSize: UInt8(parsed.grouping.primary),
         secondaryGroupingSize: UInt8(parsed.grouping.secondary),
         fullNameSpacing: fullName.spacing,
-        digits: nil,
+        digits: digits,
         pattern: patternLiteral(
             side: parsed.side,
             accountingNegative: parsed.accountingNegative,
@@ -723,8 +774,8 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip], scripts
 // The number format is checked before the pattern, which answers a narrower question: the pattern
 // reader takes the part before the first `;` and looks only between the currency and the nearest
 // digit, so it would pass over a relocated negative, a directional mark or a grouping threshold
-// without noticing. The `-latn` keys are read whatever the locale's own numbering system is, which
-// is exactly why the system has to be checked rather than assumed.
+// without noticing. `formats` is the locale's default numbering system's block, so a directional mark
+// or a relocated negative is caught in the pattern the locale actually renders with.
 func refuseUnrepresentable(
     numbers: [String: Any],
     formats: [String: Any],
@@ -736,7 +787,6 @@ func refuseUnrepresentable(
 
     if let unsupported = UnsupportedNumberFormat(
         standardPattern: standard,
-        defaultNumberingSystem: numbers["defaultNumberingSystem"] as! String,
         minimumGroupingDigits: minimumGroupingDigits(numbers, locale: locale)
     ) {
         throw .unrepresentableNumberFormat(unsupported)
