@@ -25,11 +25,16 @@ jobs:
     # initialisation is not thread-safe on this platform. Run in parallel under the sanitizer, concurrent
     # ICU calls corrupt each other's output; the sanitizer checks this package's own code, none of which
     # spawns threads, so serialising loses no coverage.
+    #
+    # The golden suite is skipped for the same reason it is safe to serialise. It hashes the engine's
+    # rendering for every covered locale, which is hundreds of thousands of calls and, under the
+    # sanitizer, minutes of the budget; none of it spawns a thread, so it finds nothing here. Four
+    # other jobs run it.
     - name: Run thread sanitizer
-      run: swift test --sanitize=thread --no-parallel
+      run: swift test --sanitize=thread --no-parallel --skip MoneyFormatStyleGolden
 
     - name: Clean before release build
       run: swift package clean
 
     - name: Run thread sanitizer on release build
-      run: swift test --sanitize=thread -c release -Xswiftc -enable-testing --no-parallel
+      run: swift test --sanitize=thread -c release -Xswiftc -enable-testing --no-parallel --skip MoneyFormatStyleGolden

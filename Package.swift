@@ -45,7 +45,10 @@ let package = Package(
         ),
         .target(
             name: "SwiftMoneyLocalization",
-            dependencies: ["SwiftMoneyCore"]
+            dependencies: ["SwiftMoneyCore"],
+            // The generator writes its report of the locales it left out beside the tables, so that
+            // regenerating and diffing one directory covers both. It is documentation, not a resource.
+            exclude: ["Generated/UnsupportedLocales.md"]
         ),
         .target(
             name: "SwiftMoneyFoundation",
@@ -70,6 +73,17 @@ let package = Package(
         // which shapes the generated tables cannot represent. Not in any library product.
         .target(
             name: "CLDRCurrencyPatterns"
+        ),
+        // Dev-only. Works out the identifier a locale's data has to be filed under to be found.
+        // Not in any library product.
+        .target(
+            name: "CLDRLocaleIdentifiers"
+        ),
+        // Dev-only. Names why the generator cannot build tables for a CLDR locale, and renders the
+        // committed report of the ones it left out. Not in any library product.
+        .target(
+            name: "CLDRLocaleSkips",
+            dependencies: ["CLDRCurrencyPatterns", "SwiftMoneyLocalization"]
         ),
         .testTarget(
             name: "SwiftMoneyTests",
@@ -99,12 +113,22 @@ let package = Package(
             name: "CLDRCurrencyPatternsTests",
             dependencies: ["CLDRCurrencyPatterns"]
         ),
+        .testTarget(
+            name: "CLDRLocaleIdentifiersTests",
+            dependencies: ["CLDRLocaleIdentifiers"]
+        ),
+        .testTarget(
+            name: "CLDRLocaleSkipsTests",
+            dependencies: ["CLDRLocaleSkips", "CLDRCurrencyPatterns", "SwiftMoneyLocalization"]
+        ),
         // Dev-only. Reads the pinned CLDR JSON (Tools/cldr/node_modules) and regenerates
         // SwiftMoneyLocalization's data tables. Not in any library product.
         .executableTarget(
             name: "GenerateSwiftMoneyLocalization",
             dependencies: [
                 "CLDRCurrencyPatterns",
+                "CLDRLocaleIdentifiers",
+                "CLDRLocaleSkips",
                 "CLDRPluralParsing",
                 "SwiftMoneyCore",
                 "SwiftMoneyLocalization",

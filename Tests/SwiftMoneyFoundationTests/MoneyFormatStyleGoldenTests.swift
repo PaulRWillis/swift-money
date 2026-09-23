@@ -1,4 +1,3 @@
-import SwiftMoneyCore
 import SwiftMoneyFormatMatrix
 import Testing
 
@@ -25,16 +24,26 @@ struct MoneyFormatStyleGoldenTests {
 
     // A cell the data cannot render falls back to ICU, and a digest of ICU's text would not be
     // portable, so a locale carries its weight only where it names some currencies itself. How many
-    // varies widely: a rich locale names nearly every shipped currency, a thin CLDR locale only a
-    // handful, and both are legitimate. The bar is therefore one: a locale that names nothing renders
-    // no full name through the engine at all, which is a real bug. An aggregate proportion can tighten
-    // this once wide coverage shows the real distribution.
-    @Test("Every covered locale names at least one currency", arguments: FormatMatrix.coveredLocaleIDs)
-    func fullNamesCoverAtLeastOneCurrency(_ localeID: String) {
-        let named = Currency.allISO4217.count {
-            FormatMatrix.isEngineCovered($0, localeID: localeID, presentation: .fullName)
-        }
+    // varies enormously: a rich locale names nearly every shipped currency, a thin one a handful, and
+    // a locale inheriting CLDR's root names none at all, which ICU also does, so its output is right
+    // rather than missing.
+    //
+    // No per-locale bar can hold across that spread, and the digests say only that a locale's output
+    // moved, never in which direction. Two committed totals say it instead: coverage that shrinks
+    // fails, and a locale that stops naming anything has to be accounted for rather than slip past.
+    @Test("The engine names as many currencies as were recorded")
+    func namedCurrencyTotalHolds() {
+        #expect(
+            FormatMatrix.namedCurrencyTotal == goldenNamedCurrencyTotal,
+            "regenerate with `swift run RecordGoldenDigests`. got \(FormatMatrix.namedCurrencyTotal)"
+        )
+    }
 
-        #expect(named >= 1, "\(localeID) names no currencies")
+    @Test("As many covered locales name nothing as were recorded")
+    func localesNamingNothingHolds() {
+        #expect(
+            FormatMatrix.localesNamingNoCurrency == goldenLocalesNamingNoCurrency,
+            "regenerate with `swift run RecordGoldenDigests`. got \(FormatMatrix.localesNamingNoCurrency)"
+        )
     }
 }

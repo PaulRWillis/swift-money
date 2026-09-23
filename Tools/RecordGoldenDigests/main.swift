@@ -1,9 +1,10 @@
 import Foundation
 import SwiftMoneyFormatMatrix
 
-// A dev-only tool. Writes the committed golden digests the MoneyFormatStyle golden test reads: one
-// portable FNV-1a hash of the engine's output per covered locale. Not part of any library product; run
-// with `swift run RecordGoldenDigests` after an intended output change, then commit the result.
+// A dev-only tool. Writes what the MoneyFormatStyle golden test reads: one portable FNV-1a hash of the
+// engine's output per covered locale, and the two counts that say how much of the full-name
+// presentation the engine carries. Not part of any library product; run with
+// `swift run RecordGoldenDigests` after an intended output change, then commit the result.
 
 let repoRoot = FileManager.default.currentDirectoryPath
 let outputPath = "\(repoRoot)/Tests/SwiftMoneyFoundationTests/Generated/GoldenDigests.swift"
@@ -26,7 +27,18 @@ for entry in entries {
     output += "    \"\(entry.id)\": 0x\(String(entry.digest, radix: 16)),\n"
 }
 
-output += "]\n"
+output += """
+]
+
+// How many (locale, currency) pairs the engine can name in words, across every covered locale. A
+// digest says a locale's output moved; this says whether coverage of it grew or shrank.
+let goldenNamedCurrencyTotal = \(FormatMatrix.namedCurrencyTotal)
+
+// How many covered locales name no currency at all. A locale inheriting CLDR's root has the symbols
+// and none of the names, which ICU renders the same way, so this is recorded rather than forbidden.
+let goldenLocalesNamingNoCurrency = \(FormatMatrix.localesNamingNoCurrency)
+
+"""
 
 try? FileManager.default.createDirectory(
     atPath: (outputPath as NSString).deletingLastPathComponent,

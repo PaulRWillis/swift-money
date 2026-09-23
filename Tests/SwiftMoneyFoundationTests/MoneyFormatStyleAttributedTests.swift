@@ -1,6 +1,7 @@
 import Foundation
 import SwiftMoneyCore
 import SwiftMoneyFoundation
+import SwiftMoneyLocalization
 import Testing
 
 // The AttributedString renderer. Its load-bearing guarantee is that the attributed text equals the
@@ -31,8 +32,15 @@ struct MoneyFormatStyleAttributedTests {
         }
     }
 
-    // Covered locales plus a few the CLDR data does not cover, so the ICU fallback is exercised too.
-    static let locales = ["en_US", "en_GB", "de_DE", "fr_FR", "ja_JP", "sw", "si", "ro", "el_GR", "pt_BR"]
+    // Covered locales plus one the data does not cover, so the ICU fallback is exercised too.
+    static let locales = ["en_US", "en_GB", "de_DE", "fr_FR", "ja_JP", "sw", "si", "ro", uncovered]
+
+    /// An identifier no CLDR data will ever cover, so that widening the covered set cannot quietly
+    /// turn the fallback tests below into tests of the engine.
+    ///
+    /// A real locale would not do: these once used `el_GR` and `pt_BR`, both of which the data went on
+    /// to cover, and a test that then exercised the engine went on passing while proving nothing.
+    static let uncovered = "zz_ZZ"
     static let isos = ["USD", "GBP", "EUR", "JPY", "BHD"]
     static let amounts: [Int64] = [0, 1, 1_00, 12_34_56, -12_34_56, 1_234_567_89]
     static let presentations: [Money.FormatStyle.Configuration.Presentation] =
@@ -99,7 +107,11 @@ struct MoneyFormatStyleAttributedTests {
 
     @Test("An uncovered locale still renders via the ICU fallback")
     func uncoveredLocaleFallsBack() {
-        let style = Money.FormatStyle(locale: Locale(identifier: "el_GR"))
+        // Asserted rather than assumed: the whole test is about the fallback, so a locale that turned
+        // out to be covered would leave it quietly testing the engine instead.
+        #expect(MoneyLocalization.moneyFormat(for: .eur, locale: LocaleIdentifier(Self.uncovered)) == nil)
+
+        let style = Money.FormatStyle(locale: Locale(identifier: Self.uncovered))
         let attributed = style.attributed.format(Self.money(1_234_56, "EUR"))
 
         #expect(!String(attributed.characters).isEmpty)
