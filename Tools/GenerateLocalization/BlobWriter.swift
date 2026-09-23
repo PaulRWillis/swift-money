@@ -27,7 +27,12 @@ struct BlobWriter {
     mutating func u16(_ value: UInt16) { digits(UInt64(value), width: BlobDigits.u16) }
     mutating func u32(_ value: Int) { digits(UInt64(value), width: BlobDigits.u32) }
     mutating func u64(_ value: UInt64) { digits(value, width: BlobDigits.u64) }
-    mutating func currencyCode(_ value: UInt64) { digits(value, width: BlobDigits.currencyCode) }
+    mutating func currencyCode(_ compactValue: UInt64) {
+        guard let wire = BlobDigits.currencyCodeWire(compactValue) else {
+            preconditionFailure("currency code is not exactly \(BlobDigits.currencyCode) symbols")
+        }
+        digits(wire, width: BlobDigits.currencyCode)
+    }
 
     mutating func ref(_ ref: StringRef) {
         u32(Int(ref.offset))

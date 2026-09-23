@@ -18,8 +18,24 @@ package enum BlobDigits {
     /// How many digits a ``StringRef`` takes: an offset and a length.
     package static let stringRef = u32 * 2
 
-    /// How many digits a currency code takes: its `compactValue` is 48 bits, six per symbol.
-    package static let currencyCode = 8
+    /// How many digits a currency code takes. The blob stores only three-letter ISO codes, so it keeps
+    /// three of the eight symbols `compactValue` can hold.
+    package static let currencyCode = 3
+
+    /// How many six-bit symbols a ``CurrencyCode/compactValue`` holds: 48 bits, six per symbol.
+    package static let compactValueSymbols = 8
+
+    /// The wire form of a currency code: the top ``currencyCode`` symbols of its `compactValue`, or `nil`
+    /// unless the code is exactly that many symbols.
+    ///
+    /// `compactValue` is left aligned in ``compactValueSymbols`` slots, so a three-symbol code leaves the
+    /// lower slots zero and its symbols sit in the top of the value. A longer code fills a lower slot, so
+    /// it has no wire form and is reported rather than truncated to a code it is not, which is what keeps
+    /// a longer code from matching a stored three-letter one.
+    package static func currencyCodeWire(_ compactValue: UInt64) -> UInt64? {
+        let shift = bits * (compactValueSymbols - currencyCode)
+        return compactValue & ((UInt64(1) << shift) - 1) == 0 ? compactValue >> shift : nil
+    }
 
     /// The digit standing for a six-bit value: `-`, `.`, `0`–`9`, `A`–`Z`, then `a`–`z`.
     ///
