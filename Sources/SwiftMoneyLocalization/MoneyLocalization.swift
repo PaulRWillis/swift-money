@@ -33,20 +33,21 @@ public enum MoneyLocalization {
         }
 
         let format = numberFormat(at: localeIndex)
-        let code = String(currency.code)
         let display = cldr.currencyDisplays.display(localeIndex: localeIndex, code: currency.code)
 
+        // Build the code string only where it is used: as the fallback when a locale has no symbol, and
+        // for the ISO presentation. The common case (a currency with a symbol) never builds it.
         let symbol: String
         let spacing: Spacing
         switch presentation {
         case .standard:
-            symbol = display?.standardSymbol ?? code
+            symbol = display?.standardSymbol ?? String(currency.code)
             spacing = display?.standardSpacing ?? format.isoCodeSpacing
         case .narrow:
-            symbol = display?.narrowSymbol ?? code
+            symbol = display?.narrowSymbol ?? String(currency.code)
             spacing = display?.narrowSpacing ?? format.isoCodeSpacing
         case .isoCode:
-            symbol = code
+            symbol = String(currency.code)
             spacing = format.isoCodeSpacing
         }
 

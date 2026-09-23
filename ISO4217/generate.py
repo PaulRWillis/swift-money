@@ -114,14 +114,23 @@ def types(found):
     return lines + ["}"]
 
 
+def symbol(char):
+    """The six-bit symbol `CurrencyCode` uses: A-Z become 1...26 and 0-9 become 27...36."""
+    if "A" <= char <= "Z":
+        return ord(char) - ord("A") + 1
+    if "0" <= char <= "9":
+        return ord(char) - ord("0") + 27
+    raise ValueError(f"{char!r} is not an uppercase alphanumeric")
+
+
 def packed(code):
-    """A code as the single word `CurrencyCode` stores, first character in the high byte."""
+    """A code as the single word `CurrencyCode` stores: six bits per symbol, high symbol first."""
     value = 0
 
-    for byte in code.encode():
-        value = value << 8 | byte
+    for char in code:
+        value = value << 6 | symbol(char)
 
-    return value << (8 * (8 - len(code)))
+    return value << (6 * (8 - len(code)))
 
 
 def lookup(found):
@@ -134,10 +143,10 @@ def lookup(found):
         '    /// Currency(iso: "LTY")   // nil',
         "    /// ```",
         "    init?(iso code: CurrencyCode) {",
-        "        // Switched on the packed word rather than the code, so the compiler can build a",
+        "        // Switched on the compact word rather than the code, so the compiler can build a",
         "        // search over integers. Every case is checked by the tests, which look up all of",
         "        // these by their spelling.",
-        "        switch code.packedValue {",
+        "        switch code.compactValue {",
     ]
 
     for currency in found:

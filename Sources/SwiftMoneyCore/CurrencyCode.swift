@@ -8,10 +8,12 @@
 /// every token symbol in circulation: some contain punctuation, emoji, or non-Latin scripts, and a
 /// rule permitting those would validate nothing.
 public struct CurrencyCode: Equatable, Hashable, Sendable {
-    // The eight bytes of a code, uppercased, first character in the high byte and zero padded to the
-    // right. Comparing two codes is then one integer compare rather than a call into String, which
-    // is what makes a runtime amount's arithmetic cheap, and the high-byte-first order means codes
-    // sort as they read.
+    // The code packed six bits per character, uppercased, high character in the top six bits and left
+    // aligned in eight symbol slots (the low bits zero for a short code). Each character is a symbol
+    // 1...36 (A–Z then 0–9); zero is an empty slot, so the length is where the symbols stop. Comparing
+    // two codes is then one integer compare rather than a call into String, which is what makes a runtime
+    // amount's arithmetic cheap, and the high-symbol-first order means codes sort as they read. Forty-eight
+    // bits hold eight symbols; the top sixteen bits are unused.
     private let storage: UInt64
 
     /// Creates a currency code from a string that may not be valid.
@@ -48,10 +50,10 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
                 return nil
             }
 
-            packed = packed << 8 | UInt64(byte.uppercasedASCII)
+            packed = packed << 6 | UInt64(byte.uppercasedASCII.alphanumericSymbol)
         }
 
-        return packed << (8 * (8 - bytes.count))
+        return packed << (6 * (8 - bytes.count))
     }
 
     private init(packed: UInt64) {
@@ -74,45 +76,25 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
                     return nil
                 }
 
-                return (CurrencyCode(packed: packed << (8 * (8 - count))), index + 1)
+                return (CurrencyCode(packed: packed << (6 * (8 - count))), index + 1)
             }
 
             guard count < 8, byte.isASCIIAlphanumeric else {
                 return nil
             }
 
-            packed = packed << 8 | UInt64(byte.uppercasedASCII)
+            packed = packed << 6 | UInt64(byte.uppercasedASCII.alphanumericSymbol)
             count += 1
         }
 
         return nil
     }
 
-    // The code as one word, first character in the high byte, so codes compare and sort as one integer.
+    // The code as the single word it is stored as: six bits per character, high character in the top bits,
+    // so codes compare and sort as one integer. This is the form the byte serializer writes and the packed
+    // tables key on.
     @usableFromInline
-    package var packedValue: UInt64 { storage }
-
-    // The code packed six bits per character, so three to eight of them fit in six bytes rather than the
-    // eight the whole-byte `packedValue` uses — the form the byte serializer writes. Each character is a
-    // symbol 1...36 (A–Z then 0–9); zero is the empty slot, so the length is implicit in where the
-    // symbols stop. The high character occupies the top six bits, matching `packedValue`'s order, so a
-    // packed code still sorts as it reads. The top sixteen bits are unused (48 bits hold eight symbols).
-    @usableFromInline
-    package var compactValue: UInt64 {
-        var compact: UInt64 = 0
-
-        for shift in stride(from: 56, through: 0, by: -8) {
-            let byte = UInt8(truncatingIfNeeded: storage >> shift)
-
-            guard byte != 0 else {
-                break
-            }
-
-            compact = compact << 6 | UInt64(byte.alphanumericSymbol)
-        }
-
-        return compact << (6 * (8 - utf8Count))
-    }
+    package var compactValue: UInt64 { storage }
 
     // Rebuilds a code from its six-bit packed form, or `nil` when the symbols are not a valid code:
     // fewer than three or a symbol out of range. Validating, because packed bytes come from outside.
@@ -127,11 +109,11 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
             guard symbol != 0 else {
                 break
             }
-            guard let byte = UInt8(alphanumericSymbol: symbol) else {
+            guard UInt8(alphanumericSymbol: symbol) != nil else {
                 return nil
             }
 
-            storage = storage << 8 | UInt64(byte)
+            storage = storage << 6 | UInt64(symbol)
             count += 1
         }
 
@@ -139,16 +121,17 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
             return nil
         }
 
-        self.storage = storage << (8 * (8 - count))
+        self.storage = storage << (6 * (8 - count))
     }
 
     // The bytes of the code, written into a buffer the caller sizes with `utf8Count`. Lets a caller
     // assemble a longer string in one pass rather than building this one and concatenating it.
     func write(into buffer: UnsafeMutableBufferPointer<UInt8>, at offset: inout Int) {
-        for shift in stride(from: 56, through: 0, by: -8) {
-            let byte = UInt8(truncatingIfNeeded: storage >> shift)
+        for shift in stride(from: 42, through: 0, by: -6) {
+            let symbol = UInt8(truncatingIfNeeded: storage >> shift) & 0b11_1111
 
-            guard byte != 0 else {
+            // Storage is built only from validated codes, so every non-zero symbol maps to a byte.
+            guard symbol != 0, let byte = UInt8(alphanumericSymbol: symbol) else {
                 return
             }
 
@@ -161,7 +144,7 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
     var utf8Count: Int {
         var count = 0
 
-        while count < 8, UInt8(truncatingIfNeeded: storage >> (56 - 8 * count)) != 0 {
+        while count < 8, (UInt8(truncatingIfNeeded: storage >> (42 - 6 * count)) & 0b11_1111) != 0 {
             count += 1
         }
 
@@ -173,9 +156,9 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
             var count = 0
 
             while count < 8 {
-                let byte = UInt8(truncatingIfNeeded: storage >> (56 - 8 * count))
+                let symbol = UInt8(truncatingIfNeeded: storage >> (42 - 6 * count)) & 0b11_1111
 
-                guard byte != 0 else {
+                guard symbol != 0, let byte = UInt8(alphanumericSymbol: symbol) else {
                     break
                 }
 
