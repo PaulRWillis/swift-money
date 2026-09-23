@@ -2197,4 +2197,45 @@ let benchmarks: @Sendable () -> Void = {
             index &+= 1
         }
     }
+
+    // Comparing two codes is an integer compare on the packed word; measured so the consolidation can
+    // show it stays flat.
+    Benchmark("CurrencyCode equality", configuration: defaultConfiguration) { benchmark in
+        let codes: [CurrencyCode] = ["GBP", "EUR", "USD", "JPY", "CHF", "AUD"]
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(codes[index % codes.count] == codes[(index + 1) % codes.count])
+            index &+= 1
+        }
+    }
+
+    // The format setup path in isolation: resolve a locale + currency to a MoneyFormat, which is where the
+    // currency code is stringified. Cycles currencies so it cannot be hoisted. Standard presentation, so a
+    // symbol exists and this is the common path a change to the code's representation must not slow.
+    let formatCurrencies: [Currency] = [.gbp, .eur, .usd, .jpy]
+
+    Benchmark("MoneyLocalization moneyFormat, en_GB", configuration: defaultConfiguration) { benchmark in
+        let locale: LocaleIdentifier = "en-GB"
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(MoneyLocalization.moneyFormat(for: formatCurrencies[index % formatCurrencies.count], locale: locale))
+            index &+= 1
+        }
+    }
+
+    // The ISO presentation always stringifies the code, so this is where a change to the code's
+    // representation lands even after the common path stops building the string.
+    Benchmark("MoneyLocalization moneyFormat, ISO code, en_GB", configuration: defaultConfiguration) { benchmark in
+        let locale: LocaleIdentifier = "en-GB"
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(MoneyLocalization.moneyFormat(
+                for: formatCurrencies[index % formatCurrencies.count], locale: locale, presentation: .isoCode
+            ))
+            index &+= 1
+        }
+    }
 }
