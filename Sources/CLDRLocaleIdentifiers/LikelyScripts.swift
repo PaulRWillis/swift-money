@@ -40,6 +40,15 @@ public struct LikelyScripts: Equatable, Sendable {
         return ([subtags[0]] + subtags.dropFirst(2)).joined(separator: "-")
     }
 
+    /// The script CLDR's data implies for `identifier`'s language, or nil when the language is unknown.
+    ///
+    /// `de-CH` implies `Latn` through `de`; `lo` implies `Laoo`. Used to decide whether a locale is
+    /// written in a script a given feature covers yet.
+    public func impliedScript(of identifier: String) -> String? {
+        let language = identifier.split(separator: "-").first.map(String.init) ?? identifier
+        return byLanguage[language]
+    }
+
     // A fully populated identifier is language-script-region, so its script is the second subtag.
     private static func script(of identifier: String) -> String? {
         let subtags = identifier.split(separator: "-")

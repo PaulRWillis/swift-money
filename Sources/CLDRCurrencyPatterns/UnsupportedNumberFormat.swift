@@ -1,13 +1,16 @@
 /// Something in a locale's number format that the generated tables cannot represent.
 ///
 /// These are read before the pattern itself, because the pattern reader answers a narrower question
-/// and would pass over all three without noticing: it looks only between the currency placeholder and
-/// the nearest digit, and takes the part before the first `;`.
+/// and would pass over them without noticing: it looks only between the currency placeholder and the
+/// nearest digit.
 public enum UnsupportedNumberFormat: Equatable, Sendable {
     /// The locale writes amounts in digits other than `0` to `9`, as Arabic-Indic and Devanagari do.
     case nonLatinDigits(numberingSystem: String)
 
     /// The standard pattern arranges a negative amount itself, as in `#,##0.00¤;¤-#,##0.00`.
+    ///
+    /// The affixes can express the arrangement, so the generator reads it for a Latin-script locale.
+    /// It raises this only where that is not yet done, currently a non-Latin-script locale.
     case negativeSubpattern(pattern: String)
 
     /// The pattern carries a directional mark, which places text the affixes have no slot for.
@@ -32,8 +35,6 @@ public extension UnsupportedNumberFormat {
     init?(standardPattern: String, defaultNumberingSystem: String, minimumGroupingDigits: Int) {
         if defaultNumberingSystem != Self.latinDigits {
             self = .nonLatinDigits(numberingSystem: defaultNumberingSystem)
-        } else if standardPattern.contains(Self.subpatternSeparator) {
-            self = .negativeSubpattern(pattern: standardPattern)
         } else if standardPattern.contains(where: Self.isDirectionalMark) {
             self = .directionalMark(pattern: standardPattern)
         } else if minimumGroupingDigits > 1 {
@@ -45,9 +46,6 @@ public extension UnsupportedNumberFormat {
 
     // CLDR's name for the digits 0 to 9.
     private static let latinDigits = "latn"
-
-    // What separates a pattern's positive arrangement from its negative one.
-    private static let subpatternSeparator: Character = ";"
 
     // Left-to-right and right-to-left marks. They carry no width, so a pattern holding one looks
     // identical to a pattern without.
