@@ -126,4 +126,42 @@ struct FullNameMoneyFormatTests {
         #expect(try Self.formatted(1_00, "HTG", "ht") == "1,00 gourdes haïtiennes")
         #expect(try Self.formatted(2_00, "HTG", "ht") == "2,00 gourdes haïtiennes")
     }
+
+    // Regression guards for join shapes the generated data expresses but no other test pins: names
+    // written before the amount, a word written between them, and per-locale variation of those. Each
+    // covered here is a locale whose behaviour would otherwise be locked only by the golden digests.
+
+    // Tongan writes the name first for every amount; it publishes only the `other` join.
+    @Test("Tongan writes the currency name before the amount")
+    func tonganNameFirst() throws {
+        #expect(try Self.formatted(1_00, "EUR", "to") == "ʻeulo 1.00")
+    }
+
+    // Cebuano flips the sides with the plural category: the name follows one unit and leads the rest.
+    @Test("Cebuano writes the name after one unit and before the rest")
+    func cebuanoFlipsSidesByPlural() throws {
+        #expect(try Self.formatted(1_00, "USD", "ceb") == "1.00 US dollar")     // one
+        #expect(try Self.formatted(2_34, "USD", "ceb") == "US dollars 2.34")    // other
+    }
+
+    // A Romanian regional variant keeps Romanian's three categories and its "de" before the name.
+    @Test("Moldovan Romanian keeps the 'de' join before the name for other")
+    func moldovanRomanianKeepsDe() throws {
+        #expect(try Self.formatted(1, "JPY", "ro-MD") == "1 yen japonez")           // one
+        #expect(try Self.formatted(20, "JPY", "ro-MD") == "20 de yeni japonezi")    // other, "de"
+    }
+
+    // A Swahili regional variant writes the name first and uses its own separators: a comma decimal
+    // and a dot for grouping.
+    @Test("Congo Swahili writes the name first with its own separators")
+    func congoSwahiliNameFirstOwnSeparators() throws {
+        #expect(try Self.formatted(1234_56, "USD", "sw-CD") == "dola za Marekani 1.234,56")
+    }
+
+    // Two more Swahili variants, each with its own currency name, to pin that regional data is used.
+    @Test("Kenyan and Ugandan Swahili write their own name before the amount")
+    func swahiliRegionalNamesFirst() throws {
+        #expect(try Self.formatted(4, "JPY", "sw-KE") == "yeni za japani 4")
+        #expect(try Self.formatted(4, "JPY", "sw-UG") == "yen za Japani 4")
+    }
 }
