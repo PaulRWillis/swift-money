@@ -21,4 +21,21 @@ extension FormatMatrix {
 
         return coveredLocaleIDs.filter { shard(ofLocale: $0, count: count) == index }
     }
+
+    /// The covered locales named in `requested`, split into those that are covered and those that are
+    /// not. Lets the deviation report audit an explicit subset, a coverage PR's new locales, instead of
+    /// the whole set or a hash shard.
+    ///
+    /// `selected` follows the covered set's own order, so a subset run's output stays comparable to the
+    /// full run's; `unknown` keeps the requested order, so a caller can report a typo or a locale that is
+    /// not covered (still on the ICU fallback) as the user wrote it.
+    package static func coveredLocales(among requested: [String]) -> (selected: [String], unknown: [String]) {
+        let requestedSet = Set(requested)
+        let coveredSet = Set(coveredLocaleIDs)
+
+        let selected = coveredLocaleIDs.filter(requestedSet.contains)
+        let unknown = requested.filter { !coveredSet.contains($0) }
+
+        return (selected, unknown)
+    }
 }

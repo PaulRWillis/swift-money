@@ -56,6 +56,39 @@ struct FormatMatrixTests {
         #expect(FormatMatrix.localeIDs(inShard: 0, of: 1) == FormatMatrix.coveredLocaleIDs)
     }
 
+    @Test("A requested subset selects the covered locales and reports the rest as unknown")
+    func requestedSubsetSplitsCoveredFromUnknown() {
+        let covered = Array(FormatMatrix.coveredLocaleIDs.prefix(2))
+        let resolved = FormatMatrix.coveredLocales(among: covered + ["zz-ZZ"])
+
+        #expect(resolved.selected == covered)
+        #expect(resolved.unknown == ["zz-ZZ"])
+    }
+
+    @Test("Selected locales follow the covered set's order, not the requested order")
+    func selectedFollowsCoveredOrder() {
+        let covered = Array(FormatMatrix.coveredLocaleIDs.prefix(2))
+        let resolved = FormatMatrix.coveredLocales(among: [covered[1], covered[0]])
+
+        #expect(resolved.selected == covered)
+    }
+
+    @Test("A request of only unknown locales selects none and reports them all")
+    func allUnknownSelectsNone() {
+        let resolved = FormatMatrix.coveredLocales(among: ["zz-ZZ", "not-a-locale"])
+
+        #expect(resolved.selected.isEmpty)
+        #expect(resolved.unknown == ["zz-ZZ", "not-a-locale"])
+    }
+
+    @Test("An empty request selects and reports nothing")
+    func emptyRequestSelectsNothing() {
+        let resolved = FormatMatrix.coveredLocales(among: [])
+
+        #expect(resolved.selected.isEmpty)
+        #expect(resolved.unknown.isEmpty)
+    }
+
     @Test("Grouping off together with a non-automatic sign matches the known Foundation defect")
     func groupingOffWithSignMatchesKnownDefect() {
         let combination = FormatMatrix.combinations.first { $0.grouping == .never && $0.sign == .always() }
