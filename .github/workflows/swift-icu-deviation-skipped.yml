@@ -1,0 +1,71 @@
+name: ICU deviation report (skip notice)
+
+# The ICU deviation report is path-filtered, so a pull request touching none of those paths never runs
+# it and is left with no ICU status. This companion always runs and, in that case only, posts the one
+# marker comment saying the report was skipped, so every pull request carries an ICU status.
+on:
+  pull_request:
+    branches: [ main ]
+
+# Stated rather than inherited from the repository default, since the comment step below needs write
+# access to pull requests and nothing here needs more than that.
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  skipped:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+    # The same globs as swift-icu-deviation-report.yml's `paths:` filter, so this workflow's idea of
+    # "relevant" matches the report's. Keep the two lists in step: if that filter changes, change this
+    # with it, or the skip notice will misfire.
+    - name: Did any ICU-relevant path change?
+      id: filter
+      uses: dorny/paths-filter@v3
+      with:
+        filters: |
+          icu:
+            - 'Sources/SwiftMoneyCore/**'
+            - 'Sources/SwiftMoneyLocalization/**'
+            - 'Sources/SwiftMoneyFoundation/**'
+            - 'Sources/SwiftMoneyFormatMatrix/**'
+            - 'Tools/CompareFormattingToICU/**'
+            - 'Package.swift'
+            - 'Package.resolved'
+            - '.github/workflows/swift-icu-deviation-report.yml'
+
+    # When a relevant path did change the report itself runs and owns the verdict, so the two never
+    # comment on the same push.
+    - name: Build the skip notice
+      if: ${{ steps.filter.outputs.icu == 'false' }}
+      run: |
+        {
+          echo "<!-- icu-deviations -->"
+          echo "### ⏭️ Skipped"
+          echo
+          echo "No localization-relevant files changed, so the ICU deviation report did not run."
+        } > comment_body.md
+
+    # Same marker and find-or-create technique as swift-icu-deviation-report.yml, so both workflows
+    # share the single <!-- icu-deviations --> comment rather than each posting its own.
+    - name: Comment on PR
+      if: ${{ steps.filter.outputs.icu == 'false' }}
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        MARKER: "<!-- icu-deviations -->"
+        PR: ${{ github.event.pull_request.number }}
+      run: |
+        existing="$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
+          | jq -r --arg marker "$MARKER" \
+              '[.[] | select(.body | contains($marker))] | last | .id // empty')"
+
+        if [ -n "$existing" ]; then
+          jq -n --rawfile body comment_body.md '{body: $body}' \
+            | gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$existing" --input - > /dev/null
+          echo "Updated comment $existing"
+        else
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body-file comment_body.md
+        fi
