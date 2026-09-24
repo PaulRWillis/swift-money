@@ -97,7 +97,7 @@ struct MoneyFormatRunsTests {
     func indianGrouping() {
         let rupee = MoneyFormat(
             symbol: "₹", pattern: Self.pattern(currencyFirst: true),
-            grouping: .digits(primary: 3, secondary: 2, separator: ",")
+            grouping: .digits(primary: 3, secondary: 2, separator: ",", minGroupingDigits: 1)
         )
         let runs = rupee.runs(Self.money(1_23_456_78, "INR"), options: .init())
 

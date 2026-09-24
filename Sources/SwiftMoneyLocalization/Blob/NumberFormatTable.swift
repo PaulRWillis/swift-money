@@ -24,7 +24,8 @@ package struct NumberFormatTable: Sendable {
         static let patternIndex = fullNameSpacing + BlobDigits.u8
         static let fullNamePatternIndex = patternIndex + BlobDigits.u16
         static let digits = fullNamePatternIndex + BlobDigits.u16
-        static let stride = digits + BlobDigits.stringRef
+        static let minGroupingDigits = digits + BlobDigits.stringRef
+        static let stride = minGroupingDigits + BlobDigits.u8
     }
 
     package init(
@@ -53,6 +54,7 @@ package struct NumberFormatTable: Sendable {
         let patternIndex = Int(reader.u16(at: record + Record.patternIndex))
         let fullNamePatternIndex = Int(reader.u16(at: record + Record.fullNamePatternIndex))
         let digitGlyphs = reader.string(reader.stringRef(at: record + Record.digits))
+        let minGroupingRaw = Int(reader.u8(at: record + Record.minGroupingDigits))
 
         // The generator writes only valid values, so a failure here is a generator bug, not input.
         guard let groupingSeparator = GroupingSeparator(groupingRaw) else {
@@ -63,6 +65,9 @@ package struct NumberFormatTable: Sendable {
             let secondaryGroupingSize = GroupingSize(exactly: secondaryRaw)
         else {
             preconditionFailure("blob grouping size is not positive")  // coverage:ignore
+        }
+        guard let minGroupingDigits = MinGroupingDigits(exactly: minGroupingRaw) else {
+            preconditionFailure("blob minimum grouping digits is not positive")  // coverage:ignore
         }
         guard let isoCodeSpacing = Spacing(blobCode: isoSpacingCode) else {
             preconditionFailure("blob iso-code spacing code \(isoSpacingCode) is unknown")  // coverage:ignore
@@ -92,7 +97,8 @@ package struct NumberFormatTable: Sendable {
             fullNamePattern: fullNamePatterns[fullNamePatternIndex],
             isoCodeSpacing: isoCodeSpacing,
             fullNameSpacing: fullNameSpacing,
-            digits: digits
+            digits: digits,
+            minGroupingDigits: minGroupingDigits
         )
     }
 }

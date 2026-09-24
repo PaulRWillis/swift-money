@@ -755,6 +755,7 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip], scripts
         primaryGroupingSize: UInt8(parsed.grouping.primary),
         secondaryGroupingSize: UInt8(parsed.grouping.secondary),
         fullNameSpacing: fullName.spacing,
+        minGroupingDigits: UInt8(minimumGroupingDigits(n, locale: locale)),
         digits: digits,
         pattern: patternLiteral(
             side: parsed.side,
@@ -973,7 +974,8 @@ func pack(
         fullNameSpacing: tables.fullNameSpacing,
         patternIndex: index(of: tables.pattern, in: &patterns),
         fullNamePatternIndex: index(of: tables.fullNamePattern, in: &fullNamePatterns),
-        digits: pool.insert(tables.digits ?? "")
+        digits: pool.insert(tables.digits ?? ""),
+        minGroupingDigits: tables.minGroupingDigits
     )
 
     let displays = tables.displays.map { display in

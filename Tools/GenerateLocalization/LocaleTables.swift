@@ -35,6 +35,9 @@ struct LocaleTables {
     let secondaryGroupingSize: UInt8
     let fullNameSpacing: Spacing
 
+    // How many whole digits the integer part needs before grouping shows; one for most locales.
+    let minGroupingDigits: UInt8
+
     // The locale's ten digit glyphs concatenated, or nil when it writes the ASCII 0 to 9.
     let digits: String?
 
