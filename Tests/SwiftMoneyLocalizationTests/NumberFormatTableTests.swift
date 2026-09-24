@@ -30,6 +30,7 @@ struct NumberFormatTableTests {
         b.ref(grouping)
         b.ref(minus)
         b.u8(Spacing.nonBreakingSpace.blobCode)
+        b.u8(Spacing.narrowNonBreakingSpace.blobCode)
         b.u8(3)
         b.u8(3)
         b.u8(Spacing.asciiSpace.blobCode)
@@ -61,6 +62,7 @@ struct NumberFormatTableTests {
             #expect(format.groupingSeparator == ",")
             #expect(format.minusSign == "-")
             #expect(format.isoCodeSpacing == .nonBreakingSpace)
+            #expect(format.symbolSpacing == .narrowNonBreakingSpace)
             #expect(format.primaryGroupingSize == 3)
             #expect(format.secondaryGroupingSize == 3)
             #expect(format.fullNameSpacing == .asciiSpace)
@@ -91,5 +93,17 @@ struct NumberFormatTableTests {
             let digits = table.numberFormat(localeIndex: LocaleIndex(position: 0)).digits
             #expect(digits == .glyphs(expected))
         }
+    }
+
+    // The generated tables carry the pattern gap the commit adds: German bakes a non-breaking space
+    // beside every symbol, English bakes none.
+    @Test(
+        "The generated tables carry each locale's pattern gap",
+        arguments: [(locale: "de", gap: Spacing.nonBreakingSpace), (locale: "en", gap: .none)]
+    )
+    func generatedTablesCarryTheSymbolGap(_ row: (locale: String, gap: Spacing)) throws {
+        let index = try #require(MoneyLocalization.cldr.locales.index(of: LocaleIdentifier(row.locale)))
+        let format = MoneyLocalization.cldr.numberFormats.numberFormat(localeIndex: index)
+        #expect(format.symbolSpacing == row.gap)
     }
 }

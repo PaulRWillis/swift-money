@@ -768,6 +768,13 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip]) throws(
     let symbolForms = try displays(of: locale, parsed: parsed, insertBetween: insertBetween)
     let names = fullNameRecords(of: locale)
 
+    // The pattern's own literal gap, which applies beside every symbol including a glyph. An empty gap
+    // is `.none`; any non-empty one is already a `Spacing`, since the ISO spacing above reads the same
+    // literal and would have skipped the locale otherwise.
+    guard let symbolSpacing = Spacing(rendering: parsed.patternSpacing) else {
+        throw .unrepresentableGap(parsed.patternSpacing, symbol: "¤")
+    }
+
     return LocaleTables(
         decimalSeparator: required(symbols, "decimal", in: locale),
         groupingSeparator: required(symbols, "group", in: locale),
@@ -779,6 +786,7 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip]) throws(
             patternSpacing: parsed.patternSpacing,
             insertBetween: insertBetween
         ),
+        symbolSpacing: symbolSpacing,
         primaryGroupingSize: UInt8(parsed.grouping.primary),
         secondaryGroupingSize: UInt8(parsed.grouping.secondary),
         fullNameSpacing: fullName.spacing,
@@ -984,6 +992,7 @@ func pack(
         groupingSeparator: pool.insert(tables.groupingSeparator),
         minusSign: pool.insert(tables.minusSign),
         isoCodeSpacing: tables.isoCodeSpacing,
+        symbolSpacing: tables.symbolSpacing,
         primaryGroupingSize: tables.primaryGroupingSize,
         secondaryGroupingSize: tables.secondaryGroupingSize,
         fullNameSpacing: tables.fullNameSpacing,

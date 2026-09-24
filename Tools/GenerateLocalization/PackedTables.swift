@@ -55,6 +55,7 @@ struct PackedTables {
             body.ref(format.groupingSeparator)
             body.ref(format.minusSign)
             body.u8(format.isoCodeSpacing.blobCode)
+            body.u8(format.symbolSpacing.blobCode)
             body.u8(format.primaryGroupingSize)
             body.u8(format.secondaryGroupingSize)
             body.u8(format.fullNameSpacing.blobCode)
