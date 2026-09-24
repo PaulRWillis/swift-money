@@ -19,9 +19,9 @@ struct UnsupportedNumberFormatTests {
         #expect(UnsupportedNumberFormat(standardPattern: pattern) == nil)
     }
 
-    // de-CH: the affixes carry a locale's own negative arrangement, so a negative subpattern is no
-    // longer refused at the number-format level. The generator reads it for a Latin-script locale, and
-    // raises `.negativeSubpattern` itself where it does not, so this check does not.
+    // de-CH: the affixes carry a locale's own negative arrangement, so a negative subpattern is not
+    // refused at the number-format level. The generator reads it whatever the locale's script; only a
+    // directional mark or a non-Latin digit set is refused here.
     @Test("A standard pattern with a negative subpattern is representable")
     func negativeSubpatternIsRepresentable() {
         let pattern = "\u{00A4}\u{00A0}#,##0.00;\u{00A4}-#,##0.00"
@@ -44,7 +44,6 @@ struct UnsupportedNumberFormatTests {
     func casesDescribeThemselves() {
         let descriptions = [
             UnsupportedNumberFormat.nonLatinDigits(numberingSystem: "arab"),
-            .negativeSubpattern(pattern: "a;b"),
             .directionalMark(pattern: "a"),
         ].map(\.description)
 

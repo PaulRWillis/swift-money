@@ -3,13 +3,15 @@
 // Kept apart from magnitude so that arithmetic never has to negate. The smallest value of a signed
 // type has no positive counterpart, so taking an absolute value would overflow, while every magnitude
 // is an ordinary unsigned integer.
-enum Sign: Equatable {
+@usableFromInline
+package enum Sign: Equatable {
     case positive
     case negative
 
     // Zero counts as positive. It has no sign of its own, but nothing here needs one: a zero magnitude
     // is the same value whichever sign is applied to it.
-    init(of value: some SignedInteger) {
+    @usableFromInline
+    package init(of value: some SignedInteger) {
         self = value < 0 ? .negative : .positive
     }
 

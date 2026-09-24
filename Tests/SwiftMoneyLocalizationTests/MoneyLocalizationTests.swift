@@ -105,6 +105,21 @@ struct MoneyLocalizationTests {
         #expect(format.format(Money(minorUnits: 1_00, currency: chf)) == "CHF\u{00A0}1.00")
     }
 
+    // Lao is written in a non-Latin script (Laoo) but Latin digits, and carries a negative subpattern
+    // (¤#,##0.00;¤-#,##0.00) that writes the minus after the symbol. The generator used to refuse a
+    // negative subpattern on any non-Latin-script locale; now it reads it whatever the script.
+    @Test("A non-Latin-script locale's negative subpattern puts the minus after the symbol")
+    func nonLatinScriptNegativeSubpattern() throws {
+        let lak = Self.currency("LAK")
+        let format = try #require(
+            MoneyLocalization.moneyFormat(for: lak, locale: "lo"),
+            "lo should be a covered locale"
+        )
+
+        #expect(format.format(Money(minorUnits: -1_00, currency: lak)) == "₭-1,00")
+        #expect(format.format(Money(minorUnits: 1_00, currency: lak)) == "₭1,00")
+    }
+
     // A locale whose default numbering system is not `latn` renders the amount in its own digits, with
     // the separators the system's own symbols carry. CLDR 48 is the source of truth here: the platform
     // ICU renders some of these locales in ASCII digits, a stale-ICU deviation the audit accepts.

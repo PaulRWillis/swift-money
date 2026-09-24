@@ -7,12 +7,6 @@ public enum UnsupportedNumberFormat: Equatable, Sendable {
     /// The locale writes amounts in digits other than `0` to `9`, as Arabic-Indic and Devanagari do.
     case nonLatinDigits(numberingSystem: String)
 
-    /// The standard pattern arranges a negative amount itself, as in `#,##0.00¤;¤-#,##0.00`.
-    ///
-    /// The affixes can express the arrangement, so the generator reads it for a Latin-script locale.
-    /// It raises this only where that is not yet done, currently a non-Latin-script locale.
-    case negativeSubpattern(pattern: String)
-
     /// The pattern carries a directional mark, which places text the affixes have no slot for.
     case directionalMark(pattern: String)
 }
@@ -46,8 +40,6 @@ extension UnsupportedNumberFormat: CustomStringConvertible {
         switch self {
         case .nonLatinDigits(let numberingSystem):
             "amounts are written in the \(numberingSystem) digits rather than 0 to 9"
-        case .negativeSubpattern(let pattern):
-            "the standard pattern arranges a negative amount itself: \(pattern)"
         case .directionalMark(let pattern):
             "the standard pattern carries a directional mark: \(pattern)"
         }

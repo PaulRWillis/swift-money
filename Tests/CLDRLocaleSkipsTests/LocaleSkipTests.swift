@@ -22,7 +22,7 @@ struct LocaleSkipTests {
     func reasonsCarryNoDetail() {
         let skips = [
             LocaleSkip.unrepresentableNumberFormat(.nonLatinDigits(numberingSystem: "arab")),
-            .unrepresentableNumberFormat(.negativeSubpattern(pattern: "#,##0.00;(#,##0.00)")),
+            .unrepresentableNumberFormat(.directionalMark(pattern: "\u{200F}#,##0.00")),
             .unsupportedPluralRule(language: "bem", relation: "within"),
             .noCurrencyPlaceholder(pattern: "#,##0.00"),
             .unreadableCurrencySpacing(rule: "currencyMatch [:^S:]"),
@@ -116,7 +116,6 @@ struct LocaleSkipTests {
     // until it appeared unlabelled in the committed report.
     static let oneOfEachCase: [LocaleSkip] = [
         .unrepresentableNumberFormat(.nonLatinDigits(numberingSystem: "arab")),
-        .unrepresentableNumberFormat(.negativeSubpattern(pattern: "#,##0.00;-#,##0.00")),
         .unrepresentableNumberFormat(.directionalMark(pattern: "\u{200F}#,##0.00")),
         .duplicateOfShorterIdentifier("ff"),
         .unsupportedPluralRule(language: "bem", relation: "within"),

@@ -188,7 +188,7 @@ public extension MoneyFormat {
             money.minorUnits, scalePlaces: places, showing: digitsShown, rounding: rounding
         )
 
-        let negative = value < 0
+        let amountSign = Sign(of: value)
         let magnitude = value.magnitude
         let unit = UInt64.powerOfTen(digitsShown)
         let whole = digitsShown == 0 ? magnitude : magnitude / unit
@@ -208,8 +208,8 @@ public extension MoneyFormat {
         let separators = groups.map { 1 + (wholeDigits - $0.primary - 1) / $0.secondary } ?? 0
         let showsSeparator = digitsShown > 0 || options.decimalSeparator == .always
 
-        let affixes = pattern.affixes(negative: negative, sign: options.sign)
-        let sign = signText(negative: negative, strategy: options.sign)
+        let affixes = pattern.affixes(for: amountSign, sign: options.sign)
+        let sign = signText(for: amountSign, strategy: options.sign)
 
         // The digits, their grouping separators, and the decimal separator with the fraction when both
         // are shown: the body every affix wraps, always in this order. A non-ASCII digit set is wider
@@ -279,14 +279,14 @@ public extension MoneyFormat {
     // What the sign slot writes. A pattern that marks a negative another way, such as with accounting
     // parentheses, carries no sign part, so this never reaches the output there.
     @inlinable
-    package func signText(negative: Bool, strategy: MoneyFormatOptions.Sign) -> String {
+    package func signText(for amountSign: Sign, strategy: MoneyFormatOptions.Sign) -> String {
         switch strategy {
         case .never:
             ""
         case .always:
-            negative ? minusSign : plusSign
+            amountSign == .negative ? minusSign : plusSign
         case .automatic, .accounting:
-            negative ? minusSign : ""
+            amountSign == .negative ? minusSign : ""
         }
     }
 
@@ -483,7 +483,7 @@ package extension MoneyFormat {
             money.minorUnits, scalePlaces: places, showing: digitsShown, rounding: rounding
         )
 
-        let negative = value < 0
+        let amountSign = Sign(of: value)
         let magnitude = value.magnitude
         let unit = UInt64.powerOfTen(digitsShown)
         let whole = digitsShown == 0 ? magnitude : magnitude / unit
@@ -499,8 +499,8 @@ package extension MoneyFormat {
         }
         let showsSeparator = digitsShown > 0 || options.decimalSeparator == .always
 
-        let affixes = pattern.affixes(negative: negative, sign: options.sign)
-        let sign = signText(negative: negative, strategy: options.sign)
+        let affixes = pattern.affixes(for: amountSign, sign: options.sign)
+        let sign = signText(for: amountSign, strategy: options.sign)
 
         var result: [MoneyFormatRun] = []
         for token in affixes.prefix {
