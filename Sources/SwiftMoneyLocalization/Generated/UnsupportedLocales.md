@@ -3,7 +3,7 @@
 Generated from CLDR 48.2.0 by GenerateSwiftMoneyLocalization. Do not edit by hand.
 Regenerate with: (cd Tools/cldr && npm ci) && swift run GenerateSwiftMoneyLocalization
 
-The engine formats 621 of the 766 CLDR locales this build reads. The 145 below are left out, each because it writes something the packed tables have no shape for. They keep the ICU fallback, and rejoin the list on their own once that shape exists.
+The engine formats 622 of the 766 CLDR locales this build reads. The 144 below are left out, each because it writes something the packed tables have no shape for. They keep the ICU fallback, and rejoin the list on their own once that shape exists.
 
 ## arranges a currency written with letters in a way this tool does not model, in its accounting pattern (31)
 - bem: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
@@ -44,9 +44,6 @@ The engine formats 621 of the 766 CLDR locales this build reads. The 145 below a
 - nb-SJ: #,##0.00\u{A0}\u{A4};-#,##0.00\u{A0}\u{A4} against #,##0.00\u{A0}\u{A4}
 - nn: #,##0.00\u{A0}\u{A4};-#,##0.00\u{A0}\u{A4} against #,##0.00\u{A0}\u{A4}
 - no: #,##0.00\u{A0}\u{A4};-#,##0.00\u{A0}\u{A4} against #,##0.00\u{A0}\u{A4}
-
-## arranges a negative amount in its standard pattern (1)
-- lo: \u{A4}#,##0.00;\u{A4}-#,##0.00
 
 ## carries a directional mark in its standard pattern (30)
 - ar: \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}

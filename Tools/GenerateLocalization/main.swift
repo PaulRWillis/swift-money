@@ -747,7 +747,7 @@ func required(_ symbols: [String: String], _ field: String, in locale: String) -
 
 // Everything one locale contributes, read and resolved without writing anything down. A locale that
 // throws here is left out of the tables entirely and keeps the runtime's ICU fallback.
-func tables(for locale: String, unusableLanguages: [String: LocaleSkip], scripts: LikelyScripts) throws(LocaleSkip) -> LocaleTables {
+func tables(for locale: String, unusableLanguages: [String: LocaleSkip]) throws(LocaleSkip) -> LocaleTables {
     if let skip = unusableLanguages[language(of: locale)] {
         throw skip
     }
@@ -760,10 +760,7 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip], scripts
     let symbols = numberSymbols(n, system: system)
     let formats = currencyFormats(n, system: system)
 
-    try refuseUnrepresentable(
-        formats: formats, locale: locale,
-        isLatinScript: scripts.impliedScript(of: locale) == "Latn"
-    )
+    try refuseUnrepresentable(formats: formats, locale: locale)
 
     let insertBetween = try currencySpacingInsertion(formats["currencySpacing"] as! [String: Any], locale: locale)
     let parsed = try parse(standard: formats["standard"] as! String, accounting: formats["accounting"] as! String)
@@ -808,20 +805,13 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip], scripts
 // or a relocated negative is caught in the pattern the locale actually renders with.
 func refuseUnrepresentable(
     formats: [String: Any],
-    locale: String,
-    isLatinScript: Bool
+    locale: String
 ) throws(LocaleSkip) {
     let standard = formats["standard"] as! String
     let accounting = formats["accounting"] as! String
 
     if let unsupported = UnsupportedNumberFormat(standardPattern: standard) {
         throw .unrepresentableNumberFormat(unsupported)
-    }
-
-    // A locale's own negative arrangement is read for Latin-script locales only; the rest, which raise
-    // right-to-left and other-script questions, keep the ICU fallback for now.
-    if !isLatinScript, negativeSubpattern(of: standard) != nil {
-        throw .unrepresentableNumberFormat(.negativeSubpattern(pattern: standard))
     }
 
     for field in PatternField.allCases {
@@ -1064,7 +1054,7 @@ for (key, directories) in localeGroups(among: candidates, shortenedBy: scripts) 
         }
 
         do {
-            emitted.append((key, try tables(for: directory, unusableLanguages: pluralRules.unusable, scripts: scripts)))
+            emitted.append((key, try tables(for: directory, unusableLanguages: pluralRules.unusable)))
             filled = true
         } catch {
             skipped.append(SkippedLocale(locale: directory, skip: error))

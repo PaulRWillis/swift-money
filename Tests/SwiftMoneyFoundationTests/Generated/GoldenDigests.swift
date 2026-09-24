@@ -409,6 +409,7 @@ let goldenDigests: [String: UInt64] = [
     "ln-AO": 0x15a35269e3ce027d,
     "ln-CF": 0x79457a417cba5911,
     "ln-CG": 0x79457a417cba5911,
+    "lo": 0x6014e0e1956746f1,
     "lrc": 0x20c87f6c0a171705,
     "lrc-IQ": 0x20c87f6c0a171705,
     "lt": 0x43290698ce4185bb,
@@ -629,7 +630,7 @@ let goldenDigests: [String: UInt64] = [
 
 // How many (locale, currency) pairs the engine can name in words, across every covered locale. A
 // digest says a locale's output moved; this says whether coverage of it grew or shrank.
-let goldenNamedCurrencyTotal = 69555
+let goldenNamedCurrencyTotal = 69717
 
 // How many covered locales name no currency at all. A locale inheriting CLDR's root has the symbols
 // and none of the names, which ICU renders the same way, so this is recorded rather than forbidden.
