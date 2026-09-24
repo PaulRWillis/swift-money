@@ -22,14 +22,15 @@ jobs:
       run: swift build
 
     # Always reported, never fatal, so the list of what changed is in the log for review even when
-    # the break is intended. Also warms the build, which the first run needs.
+    # the break is intended. Also warms the build, which the first run needs. The script derives the
+    # library targets from Package.swift, so a new product is covered without editing this workflow.
     - name: Report API changes
       continue-on-error: true
-      run: swift package diagnose-api-breaking-changes origin/main --targets SwiftMoney --targets SwiftMoneyCore --targets SwiftMoneyLocalization --targets SwiftMoneyFoundation
+      run: bash APIBreak/check.sh origin/main
 
     # Enforced only when the pull request does not declare a breaking change. A conventional-commit
     # `!` is the author saying "this breaks the API on purpose", so failing it again adds nothing.
     # A PR without the marker that breaks the API is a genuine mistake, and still fails here.
     - name: Analyze API breakage
       if: ${{ !contains(github.event.pull_request.title, '!:') }}
-      run: swift package diagnose-api-breaking-changes origin/main --targets SwiftMoney --targets SwiftMoneyCore --targets SwiftMoneyLocalization --targets SwiftMoneyFoundation
+      run: bash APIBreak/check.sh origin/main
