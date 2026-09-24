@@ -14,3 +14,8 @@ with Runtime Library Exception (https://swift.org/LICENSE.txt).
 
 The ISO 4217 currency data is generated from list-one.xml, published by
 SIX Group AG in its role as the ISO 4217 maintenance agency.
+
+This product's tests include a subset of the General Decimal Arithmetic
+test suite (https://speleotrove.com/decimal/), Copyright (c) Mike Cowlishaw
+and IBM Corporation, used under the ICU License. See
+Tests/SwiftMoneyCoreTests/Resources/GDA/LICENSE.
