@@ -3,7 +3,7 @@
 Generated from CLDR 48.2.0 by GenerateSwiftMoneyLocalization. Do not edit by hand.
 Regenerate with: (cd Tools/cldr && npm ci) && swift run GenerateSwiftMoneyLocalization
 
-The engine formats 544 of the 766 CLDR locales this build reads. The 222 below are left out, each because it writes something the packed tables have no shape for. They keep the ICU fallback, and rejoin the list on their own once that shape exists.
+The engine formats 586 of the 766 CLDR locales this build reads. The 180 below are left out, each because it writes something the packed tables have no shape for. They keep the ICU fallback, and rejoin the list on their own once that shape exists.
 
 ## arranges a currency written with letters in a way this tool does not model, in its accounting pattern (29)
 - bem: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
@@ -46,18 +46,42 @@ The engine formats 544 of the 766 CLDR locales this build reads. The 222 below a
 ## arranges a negative amount in its standard pattern (1)
 - lo: \u{A4}#,##0.00;\u{A4}-#,##0.00
 
-## carries a directional mark in its standard pattern (8)
+## carries a directional mark in its standard pattern (30)
 - ar: \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
 - ar-AE: \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
+- ar-BH: \u{200F}#,##0.00\u{A0}\u{A4}
+- ar-DJ: \u{200F}#,##0.00\u{A0}\u{A4}
 - ar-DZ: \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
+- ar-EG: \u{200F}#,##0.00\u{A0}\u{A4}
 - ar-EH: \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
+- ar-ER: \u{200F}#,##0.00\u{A0}\u{A4}
+- ar-IL: \u{200F}#,##0.00\u{A0}\u{A4}
+- ar-IQ: \u{200F}#,##0.00\u{A0}\u{A4}
+- ar-JO: \u{200F}#,##0.00\u{A0}\u{A4}
+- ar-KM: \u{200F}#,##0.00\u{A0}\u{A4}
+- ar-KW: \u{200F}#,##0.00\u{A0}\u{A4}
+- ar-LB: \u{200F}#,##0.00\u{A0}\u{A4}
 - ar-LY: \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
 - ar-MA: \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
+- ar-MR: \u{200F}#,##0.00\u{A0}\u{A4}
+- ar-OM: \u{200F}#,##0.00\u{A0}\u{A4}
+- ar-PS: \u{200F}#,##0.00\u{A0}\u{A4}
+- ar-QA: \u{200F}#,##0.00\u{A0}\u{A4}
+- ar-SA: \u{200F}#,##0.00\u{A0}\u{A4}
+- ar-SD: \u{200F}#,##0.00\u{A0}\u{A4}
+- ar-SO: \u{200F}#,##0.00\u{A0}\u{A4}
+- ar-SS: \u{200F}#,##0.00\u{A0}\u{A4}
+- ar-SY: \u{200F}#,##0.00\u{A0}\u{A4}
+- ar-TD: \u{200F}#,##0.00\u{A0}\u{A4}
 - ar-TN: \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
+- ar-YE: \u{200F}#,##0.00\u{A0}\u{A4}
+- fa: \u{200E}\u{A4}#,##0.00
 - he: \u{200F}#,##0.00\u{A0}\u{200F}\u{A4};\u{200F}-#,##0.00\u{A0}\u{200F}\u{A4}
 
-## groups the digits differently for a currency written with letters, in its standard pattern (1)
+## groups the digits differently for a currency written with letters, in its standard pattern (3)
 - dv
+- dz
+- sa
 
 ## leaves a short integer part ungrouped (37)
 - be: below 2 grouping digits
@@ -101,11 +125,15 @@ The engine formats 544 of the 766 CLDR locales this build reads. The 222 below a
 ## moves the currency to the other side of the digits for a currency written with letters, in its accounting pattern (1)
 - szl
 
-## moves the currency to the other side of the digits for a currency written with letters, in its standard pattern (24)
+## moves the currency to the other side of the digits for a currency written with letters, in its standard pattern (33)
 - ab
 - agq
 - an
 - bez
+- ccp
+- ccp-IN
+- ckb
+- ckb-IR
 - co
 - cu
 - dje
@@ -119,36 +147,48 @@ The engine formats 544 of the 766 CLDR locales this build reads. The 222 below a
 - rn
 - rwk
 - sbp
+- sd
+- sd-Arab
+- sdh
+- sdh-IQ
 - seh
 - ses
 - shi
 - shi-Latn
 - shi-Tfng
 - twq
+- uz-Arab
 - zgh
 
-## shortens to an identifier another locale already uses (15)
+## shortens to an identifier another locale already uses (20)
 - az-Latn: az
 - bal-Arab: bal
 - bs-Latn: bs
 - ff-Latn: ff
+- hnj-Hmnp: hnj
 - kaa-Cyrl: kaa
 - kk-Cyrl: kk
 - kok-Deva: kok
+- ks-Arab: ks
 - ku-Latn: ku
+- mni-Beng: mni
+- mww-Hmnp: mww
 - pi-Latn: pi
 - rhg-Rohg: rhg
+- sat-Olck: sat
 - sr-Cyrl: sr
 - su-Latn: su
 - suz-Deva: suz
 - yue-Hant: yue
 - zh-Hans: zh
 
-## the currency moves to the other side of the digits in the accounting pattern (2)
+## the currency moves to the other side of the digits in the accounting pattern (3)
+- my
 - uz
 - uz-Latn
 
-## the digits are grouped differently in the accounting pattern (9)
+## the digits are grouped differently in the accounting pattern (10)
+- as
 - brx
 - en-IN
 - kxv
@@ -159,96 +199,12 @@ The engine formats 544 of the 766 CLDR locales this build reads. The 222 below a
 - ta-LK
 - te
 
-## the gap between the currency and the digits changes in the accounting pattern (6)
+## the gap between the currency and the digits changes in the accounting pattern (8)
 - mg
 - ms-Arab-BN
 - ms-BN
 - nso
+- ps
+- ps-PK
 - ta-MY
 - ta-SG
-
-## writes amounts in digits other than 0 to 9 (84)
-- ar-BH: arab
-- ar-DJ: arab
-- ar-EG: arab
-- ar-ER: arab
-- ar-IL: arab
-- ar-IQ: arab
-- ar-JO: arab
-- ar-KM: arab
-- ar-KW: arab
-- ar-LB: arab
-- ar-MR: arab
-- ar-OM: arab
-- ar-PS: arab
-- ar-QA: arab
-- ar-SA: arab
-- ar-SD: arab
-- ar-SO: arab
-- ar-SS: arab
-- ar-SY: arab
-- ar-TD: arab
-- ar-YE: arab
-- as: beng
-- az-Arab: arabext
-- az-Arab-IQ: arabext
-- az-Arab-TR: arabext
-- bgc: deva
-- bgn: arabext
-- bgn-AE: arabext
-- bgn-AF: arabext
-- bgn-IR: arabext
-- bgn-OM: arabext
-- bho: deva
-- bn: beng
-- bn-IN: beng
-- ccp: cakm
-- ccp-IN: cakm
-- ckb: arab
-- ckb-IR: arab
-- dz: tibt
-- fa: arabext
-- fa-AF: arabext
-- ff-Adlm: adlm
-- ff-Adlm-BF: adlm
-- ff-Adlm-CM: adlm
-- ff-Adlm-GH: adlm
-- ff-Adlm-GM: adlm
-- ff-Adlm-GW: adlm
-- ff-Adlm-LR: adlm
-- ff-Adlm-MR: adlm
-- ff-Adlm-NE: adlm
-- ff-Adlm-NG: adlm
-- ff-Adlm-SL: adlm
-- ff-Adlm-SN: adlm
-- hnj: hmnp
-- hnj-Hmnp: hmnp
-- ks: arabext
-- ks-Arab: arabext
-- lrc: arabext
-- lrc-IQ: arabext
-- mni: beng
-- mni-Beng: beng
-- mni-Mtei: mtei
-- mr: deva
-- mww: hmnp
-- mww-Hmnp: hmnp
-- my: mymr
-- mzn: arabext
-- ne: deva
-- ne-IN: deva
-- nqo: nkoo
-- pa-Arab: arabext
-- ps: arabext
-- ps-PK: arabext
-- raj: deva
-- sa: deva
-- sat: olck
-- sat-Deva: deva
-- sat-Olck: olck
-- sd: arab
-- sd-Arab: arab
-- sdh: arab
-- sdh-IQ: arab
-- ur-IN: arabext
-- uz-Arab: arabext
