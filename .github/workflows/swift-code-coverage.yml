@@ -6,16 +6,12 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-    # The coverage run exercises the whole package, so this is broad. It keeps an unrelated future
-    # package (a separate top-level directory) from triggering it. The push trigger above, which
-    # publishes the badge, is left unscoped.
-    paths:
-      - 'Sources/**'
-      - 'Tests/**'
-      - 'Coverage/**'
-      - 'Package.swift'
-      - 'Package.resolved'
-      - '.github/workflows/swift-code-coverage.yml'
+    # No `paths:` filter here on purpose. This job is a Required check, so it must report on every pull
+    # request. A path-filtered required check never triggers on a pull request outside its paths, so it
+    # never reports, and GitHub parks the pull request forever on "Expected — Waiting for status". The
+    # relevance decision instead lives in the `changes` step below, which gates the heavy coverage steps
+    # on the same globs. A pull request that touches nothing here still runs the job to a clean finish
+    # with those steps skipped, which reports the required check as passed with nothing to measure.
 
 permissions:
   contents: write
@@ -32,6 +28,23 @@ jobs:
         # Diff coverage needs the base branch, so the default shallow clone will not do.
         fetch-depth: 0
 
+    # The one place the coverage-relevant paths are listed. On a pull request the heavy steps below run
+    # only when `relevant` is true; on push and workflow_dispatch they always run (the `||` short-circuits
+    # before this output is read). These globs are what the `pull_request` `paths:` filter used to hold.
+    - name: Detect coverage-relevant changes
+      id: changes
+      if: github.event_name == 'pull_request'
+      uses: dorny/paths-filter@v3
+      with:
+        filters: |
+          relevant:
+            - 'Sources/**'
+            - 'Tests/**'
+            - 'Coverage/**'
+            - 'Package.swift'
+            - 'Package.resolved'
+            - '.github/workflows/swift-code-coverage.yml'
+
     - name: Swift version
       run: swift --version
 
@@ -42,20 +55,21 @@ jobs:
       run: bash Coverage/run.sh --markdown coverage.md --badge
 
     - name: Measure coverage, and of the lines this pull request adds
-      if: github.event_name == 'pull_request'
+      if: github.event_name == 'pull_request' && steps.changes.outputs.relevant == 'true'
       run: |
         bash Coverage/run.sh \
           --diff "origin/${{ github.base_ref }}" \
           --markdown coverage.md
 
     - name: Job summary
+      if: github.event_name != 'pull_request' || steps.changes.outputs.relevant == 'true'
       run: cat coverage.md >> "$GITHUB_STEP_SUMMARY"
 
     # `--edit-last` edits the last comment by this actor, and the benchmark workflow also comments as
     # github-actions, so it was overwriting this one on every pull request. The marker gives each
     # workflow a comment of its own.
     - name: Comment on the pull request
-      if: github.event_name == 'pull_request'
+      if: github.event_name == 'pull_request' && steps.changes.outputs.relevant == 'true'
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         MARKER: "<!-- coverage-report -->"
