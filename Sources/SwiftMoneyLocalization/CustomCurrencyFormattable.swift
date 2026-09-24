@@ -28,4 +28,17 @@ public protocol CustomCurrencyFormattable: CurrencyType {
     ///
     /// - Parameter locale: The locale to display in.
     static func display(for locale: LocaleIdentifier) -> CustomCurrencyDisplay?
+
+    /// The currency's full names for a locale, or `nil` when it is not named in full there.
+    ///
+    /// Opt in only when the full-name presentation is wanted; the default is `nil`.
+    ///
+    /// - Parameter locale: The locale to name the currency in.
+    static func names(for locale: LocaleIdentifier) -> CustomCurrencyNames?
+}
+
+public extension CustomCurrencyFormattable {
+    static func names(for locale: LocaleIdentifier) -> CustomCurrencyNames? {
+        nil
+    }
 }
