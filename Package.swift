@@ -91,7 +91,9 @@ let package = Package(
         ),
         .testTarget(
             name: "SwiftMoneyCoreTests",
-            dependencies: ["SwiftMoneyCore"]
+            dependencies: ["SwiftMoneyCore"],
+            // The General Decimal Arithmetic conformance corpus, parsed at runtime by GDATests.
+            resources: [.copy("Resources")]
         ),
         .testTarget(
             name: "SwiftMoneyLocalizationTests",
