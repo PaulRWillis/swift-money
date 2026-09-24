@@ -16,7 +16,7 @@ struct UnsupportedNumberFormatTests {
         ]
     )
     func representablePatterns(_ pattern: String) {
-        #expect(UnsupportedNumberFormat(standardPattern: pattern, minimumGroupingDigits: 1) == nil)
+        #expect(UnsupportedNumberFormat(standardPattern: pattern) == nil)
     }
 
     // de-CH: the affixes carry a locale's own negative arrangement, so a negative subpattern is no
@@ -26,7 +26,7 @@ struct UnsupportedNumberFormatTests {
     func negativeSubpatternIsRepresentable() {
         let pattern = "\u{00A4}\u{00A0}#,##0.00;\u{00A4}-#,##0.00"
 
-        #expect(UnsupportedNumberFormat(standardPattern: pattern, minimumGroupingDigits: 1) == nil)
+        #expect(UnsupportedNumberFormat(standardPattern: pattern) == nil)
     }
 
     // A mark is zero width, so this pattern is indistinguishable from a representable one by eye. It is
@@ -35,20 +35,9 @@ struct UnsupportedNumberFormatTests {
     @Test("A directional mark is unrepresentable", arguments: ["\u{200F}", "\u{200E}"])
     func directionalMarkIsRefused(_ mark: String) {
         let pattern = "\(mark)#,##0.00\u{00A0}\u{00A4}"
-        let unsupported = UnsupportedNumberFormat(standardPattern: pattern, minimumGroupingDigits: 1)
+        let unsupported = UnsupportedNumberFormat(standardPattern: pattern)
 
         #expect(unsupported == .directionalMark(pattern: pattern))
-    }
-
-    // sl: 1234 stays ungrouped, 12345 becomes 12.345. The engine groups by size alone.
-    @Test("A grouping threshold above one is unrepresentable")
-    func groupingThresholdIsRefused() {
-        let unsupported = UnsupportedNumberFormat(
-            standardPattern: "#,##0.00\u{00A0}\u{00A4}",
-            minimumGroupingDigits: 2
-        )
-
-        #expect(unsupported == .groupingThreshold(minimumDigits: 2))
     }
 
     @Test("Each case describes itself")
@@ -57,7 +46,6 @@ struct UnsupportedNumberFormatTests {
             UnsupportedNumberFormat.nonLatinDigits(numberingSystem: "arab"),
             .negativeSubpattern(pattern: "a;b"),
             .directionalMark(pattern: "a"),
-            .groupingThreshold(minimumDigits: 2),
         ].map(\.description)
 
         #expect(descriptions.allSatisfy { !$0.isEmpty })

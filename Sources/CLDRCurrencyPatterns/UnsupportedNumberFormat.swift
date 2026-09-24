@@ -15,12 +15,6 @@ public enum UnsupportedNumberFormat: Equatable, Sendable {
 
     /// The pattern carries a directional mark, which places text the affixes have no slot for.
     case directionalMark(pattern: String)
-
-    /// The locale leaves short numbers ungrouped, as Slovenian writes `1234` but `12.345`.
-    ///
-    /// CLDR calls this `minimumGroupingDigits`. The engine groups by size alone, with no threshold
-    /// on how long the number has to be first.
-    case groupingThreshold(minimumDigits: Int)
 }
 
 public extension UnsupportedNumberFormat {
@@ -30,18 +24,14 @@ public extension UnsupportedNumberFormat {
     /// numbering system's glyphs can be rendered is settled by the generator against the digit-set data,
     /// not by the pattern. This reads only the `standard` pattern of the system actually in use.
     ///
-    /// - Parameters:
-    ///   - standardPattern: The locale's `standard` currency pattern, from its default numbering system.
-    ///   - minimumGroupingDigits: How long the integer part must be before the locale groups it at
-    ///     all, CLDR's `minimumGroupingDigits`. One means it always groups.
-    init?(standardPattern: String, minimumGroupingDigits: Int) {
-        if standardPattern.contains(where: Self.isDirectionalMark) {
-            self = .directionalMark(pattern: standardPattern)
-        } else if minimumGroupingDigits > 1 {
-            self = .groupingThreshold(minimumDigits: minimumGroupingDigits)
-        } else {
+    /// - Parameter standardPattern: The locale's `standard` currency pattern, from its default numbering
+    ///   system.
+    init?(standardPattern: String) {
+        guard standardPattern.contains(where: Self.isDirectionalMark) else {
             return nil
         }
+
+        self = .directionalMark(pattern: standardPattern)
     }
 
     // Left-to-right and right-to-left marks. They carry no width, so a pattern holding one looks
@@ -60,8 +50,6 @@ extension UnsupportedNumberFormat: CustomStringConvertible {
             "the standard pattern arranges a negative amount itself: \(pattern)"
         case .directionalMark(let pattern):
             "the standard pattern carries a directional mark: \(pattern)"
-        case .groupingThreshold(let minimumDigits):
-            "the integer part is left ungrouped below \(minimumDigits) grouping digits"
         }
     }
 }

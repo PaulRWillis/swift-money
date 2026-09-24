@@ -20,12 +20,18 @@ public struct MoneyFormat: Equatable, Hashable, Sendable {
         case none
 
         /// Separate the least significant `primary` digits, then every `secondary` digits above them,
-        /// with `separator` between the groups.
+        /// with `separator` between the groups, once the whole part reaches `minGroupingDigits` digits
+        /// beyond the first group.
         ///
         /// ```swift
-        /// .digits(primary: 3, secondary: 2, separator: ",")   // 12,34,567  (India)
+        /// .digits(primary: 3, secondary: 2, separator: ",", minGroupingDigits: 1)   // 12,34,567
         /// ```
-        case digits(primary: GroupingSize, secondary: GroupingSize, separator: GroupingSeparator)
+        case digits(
+            primary: GroupingSize,
+            secondary: GroupingSize,
+            separator: GroupingSeparator,
+            minGroupingDigits: MinGroupingDigits
+        )
     }
 
     /// How the accounting sign strategy marks a negative amount.
@@ -84,13 +90,18 @@ public struct MoneyFormat: Equatable, Hashable, Sendable {
 }
 
 package extension MoneyFormat.GroupingScheme {
-    /// A grouping that repeats one `size` for every group, which is how most locales group.
+    /// A grouping that repeats one `size` for every group, which is how most locales group. Defaults to a
+    /// `minGroupingDigits` of one, so grouping shows as soon as there is more than one group.
     ///
     /// ```swift
     /// .repeating(3, separator: ",")   // 1,234,567
     /// ```
-    static func repeating(_ size: GroupingSize, separator: GroupingSeparator) -> Self {
-        .digits(primary: size, secondary: size, separator: separator)
+    static func repeating(
+        _ size: GroupingSize,
+        separator: GroupingSeparator,
+        minGroupingDigits: MinGroupingDigits = 1
+    ) -> Self {
+        .digits(primary: size, secondary: size, separator: separator, minGroupingDigits: minGroupingDigits)
     }
 }
 
@@ -189,7 +200,7 @@ public extension MoneyFormat {
         // scheme, the caller turned grouping off, or the number is too short to reach a group boundary.
         let groups: (primary: Int, secondary: Int, separator: String)?
         switch (grouping, options.grouping) {
-        case (.digits(let p, let s, let sep), .automatic) where wholeDigits > p.rawValue:
+        case (.digits(let p, let s, let sep, let threshold), .automatic) where wholeDigits >= p.rawValue + threshold.rawValue:
             groups = (p.rawValue, s.rawValue, sep.rawValue)
         default:
             groups = nil
@@ -481,7 +492,7 @@ package extension MoneyFormat {
 
         let groups: (primary: Int, secondary: Int, separator: String)?
         switch (grouping, options.grouping) {
-        case (.digits(let p, let s, let sep), .automatic) where wholeDigits > p.rawValue:
+        case (.digits(let p, let s, let sep, let threshold), .automatic) where wholeDigits >= p.rawValue + threshold.rawValue:
             groups = (p.rawValue, s.rawValue, sep.rawValue)
         default:
             groups = nil

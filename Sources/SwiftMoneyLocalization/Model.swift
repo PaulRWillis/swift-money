@@ -20,6 +20,8 @@ package struct LocaleNumberFormat: Equatable {
     package let fullNameSpacing: Spacing
     // The glyphs this locale writes the digits with: ASCII, or its own set.
     package let digits: Digits
+    // How many whole digits the integer part needs before grouping shows; one for most locales.
+    package let minGroupingDigits: MinGroupingDigits
 
     package init(
         decimalSeparator: String,
@@ -31,7 +33,8 @@ package struct LocaleNumberFormat: Equatable {
         fullNamePattern: FullNameLayout,
         isoCodeSpacing: Spacing,
         fullNameSpacing: Spacing,
-        digits: Digits = .ascii
+        digits: Digits = .ascii,
+        minGroupingDigits: MinGroupingDigits = 1
     ) {
         self.decimalSeparator = decimalSeparator
         self.groupingSeparator = groupingSeparator
@@ -43,6 +46,7 @@ package struct LocaleNumberFormat: Equatable {
         self.isoCodeSpacing = isoCodeSpacing
         self.fullNameSpacing = fullNameSpacing
         self.digits = digits
+        self.minGroupingDigits = minGroupingDigits
     }
 }
 

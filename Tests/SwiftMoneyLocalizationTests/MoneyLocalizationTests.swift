@@ -129,6 +129,24 @@ struct MoneyLocalizationTests {
         #expect(format.format(Money(minorUnits: 0, currency: usd)).contains(row.zero))
     }
 
+    // Slovenian's minimumGroupingDigits is 2, so it leaves a four-digit integer ungrouped and groups a
+    // five-digit one; the generator used to refuse the locale entirely for this.
+    @Test("A locale with a grouping threshold delays grouping until the integer part is long enough")
+    func groupingThreshold() throws {
+        let eur = Self.currency("EUR")
+        let format = try #require(
+            MoneyLocalization.moneyFormat(for: eur, locale: "sl"),
+            "sl should be a covered locale"
+        )
+
+        let short = format.format(Money(minorUnits: 1_234_56, currency: eur))
+        #expect(short.contains("1234,56"), "sl four-digit: '\(short)' should be ungrouped")
+        #expect(!short.contains("1.234"), "sl four-digit: '\(short)' should not be grouped")
+
+        let long = format.format(Money(minorUnits: 12_345_67, currency: eur))
+        #expect(long.contains("12.345,67"), "sl five-digit: '\(long)' should be grouped")
+    }
+
     @Test("An uncovered locale returns nil, and a region falls back to its language")
     func coverage() {
         #expect(MoneyLocalization.moneyFormat(for: Self.currency("GBP"), locale: "zz-ZZ") == nil)

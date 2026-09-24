@@ -47,7 +47,7 @@ struct MoneyFormatTests {
         let jpy = MoneyFormat(symbol: "¥", pattern: Self.pattern(currencyFirst: true))
         let inr = MoneyFormat(
             symbol: "₹", pattern: Self.pattern(currencyFirst: true),
-            grouping: .digits(primary: 3, secondary: 2, separator: ",")
+            grouping: .digits(primary: 3, secondary: 2, separator: ",", minGroupingDigits: 1)
         )
 
         // Symbol before, uniform grouping, sign, zero.

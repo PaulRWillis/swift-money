@@ -25,6 +25,8 @@ struct PackedLocale {
         let fullNamePatternIndex: UInt16
         // The locale's ten digit glyphs, or the empty string's ref when it writes the ASCII 0 to 9.
         let digits: StringRef
+        // How many whole digits the integer part needs before grouping shows; one for most locales.
+        let minGroupingDigits: UInt8
     }
 
     // One currency's symbols in this locale, each with the spacing CLDR resolves for it.
