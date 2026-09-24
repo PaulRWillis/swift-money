@@ -6,6 +6,14 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+    # The sanitizer runs the whole test suite, so this is broad. It keeps an unrelated future package (a
+    # separate top-level directory) from triggering it. The push trigger above is left unscoped.
+    paths:
+      - 'Sources/**'
+      - 'Tests/**'
+      - 'Package.swift'
+      - 'Package.resolved'
+      - '.github/workflows/swift-sanitizer-thread.yml'
 
 jobs:
   thread-sanitizer:

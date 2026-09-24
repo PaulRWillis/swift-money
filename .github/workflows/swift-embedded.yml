@@ -6,6 +6,14 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+    # Scoped to what Embedded/verify.sh compiles (Core + Localization only), so an unrelated future
+    # package does not trigger it. The push trigger above is left unscoped as a post-merge health signal.
+    paths:
+      - 'Sources/SwiftMoneyCore/**'
+      - 'Sources/SwiftMoneyLocalization/**'
+      - 'Embedded/**'
+      - 'Package.swift'
+      - '.github/workflows/swift-embedded.yml'
 
 # The core is meant to compile under Embedded Swift. Apple's Xcode toolchain ships no Embedded standard
 # library, so this job installs a swift.org toolchain (via swiftly) that does, then runs the same script
