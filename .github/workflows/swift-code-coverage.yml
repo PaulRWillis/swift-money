@@ -6,6 +6,16 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+    # The coverage run exercises the whole package, so this is broad. It keeps an unrelated future
+    # package (a separate top-level directory) from triggering it. The push trigger above, which
+    # publishes the badge, is left unscoped.
+    paths:
+      - 'Sources/**'
+      - 'Tests/**'
+      - 'Coverage/**'
+      - 'Package.swift'
+      - 'Package.resolved'
+      - '.github/workflows/swift-code-coverage.yml'
 
 permissions:
   contents: write

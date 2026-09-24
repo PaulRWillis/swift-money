@@ -4,6 +4,14 @@ on:
   workflow_dispatch:
   pull_request:
     branches: [ main ]
+    # Scoped to the sources the benchmarks exercise, mirroring swift-benchmark-update.yml, so an
+    # unrelated future package does not trigger the 8-shard delta run.
+    paths:
+      - 'Sources/**'
+      - 'Benchmarks/**'
+      - 'Package.swift'
+      - 'Package.resolved'
+      - '.github/workflows/swift-benchmark-delta.yml'
 
 # Stated rather than inherited from the repository default, since the comment below needs write access
 # to pull requests and nothing here needs more than that.

@@ -4,6 +4,17 @@ on:
   workflow_dispatch:
   pull_request:
     branches: [ main ]
+    # Scoped to what the CompareFormattingToICU tool exercises, so an unrelated future package does not
+    # trigger this 45-minute matrix. A subset, so it also skips a future module added under Sources/.
+    paths:
+      - 'Sources/SwiftMoneyCore/**'
+      - 'Sources/SwiftMoneyLocalization/**'
+      - 'Sources/SwiftMoneyFoundation/**'
+      - 'Sources/SwiftMoneyFormatMatrix/**'
+      - 'Tools/CompareFormattingToICU/**'
+      - 'Package.swift'
+      - 'Package.resolved'
+      - '.github/workflows/swift-icu-deviation-report.yml'
 
 # Stated rather than inherited from the repository default, since the comment step below needs
 # write access to pull requests and nothing here needs more than that.
