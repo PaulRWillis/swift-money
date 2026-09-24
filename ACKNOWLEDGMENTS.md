@@ -17,3 +17,8 @@
 - **ISO 4217 currency data** is generated from `list-one.xml`, published by SIX Group AG as the
   ISO 4217 maintenance agency. The generated table records the publication date of the list it
   came from.
+
+- **[The General Decimal Arithmetic test suite](https://speleotrove.com/decimal/)** by Mike Cowlishaw
+  and IBM, ICU License. A subset of its vectors is vendored under `Tests/SwiftMoneyCoreTests/Resources/GDA`
+  and checked against the library's arithmetic and rounding, so the six rounding rules are validated
+  against an external corpus rather than only against themselves.
