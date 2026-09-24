@@ -1,3 +1,8 @@
+// `LocalizedStringResource` and `String(localized:)` are Apple-platform Foundation only, absent from
+// swift-corelibs-foundation, so this convenience compiles on Darwin alone. A non-Darwin caller resolves
+// its own strings and builds a ``CustomCurrencyDisplay`` directly.
+#if canImport(Darwin)
+
 import Foundation
 import SwiftMoneyLocalization
 
@@ -71,3 +76,5 @@ public struct CustomCurrencyLocalizedDisplay: Sendable {
         return String(localized: localized)
     }
 }
+
+#endif

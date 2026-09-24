@@ -1,3 +1,6 @@
+// CustomCurrencyLocalizedDisplay is Darwin-only (LocalizedStringResource), so its tests are too.
+#if canImport(Darwin)
+
 import Foundation
 import SwiftMoneyCore
 import SwiftMoneyFoundation
@@ -48,3 +51,5 @@ struct CustomCurrencyLocalizedDisplayTests {
         #expect(narrow.format(Money(minorUnits: 500_00, currency: gem)) == "$500.00")
     }
 }
+
+#endif
