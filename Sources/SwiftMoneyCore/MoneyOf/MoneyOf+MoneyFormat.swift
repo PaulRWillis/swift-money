@@ -58,6 +58,9 @@ public struct MoneyFormat: Equatable, Hashable, Sendable {
     /// What marks a non-negative amount under the always sign strategy. Defaults to `"+"`.
     @usableFromInline
     package let plusSign: String
+    /// The glyphs the digits are rendered with: ASCII by default, or a locale's own set.
+    @usableFromInline
+    package let digits: Digits
 
     package init(
         symbol: String,
@@ -66,7 +69,8 @@ public struct MoneyFormat: Equatable, Hashable, Sendable {
         decimalSeparator: String = ".",
         grouping: GroupingScheme = .repeating(3, separator: ","),
         minusSign: String = "-",
-        plusSign: String = "+"
+        plusSign: String = "+",
+        digits: Digits = .ascii
     ) {
         self.symbol = symbol
         self.pattern = pattern
@@ -75,6 +79,7 @@ public struct MoneyFormat: Equatable, Hashable, Sendable {
         self.grouping = grouping
         self.minusSign = minusSign
         self.plusSign = plusSign
+        self.digits = digits
     }
 }
 
@@ -179,6 +184,7 @@ public extension MoneyFormat {
         let fraction = digitsShown == 0 ? 0 : magnitude % unit
 
         let wholeDigits = MoneyFormat.digitCount(whole)
+        let bytesPerDigit = digits.bytesPerDigit
         // The grouping to apply, or `nil` to write the whole part ungrouped: the format has no grouping
         // scheme, the caller turned grouping off, or the number is too short to reach a group boundary.
         let groups: (primary: Int, secondary: Int, separator: String)?
@@ -195,10 +201,11 @@ public extension MoneyFormat {
         let sign = signText(negative: negative, strategy: options.sign)
 
         // The digits, their grouping separators, and the decimal separator with the fraction when both
-        // are shown: the body every affix wraps, always in this order.
+        // are shown: the body every affix wraps, always in this order. A non-ASCII digit set is wider
+        // than one byte, so the digit count is scaled by the set's uniform width (one, for ASCII).
         let separatorBytes = separators * (groups?.separator.utf8.count ?? 0)
         let decimalBytes = showsSeparator ? decimalSeparator.utf8.count : 0
-        let bodyLength = wholeDigits + separatorBytes + decimalBytes + digitsShown
+        let bodyLength = (wholeDigits + digitsShown) * bytesPerDigit + separatorBytes + decimalBytes
 
         var length = bodyLength
         for token in affixes.prefix {
@@ -220,7 +227,7 @@ public extension MoneyFormat {
                 offset = MoneyFormat.copy(decimalSeparator, into: buffer, at: offset)
             }
             if digitsShown > 0 {
-                offset = MoneyFormat.writeDigits(fraction, count: digitsShown, into: buffer, at: offset)
+                offset = writeDigits(fraction, count: digitsShown, into: buffer, at: offset)
             }
 
             for token in affixes.suffix {
@@ -275,8 +282,8 @@ public extension MoneyFormat {
     // The whole part, most significant digit first. With `groups`, inserts the separator before a digit
     // whenever the digits from it rightward complete a group: a separator precedes MSB-digit `i` when
     // `(digits - i - primary)` is a non-negative multiple of `secondary`, giving both the uniform
-    // `1,234,567` and Indian `12,34,567` shapes. Without `groups`, the digits are written plain. Returns
-    // the offset just past the whole part.
+    // `1,234,567` and Indian `12,34,567` shapes. Without `groups`, the digits are written plain. Each digit
+    // is `glyphs` or, when that is `nil`, a plain ASCII byte. Returns the offset just past the whole part.
     @inlinable
     func writeGroupedWhole(
         _ whole: UInt64,
@@ -297,12 +304,43 @@ public extension MoneyFormat {
                 }
             }
 
-            buffer[next] = UInt8(remaining / divisor) &+ UInt8(ascii: "0")
-            next += 1
+            next = writeDigit(UInt8(remaining / divisor), into: buffer, at: next)
             remaining %= divisor
             divisor /= 10
         }
 
+        return next
+    }
+
+    // Writes one digit's value into the buffer, returning the offset just past it: a plain ASCII byte on
+    // the default path, or the locale's own glyph otherwise.
+    @inlinable
+    func writeDigit(
+        _ value: UInt8,
+        into buffer: UnsafeMutableBufferPointer<UInt8>,
+        at offset: Int
+    ) -> Int {
+        switch digits {
+        case .ascii:
+            buffer[offset] = value &+ UInt8(ascii: "0")
+            return offset + 1
+        case .glyphs(let glyphs):
+            return MoneyFormat.writeScalar(glyphs[Int(value)], into: buffer, at: offset)
+        }
+    }
+
+    // Writes one Unicode scalar's UTF8 bytes into the buffer, returning the offset just past them.
+    @inlinable
+    static func writeScalar(
+        _ scalar: Unicode.Scalar,
+        into buffer: UnsafeMutableBufferPointer<UInt8>,
+        at offset: Int
+    ) -> Int {
+        var next = offset
+        UTF8.encode(scalar) { byte in
+            buffer[next] = byte
+            next += 1
+        }
         return next
     }
 
@@ -321,9 +359,10 @@ public extension MoneyFormat {
         return next
     }
 
-    // The fraction, zero padded to `count` digits, most significant first. Returns the offset just past.
+    // The fraction, zero padded to `count` digits, most significant first, in the format's digits. Returns
+    // the offset just past.
     @inlinable
-    static func writeDigits(
+    func writeDigits(
         _ value: UInt64,
         count: Int,
         into buffer: UnsafeMutableBufferPointer<UInt8>,
@@ -334,8 +373,7 @@ public extension MoneyFormat {
         var remaining = value
 
         while divisor > 0 {
-            buffer[next] = UInt8(remaining / divisor) &+ UInt8(ascii: "0")
-            next += 1
+            next = writeDigit(UInt8(remaining / divisor), into: buffer, at: next)
             remaining %= divisor
             divisor /= 10
         }
@@ -462,7 +500,7 @@ package extension MoneyFormat {
             result.append(.decimalSeparator(decimalSeparator))
         }
         if digitsShown > 0 {
-            result.append(.fractionDigits(MoneyFormat.digitsString(fraction, count: digitsShown)))
+            result.append(.fractionDigits(digitsString(fraction, count: digitsShown)))
         }
         for token in affixes.suffix {
             appendToken(token, sign: sign, into: &result)
@@ -503,23 +541,34 @@ package extension MoneyFormat {
                     group = ""
                 }
             }
-            group.append(Character(UnicodeScalar(UInt8(remaining / divisor) &+ UInt8(ascii: "0"))))
+            appendDigit(UInt8(remaining / divisor), to: &group)
             remaining %= divisor
             divisor /= 10
         }
         runs.append(.integerDigits(group))
     }
 
+    // Appends one digit's value to a run's text: an ASCII character on the default path, or the locale's
+    // own glyph.
+    private func appendDigit(_ value: UInt8, to string: inout String) {
+        switch digits {
+        case .ascii:
+            string.append(Character(UnicodeScalar(value &+ UInt8(ascii: "0"))))
+        case .glyphs(let glyphs):
+            string.unicodeScalars.append(glyphs[Int(value)])
+        }
+    }
+
     // `count` digits of `value`, zero-padded, most significant first.
-    static func digitsString(_ value: UInt64, count: Int) -> String {
-        var bytes = [UInt8](repeating: UInt8(ascii: "0"), count: count)
+    func digitsString(_ value: UInt64, count: Int) -> String {
+        var glyphs = [String](repeating: "", count: count)
         var remaining = value
         var index = count - 1
         while index >= 0 {
-            bytes[index] = UInt8(remaining % 10) &+ UInt8(ascii: "0")
+            appendDigit(UInt8(remaining % 10), to: &glyphs[index])
             remaining /= 10
             index -= 1
         }
-        return String(decoding: bytes, as: UTF8.self)
+        return glyphs.joined()
     }
 }
