@@ -88,8 +88,6 @@ package extension LocaleSkip {
         switch self {
         case .unrepresentableNumberFormat(.nonLatinDigits(let numberingSystem)):
             numberingSystem
-        case .unrepresentableNumberFormat(.groupingThreshold(let minimumDigits)):
-            "below \(minimumDigits) grouping digits"
         case .unrepresentableNumberFormat(.negativeSubpattern(let pattern)),
              .unrepresentableNumberFormat(.directionalMark(let pattern)),
              .noCurrencyPlaceholder(let pattern):
@@ -123,8 +121,6 @@ package extension LocaleSkip {
             "arranges a negative amount in its standard pattern"
         case .directionalMark:
             "carries a directional mark in its standard pattern"
-        case .groupingThreshold:
-            "leaves a short integer part ungrouped"
         }
     }
 

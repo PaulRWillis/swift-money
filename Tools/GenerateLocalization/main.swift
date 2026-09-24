@@ -731,7 +731,7 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip], scripts
     let formats = currencyFormats(n, system: system)
 
     try refuseUnrepresentable(
-        numbers: n, formats: formats, locale: locale,
+        formats: formats, locale: locale,
         isLatinScript: scripts.impliedScript(of: locale) == "Latn"
     )
 
@@ -778,7 +778,6 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip], scripts
 // without noticing. `formats` is the locale's default numbering system's block, so a directional mark
 // or a relocated negative is caught in the pattern the locale actually renders with.
 func refuseUnrepresentable(
-    numbers: [String: Any],
     formats: [String: Any],
     locale: String,
     isLatinScript: Bool
@@ -786,10 +785,7 @@ func refuseUnrepresentable(
     let standard = formats["standard"] as! String
     let accounting = formats["accounting"] as! String
 
-    if let unsupported = UnsupportedNumberFormat(
-        standardPattern: standard,
-        minimumGroupingDigits: minimumGroupingDigits(numbers, locale: locale)
-    ) {
+    if let unsupported = UnsupportedNumberFormat(standardPattern: standard) {
         throw .unrepresentableNumberFormat(unsupported)
     }
 
