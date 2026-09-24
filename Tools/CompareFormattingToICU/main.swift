@@ -12,15 +12,29 @@ import SwiftMoneyFormatMatrix
 // reports nothing rather than every line at once, since a reshaped line is not a changed deviation.
 print("# format: 3")
 
-// CI shards the locales across parallel legs so the report scales past a handful of locales without
-// timing out. `ICU_SHARD_COUNT` and `ICU_SHARD_INDEX` select one shard; absent (or a count of one)
-// runs every covered locale, which is also what an older base commit's tool does. Sharding narrows
-// which locales are walked, not the shape of a line, so a shard stays comparable to the same shard on
-// another commit.
+// Which locales to walk, in precedence order:
+//   1. `ICU_LOCALES` (comma or space separated) audits just that subset and skips sharding, so a
+//      coverage change can be checked against ICU without walking every covered locale. A named locale
+//      that is not covered is reported on a `#` line and skipped.
+//   2. `ICU_SHARD_COUNT` + `ICU_SHARD_INDEX` select one shard, which is how CI splits the full report
+//      across parallel legs so it scales past a handful of locales without timing out.
+//   3. neither: every covered locale, which is also what an older base commit's tool does.
+// None of these change the shape of a line, only which locales are walked, so any subset stays
+// comparable to the same locales on another commit.
 let environment = ProcessInfo.processInfo.environment
+let requestedLocales = (environment["ICU_LOCALES"] ?? "")
+    .split(whereSeparator: { $0 == "," || $0 == " " })
+    .map(String.init)
+
 let localeIDs: [String]
-if let count = environment["ICU_SHARD_COUNT"].flatMap(Int.init), count > 1,
-   let index = environment["ICU_SHARD_INDEX"].flatMap(Int.init) {
+if !requestedLocales.isEmpty {
+    let resolved = FormatMatrix.coveredLocales(among: requestedLocales)
+    for id in resolved.unknown {
+        print("# requested but not covered: \(id)")
+    }
+    localeIDs = resolved.selected
+} else if let count = environment["ICU_SHARD_COUNT"].flatMap(Int.init), count > 1,
+          let index = environment["ICU_SHARD_INDEX"].flatMap(Int.init) {
     localeIDs = FormatMatrix.localeIDs(inShard: index, of: count)
 } else {
     localeIDs = FormatMatrix.coveredLocaleIDs
