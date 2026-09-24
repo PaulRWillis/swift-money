@@ -136,44 +136,6 @@ jobs:
       run: |
         lines() { cat $1 2>/dev/null | wc -l | tr -d ' '; }
 
-        echo "<!-- icu-deviations -->" > comment_body.md
-
-        if grep -qx incomparable deviations/*/status.txt 2>/dev/null; then
-          {
-            echo "### ❓ Nothing to compare"
-            echo
-            echo "This pull request changes the report's own format, so there is no earlier run to read it against."
-          } >> comment_body.md
-          echo "CHANGED=true" >> "$GITHUB_ENV"
-          exit 0
-        fi
-
-        appeared="$(lines 'deviations/*/appeared.txt')"
-        resolved="$(lines 'deviations/*/resolved.txt')"
-
-        if [ "$appeared" = 0 ] && [ "$resolved" = 0 ]; then
-          {
-            echo "### ✅ No change against the base commit"
-            echo
-            echo "The engine and the platform's ICU still agree wherever they agreed before."
-          } >> comment_body.md
-          echo "CHANGED=false" >> "$GITHUB_ENV"
-          exit 0
-        fi
-
-        echo "CHANGED=true" >> "$GITHUB_ENV"
-        {
-          echo "### ⚠️ $appeared deviation(s) appeared, $resolved resolved"
-          echo
-          echo "Non-gating. The Foundation-free engine against the platform's own ICU, compared with the commit this pull request targets."
-          echo
-          echo "| platform | appeared | resolved |"
-          echo "| --- | ---: | ---: |"
-          for os in macos-26 ubuntu-latest; do
-            echo "| $os | $(lines "deviations/*-$os-shard*/appeared.txt") | $(lines "deviations/*-$os-shard*/resolved.txt") |"
-          done
-        } >> comment_body.md
-
         sample() {
           count="$2"
           [ "$count" -gt 0 ] || return 0
@@ -191,8 +153,58 @@ jobs:
           } >> comment_body.md
         }
 
-        sample appeared "$appeared"
-        sample resolved "$resolved"
+        echo "<!-- icu-deviations -->" > comment_body.md
+
+        appeared="$(lines 'deviations/*/appeared.txt')"
+        resolved="$(lines 'deviations/*/resolved.txt')"
+
+        # One place decides the outcome, with a single precedence ladder; an unexpected value stops the
+        # job loudly rather than posting a wrong verdict.
+        if grep -qx incomparable deviations/*/status.txt 2>/dev/null; then
+          OUTCOME=incomparable
+        elif [ "$appeared" -gt 0 ] || [ "$resolved" -gt 0 ]; then
+          OUTCOME=regression
+        else
+          OUTCOME=clean
+        fi
+
+        case "$OUTCOME" in
+          incomparable)
+            {
+              echo "### ❓ Nothing to compare"
+              echo
+              echo "This pull request changes the report's own format, so there is no earlier run to read it against."
+            } >> comment_body.md
+            ;;
+          regression)
+            {
+              echo "### ⚠️ $appeared deviation(s) appeared, $resolved resolved"
+              echo
+              echo "Non-gating. The Foundation-free engine against the platform's own ICU, compared with the commit this pull request targets."
+              echo
+              echo "| platform | appeared | resolved |"
+              echo "| --- | ---: | ---: |"
+              for os in macos-26 ubuntu-latest; do
+                echo "| $os | $(lines "deviations/*-$os-shard*/appeared.txt") | $(lines "deviations/*-$os-shard*/resolved.txt") |"
+              done
+            } >> comment_body.md
+            sample appeared "$appeared"
+            sample resolved "$resolved"
+            ;;
+          clean)
+            {
+              echo "### ✅ No change against the base commit"
+              echo
+              echo "The engine and the platform's ICU still agree wherever they agreed before."
+            } >> comment_body.md
+            ;;
+          *)
+            echo "Unexpected outcome: $OUTCOME" >&2
+            exit 1
+            ;;
+        esac
+
+        echo "CHANGED=$([ "$OUTCOME" = clean ] && echo false || echo true)" >> "$GITHUB_ENV"
 
     # Mirrors swift-benchmark-delta.yml's marker/find-or-create technique: a hidden HTML comment
     # lets this workflow find and edit its own comment rather than posting a new one on every push.
