@@ -42,16 +42,16 @@ package struct MoneyFormatPattern: Equatable, Hashable, Sendable {
     /// forced plus lays out like a minus would. When no sign shows, the plain positive arrangement is
     /// used whatever the amount's own sign.
     @usableFromInline
-    package func affixes(negative isNegative: Bool, sign: MoneyFormatOptions.Sign) -> MoneyFormatAffixes {
+    package func affixes(for amountSign: Sign, sign: MoneyFormatOptions.Sign) -> MoneyFormatAffixes {
         switch sign {
         case .never:
             return positive
         case .always:
             return negative
         case .accounting:
-            return isNegative ? accountingNegative : positive
+            return amountSign == .negative ? accountingNegative : positive
         case .automatic:
-            return isNegative ? negative : positive
+            return amountSign == .negative ? negative : positive
         }
     }
 }
