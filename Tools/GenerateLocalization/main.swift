@@ -165,16 +165,30 @@ func currencies(_ locale: String) -> [String: [String: String]] {
 
 let integerNumberChars: Set<Character> = ["#", "0", ",", "."]
 
+// How a locale arranges a negative amount in its standard pattern.
+enum NegativeArrangement: Equatable {
+    // CLDR gives no negative subpattern, so the sign leads the positive arrangement.
+    case defaultLeadingSign
+    // CLDR's own negative subpattern, parsed into affixes.
+    case custom(MoneyFormatAffixes)
+}
+
+// How a locale marks a negative amount under the accounting sign strategy.
+enum AccountingArrangement: Equatable {
+    // Wrap the amount in parentheses around the positive arrangement.
+    case parentheses
+    // A plain leading minus (the positive-with-leading-sign arrangement).
+    case minusSign
+    // CLDR's own accounting negative subpattern, parsed into affixes.
+    case custom(MoneyFormatAffixes)
+}
+
 struct ParsedPattern {
     let side: CurrencySide
     let patternSpacing: String
     let grouping: GroupSizes
-    let accountingNegative: String
-    // The negative and accounting arrangements read from CLDR's own subpatterns, present only for a
-    // locale that arranges its negative itself. `nil` means the default: the positive with a leading
-    // sign, and the accounting form derived from `accountingNegative`.
-    let negative: (prefix: [String], suffix: [String])?
-    let accounting: (prefix: [String], suffix: [String])?
+    let negative: NegativeArrangement
+    let accounting: AccountingArrangement
 }
 
 func negativeSubpattern(of pattern: String) -> String? {
@@ -206,32 +220,30 @@ func parse(standard: String, accounting: String) throws(LocaleSkip) -> ParsedPat
         patternSpacing = String(positive[positive.index(after: lastNumber) ..< symbolIndex])
     }
 
-    // Accounting wraps negatives in parentheses when its negative subpattern does, else it uses a minus.
-    let accountingNegative = (negativeSubpattern(of: accounting) ?? "").contains("(") ? ".parentheses" : ".minusSign"
-
-    // A locale that arranges its own negative has that arrangement, and its accounting form, read here
-    // so the sign lands where CLDR places it rather than at the front.
-    let negative: (prefix: [String], suffix: [String])?
-    let accountingAffixes: (prefix: [String], suffix: [String])?
+    // A locale that arranges its own negative has that arrangement, and its accounting form, read here so
+    // the sign lands where CLDR places it rather than at the front. Where CLDR gives no accounting
+    // subpattern the accounting form wraps in parentheses when the source pattern does, else uses a minus.
+    let accountingSubpattern = negativeSubpattern(of: accounting)
+    let negative: NegativeArrangement
+    let accountingArrangement: AccountingArrangement
     if let standardNegative = negativeSubpattern(of: standard) {
-        negative = try subpatternAffixes(standardNegative)
-        if let accountingNeg = negativeSubpattern(of: accounting) {
-            accountingAffixes = try subpatternAffixes(accountingNeg)
+        negative = .custom(try subpatternAffixes(standardNegative))
+        if let accountingSubpattern {
+            accountingArrangement = .custom(try subpatternAffixes(accountingSubpattern))
         } else {
-            accountingAffixes = nil
+            accountingArrangement = .minusSign
         }
     } else {
-        negative = nil
-        accountingAffixes = nil
+        negative = .defaultLeadingSign
+        accountingArrangement = (accountingSubpattern ?? "").contains("(") ? .parentheses : .minusSign
     }
 
     return ParsedPattern(
         side: side,
         patternSpacing: patternSpacing,
         grouping: GroupSizes(pattern: standard),
-        accountingNegative: accountingNegative,
         negative: negative,
-        accounting: accountingAffixes
+        accounting: accountingArrangement
     )
 }
 
@@ -241,13 +253,29 @@ func affixesLiteral(prefix: [String], suffix: [String]) -> String {
     "MoneyFormatAffixes(prefix: [\(prefix.joined(separator: ", "))], suffix: [\(suffix.joined(separator: ", "))])"
 }
 
+// A single layout token as the Swift source that reconstructs it.
+func source(of token: MoneyFormatToken) -> String {
+    switch token {
+    case .sign: ".sign"
+    case .currency: ".currency"
+    case .currencySpacing: ".currencySpacing"
+    case .literal(let text): ".literal(\(quote(text)))"
+    }
+}
+
+// An affix arrangement as the Swift source that reconstructs it. Routes through `affixesLiteral` so the
+// emitted text matches the full-name path exactly.
+func source(of affixes: MoneyFormatAffixes) -> String {
+    affixesLiteral(prefix: affixes.prefix.map(source(of:)), suffix: affixes.suffix.map(source(of:)))
+}
+
 // One arrangement of a currency beside the digits, as the tokens before and after the implicit number
 // body. The spacing is a token rather than text, because what fills it depends on the currency: CLDR's
 // currencySpacing rule resolves per symbol.
-func currencyAffix(side: CurrencySide) -> (prefix: [String], suffix: [String]) {
+func currencyAffix(side: CurrencySide) -> (prefix: [MoneyFormatToken], suffix: [MoneyFormatToken]) {
     side == .leading
-        ? (prefix: [".currency", ".currencySpacing"], suffix: [])
-        : (prefix: [], suffix: [".currencySpacing", ".currency"])
+        ? (prefix: [.currency, .currencySpacing], suffix: [])
+        : (prefix: [], suffix: [.currencySpacing, .currency])
 }
 
 // The affix tokens for one subpattern, reading where CLDR places the sign, the currency, and the
@@ -255,7 +283,7 @@ func currencyAffix(side: CurrencySide) -> (prefix: [String], suffix: [String]) {
 // may write it after the symbol (¤-#,##0.00), after a space (¤ -#,##0.00) or at the end (¤ #,##0.00-),
 // and the accounting form may wrap the amount in parentheses. The tokens before the digits are the
 // prefix and those after are the suffix.
-func subpatternAffixes(_ subpattern: String) throws(LocaleSkip) -> (prefix: [String], suffix: [String]) {
+func subpatternAffixes(_ subpattern: String) throws(LocaleSkip) -> MoneyFormatAffixes {
     guard
         let firstNumber = subpattern.firstIndex(where: { integerNumberChars.contains($0) }),
         let lastNumber = subpattern.lastIndex(where: { integerNumberChars.contains($0) })
@@ -263,16 +291,16 @@ func subpatternAffixes(_ subpattern: String) throws(LocaleSkip) -> (prefix: [Str
         throw .noCurrencyPlaceholder(pattern: subpattern)
     }
 
-    return (
-        affixTokens(of: subpattern[..<firstNumber]),
-        affixTokens(of: subpattern[subpattern.index(after: lastNumber)...])
+    return MoneyFormatAffixes(
+        prefix: affixTokens(of: subpattern[..<firstNumber]),
+        suffix: affixTokens(of: subpattern[subpattern.index(after: lastNumber)...])
     )
 }
 
 // One side of a subpattern turned into tokens. Whitespace touching the currency is the per-symbol
 // spacing token, so it resolves the same way the positive arrangement's does; any other run of
 // whitespace or text is a literal, and the two markers CLDR writes become `.currency` and `.sign`.
-func affixTokens(of region: Substring) -> [String] {
+func affixTokens(of region: Substring) -> [MoneyFormatToken] {
     enum Segment: Equatable { case currency, sign, space(String), text(String) }
 
     var segments: [Segment] = []
@@ -304,14 +332,14 @@ func affixTokens(of region: Substring) -> [String] {
 
     return segments.enumerated().map { index, segment in
         switch segment {
-        case .currency: ".currency"
-        case .sign: ".sign"
-        case .text(let text): ".literal(\(quote(text)))"
+        case .currency: .currency
+        case .sign: .sign
+        case .text(let text): .literal(text)
         case .space(let text):
             (index > 0 && segments[index - 1] == .currency)
                 || (index < segments.count - 1 && segments[index + 1] == .currency)
-                ? ".currencySpacing"
-                : ".literal(\(quote(text)))"
+                ? .currencySpacing
+                : .literal(text)
         }
     }
 }
@@ -322,28 +350,30 @@ func affixTokens(of region: Substring) -> [String] {
 // positive-with-leading-sign otherwise.
 func patternLiteral(
     side: CurrencySide,
-    accountingNegative: String,
-    negative: (prefix: [String], suffix: [String])?,
-    accounting: (prefix: [String], suffix: [String])?
+    negative: NegativeArrangement,
+    accounting: AccountingArrangement
 ) -> String {
     let body = currencyAffix(side: side)
-    let signed = affixesLiteral(prefix: [".sign"] + body.prefix, suffix: body.suffix)
-    let negativeLiteral = negative.map { affixesLiteral(prefix: $0.prefix, suffix: $0.suffix) } ?? signed
+    let signed = MoneyFormatAffixes(prefix: [.sign] + body.prefix, suffix: body.suffix)
 
-    let accountingLiteral: String
-    if let accounting {
-        accountingLiteral = affixesLiteral(prefix: accounting.prefix, suffix: accounting.suffix)
-    } else if accountingNegative == ".parentheses" {
-        accountingLiteral = affixesLiteral(prefix: [".literal(\"(\")"] + body.prefix, suffix: body.suffix + [".literal(\")\")"])
-    } else {
-        accountingLiteral = signed
+    let negativeAffixes: MoneyFormatAffixes
+    switch negative {
+    case .defaultLeadingSign: negativeAffixes = signed
+    case .custom(let affixes): negativeAffixes = affixes
+    }
+
+    let accountingAffixes: MoneyFormatAffixes
+    switch accounting {
+    case .custom(let affixes): accountingAffixes = affixes
+    case .parentheses: accountingAffixes = MoneyFormatAffixes(prefix: [.literal("(")] + body.prefix, suffix: body.suffix + [.literal(")")])
+    case .minusSign: accountingAffixes = signed
     }
 
     return """
         MoneyFormatPattern(
-                    positive: \(signed),
-                    negative: \(negativeLiteral),
-                    accountingNegative: \(accountingLiteral)
+                    positive: \(source(of: signed)),
+                    negative: \(source(of: negativeAffixes)),
+                    accountingNegative: \(source(of: accountingAffixes))
                 )
         """
 }
@@ -759,7 +789,6 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip], scripts
         digits: digits,
         pattern: patternLiteral(
             side: parsed.side,
-            accountingNegative: parsed.accountingNegative,
             negative: parsed.negative,
             accounting: parsed.accounting
         ),
