@@ -6,14 +6,18 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-    # The sanitizer runs the whole test suite, so this is broad. It keeps an unrelated future package (a
-    # separate top-level directory) from triggering it. The push trigger above is left unscoped.
-    paths:
-      - 'Sources/**'
-      - 'Tests/**'
-      - 'Package.swift'
-      - 'Package.resolved'
-      - '.github/workflows/swift-sanitizer-thread.yml'
+    # No `paths:` filter here on purpose. This job is a Required check, so it must report on every pull
+    # request. A path-filtered required check never triggers on a pull request outside its paths, so it
+    # never reports, and GitHub parks the pull request forever on "Expected — Waiting for status". The
+    # relevance decision instead lives in the `changes` step below, which gates the heavy sanitizer steps
+    # on the same globs. A pull request that touches nothing here still runs the job to a clean finish
+    # with those steps skipped, which reports the required check as passed with nothing to test.
+
+# Stated rather than inherited: checkout needs to read the code, and the relevance filter below reads
+# the pull request's changed files. Nothing here needs more.
+permissions:
+  contents: read
+  pull-requests: read
 
 jobs:
   thread-sanitizer:
@@ -23,10 +27,27 @@ jobs:
     steps:
     - uses: actions/checkout@v6
 
+    # The one place the sanitizer-relevant paths are listed. On a pull request the heavy steps below run
+    # only when `relevant` is true; on push and workflow_dispatch they always run (the `||` short-circuits
+    # before this output is read). These globs are what the `pull_request` `paths:` filter used to hold.
+    - name: Detect sanitizer-relevant changes
+      id: changes
+      if: github.event_name == 'pull_request'
+      uses: dorny/paths-filter@v3
+      with:
+        filters: |
+          relevant:
+            - 'Sources/**'
+            - 'Tests/**'
+            - 'Package.swift'
+            - 'Package.resolved'
+            - '.github/workflows/swift-sanitizer-thread.yml'
+
     - name: Swift version
       run: swift --version
 
     - name: Clean before debug build
+      if: github.event_name != 'pull_request' || steps.changes.outputs.relevant == 'true'
       run: swift package clean
 
     # Serially: the suite runs formatting tests that reach Foundation's ICU, whose lazy locale
@@ -39,10 +60,13 @@ jobs:
     # sanitizer, minutes of the budget; none of it spawns a thread, so it finds nothing here. Four
     # other jobs run it.
     - name: Run thread sanitizer
+      if: github.event_name != 'pull_request' || steps.changes.outputs.relevant == 'true'
       run: swift test --sanitize=thread --no-parallel --skip MoneyFormatStyleGolden
 
     - name: Clean before release build
+      if: github.event_name != 'pull_request' || steps.changes.outputs.relevant == 'true'
       run: swift package clean
 
     - name: Run thread sanitizer on release build
+      if: github.event_name != 'pull_request' || steps.changes.outputs.relevant == 'true'
       run: swift test --sanitize=thread -c release -Xswiftc -enable-testing --no-parallel --skip MoneyFormatStyleGolden
