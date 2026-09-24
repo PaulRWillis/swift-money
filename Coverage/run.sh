@@ -51,46 +51,49 @@ llvm_cov() {
     fi
 }
 
-# Pin the classic (native) build system. The newer swiftbuild layout puts products under
-# .build/out/Products/... with no .xctest bundle where the lookup below expects one, so llvm-cov ends up
-# with no test binary to read. native keeps the .build/<triple>/debug layout the rest of this relies on.
-BUILD_SYSTEM=(--build-system native)
-
 if ! $SKIP_TESTS; then
     echo "Running tests with coverage..."
     # Serial, not parallel: swift-corelibs-foundation's ICU is not thread-safe under `swift test
     # --parallel` on Linux, which intermittently corrupts formatter output (the same race #199
     # serialised the Thread Sanitizer job around). Coverage does not need the parallelism.
-    swift test "${BUILD_SYSTEM[@]}" --no-parallel --enable-code-coverage >/dev/null
+    swift test --no-parallel --enable-code-coverage >/dev/null
 fi
 
 # Ask the build system for both paths rather than guessing at a triple. `.build/debug` is a symlink and
 # `find` does not follow it, which is how a hardcoded path quietly finds nothing.
-BIN_DIR="$(swift build "${BUILD_SYSTEM[@]}" --show-bin-path)"
-PROFDATA="$(dirname "$(swift test "${BUILD_SYSTEM[@]}" --enable-code-coverage --show-codecov-path)")/default.profdata"
+BIN_DIR="$(swift build --show-bin-path)"
+PROFDATA="$(dirname "$(swift test --enable-code-coverage --show-codecov-path)")/default.profdata"
 
 if [[ ! -f "$PROFDATA" ]]; then
     echo "Error: no coverage profile at $PROFDATA. Run without --skip-tests." >&2
     exit 1
 fi
 
-# Exactly one test bundle per configuration. Failing loudly beats picking one arbitrarily, and deriving
-# the name beats hardcoding it, which would not survive the rename.
-BUNDLE_COUNT="$(find "$BIN_DIR" -maxdepth 1 -name '*.xctest' | wc -l | tr -d ' ')"
-if [[ "$BUNDLE_COUNT" != "1" ]]; then
-    echo "Error: expected one .xctest bundle in $BIN_DIR, found $BUNDLE_COUNT" >&2
+# Collect every test bundle the build system produced. native emits one merged bundle; swiftbuild emits
+# one per test target. Each bundle links the library statically and so carries its coverage mapping, so
+# handing llvm-cov all of them and letting it merge the duplicated mappings covers the whole library
+# either way. Failing loudly on none beats a silent empty report.
+TEST_BINARIES=()
+while IFS= read -r -d '' bundle; do
+    name="$(basename "$bundle" .xctest)"
+    # A bundle on Darwin, a bare executable everywhere else.
+    if [[ -f "$bundle/Contents/MacOS/$name" ]]; then
+        TEST_BINARIES+=("$bundle/Contents/MacOS/$name")
+    else
+        TEST_BINARIES+=("$bundle")
+    fi
+done < <(find "$BIN_DIR" -maxdepth 1 -name '*.xctest' -print0)
+
+if [[ ${#TEST_BINARIES[@]} -eq 0 ]]; then
+    echo "Error: no .xctest bundle in $BIN_DIR" >&2
     exit 1
 fi
 
-BUNDLE="$(find "$BIN_DIR" -maxdepth 1 -name '*.xctest')"
-BUNDLE_NAME="$(basename "$BUNDLE" .xctest)"
-
-# A bundle on Darwin, a bare executable everywhere else.
-if [[ -f "$BUNDLE/Contents/MacOS/$BUNDLE_NAME" ]]; then
-    TEST_BINARY="$BUNDLE/Contents/MacOS/$BUNDLE_NAME"
-else
-    TEST_BINARY="$BUNDLE"
-fi
+# llvm-cov takes the first binary as a positional argument and the rest as repeated -object flags.
+COV_OBJECTS=("${TEST_BINARIES[0]}")
+for binary in "${TEST_BINARIES[@]:1}"; do
+    COV_OBJECTS+=(-object "$binary")
+done
 
 # Collect the sources to report on, so the numbers describe the library rather than the whole
 # package. The find runs in a process substitution, whose exit status the shell discards, so a
@@ -113,7 +116,7 @@ if [[ ${#SOURCES[@]} -eq 0 ]]; then
 fi
 
 echo
-SUMMARY="$(llvm_cov report "$TEST_BINARY" -instr-profile "$PROFDATA" "${SOURCES[@]}")"
+SUMMARY="$(llvm_cov report "${COV_OBJECTS[@]}" -instr-profile "$PROFDATA" "${SOURCES[@]}")"
 echo "$SUMMARY"
 
 # `llvm-cov report`'s TOTAL row, in column order: regions, missed, cover, functions, missed, cover,
@@ -125,7 +128,7 @@ read -r REGIONS FUNCTIONS LINES <<< "$(
 if [[ -n "$DIFF_BASE" ]]; then
     LCOV="$(mktemp)"
     trap 'rm -f "$LCOV"' EXIT
-    llvm_cov export -format=lcov "$TEST_BINARY" -instr-profile "$PROFDATA" "${SOURCES[@]}" > "$LCOV"
+    llvm_cov export -format=lcov "${COV_OBJECTS[@]}" -instr-profile "$PROFDATA" "${SOURCES[@]}" > "$LCOV"
 
     echo
     echo "Coverage of the lines this branch adds, against $DIFF_BASE:"
