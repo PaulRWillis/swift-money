@@ -50,16 +50,38 @@ struct GDATests {
         try check(files: ["abs"], operations: ["abs"], minimum: 30)
     }
 
+    @Test("Round to integral value, through the engine") func roundToIntegral() throws {
+        try check(
+            files: ["tointegral", "tointegralx"],
+            operations: ["tointegral", "tointegralx"],
+            minimum: 200
+        )
+    }
+
+    @Test("Round to integral value, through the public API") func roundToIntegralPublicly() throws {
+        try check(
+            files: ["tointegral", "tointegralx"],
+            operations: ["tointegral", "tointegralx"],
+            minimum: 100,
+            using: GDATestRunner.runPublicRounding
+        )
+    }
+
     /// Runs every vector for `operations` across `files`, records each failure, and asserts none failed and
     /// at least `minimum` ran.
-    private func check(files: [String], operations: Set<String>, minimum: Int) throws {
+    private func check(
+        files: [String],
+        operations: Set<String>,
+        minimum: Int,
+        using runner: (URL, Set<String>) throws -> GDASummary = GDATestRunner.run
+    ) throws {
         var summary = GDASummary()
         for file in files {
             let url = try #require(
                 Bundle.module.url(forResource: file, withExtension: "decTest", subdirectory: "Resources/GDA"),
                 "missing GDA resource \(file).decTest"
             )
-            summary.merge(try GDATestRunner.run(contentsOf: url, operations: operations))
+            summary.merge(try runner(url, operations))
         }
 
         print("GDA \(operations.sorted().joined(separator: ",")) — \(summary.summaryLine)")

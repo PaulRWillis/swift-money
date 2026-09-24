@@ -13,39 +13,26 @@ enum GDATestRunner {
     /// vectors are skipped.
     private static let maxFractionalDigits = 18
 
-    /// Runs every vector in `url` whose operation is in `operations`, merging the results into one summary.
+    /// Runs every vector in `url` whose operation is in `operations` against the engine, merging the results.
     static func run(contentsOf url: URL, operations: Set<String>) throws -> GDASummary {
-        let contents = try String(contentsOf: url, encoding: .utf8)
-        var summary = GDASummary()
+        try summarize(url, operations, evaluate)
+    }
 
-        for rawLine in contents.split(whereSeparator: \.isNewline) {
-            let line = stripComment(String(rawLine)).trimmingCharacters(in: .whitespaces)
-            if line.isEmpty { continue }
+    /// Runs the round-to-integral vectors through the public money API (`Unrounded.rounded(_:)`) rather than
+    /// the engine primitive, so the surface a caller actually touches is checked against the corpus too.
+    static func runPublicRounding(contentsOf url: URL, operations: Set<String>) throws -> GDASummary {
+        try summarize(url, operations, evaluatePublicRounding)
+    }
 
-            let tokens = tokenize(line)
-            // A directive (`rounding:`, `precision:`, …) rather than a test line. Arithmetic vectors are
-            // checked for exactness through their conditions, so no directive affects this run.
-            guard tokens.count >= 2, !tokens[0].hasSuffix(":") else { continue }
+    // MARK: - Driving
 
-            let operation = tokens[1].lowercased()
-            guard operations.contains(operation) else { continue }
-            guard let arrow = tokens.firstIndex(of: "->"), arrow + 1 < tokens.count else { continue }
-
-            let operands = Array(tokens[2..<arrow])
-            let expected = tokens[arrow + 1]
-            let conditions = tokens[(arrow + 2)...].map { $0.lowercased() }
-
-            switch evaluate(operation: operation, operands: operands, expected: expected, conditions: conditions) {
-            case .passed:
-                summary.recordPass()
-            case let .skipped(reason):
-                summary.recordSkip(reason)
-            case let .failed(detail):
-                summary.recordFailure("\(tokens[0]) \(operation): \(detail)")
-            }
-        }
-
-        return summary
+    private struct Vector {
+        let id: String
+        let operation: String
+        let operands: [String]
+        let expected: String
+        let conditions: [String]
+        let rounding: String
     }
 
     private enum LineOutcome {
@@ -54,17 +41,73 @@ enum GDATestRunner {
         case failed(String)
     }
 
-    private static func evaluate(
-        operation: String,
-        operands: [String],
-        expected: String,
-        conditions: [String]
-    ) -> LineOutcome {
-        if let reason = skipReason(for: conditions) {
-            return .skipped(reason)
+    private static func summarize(
+        _ url: URL,
+        _ operations: Set<String>,
+        _ evaluate: (Vector) -> LineOutcome
+    ) throws -> GDASummary {
+        var summary = GDASummary()
+        for vector in try vectors(contentsOf: url, operations: operations) {
+            switch evaluate(vector) {
+            case .passed:
+                summary.recordPass()
+            case let .skipped(reason):
+                summary.recordSkip(reason)
+            case let .failed(detail):
+                summary.recordFailure("\(vector.id) \(vector.operation): \(detail)")
+            }
+        }
+        return summary
+    }
+
+    private static func vectors(contentsOf url: URL, operations: Set<String>) throws -> [Vector] {
+        let contents = try String(contentsOf: url, encoding: .utf8)
+        var vectors: [Vector] = []
+        var rounding = "half_even"  // decTest's default; each file also sets it explicitly.
+
+        for rawLine in contents.split(whereSeparator: \.isNewline) {
+            let line = stripComment(String(rawLine)).trimmingCharacters(in: .whitespaces)
+            if line.isEmpty { continue }
+
+            let tokens = tokenize(line)
+            guard tokens.count >= 2 else { continue }
+
+            if tokens[0].hasSuffix(":") {
+                if tokens[0].lowercased() == "rounding:" { rounding = tokens[1].lowercased() }
+                continue
+            }
+
+            let operation = tokens[1].lowercased()
+            guard operations.contains(operation) else { continue }
+            guard let arrow = tokens.firstIndex(of: "->"), arrow + 1 < tokens.count else { continue }
+
+            vectors.append(Vector(
+                id: tokens[0],
+                operation: operation,
+                operands: Array(tokens[2..<arrow]),
+                expected: tokens[arrow + 1],
+                conditions: tokens[(arrow + 2)...].map { $0.lowercased() },
+                rounding: rounding
+            ))
         }
 
-        switch operation {
+        return vectors
+    }
+
+    // MARK: - Engine evaluation
+
+    private static func evaluate(_ vector: Vector) -> LineOutcome {
+        // Round-to-integral is where the rounding mode is the subject, so its rounding conditions are the
+        // point, not a reason to skip; only trap conditions rule it out.
+        if vector.operation == "tointegral" || vector.operation == "tointegralx" {
+            return roundToIntegral(vector) { fixed, rule in Fixed(Int128(fixed, rounding: rule)) }
+        }
+
+        if let reason = skipReason(for: vector.conditions) { return .skipped(reason) }
+
+        let operands = vector.operands
+        let expected = vector.expected
+        switch vector.operation {
         case "add": return binary(operands, expected) { $0 + $1 }
         case "subtract": return binary(operands, expected) { $0 - $1 }
         case "multiply": return binary(operands, expected) { $0 * $1 }
@@ -79,7 +122,48 @@ enum GDATestRunner {
         }
     }
 
+    // MARK: - Public-API evaluation
+
+    private static func evaluatePublicRounding(_ vector: Vector) -> LineOutcome {
+        guard vector.operation == "tointegral" || vector.operation == "tointegralx" else {
+            return .skipped(.unsupportedOperation)
+        }
+        guard vector.operands.count == 1 else { return .skipped(.unsupportedOperation) }
+        if vector.conditions.contains(where: trapConditions.contains) { return .skipped(.expectsTrap) }
+        guard let rule = roundingRule(for: vector.rounding) else { return .skipped(.unsupportedRounding) }
+
+        let token = vector.operands[0]
+        // The public path builds the amount from a `Rate` string literal, which takes a plain decimal, not
+        // exponent form, so skip exponent operands and values the fixed-point parser cannot hold.
+        guard !token.lowercased().contains("e"), case .value = parseNumber(token),
+              let rate = Rate(string: token) else {
+            return .skipped(.notRepresentable)
+        }
+        guard let expected = int64Value(vector.expected) else { return .skipped(.outOfRange) }
+
+        let settled = GBP.Unrounded(minorUnits: rate).rounded(rule)
+        return settled == GBP(minorUnits: expected)
+            ? .passed
+            : .failed("expected \(vector.expected), got \(settled) under \(vector.rounding)")
+    }
+
     // MARK: - Operations
+
+    private static func roundToIntegral(_ vector: Vector, _ round: (Fixed, RoundingRule) -> Fixed) -> LineOutcome {
+        guard vector.operands.count == 1 else { return .skipped(.unsupportedOperation) }
+        if vector.conditions.contains(where: trapConditions.contains) { return .skipped(.expectsTrap) }
+        guard let rule = roundingRule(for: vector.rounding) else { return .skipped(.unsupportedRounding) }
+
+        switch (operand(vector.operands[0]), operand(vector.expected)) {
+        case let (.value(a), .value(e)):
+            let result = round(a, rule)
+            return result == e
+                ? .passed
+                : .failed("expected \(vector.expected), got \(result) under \(vector.rounding)")
+        case let (a, e):
+            return .skipped(firstSkip(a, e))
+        }
+    }
 
     private static func binary(
         _ operands: [String],
@@ -217,20 +301,44 @@ enum GDATestRunner {
         return .value(fixed)
     }
 
+    private static func int64Value(_ token: String) -> Int64? {
+        guard case let .value(fixed) = parseNumber(token),
+              let wide = Int128(exactly: fixed),
+              let value = Int64(exactly: wide) else {
+            return nil
+        }
+        return value
+    }
+
     // MARK: - Conditions and helpers
 
+    private static let trapConditions: Set<String> = [
+        "overflow", "underflow", "division_by_zero", "invalid_operation",
+        "division_impossible", "division_undefined", "conversion_syntax", "insufficient_storage",
+    ]
+
     private static func skipReason(for conditions: [String]) -> GDASkipReason? {
-        let traps: Set = [
-            "overflow", "underflow", "division_by_zero", "invalid_operation",
-            "division_impossible", "division_undefined", "conversion_syntax", "insufficient_storage",
-        ]
-        if conditions.contains(where: traps.contains) { return .expectsTrap }
+        if conditions.contains(where: trapConditions.contains) { return .expectsTrap }
         // Inexact / Rounded / Clamped / Subnormal all mean the corpus rounded the result to a decimal
         // significance the fixed-point engine does not model, so the values would legitimately differ.
         if conditions.contains(where: ["inexact", "rounded", "clamped", "subnormal"].contains) {
             return .precision
         }
         return nil
+    }
+
+    /// Maps a decTest rounding directive to the library's rule, or `nil` for the two modes it does not have
+    /// (`half_down`, `05up`).
+    private static func roundingRule(for directive: String) -> RoundingRule? {
+        switch directive {
+        case "down": return .towardZero
+        case "up": return .awayFromZero
+        case "floor": return .down
+        case "ceiling": return .up
+        case "half_even": return .toNearestOrEven
+        case "half_up": return .toNearestOrAwayFromZero
+        default: return nil
+        }
     }
 
     private static func firstSkip(_ results: ParsedOperand...) -> GDASkipReason {
