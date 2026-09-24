@@ -23,6 +23,8 @@ struct PackedLocale {
         let fullNameSpacing: Spacing
         let patternIndex: UInt16
         let fullNamePatternIndex: UInt16
+        // The locale's ten digit glyphs, or the empty string's ref when it writes the ASCII 0 to 9.
+        let digits: StringRef
     }
 
     // One currency's symbols in this locale, each with the spacing CLDR resolves for it.

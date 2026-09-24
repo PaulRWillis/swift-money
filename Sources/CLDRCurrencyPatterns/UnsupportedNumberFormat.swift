@@ -26,16 +26,16 @@ public enum UnsupportedNumberFormat: Equatable, Sendable {
 public extension UnsupportedNumberFormat {
     /// What a locale's number format publishes that cannot be represented, or `nil` when it can.
     ///
+    /// The non-Latin-digit case (``nonLatinDigits(numberingSystem:)``) is not decided here: whether a
+    /// numbering system's glyphs can be rendered is settled by the generator against the digit-set data,
+    /// not by the pattern. This reads only the `standard` pattern of the system actually in use.
+    ///
     /// - Parameters:
-    ///   - standardPattern: The locale's `standard` currency pattern.
-    ///   - defaultNumberingSystem: The numbering system the locale writes amounts in, CLDR's
-    ///     `defaultNumberingSystem`.
+    ///   - standardPattern: The locale's `standard` currency pattern, from its default numbering system.
     ///   - minimumGroupingDigits: How long the integer part must be before the locale groups it at
     ///     all, CLDR's `minimumGroupingDigits`. One means it always groups.
-    init?(standardPattern: String, defaultNumberingSystem: String, minimumGroupingDigits: Int) {
-        if defaultNumberingSystem != Self.latinDigits {
-            self = .nonLatinDigits(numberingSystem: defaultNumberingSystem)
-        } else if standardPattern.contains(where: Self.isDirectionalMark) {
+    init?(standardPattern: String, minimumGroupingDigits: Int) {
+        if standardPattern.contains(where: Self.isDirectionalMark) {
             self = .directionalMark(pattern: standardPattern)
         } else if minimumGroupingDigits > 1 {
             self = .groupingThreshold(minimumDigits: minimumGroupingDigits)
@@ -43,9 +43,6 @@ public extension UnsupportedNumberFormat {
             return nil
         }
     }
-
-    // CLDR's name for the digits 0 to 9.
-    private static let latinDigits = "latn"
 
     // Left-to-right and right-to-left marks. They carry no width, so a pattern holding one looks
     // identical to a pattern without.
