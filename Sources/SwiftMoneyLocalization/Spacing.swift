@@ -1,8 +1,9 @@
-/// The gap a locale writes between an amount and the currency name beside it.
+/// A gap a locale writes between an amount and the currency beside it, whether a symbol or a name.
 ///
-/// The four are the only gaps CLDR uses for that join, so a locale needing any other is refused
-/// rather than written out wrongly.
-package enum Spacing: Equatable, Sendable {
+/// The four are the only gaps CLDR uses for these joins, so a locale needing any other is refused
+/// rather than written out wrongly. A caller sets one through ``CurrencySpacing/fixed(_:)`` to override
+/// the gap the locale would otherwise pick for a custom currency.
+public enum Spacing: Equatable, Hashable, Sendable {
     /// No gap at all, as Japanese writes it.
     case none
 

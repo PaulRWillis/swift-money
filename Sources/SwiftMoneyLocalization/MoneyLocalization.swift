@@ -136,7 +136,8 @@ public enum MoneyLocalization {
         cldr.numberFormats.numberFormat(localeIndex: LocaleIndex(position: $0))
     }
 
-    private static func numberFormat(at localeIndex: LocaleIndex) -> LocaleNumberFormat {
+    // Not private: the custom-currency builder in another file resolves a locale's format through this.
+    static func numberFormat(at localeIndex: LocaleIndex) -> LocaleNumberFormat {
         numberFormats[localeIndex.position]
     }
 
@@ -145,7 +146,8 @@ public enum MoneyLocalization {
     private static let pluralRules = cldr.pluralRules.allRules()
 
     // The locale's number format with a currency written beside it, however that currency is named.
-    private static func moneyFormat(
+    // Not private: the custom-currency builder in another file composes a format through this too.
+    static func moneyFormat(
         symbol: String,
         pattern: MoneyFormatPattern,
         gap: String,
