@@ -117,7 +117,9 @@ jobs:
   # rather than split across two separate comments.
   comment:
     needs: report
-    if: ${{ github.event_name == 'pull_request' }}
+    # always(), so a failed or cancelled report still gets a comment (the incomplete verdict) rather
+    # than the whole comment job being skipped and the PR left with no status.
+    if: ${{ always() && github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -133,6 +135,8 @@ jobs:
     - name: Build the combined comment body
       env:
         SAMPLE: 15
+        REPORT_RESULT: ${{ needs.report.result }}
+        RUN_URL: "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
       run: |
         lines() { cat $1 2>/dev/null | wc -l | tr -d ' '; }
 
@@ -155,15 +159,20 @@ jobs:
 
         echo "<!-- icu-deviations -->" > comment_body.md
 
+        artifactCount="$(find deviations -name status.txt 2>/dev/null | wc -l | tr -d ' ')"
+
         appeared="$(lines 'deviations/*/appeared.txt')"
         resolved="$(lines 'deviations/*/resolved.txt')"
 
         # One place decides the outcome, with a single precedence ladder; an unexpected value stops the
-        # job loudly rather than posting a wrong verdict.
+        # job loudly rather than posting a wrong verdict. A regression coinciding with a failed report
+        # still reads as a regression: the caveat below marks the counts as a floor.
         if grep -qx incomparable deviations/*/status.txt 2>/dev/null; then
           OUTCOME=incomparable
         elif [ "$appeared" -gt 0 ] || [ "$resolved" -gt 0 ]; then
           OUTCOME=regression
+        elif [ "$REPORT_RESULT" != success ] || [ "$artifactCount" -eq 0 ]; then
+          OUTCOME=incomplete
         else
           OUTCOME=clean
         fi
@@ -181,6 +190,10 @@ jobs:
               echo "### ⚠️ $appeared deviation(s) appeared, $resolved resolved"
               echo
               echo "Non-gating. The Foundation-free engine against the platform's own ICU, compared with the commit this pull request targets."
+              if [ "$REPORT_RESULT" != success ]; then
+                echo
+                echo "> Some shards did not finish, so these counts are a floor."
+              fi
               echo
               echo "| platform | appeared | resolved |"
               echo "| --- | ---: | ---: |"
@@ -190,6 +203,13 @@ jobs:
             } >> comment_body.md
             sample appeared "$appeared"
             sample resolved "$resolved"
+            ;;
+          incomplete)
+            {
+              echo "### ❓ Report did not finish"
+              echo
+              echo "The ICU deviation report did not complete, so there is no verdict for this push. [Run details]($RUN_URL)"
+            } >> comment_body.md
             ;;
           clean)
             {
@@ -204,12 +224,10 @@ jobs:
             ;;
         esac
 
-        echo "CHANGED=$([ "$OUTCOME" = clean ] && echo false || echo true)" >> "$GITHUB_ENV"
-
     # Mirrors swift-benchmark-delta.yml's marker/find-or-create technique: a hidden HTML comment
     # lets this workflow find and edit its own comment rather than posting a new one on every push.
-    # A distinct marker keeps it from colliding with that workflow's own comment. A run that changes
-    # nothing posts nothing, but does refresh a comment an earlier push left behind.
+    # A distinct marker keeps it from colliding with that workflow's own comment. Every triggered run
+    # creates or edits the one marker comment, so a PR always carries the latest verdict.
     - name: Comment on PR
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -219,11 +237,6 @@ jobs:
         existing="$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
           | jq -r --arg marker "$MARKER" \
               '[.[] | select(.body | contains($marker))] | last | .id // empty')"
-
-        if [ "$CHANGED" != "true" ] && [ -z "$existing" ]; then
-          echo "No deviation changed and there is no comment to update."
-          exit 0
-        fi
 
         # Read from the file rather than passed as an argument: the report runs to tens of kilobytes
         # once many locales are covered, and a command line that size fails to execute at all.
