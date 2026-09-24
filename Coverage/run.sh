@@ -87,20 +87,29 @@ while IFS= read -r -d '' bundle; do
     fi
 done < <(find "$BIN_DIR" -maxdepth 1 -name '*.xctest' -print0)
 
-# Linux swiftbuild emits no `.xctest`; fall back to the bare per-target test executables. Test targets
-# are the only products whose names end in "Tests", so this leaves out the dev-only tool executables
-# (GenerateSwiftMoneyLocalization and friends) that share the directory.
+# Linux swiftbuild emits no `.xctest`; fall back to the bare test executables. Every test target's name
+# contains "test", so this matches them wherever the layout puts them (directly in the products dir or a
+# level down) while leaving out the dev-only tool executables (GenerateSwiftMoneyLocalization and friends,
+# none of which contain "test") and the linked libraries (`.so`/`.dylib`, some of which do, like
+# libXCTest). The exact name and depth of a test binary have moved between toolchains, so this matches on
+# the durable signal rather than a fixed name or depth.
 if [[ ${#TEST_BINARIES[@]} -eq 0 ]]; then
     while IFS= read -r -d '' binary; do
         TEST_BINARIES+=("$binary")
-    done < <(find "$BIN_DIR" -maxdepth 1 -type f -perm -u+x -name '*Tests' -print0)
+    done < <(
+        find "$BIN_DIR" -maxdepth 3 -type f -perm -u+x -iname '*test*' \
+            ! -name '*.so' ! -name '*.so.*' ! -name '*.dylib' -print0
+    )
 fi
 
-# Failing loudly on none beats a silent empty report. If a file's coverage later drops to no-data on a
-# platform, that build system links the library dynamically rather than into the test binary: add the
-# library archives or shared objects in "$BIN_DIR" as extra entries here.
+# Failing loudly on none beats a silent empty report. Print the layout so a run that still finds nothing
+# shows what the build system actually produced, since the test-binary shape has changed between
+# toolchains. If a file's coverage later drops to no-data on a platform, that build system links the
+# library dynamically rather than into the test binary: add the library archives or shared objects here.
 if [[ ${#TEST_BINARIES[@]} -eq 0 ]]; then
     echo "Error: no test binaries in $BIN_DIR" >&2
+    echo "Contents (up to 3 levels deep):" >&2
+    find "$BIN_DIR" -maxdepth 3 >&2
     exit 1
 fi
 
