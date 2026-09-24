@@ -69,10 +69,13 @@ if [[ ! -f "$PROFDATA" ]]; then
     exit 1
 fi
 
-# Collect every test bundle the build system produced. native emits one merged bundle; swiftbuild emits
-# one per test target. Each bundle links the library statically and so carries its coverage mapping, so
-# handing llvm-cov all of them and letting it merge the duplicated mappings covers the whole library
-# either way. Failing loudly on none beats a silent empty report.
+# Collect every test binary the build system produced. Each links the library statically and so carries
+# its coverage mapping, so handing llvm-cov all of them and letting it merge the duplicated mappings
+# covers the whole library. The shape depends on platform and build system:
+#   - macOS: one `.xctest` bundle per test target (swiftbuild) or one merged bundle (native), each
+#     wrapping its executable at Contents/MacOS/<name>.
+#   - Linux native: a bare `*.xctest` executable file.
+#   - Linux swiftbuild: no `.xctest` at all, a bare executable per test target named for the target.
 TEST_BINARIES=()
 while IFS= read -r -d '' bundle; do
     name="$(basename "$bundle" .xctest)"
@@ -84,8 +87,20 @@ while IFS= read -r -d '' bundle; do
     fi
 done < <(find "$BIN_DIR" -maxdepth 1 -name '*.xctest' -print0)
 
+# Linux swiftbuild emits no `.xctest`; fall back to the bare per-target test executables. Test targets
+# are the only products whose names end in "Tests", so this leaves out the dev-only tool executables
+# (GenerateSwiftMoneyLocalization and friends) that share the directory.
 if [[ ${#TEST_BINARIES[@]} -eq 0 ]]; then
-    echo "Error: no .xctest bundle in $BIN_DIR" >&2
+    while IFS= read -r -d '' binary; do
+        TEST_BINARIES+=("$binary")
+    done < <(find "$BIN_DIR" -maxdepth 1 -type f -perm -u+x -name '*Tests' -print0)
+fi
+
+# Failing loudly on none beats a silent empty report. If a file's coverage later drops to no-data on a
+# platform, that build system links the library dynamically rather than into the test binary: add the
+# library archives or shared objects in "$BIN_DIR" as extra entries here.
+if [[ ${#TEST_BINARIES[@]} -eq 0 ]]; then
+    echo "Error: no test binaries in $BIN_DIR" >&2
     exit 1
 fi
 
