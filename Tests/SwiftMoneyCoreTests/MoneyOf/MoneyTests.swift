@@ -254,6 +254,26 @@ struct MoneyTests {
         #expect(a == Money(minorUnits: 6_75, currency: .gbp)) // £6.75
     }
 
+    @Test("Integral multiplication by a multiplier too wide for Int64 does not trap when the product is representable")
+    func integralMultiplicationByWideMultiplierDoesNotTrapWhenProductRepresentable() {
+        let hugeMultiplier = UInt64(Int64.max) + 1
+        let zero = Money(minorUnits: 0, currency: .gbp)
+
+        #expect(zero * hugeMultiplier == zero)
+        #expect(hugeMultiplier * zero == zero)
+    }
+
+    @Test("Integral multiplication by a multiplier too wide for Int64 still traps when the product overflows")
+    func integralMultiplicationByWideMultiplierTrapsWhenProductOverflows() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(Money(minorUnits: 1, currency: .gbp) * UInt64.max)
+        }
+
+        await #expect(processExitsWith: .failure) {
+            blackHole(UInt64.max * Money(minorUnits: 1, currency: .gbp))
+        }
+    }
+
     @Test("One try covers a whole chain")
     func oneTryCoversAWholeChain() throws {
         let result = try (Money(minorUnits: 10_00, currency: .gbp) * 3)

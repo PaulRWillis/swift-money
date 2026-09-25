@@ -63,7 +63,16 @@ public extension MoneyOf where C: CurrencyType {
     /// Traps on overflow.
     @inlinable
     static func * (lhs: Self, rhs: some BinaryInteger) -> Self {
-        Self(unchecked: lhs.minorUnits * Int64(rhs), storage: .implied)
+        guard let factor = Int128(exactly: rhs) else {
+            preconditionFailure("Scaling by \(rhs) is not representable")
+        }
+
+        let (product, overflow) = Int128(lhs.minorUnits).multipliedReportingOverflow(by: factor)
+        guard !overflow, let representable = Int64(exactly: product) else {
+            preconditionFailure("Scaling by \(rhs) is not representable")
+        }
+
+        return Self(unchecked: representable, storage: .implied)
     }
 
     /// Returns the result of multiplying a whole number by this amount.
@@ -144,7 +153,16 @@ public extension MoneyOf where C == AnyCurrency {
     /// Traps on overflow.
     @inlinable
     static func * (lhs: Self, rhs: some BinaryInteger) -> Self {
-        Self(unchecked: lhs.minorUnits * Int64(rhs), storage: lhs.storage)
+        guard let factor = Int128(exactly: rhs) else {
+            preconditionFailure("Scaling by \(rhs) is not representable")
+        }
+
+        let (product, overflow) = Int128(lhs.minorUnits).multipliedReportingOverflow(by: factor)
+        guard !overflow, let representable = Int64(exactly: product) else {
+            preconditionFailure("Scaling by \(rhs) is not representable")
+        }
+
+        return Self(unchecked: representable, storage: lhs.storage)
     }
 
     /// Returns this amount scaled by a whole number.

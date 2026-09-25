@@ -231,6 +231,25 @@ struct MoneyOfTests {
         #expect(a == GBP(minorUnits: 6_75)) // £6.75
     }
 
+    @Test("Integral multiplication by a multiplier too wide for Int64 does not trap when the product is representable")
+    func integralMultiplicationByWideMultiplierDoesNotTrapWhenProductRepresentable() {
+        let hugeMultiplier = UInt64(Int64.max) + 1
+
+        #expect(GBP.zero * hugeMultiplier == GBP.zero)
+        #expect(hugeMultiplier * GBP.zero == GBP.zero)
+    }
+
+    @Test("Integral multiplication by a multiplier too wide for Int64 still traps when the product overflows")
+    func integralMultiplicationByWideMultiplierTrapsWhenProductOverflows() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(GBP(minorUnits: 1) * UInt64.max)
+        }
+
+        await #expect(processExitsWith: .failure) {
+            blackHole(UInt64.max * GBP(minorUnits: 1))
+        }
+    }
+
     // Fractional scaling is covered by ScalingTests, which drives the algorithm through GBP.
 
     // The algorithm itself is covered by SplitTests, which drives it through GBP.
