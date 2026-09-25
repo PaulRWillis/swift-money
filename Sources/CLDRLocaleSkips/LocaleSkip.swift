@@ -88,8 +88,7 @@ package extension LocaleSkip {
         switch self {
         case .unrepresentableNumberFormat(.nonLatinDigits(let numberingSystem)):
             numberingSystem
-        case .unrepresentableNumberFormat(.directionalMark(let pattern)),
-             .noCurrencyPlaceholder(let pattern):
+        case .noCurrencyPlaceholder(let pattern):
             Self.readable(pattern)
         case .duplicateOfShorterIdentifier(let identifier):
             identifier
@@ -110,14 +109,11 @@ package extension LocaleSkip {
         }
     }
 
-    // The three shapes `UnsupportedNumberFormat` distinguishes, said as a category. Its own
-    // description carries the pattern, which belongs in the detail rather than the group heading.
+    // The one shape `UnsupportedNumberFormat` distinguishes, said as a category.
     private static func numberFormat(_ format: UnsupportedNumberFormat) -> String {
         switch format {
         case .nonLatinDigits:
             "writes amounts in digits other than 0 to 9"
-        case .directionalMark:
-            "carries a directional mark in its standard pattern"
         }
     }
 

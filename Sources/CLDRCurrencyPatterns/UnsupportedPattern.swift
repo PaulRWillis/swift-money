@@ -38,10 +38,17 @@ public extension UnsupportedPattern {
         }
     }
 
-    // Every gap CLDR writes here is whitespace; a directional mark is not, so a pattern adding one is
-    // reported rather than passed over.
+    // A directional mark is zero-width formatting, not a spacing difference the tables need to
+    // represent, so it is filtered out here alongside whitespace: a pattern that only gains a mark
+    // beside its letter-symbol variant is representable, the same as one that only gains a space.
     private static func withoutSpacing(_ pattern: String) -> String {
-        pattern.filter { !$0.isWhitespace }
+        pattern.filter { !$0.isWhitespace && !Self.isDirectionalMark($0) }
+    }
+
+    // Left-to-right and right-to-left marks: the two directional formatting characters CLDR writes
+    // around a currency pattern.
+    private static func isDirectionalMark(_ character: Character) -> Bool {
+        character == "\u{200E}" || character == "\u{200F}"
     }
 }
 

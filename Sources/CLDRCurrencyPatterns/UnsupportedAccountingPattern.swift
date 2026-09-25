@@ -38,7 +38,10 @@ public extension UnsupportedAccountingPattern {
     }
 
     // What a pattern writes between the currency and the digits, which the record holds once for both
-    // presentations. Read from the positive arrangement, as the rest of the pattern reading is.
+    // presentations. Read from the positive arrangement, as the rest of the pattern reading is. A
+    // directional mark inside this gap (as Hebrew writes one immediately before its symbol) is zero-width
+    // formatting, not a spacing difference, so it is stripped before the two presentations are compared —
+    // otherwise a mark carried by only one of them would read as a gap that changed for accounting.
     private static func gap(in pattern: String) -> String? {
         let positive = pattern.split(separator: ";").first ?? Substring(pattern)
 
@@ -51,13 +54,21 @@ public extension UnsupportedAccountingPattern {
             return nil
         }
 
-        return side == .leading
+        let rawGap = side == .leading
             ? String(positive[positive.index(after: currency) ..< firstDigit])
             : String(positive[positive.index(after: lastDigit) ..< currency])
+
+        return rawGap.filter { !Self.isDirectionalMark($0) }
     }
 
     private static func isNumberCharacter(_ character: Character) -> Bool {
         character == "#" || character == "0" || character == "," || character == "."
+    }
+
+    // Left-to-right and right-to-left marks: the two directional formatting characters CLDR writes
+    // around a currency pattern.
+    private static func isDirectionalMark(_ character: Character) -> Bool {
+        character == "\u{200E}" || character == "\u{200F}"
     }
 }
 

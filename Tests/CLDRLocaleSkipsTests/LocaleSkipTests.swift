@@ -22,7 +22,6 @@ struct LocaleSkipTests {
     func reasonsCarryNoDetail() {
         let skips = [
             LocaleSkip.unrepresentableNumberFormat(.nonLatinDigits(numberingSystem: "arab")),
-            .unrepresentableNumberFormat(.directionalMark(pattern: "\u{200F}#,##0.00")),
             .unsupportedPluralRule(language: "bem", relation: "within"),
             .noCurrencyPlaceholder(pattern: "#,##0.00"),
             .unreadableCurrencySpacing(rule: "currencyMatch [:^S:]"),
@@ -57,7 +56,7 @@ struct LocaleSkipTests {
     // carries is spacing, so a reader needs them spelled out.
     @Test("Detail escapes characters outside printable ASCII")
     func detailEscapesInvisibleCharacters() {
-        let skip = LocaleSkip.unrepresentableNumberFormat(.directionalMark(pattern: "\u{200F}-#,##0.00\u{00A0}\u{00A4}"))
+        let skip = LocaleSkip.noCurrencyPlaceholder(pattern: "\u{200F}-#,##0.00\u{00A0}\u{00A4}")
 
         #expect(skip.detail == "\\u{200F}-#,##0.00\\u{A0}\\u{A4}")
     }
@@ -116,7 +115,6 @@ struct LocaleSkipTests {
     // until it appeared unlabelled in the committed report.
     static let oneOfEachCase: [LocaleSkip] = [
         .unrepresentableNumberFormat(.nonLatinDigits(numberingSystem: "arab")),
-        .unrepresentableNumberFormat(.directionalMark(pattern: "\u{200F}#,##0.00")),
         .duplicateOfShorterIdentifier("ff"),
         .unsupportedPluralRule(language: "bem", relation: "within"),
         .unrepresentablePattern(.currencyMovesForLetterSymbols, field: .standard),

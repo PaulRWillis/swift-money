@@ -3,12 +3,13 @@
 Generated from CLDR 48.2.0 by GenerateSwiftMoneyLocalization. Do not edit by hand.
 Regenerate with: (cd Tools/cldr && npm ci) && swift run GenerateSwiftMoneyLocalization
 
-The engine formats 622 of the 766 CLDR locales this build reads. The 144 below are left out, each because it writes something the packed tables have no shape for. They keep the ICU fallback, and rejoin the list on their own once that shape exists.
+The engine formats 623 of the 766 CLDR locales this build reads. The 143 below are left out, each because it writes something the packed tables have no shape for. They keep the ICU fallback, and rejoin the list on their own once that shape exists.
 
-## arranges a currency written with letters in a way this tool does not model, in its accounting pattern (31)
+## arranges a currency written with letters in a way this tool does not model, in its accounting pattern (32)
 - bem: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
 - bm: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
 - bm-Nkoo: \u{A4}\u{A0}#,##0.00 against \u{A4}\u{A0}#,##0.00;(\u{A4}\u{A0}#,##0.00)
+- bqi: \u{A4}\u{A0}#,##0.00 against \u{200E}\u{A4}\u{A0}#,##0.00;\u{200E}(\u{A4}\u{A0}#,##0.00)
 - dav: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
 - ebu: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
 - ee: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
@@ -38,44 +39,32 @@ The engine formats 622 of the 766 CLDR locales this build reads. The 144 below a
 - vai-Latn: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
 - vai-Vaii: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
 
-## arranges a currency written with letters in a way this tool does not model, in its standard pattern (5)
-- bqi: \u{A4}\u{A0}#,##0.00 against \u{200E}\u{A4}\u{A0}#,##0.00
+## arranges a currency written with letters in a way this tool does not model, in its standard pattern (25)
+- ar-BH: \u{200F}#,##0.00\u{A0}\u{A4} against \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
+- ar-DJ: \u{200F}#,##0.00\u{A0}\u{A4} against \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
+- ar-EG: \u{200F}#,##0.00\u{A0}\u{A4} against \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
+- ar-ER: \u{200F}#,##0.00\u{A0}\u{A4} against \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
+- ar-IL: \u{200F}#,##0.00\u{A0}\u{A4} against \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
+- ar-IQ: \u{200F}#,##0.00\u{A0}\u{A4} against \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
+- ar-JO: \u{200F}#,##0.00\u{A0}\u{A4} against \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
+- ar-KM: \u{200F}#,##0.00\u{A0}\u{A4} against \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
+- ar-KW: \u{200F}#,##0.00\u{A0}\u{A4} against \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
+- ar-LB: \u{200F}#,##0.00\u{A0}\u{A4} against \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
+- ar-MR: \u{200F}#,##0.00\u{A0}\u{A4} against \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
+- ar-OM: \u{200F}#,##0.00\u{A0}\u{A4} against \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
+- ar-PS: \u{200F}#,##0.00\u{A0}\u{A4} against \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
+- ar-QA: \u{200F}#,##0.00\u{A0}\u{A4} against \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
+- ar-SA: \u{200F}#,##0.00\u{A0}\u{A4} against \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
+- ar-SD: \u{200F}#,##0.00\u{A0}\u{A4} against \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
+- ar-SO: \u{200F}#,##0.00\u{A0}\u{A4} against \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
+- ar-SS: \u{200F}#,##0.00\u{A0}\u{A4} against \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
+- ar-SY: \u{200F}#,##0.00\u{A0}\u{A4} against \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
+- ar-TD: \u{200F}#,##0.00\u{A0}\u{A4} against \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
+- ar-YE: \u{200F}#,##0.00\u{A0}\u{A4} against \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
 - nb: #,##0.00\u{A0}\u{A4};-#,##0.00\u{A0}\u{A4} against #,##0.00\u{A0}\u{A4}
 - nb-SJ: #,##0.00\u{A0}\u{A4};-#,##0.00\u{A0}\u{A4} against #,##0.00\u{A0}\u{A4}
 - nn: #,##0.00\u{A0}\u{A4};-#,##0.00\u{A0}\u{A4} against #,##0.00\u{A0}\u{A4}
 - no: #,##0.00\u{A0}\u{A4};-#,##0.00\u{A0}\u{A4} against #,##0.00\u{A0}\u{A4}
-
-## carries a directional mark in its standard pattern (30)
-- ar: \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
-- ar-AE: \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
-- ar-BH: \u{200F}#,##0.00\u{A0}\u{A4}
-- ar-DJ: \u{200F}#,##0.00\u{A0}\u{A4}
-- ar-DZ: \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
-- ar-EG: \u{200F}#,##0.00\u{A0}\u{A4}
-- ar-EH: \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
-- ar-ER: \u{200F}#,##0.00\u{A0}\u{A4}
-- ar-IL: \u{200F}#,##0.00\u{A0}\u{A4}
-- ar-IQ: \u{200F}#,##0.00\u{A0}\u{A4}
-- ar-JO: \u{200F}#,##0.00\u{A0}\u{A4}
-- ar-KM: \u{200F}#,##0.00\u{A0}\u{A4}
-- ar-KW: \u{200F}#,##0.00\u{A0}\u{A4}
-- ar-LB: \u{200F}#,##0.00\u{A0}\u{A4}
-- ar-LY: \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
-- ar-MA: \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
-- ar-MR: \u{200F}#,##0.00\u{A0}\u{A4}
-- ar-OM: \u{200F}#,##0.00\u{A0}\u{A4}
-- ar-PS: \u{200F}#,##0.00\u{A0}\u{A4}
-- ar-QA: \u{200F}#,##0.00\u{A0}\u{A4}
-- ar-SA: \u{200F}#,##0.00\u{A0}\u{A4}
-- ar-SD: \u{200F}#,##0.00\u{A0}\u{A4}
-- ar-SO: \u{200F}#,##0.00\u{A0}\u{A4}
-- ar-SS: \u{200F}#,##0.00\u{A0}\u{A4}
-- ar-SY: \u{200F}#,##0.00\u{A0}\u{A4}
-- ar-TD: \u{200F}#,##0.00\u{A0}\u{A4}
-- ar-TN: \u{200F}#,##0.00\u{A0}\u{A4};\u{200F}-#,##0.00\u{A0}\u{A4}
-- ar-YE: \u{200F}#,##0.00\u{A0}\u{A4}
-- fa: \u{200E}\u{A4}#,##0.00
-- he: \u{200F}#,##0.00\u{A0}\u{200F}\u{A4};\u{200F}-#,##0.00\u{A0}\u{200F}\u{A4}
 
 ## groups the digits differently for a currency written with letters, in its standard pattern (3)
 - dv
@@ -159,7 +148,15 @@ The engine formats 622 of the 766 CLDR locales this build reads. The 144 below a
 - ta-LK
 - te
 
-## the gap between the currency and the digits changes in the accounting pattern (8)
+## the gap between the currency and the digits changes in the accounting pattern (16)
+- ar
+- ar-AE
+- ar-DZ
+- ar-EH
+- ar-LY
+- ar-MA
+- ar-TN
+- fa
 - mg
 - ms-Arab-BN
 - ms-BN

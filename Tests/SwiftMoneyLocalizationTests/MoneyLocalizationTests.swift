@@ -168,4 +168,19 @@ struct MoneyLocalizationTests {
         // de_DE is not a table key; it must fall back to "de".
         #expect(MoneyLocalization.moneyFormat(for: Self.currency("EUR"), locale: "de_DE") != nil)
     }
+
+    // Hebrew wraps its pattern in a right-to-left mark (leading, and again immediately before the
+    // symbol) and its own minus sign already carries a left-to-right mark ("‎-"), so a negative
+    // amount shows both marks. Previously refused outright by the directional-mark gate.
+    @Test("Hebrew renders both the leading and the interior right-to-left mark, in both signs")
+    func hebrewDirectionalMarks() throws {
+        let ils = Self.currency("ILS")
+        let format = try #require(
+            MoneyLocalization.moneyFormat(for: ils, locale: "he"),
+            "he should be a covered locale"
+        )
+
+        #expect(format.format(Money(minorUnits: 1_00, currency: ils)) == "\u{200F}1.00\u{00A0}\u{200F}₪")
+        #expect(format.format(Money(minorUnits: -1_00, currency: ils)) == "\u{200F}\u{200E}-1.00\u{00A0}\u{200F}₪")
+    }
 }
