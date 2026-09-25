@@ -296,6 +296,15 @@ private extension MoneyOf.FormatStyle {
     func engineFormat(for value: MoneyOf<C>) -> MoneyFormat? {
         let identifier = LocaleIdentifier(locale.identifier)
 
+        // A custom currency renders from the display on its type. When that yields nothing (the currency
+        // is not custom, the locale is uncovered, or it supplies no display), fall through to the CLDR
+        // path, which for a custom currency renders the raw code and for a shipped one its own data.
+        if let custom = customFormat(
+            for: value, locale: identifier, presentation: presentation, enginePresentation: enginePresentation
+        ) {
+            return custom
+        }
+
         guard presentation != .fullName else {
             return MoneyLocalization.fullNameMoneyFormat(
                 for: value.currency,

@@ -16,6 +16,10 @@ package struct LocaleNumberFormat: Equatable {
     package let fullNamePattern: FullNameLayout
     // The space between an ISO code (or a code used as a fallback symbol) and the digits.
     package let isoCodeSpacing: Spacing
+    // The gap the locale's currency pattern bakes in beside every symbol, glyph included: a non-breaking
+    // space in de and fr, none in en. Distinct from `isoCodeSpacing`, which a locale inserts only next to
+    // a letter-like symbol. Shipped rendering resolves spacing per currency and does not read this.
+    package let symbolSpacing: Spacing
     // The gap between the amount and a currency's full name.
     package let fullNameSpacing: Spacing
     // The glyphs this locale writes the digits with: ASCII, or its own set.
@@ -32,6 +36,7 @@ package struct LocaleNumberFormat: Equatable {
         pattern: MoneyFormatPattern,
         fullNamePattern: FullNameLayout,
         isoCodeSpacing: Spacing,
+        symbolSpacing: Spacing,
         fullNameSpacing: Spacing,
         digits: Digits = .ascii,
         minGroupingDigits: MinGroupingDigits = 1
@@ -44,6 +49,7 @@ package struct LocaleNumberFormat: Equatable {
         self.pattern = pattern
         self.fullNamePattern = fullNamePattern
         self.isoCodeSpacing = isoCodeSpacing
+        self.symbolSpacing = symbolSpacing
         self.fullNameSpacing = fullNameSpacing
         self.digits = digits
         self.minGroupingDigits = minGroupingDigits

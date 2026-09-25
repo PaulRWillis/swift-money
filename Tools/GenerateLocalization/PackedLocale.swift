@@ -18,6 +18,8 @@ struct PackedLocale {
         let groupingSeparator: StringRef
         let minusSign: StringRef
         let isoCodeSpacing: Spacing
+        // The gap the standard pattern bakes in beside every symbol, glyph included.
+        let symbolSpacing: Spacing
         let primaryGroupingSize: UInt8
         let secondaryGroupingSize: UInt8
         let fullNameSpacing: Spacing

@@ -38,6 +38,7 @@ struct CLDRBlobTests {
         body.ref(groupingSeparator)
         body.ref(minusSign)
         body.u8(Spacing.nonBreakingSpace.blobCode)
+        body.u8(Spacing.none.blobCode)
         body.u8(3)
         body.u8(3)
         body.u8(Spacing.asciiSpace.blobCode)
