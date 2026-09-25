@@ -332,6 +332,10 @@ enum AccountingArrangement: Equatable {
 }
 
 struct ParsedPattern {
+    // The raw (unstripped) positive subpattern, kept alongside the structural fields below so
+    // `patternLiteral` can tell whether it carries a directional mark and, if so, re-tokenize it rather
+    // than synthesize the positive arrangement from `side` alone.
+    let positivePattern: String
     let side: CurrencySide
     let patternSpacing: String
     let grouping: GroupSizes
@@ -344,11 +348,18 @@ func negativeSubpattern(of pattern: String) -> String? {
 }
 
 func parse(standard: String, accounting: String) throws(LocaleSkip) -> ParsedPattern {
-    let positive = String(standard.split(separator: ";").first ?? Substring(standard))
+    // The structural fields (which side the currency sits on, how the digits group, the gap beside the
+    // currency) are read from a mark-stripped copy: a directional mark is zero-width formatting, not
+    // part of the layout these fields describe, and stripping it is a no-op for every pattern that
+    // carries none. Hebrew needs this: its mark sits inside the gap `patternSpacing` slices out, and
+    // left in place would turn a plain non-breaking space into a gap no packed `Spacing` recognizes.
+    let strippedStandard = strippingDirectionalMarks(standard)
+    let positive = String(strippedStandard.split(separator: ";").first ?? Substring(strippedStandard))
+    let rawPositive = String(standard.split(separator: ";").first ?? Substring(standard))
 
     // `CurrencySide` reads the same two positions, so a pattern it can place is one with both of these.
     guard
-        let side = CurrencySide(pattern: standard),
+        let side = CurrencySide(pattern: strippedStandard),
         let symbolIndex = positive.firstIndex(of: "¤"),
         let firstNumber = positive.firstIndex(where: { integerNumberChars.contains($0) })
     else {
@@ -371,6 +382,8 @@ func parse(standard: String, accounting: String) throws(LocaleSkip) -> ParsedPat
     // A locale that arranges its own negative has that arrangement, and its accounting form, read here so
     // the sign lands where CLDR places it rather than at the front. Where CLDR gives no accounting
     // subpattern the accounting form wraps in parentheses when the source pattern does, else uses a minus.
+    // Read from the raw (unstripped) patterns: a mark inside a custom subpattern is carried through
+    // `subpatternAffixes` → `affixTokens`, which tokenizes marks on their own terms.
     let accountingSubpattern = negativeSubpattern(of: accounting)
     let negative: NegativeArrangement
     let accountingArrangement: AccountingArrangement
@@ -387,9 +400,10 @@ func parse(standard: String, accounting: String) throws(LocaleSkip) -> ParsedPat
     }
 
     return ParsedPattern(
+        positivePattern: rawPositive,
         side: side,
         patternSpacing: patternSpacing,
-        grouping: GroupSizes(pattern: standard),
+        grouping: GroupSizes(pattern: strippedStandard),
         negative: negative,
         accounting: accountingArrangement
     )
@@ -408,6 +422,15 @@ func source(of token: MoneyFormatToken) -> String {
     case .currency: ".currency"
     case .currencySpacing: ".currencySpacing"
     case .literal(let text): ".literal(\(quote(text)))"
+    case .directionalMark(let mark): ".directionalMark(\(source(of: mark)))"
+    }
+}
+
+// A directional mark as the Swift source that reconstructs it.
+func source(of mark: DirectionalMark) -> String {
+    switch mark {
+    case .leftToRight: ".leftToRight"
+    case .rightToLeft: ".rightToLeft"
     }
 }
 
@@ -447,9 +470,11 @@ func subpatternAffixes(_ subpattern: String) throws(LocaleSkip) -> MoneyFormatAf
 
 // One side of a subpattern turned into tokens. Whitespace touching the currency is the per-symbol
 // spacing token, so it resolves the same way the positive arrangement's does; any other run of
-// whitespace or text is a literal, and the two markers CLDR writes become `.currency` and `.sign`.
+// whitespace or text is a literal, the two markers CLDR writes become `.currency` and `.sign`, and a
+// directional mark becomes its own token rather than being folded into the surrounding literal or
+// space run — it is a distinct kind of character, not text a locale chose to write.
 func affixTokens(of region: Substring) -> [MoneyFormatToken] {
-    enum Segment: Equatable { case currency, sign, space(String), text(String) }
+    enum Segment: Equatable { case currency, sign, mark(DirectionalMark), space(String), text(String) }
 
     var segments: [Segment] = []
     var run = ""
@@ -461,17 +486,19 @@ func affixTokens(of region: Substring) -> [MoneyFormatToken] {
     }
 
     for character in region {
-        switch character {
-        case "¤":
+        if character == "¤" {
             flushRun()
             segments.append(.currency)
-        case "-":
+        } else if character == "-" {
             flushRun()
             segments.append(.sign)
-        case _ where character.isWhitespace:
+        } else if let mark = directionalMark(in: character) {
+            flushRun()
+            segments.append(.mark(mark))
+        } else if character.isWhitespace {
             if !runIsSpace { flushRun(); runIsSpace = true }
             run.append(character)
-        default:
+        } else {
             if runIsSpace { flushRun(); runIsSpace = false }
             run.append(character)
         }
@@ -482,6 +509,7 @@ func affixTokens(of region: Substring) -> [MoneyFormatToken] {
         switch segment {
         case .currency: .currency
         case .sign: .sign
+        case .mark(let mark): .directionalMark(mark)
         case .text(let text): .literal(text)
         case .space(let text):
             (index > 0 && segments[index - 1] == .currency)
@@ -492,17 +520,55 @@ func affixTokens(of region: Substring) -> [MoneyFormatToken] {
     }
 }
 
+// The directional mark `character` is, when it is exactly one of the two CLDR writes around a
+// currency pattern, or `nil` for any other character (including one that happens to combine with a
+// mark scalar into a multi-scalar grapheme, which a bare pattern character never does).
+func directionalMark(in character: Character) -> DirectionalMark? {
+    guard character.unicodeScalars.count == 1, let scalar = character.unicodeScalars.first else {
+        return nil
+    }
+    return DirectionalMark(scalar)
+}
+
+// `pattern` with every directional mark removed. The structural readers (`CurrencySide`,
+// `GroupSizes`, the pattern-spacing slice) need to see where the currency, digits and gap fall
+// without a zero-width mark shifting what looks adjacent to what — as in Hebrew, where a mark sits
+// between the currency gap and the symbol itself. A no-op for any pattern that carries no mark.
+func strippingDirectionalMarks(_ pattern: String) -> String {
+    String(String.UnicodeScalarView(pattern.unicodeScalars.filter { DirectionalMark($0) == nil }))
+}
+
+// Whether `pattern` carries a directional mark anywhere, positive or negative subpattern alike.
+func hasDirectionalMark(_ pattern: String) -> Bool {
+    pattern.unicodeScalars.contains { DirectionalMark($0) != nil }
+}
+
 // A locale's three arrangements. The positive arrangement leads with the sign slot, which renders
 // nothing until the options ask for a plus. The negative and accounting arrangements are CLDR's own
 // where the locale writes them (the sign moved off the front, or parentheses), and default to the
 // positive-with-leading-sign otherwise.
+//
+// `positivePattern` is the raw positive subpattern `parsed` carried alongside `side`. Where it has no
+// directional mark, `body` is `side`'s synthesis exactly as before — byte-identical for every locale
+// this feature does not touch. Where it does, `body` is instead the positive subpattern re-tokenized
+// through `affixTokens`, so a mark leading the arrangement (`ar`, `fa`) or sitting immediately before
+// the symbol (`he`) is carried into `body`, and from there into every arrangement built from it: the
+// positive itself, the default (no-`;`) negative, and the minus-sign accounting form all reuse `signed`,
+// so none of them would otherwise ship without the mark CLDR gives their negative.
 func patternLiteral(
+    positivePattern: String,
     side: CurrencySide,
     negative: NegativeArrangement,
     accounting: AccountingArrangement
-) -> String {
-    let body = currencyAffix(side: side)
-    let signed = MoneyFormatAffixes(prefix: [.sign] + body.prefix, suffix: body.suffix)
+) throws(LocaleSkip) -> String {
+    let body: (prefix: [MoneyFormatToken], suffix: [MoneyFormatToken])
+    if hasDirectionalMark(positivePattern) {
+        let tokenized = try subpatternAffixes(positivePattern)
+        body = (prefix: tokenized.prefix, suffix: tokenized.suffix)
+    } else {
+        body = currencyAffix(side: side)
+    }
+    let signed = MoneyFormatAffixes(prefix: signedPrefix(leadingWith: body.prefix), suffix: body.suffix)
 
     let negativeAffixes: MoneyFormatAffixes
     switch negative {
@@ -524,6 +590,21 @@ func patternLiteral(
                     accountingNegative: \(source(of: accountingAffixes))
                 )
         """
+}
+
+// `prefix` with `.sign` inserted immediately after any directional marks leading it, rather than at
+// position 0. A mark-free prefix is unaffected (the sign simply leads, as before): this is where the
+// unmarked synthesis and the marked one meet. A marked prefix instead gets the shape CLDR itself
+// writes for the locales that spell out their own negative subpattern (mark, then sign), which the
+// synthesized default-negative and accounting-minus arrangements then match.
+func signedPrefix(leadingWith prefix: [MoneyFormatToken]) -> [MoneyFormatToken] {
+    let leadingMarks = prefix.prefix { token in
+        if case .directionalMark = token { return true }
+        return false
+    }
+    var result = prefix
+    result.insert(.sign, at: leadingMarks.count)
+    return result
 }
 
 // The index of a pattern among the distinct ones, adding it if it is new. Patterns repeat heavily
@@ -945,7 +1026,8 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip]) throws(
         latnDecimalSeparator: required(latnSymbols, "decimal", in: locale),
         latnGroupingSeparator: required(latnSymbols, "group", in: locale),
         latnMinusSign: latnSymbols["minusSign"] ?? "-",
-        pattern: patternLiteral(
+        pattern: try patternLiteral(
+            positivePattern: parsed.positivePattern,
             side: parsed.side,
             negative: parsed.negative,
             accounting: parsed.accounting
@@ -962,19 +1044,16 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip]) throws(
 //
 // The number format is checked before the pattern, which answers a narrower question: the pattern
 // reader takes the part before the first `;` and looks only between the currency and the nearest
-// digit, so it would pass over a relocated negative, a directional mark or a grouping threshold
-// without noticing. `formats` is the locale's default numbering system's block, so a directional mark
-// or a relocated negative is caught in the pattern the locale actually renders with.
+// digit, so it would pass over a relocated negative or a grouping threshold without noticing.
+// `formats` is the locale's default numbering system's block, so a relocated negative is caught in
+// the pattern the locale actually renders with. A directional mark is no longer refused here: `parse`
+// and `patternLiteral` carry it, so a mark alone is never why a locale is left out.
 func refuseUnrepresentable(
     formats: [String: Any],
     locale: String
 ) throws(LocaleSkip) {
     let standard = formats["standard"] as! String
     let accounting = formats["accounting"] as! String
-
-    if let unsupported = UnsupportedNumberFormat(standardPattern: standard) {
-        throw .unrepresentableNumberFormat(unsupported)
-    }
 
     for field in PatternField.allCases {
         if let unsupported = UnsupportedPattern(

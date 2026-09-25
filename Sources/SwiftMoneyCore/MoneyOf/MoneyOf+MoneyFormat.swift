@@ -257,6 +257,7 @@ public extension MoneyFormat {
         case .currency: symbol.utf8.count
         case .currencySpacing: currencySpacing.utf8.count
         case .literal(let text): text.utf8.count
+        case .directionalMark(let mark): String(mark.scalar).utf8.count
         }
     }
 
@@ -273,6 +274,7 @@ public extension MoneyFormat {
         case .currency: MoneyFormat.copy(symbol, into: buffer, at: offset)
         case .currencySpacing: MoneyFormat.copy(currencySpacing, into: buffer, at: offset)
         case .literal(let text): MoneyFormat.copy(text, into: buffer, at: offset)
+        case .directionalMark(let mark): MoneyFormat.writeScalar(mark.scalar, into: buffer, at: offset)
         }
     }
 
@@ -526,6 +528,7 @@ package extension MoneyFormat {
         case .currency where !symbol.isEmpty: runs.append(.currency(symbol))
         case .currencySpacing where !currencySpacing.isEmpty: runs.append(.currencySpacing(currencySpacing))
         case .literal(let text) where !text.isEmpty: runs.append(.literal(text))
+        case .directionalMark(let mark): runs.append(.directionalMark(mark))
         default: break
         }
     }

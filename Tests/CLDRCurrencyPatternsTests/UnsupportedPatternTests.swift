@@ -37,18 +37,14 @@ struct UnsupportedPatternTests {
         )
     }
 
-    // bqi adds a left-to-right mark, which is not spacing and not a rearrangement either.
-    @Test("A difference that is neither side nor grouping is refused as unmodelled")
-    func unmodelledDifference() {
-        let unsupported = UnsupportedPattern(
-            pattern: "¤\u{00A0}#,##0.00",
-            letterSymbolPattern: "\u{200E}¤\u{00A0}#,##0.00"
+    // bqi adds a left-to-right mark to its letter-symbol variant. A directional mark is zero-width
+    // formatting, filtered the same way whitespace is, so this difference is representable.
+    @Test("A directional mark added for letter symbols does not make the pair unrepresentable")
+    func directionalMarkIsRepresentable() {
+        #expect(
+            UnsupportedPattern(pattern: "¤\u{00A0}#,##0.00", letterSymbolPattern: "\u{200E}¤\u{00A0}#,##0.00")
+                == nil
         )
-
-        #expect(unsupported == .unmodelled(
-            pattern: "¤\u{00A0}#,##0.00",
-            letterSymbolPattern: "\u{200E}¤\u{00A0}#,##0.00"
-        ))
     }
 
     // nn, no, nb and nb-SJ publish a negative subpattern the variant drops.

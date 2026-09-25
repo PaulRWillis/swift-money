@@ -1,3 +1,4 @@
+import CLDRCurrencyPatterns
 import CLDRLocaleSkips
 import Testing
 
@@ -5,7 +6,7 @@ import Testing
 struct SkipReportTests {
 
     private static let skipped = [
-        SkippedLocale(locale: "nl", skip: .unrepresentableNumberFormat(.directionalMark(pattern: "\u{200F}#,##0.00"))),
+        SkippedLocale(locale: "nl", skip: .unrepresentablePattern(.currencyMovesForLetterSymbols, field: .standard)),
         SkippedLocale(locale: "ar", skip: .unrepresentableNumberFormat(.nonLatinDigits(numberingSystem: "arab"))),
         SkippedLocale(locale: "bem", skip: .unsupportedPluralRule(language: "bem", relation: "within")),
         SkippedLocale(locale: "aa", skip: .unrepresentableNumberFormat(.nonLatinDigits(numberingSystem: "arab"))),
