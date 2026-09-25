@@ -17,15 +17,21 @@ public extension MoneyLocalization {
     ///   - money: The amount whose currency supplies the display.
     ///   - locale: The locale identifier, as ``moneyFormat(for:locale:presentation:)`` takes it.
     ///   - presentation: Whether to show the symbol, the ISO code, or the narrow symbol.
+    ///   - numberingSystem: The digits and separators to render in. `nil` (the default) uses the
+    ///     locale's own default system, so the output is unchanged.
     /// - Returns: A ``MoneyFormat``, or `nil` when the locale is outside the covered set or the currency
     ///   has no display for it.
     static func moneyFormat<C: CustomCurrencyFormattable>(
         for money: MoneyOf<C>,
         locale: LocaleIdentifier,
-        presentation: CurrencyPresentation = .standard
+        presentation: CurrencyPresentation = .standard,
+        numberingSystem: NumberingSystem? = nil
     ) -> MoneyFormat? {
         C.display(for: locale).flatMap {
-            moneyFormat(for: money.currency, display: $0, locale: locale, presentation: presentation)
+            moneyFormat(
+                for: money.currency, display: $0, locale: locale,
+                presentation: presentation, numberingSystem: numberingSystem
+            )
         }
     }
 
@@ -39,14 +45,20 @@ public extension MoneyLocalization {
     /// - Parameters:
     ///   - money: The amount whose currency supplies the names.
     ///   - locale: The locale identifier, as ``moneyFormat(for:locale:presentation:)`` takes it.
+    ///   - numberingSystem: The digits and separators to render in. `nil` (the default) uses the
+    ///     locale's own default system, so the output is unchanged.
     /// - Returns: A ``MoneyFormat``, or `nil` when the locale is outside the covered set or the currency
     ///   supplies no names for it.
     static func fullNameMoneyFormat<C: CustomCurrencyFormattable>(
         for money: MoneyOf<C>,
-        locale: LocaleIdentifier
+        locale: LocaleIdentifier,
+        numberingSystem: NumberingSystem? = nil
     ) -> MoneyFormat? {
         C.names(for: locale).flatMap {
-            fullNameMoneyFormat(for: money.currency, names: $0, minorUnits: money.minorUnits, locale: locale)
+            fullNameMoneyFormat(
+                for: money.currency, names: $0, minorUnits: money.minorUnits,
+                locale: locale, numberingSystem: numberingSystem
+            )
         }
     }
 }
@@ -58,13 +70,14 @@ package extension MoneyLocalization {
         for currency: Currency,
         display: CustomCurrencyDisplay,
         locale: LocaleIdentifier,
-        presentation: CurrencyPresentation
+        presentation: CurrencyPresentation,
+        numberingSystem: NumberingSystem? = nil
     ) -> MoneyFormat? {
         guard let localeIndex = cldr.locales.index(of: locale) else {
             return nil
         }
 
-        let format = numberFormat(at: localeIndex)
+        let format = numberFormat(at: localeIndex, numberingSystem: numberingSystem)
         let form = symbolForm(display, presentation: presentation, code: currency.code)
 
         return moneyFormat(
@@ -83,7 +96,8 @@ package extension MoneyLocalization {
         for currency: Currency,
         names: CustomCurrencyNames,
         minorUnits: Int64,
-        locale: LocaleIdentifier
+        locale: LocaleIdentifier,
+        numberingSystem: NumberingSystem? = nil
     ) -> MoneyFormat? {
         guard let localeIndex = cldr.locales.index(of: locale) else {
             return nil
@@ -93,7 +107,7 @@ package extension MoneyLocalization {
         let category = pluralCategory(of: operands, inLanguageOf: locale)
         let name = names.name(for: category)
 
-        let format = numberFormat(at: localeIndex)
+        let format = numberFormat(at: localeIndex, numberingSystem: numberingSystem)
         let affixes = format.fullNamePattern.affixes(for: category)
         let gap = fullNameGap(names.spacing, in: format)
 

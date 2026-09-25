@@ -61,6 +61,48 @@ package struct LocaleNumberFormat: Equatable {
     }
 }
 
+package extension LocaleNumberFormat {
+    // The same format writing a different digit set, for a numbering system that reuses the locale's
+    // separators. Everything else — separators, grouping, patterns, spacing — is unchanged.
+    func replacingDigits(_ digits: Digits) -> LocaleNumberFormat {
+        LocaleNumberFormat(
+            decimalSeparator: decimalSeparator,
+            groupingSeparator: groupingSeparator,
+            minusSign: minusSign,
+            primaryGroupingSize: primaryGroupingSize,
+            secondaryGroupingSize: secondaryGroupingSize,
+            pattern: pattern,
+            fullNamePattern: fullNamePattern,
+            isoCodeSpacing: isoCodeSpacing,
+            symbolSpacing: symbolSpacing,
+            fullNameSpacing: fullNameSpacing,
+            digits: digits,
+            minGroupingDigits: minGroupingDigits,
+            defaultSystemIndex: defaultSystemIndex
+        )
+    }
+
+    // The same format writing a numbering system's own separators and digits, for a system that imposes
+    // its own. Grouping sizes, patterns and spacing stay the locale's.
+    func replacing(symbols: NumberingSystemSymbols, digits: Digits) -> LocaleNumberFormat {
+        LocaleNumberFormat(
+            decimalSeparator: symbols.decimalSeparator,
+            groupingSeparator: symbols.groupingSeparator,
+            minusSign: symbols.minusSign,
+            primaryGroupingSize: primaryGroupingSize,
+            secondaryGroupingSize: secondaryGroupingSize,
+            pattern: pattern,
+            fullNamePattern: fullNamePattern,
+            isoCodeSpacing: isoCodeSpacing,
+            symbolSpacing: symbolSpacing,
+            fullNameSpacing: fullNameSpacing,
+            digits: digits,
+            minGroupingDigits: minGroupingDigits,
+            defaultSystemIndex: defaultSystemIndex
+        )
+    }
+}
+
 // A currency's symbol and narrow symbol in one locale, each with the spacing CLDR resolves for it. Only
 // currencies whose symbol differs from their code are stored; the rest fall back to the code.
 package struct CurrencyDisplay: Equatable {

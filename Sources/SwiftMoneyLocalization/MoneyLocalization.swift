@@ -22,17 +22,20 @@ public enum MoneyLocalization {
     ///   - locale: The locale identifier, e.g. `"en-GB"` or `"de_DE"` (either separator; a
     ///     language-region identifier falls back to its language).
     ///   - presentation: Whether to show the symbol, the ISO code, or the narrow symbol.
+    ///   - numberingSystem: The digits and separators to render in. `nil` (the default) uses the
+    ///     locale's own default system, so the output is unchanged.
     /// - Returns: A ``MoneyFormat``, or `nil` when the locale is outside the covered set.
     public static func moneyFormat(
         for currency: Currency,
         locale: LocaleIdentifier,
-        presentation: CurrencyPresentation = .standard
+        presentation: CurrencyPresentation = .standard,
+        numberingSystem: NumberingSystem? = nil
     ) -> MoneyFormat? {
         guard let localeIndex = cldr.locales.index(of: locale) else {
             return nil
         }
 
-        let format = numberFormat(at: localeIndex)
+        let format = numberFormat(at: localeIndex, numberingSystem: numberingSystem)
         let display = cldr.currencyDisplays.display(localeIndex: localeIndex, code: currency.code)
 
         // Build the code string only where it is used: as the fallback when a locale has no symbol, and
@@ -69,12 +72,15 @@ public enum MoneyLocalization {
     ///     plural form: a currency showing fraction digits is never named in the singular.
     ///   - minorUnits: The amount, in the currency's smallest units.
     ///   - locale: The locale identifier, as ``moneyFormat(for:locale:presentation:)`` takes it.
+    ///   - numberingSystem: The digits and separators to render in. `nil` (the default) uses the
+    ///     locale's own default system, so the output is unchanged.
     /// - Returns: A ``MoneyFormat``, or `nil` when the locale is outside the covered set or CLDR
     ///   gives the currency no name there.
     public static func fullNameMoneyFormat(
         for currency: Currency,
         minorUnits: Int64,
-        locale: LocaleIdentifier
+        locale: LocaleIdentifier,
+        numberingSystem: NumberingSystem? = nil
     ) -> MoneyFormat? {
         guard let localeIndex = cldr.locales.index(of: locale) else {
             return nil
@@ -90,7 +96,7 @@ public enum MoneyLocalization {
             return nil
         }
 
-        let format = numberFormat(at: localeIndex)
+        let format = numberFormat(at: localeIndex, numberingSystem: numberingSystem)
         let affixes = format.fullNamePattern.affixes(for: category)
 
         return moneyFormat(
@@ -139,6 +145,45 @@ public enum MoneyLocalization {
     // Not private: the custom-currency builder in another file resolves a locale's format through this.
     static func numberFormat(at localeIndex: LocaleIndex) -> LocaleNumberFormat {
         numberFormats[localeIndex.position]
+    }
+
+    // The locale's format rendered in a chosen numbering system, or its baked default when none is asked
+    // for. The nil and own-default paths return the baked format untouched, so they stay byte-identical.
+    static func numberFormat(
+        at localeIndex: LocaleIndex,
+        numberingSystem: NumberingSystem?
+    ) -> LocaleNumberFormat {
+        let baked = numberFormat(at: localeIndex)
+        return resolvedNumbering(at: localeIndex, for: numberingSystem, baked: baked).applied(to: baked)
+    }
+
+    // How a requested system resolves against the baked format: unchanged when none is asked for, when the
+    // system is not modelled, or when it is the locale's own default; a digit swap for a reuse system; or
+    // the system's separators (default or per-locale override) plus its digits for an imposing one.
+    private static func resolvedNumbering(
+        at localeIndex: LocaleIndex,
+        for numberingSystem: NumberingSystem?,
+        baked: LocaleNumberFormat
+    ) -> ResolvedNumbering {
+        guard
+            let numberingSystem,
+            let systemIndex = cldr.numberingSystems.index(of: numberingSystem.identifier),
+            systemIndex != baked.defaultSystemIndex
+        else {
+            return .baked
+        }
+
+        let digits = cldr.numberingSystems.digits(at: systemIndex)
+
+        switch cldr.numberingSystems.provenance(at: systemIndex) {
+        case .reusesLocale:
+            return .swapDigits(digits)
+        case .imposesOwn(let defaultSymbols):
+            let symbols = cldr.numberingSystemOverrides.symbols(
+                localeIndex: localeIndex, systemIndex: systemIndex
+            ) ?? defaultSymbols
+            return .systemSymbols(symbols, digits: digits)
+        }
     }
 
     // Every language's plural rules, decoded once from the blob. A language with no rule for a category
