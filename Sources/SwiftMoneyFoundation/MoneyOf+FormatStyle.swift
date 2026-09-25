@@ -321,7 +321,7 @@ private extension MoneyOf.FormatStyle {
         case .decimalSeparator: container.numberSymbol = .decimalSeparator
         case .integerDigits: container.numberPart = .integer
         case .fractionDigits: container.numberPart = .fraction
-        case .currencySpacing, .literal: return nil
+        case .currencySpacing, .literal, .directionalMark: return nil
         }
         return container
     }

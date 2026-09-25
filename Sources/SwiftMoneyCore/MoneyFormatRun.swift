@@ -32,6 +32,10 @@ package enum MoneyFormatRun: Equatable, Sendable {
     /// The fraction digits.
     case fractionDigits(String)
 
+    /// A zero-width mark controlling text direction, carried as the typed ``DirectionalMark`` rather
+    /// than a string, since it is a closed two-value concept and not arbitrary text.
+    case directionalMark(DirectionalMark)
+
     /// The run's text, whatever it represents.
     @usableFromInline
     package var text: String {
@@ -40,6 +44,8 @@ package enum MoneyFormatRun: Equatable, Sendable {
              .integerDigits(let text), .groupingSeparator(let text), .decimalSeparator(let text),
              .fractionDigits(let text):
             text
+        case .directionalMark(let mark):
+            String(mark.scalar)
         }
     }
 }

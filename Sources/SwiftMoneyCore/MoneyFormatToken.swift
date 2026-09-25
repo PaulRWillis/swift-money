@@ -18,4 +18,8 @@ package enum MoneyFormatToken: Equatable, Hashable, Sendable {
     /// Text the locale's pattern writes literally, such as an accounting parenthesis or Romanian's
     /// "de" between an amount and a currency's name.
     case literal(String)
+
+    /// A zero-width mark controlling text direction, such as Arabic wrapping its pattern in a
+    /// right-to-left mark.
+    case directionalMark(DirectionalMark)
 }

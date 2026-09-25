@@ -408,6 +408,15 @@ func source(of token: MoneyFormatToken) -> String {
     case .currency: ".currency"
     case .currencySpacing: ".currencySpacing"
     case .literal(let text): ".literal(\(quote(text)))"
+    case .directionalMark(let mark): ".directionalMark(\(source(of: mark)))"
+    }
+}
+
+// A directional mark as the Swift source that reconstructs it.
+func source(of mark: DirectionalMark) -> String {
+    switch mark {
+    case .leftToRight: ".leftToRight"
+    case .rightToLeft: ".rightToLeft"
     }
 }
 
