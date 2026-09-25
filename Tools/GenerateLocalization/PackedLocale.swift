@@ -29,6 +29,8 @@ struct PackedLocale {
         let digits: StringRef
         // How many whole digits the integer part needs before grouping shows; one for most locales.
         let minGroupingDigits: UInt8
+        // Where the locale's own default numbering system sits among the sorted systems.
+        let defaultSystemIndex: UInt8
     }
 
     // One currency's symbols in this locale, each with the spacing CLDR resolves for it.

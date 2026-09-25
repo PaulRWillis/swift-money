@@ -26,7 +26,8 @@ package struct NumberFormatTable: Sendable {
         static let fullNamePatternIndex = patternIndex + BlobDigits.u16
         static let digits = fullNamePatternIndex + BlobDigits.u16
         static let minGroupingDigits = digits + BlobDigits.stringRef
-        static let stride = minGroupingDigits + BlobDigits.u8
+        static let defaultSystemIndex = minGroupingDigits + BlobDigits.u8
+        static let stride = defaultSystemIndex + BlobDigits.u8
     }
 
     package init(
@@ -57,6 +58,7 @@ package struct NumberFormatTable: Sendable {
         let fullNamePatternIndex = Int(reader.u16(at: record + Record.fullNamePatternIndex))
         let digitGlyphs = reader.string(reader.stringRef(at: record + Record.digits))
         let minGroupingRaw = Int(reader.u8(at: record + Record.minGroupingDigits))
+        let defaultSystemIndex = SystemIndex(position: Int(reader.u8(at: record + Record.defaultSystemIndex)))
 
         // The generator writes only valid values, so a failure here is a generator bug, not input.
         guard let groupingSeparator = GroupingSeparator(groupingRaw) else {
@@ -104,7 +106,8 @@ package struct NumberFormatTable: Sendable {
             symbolSpacing: symbolSpacing,
             fullNameSpacing: fullNameSpacing,
             digits: digits,
-            minGroupingDigits: minGroupingDigits
+            minGroupingDigits: minGroupingDigits,
+            defaultSystemIndex: defaultSystemIndex
         )
     }
 }

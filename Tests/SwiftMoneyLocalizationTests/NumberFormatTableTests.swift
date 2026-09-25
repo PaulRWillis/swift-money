@@ -18,7 +18,7 @@ struct NumberFormatTableTests {
 
     // One locale (index 0): "." decimal, "," grouping of 3, "-", NBSP iso spacing, ascii full-name gap,
     // pattern index 0, full-name pattern index 0, and the given digit glyphs (empty = ASCII).
-    static func makeBlob(digitGlyphs: String = "", minGrouping: UInt8 = 1) -> (bytes: [UInt8], recordsOffset: Int) {
+    static func makeBlob(digitGlyphs: String = "", minGrouping: UInt8 = 1, defaultSystem: UInt8 = 0) -> (bytes: [UInt8], recordsOffset: Int) {
         var b = BlobTestBuilder()
         let decimal = b.pool(".")
         let grouping = b.pool(",")
@@ -38,11 +38,12 @@ struct NumberFormatTableTests {
         b.u16(0)
         b.ref(digits)
         b.u8(minGrouping)
+        b.u8(defaultSystem)
         return (b.bytes, recordsOffset)
     }
 
-    static func withTable(digitGlyphs: String = "", minGrouping: UInt8 = 1, _ body: (NumberFormatTable) -> Void) {
-        let (bytes, recordsOffset) = makeBlob(digitGlyphs: digitGlyphs, minGrouping: minGrouping)
+    static func withTable(digitGlyphs: String = "", minGrouping: UInt8 = 1, defaultSystem: UInt8 = 0, _ body: (NumberFormatTable) -> Void) {
+        let (bytes, recordsOffset) = makeBlob(digitGlyphs: digitGlyphs, minGrouping: minGrouping, defaultSystem: defaultSystem)
         bytes.withUnsafeBufferPointer { buffer in
             let reader = BlobReader(base: buffer.baseAddress!, count: buffer.count)
             body(NumberFormatTable(
@@ -77,6 +78,29 @@ struct NumberFormatTableTests {
         Self.withTable(minGrouping: 2) { table in
             #expect(table.numberFormat(localeIndex: LocaleIndex(position: 0)).minGroupingDigits == 2)
         }
+    }
+
+    @Test("The default numbering-system index decodes from the record")
+    func decodesDefaultSystemIndex() {
+        Self.withTable(defaultSystem: 7) { table in
+            #expect(table.numberFormat(localeIndex: LocaleIndex(position: 0)).defaultSystemIndex == SystemIndex(position: 7))
+        }
+    }
+
+    // bn defaults to beng, fa-AF to arabext and en_GB to latn, so their baked indices point at those.
+    @Test(
+        "The generated tables record each locale's default numbering system",
+        arguments: [
+            (locale: "bn", system: "beng"),
+            (locale: "fa-AF", system: "arabext"),
+            (locale: "en-GB", system: "latn"),
+        ]
+    )
+    func generatedDefaultSystem(_ row: (locale: String, system: String)) throws {
+        let cldr = MoneyLocalization.cldr
+        let localeIndex = try #require(cldr.locales.index(of: LocaleIdentifier(row.locale)))
+        let systemIndex = try #require(cldr.numberingSystems.index(of: row.system))
+        #expect(cldr.numberFormats.numberFormat(localeIndex: localeIndex).defaultSystemIndex == systemIndex)
     }
 
     @Test("An empty digit ref decodes as the ASCII digit set")

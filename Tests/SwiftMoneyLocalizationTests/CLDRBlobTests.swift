@@ -46,6 +46,7 @@ struct CLDRBlobTests {
         body.u16(0)
         body.ref(StringRef.empty)
         body.u8(1)
+        body.u8(0)   // default numbering-system index (latn, at position 0 here)
 
         let displayRecordsStart = body.count
         body.currencyCode(gbp.compactValue)

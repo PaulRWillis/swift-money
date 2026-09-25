@@ -107,6 +107,7 @@ struct PackedTables {
             body.u16(format.fullNamePatternIndex)
             body.ref(format.digits)
             body.u8(format.minGroupingDigits)
+            body.u8(format.defaultSystemIndex)
         }
 
         return offset

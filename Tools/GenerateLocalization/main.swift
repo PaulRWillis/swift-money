@@ -179,6 +179,15 @@ let numberingSystemPositions: [String: Int] = Dictionary(
     uniqueKeysWithValues: sortedNumberingSystemNames.enumerated().map { ($1, $0) }
 )
 
+// The wire form of a locale's default numbering-system index. Every emitted locale's default system is
+// representable (it built), so it is one of the supported systems.
+func defaultSystemIndex(of system: String) -> UInt8 {
+    guard let position = numberingSystemPositions[system] else {
+        fatalError("default numbering system \(system) is not among the supported systems")
+    }
+    return UInt8(position)
+}
+
 // The imposing systems this locale writes with its own separators, differing from the system default.
 // A locale with no block for an imposing system uses the default and contributes no override; a block that
 // resolves to the default (every key inherited) likewise contributes none.
@@ -915,6 +924,7 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip]) throws(
         fullNameSpacing: fullName.spacing,
         minGroupingDigits: UInt8(minimumGroupingDigits(n, locale: locale)),
         digits: digits,
+        defaultNumberingSystem: system,
         pattern: patternLiteral(
             side: parsed.side,
             negative: parsed.negative,
@@ -1123,7 +1133,8 @@ func pack(
         patternIndex: index(of: tables.pattern, in: &patterns),
         fullNamePatternIndex: index(of: tables.fullNamePattern, in: &fullNamePatterns),
         digits: pool.insert(tables.digits ?? ""),
-        minGroupingDigits: tables.minGroupingDigits
+        minGroupingDigits: tables.minGroupingDigits,
+        defaultSystemIndex: defaultSystemIndex(of: tables.defaultNumberingSystem)
     )
 
     let displays = tables.displays.map { display in

@@ -26,6 +26,9 @@ package struct LocaleNumberFormat: Equatable {
     package let digits: Digits
     // How many whole digits the integer part needs before grouping shows; one for most locales.
     package let minGroupingDigits: MinGroupingDigits
+    // Where the locale's own default numbering system sits in the numbering-system section. A request for
+    // this system resolves to the baked format unchanged, so `bn_BD@beng` renders as `bn_BD` does.
+    package let defaultSystemIndex: SystemIndex
 
     package init(
         decimalSeparator: String,
@@ -39,7 +42,8 @@ package struct LocaleNumberFormat: Equatable {
         symbolSpacing: Spacing,
         fullNameSpacing: Spacing,
         digits: Digits = .ascii,
-        minGroupingDigits: MinGroupingDigits = 1
+        minGroupingDigits: MinGroupingDigits = 1,
+        defaultSystemIndex: SystemIndex
     ) {
         self.decimalSeparator = decimalSeparator
         self.groupingSeparator = groupingSeparator
@@ -53,6 +57,7 @@ package struct LocaleNumberFormat: Equatable {
         self.fullNameSpacing = fullNameSpacing
         self.digits = digits
         self.minGroupingDigits = minGroupingDigits
+        self.defaultSystemIndex = defaultSystemIndex
     }
 }
 
