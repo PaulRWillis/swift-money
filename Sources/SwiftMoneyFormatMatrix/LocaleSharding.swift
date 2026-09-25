@@ -16,10 +16,10 @@ extension FormatMatrix {
     /// `index` outside `0 ..< count` yields an empty shard, which is harmless.
     package static func localeIDs(inShard index: Int, of count: Int) -> [String] {
         guard count > 1 else {
-            return coveredLocaleIDs
+            return goldenLocaleIDs
         }
 
-        return coveredLocaleIDs.filter { shard(ofLocale: $0, count: count) == index }
+        return goldenLocaleIDs.filter { shard(ofLocale: $0, count: count) == index }
     }
 
     /// The covered locales named in `requested`, split into those that are covered and those that are
@@ -31,9 +31,9 @@ extension FormatMatrix {
     /// not covered (still on the ICU fallback) as the user wrote it.
     package static func coveredLocales(among requested: [String]) -> (selected: [String], unknown: [String]) {
         let requestedSet = Set(requested)
-        let coveredSet = Set(coveredLocaleIDs)
+        let coveredSet = Set(goldenLocaleIDs)
 
-        let selected = coveredLocaleIDs.filter(requestedSet.contains)
+        let selected = goldenLocaleIDs.filter(requestedSet.contains)
         let unknown = requested.filter { !coveredSet.contains($0) }
 
         return (selected, unknown)
