@@ -27,7 +27,10 @@ package struct NumberFormatTable: Sendable {
         static let digits = fullNamePatternIndex + BlobDigits.u16
         static let minGroupingDigits = digits + BlobDigits.stringRef
         static let defaultSystemIndex = minGroupingDigits + BlobDigits.u8
-        static let stride = defaultSystemIndex + BlobDigits.u8
+        static let latnDecimalSeparator = defaultSystemIndex + BlobDigits.u8
+        static let latnGroupingSeparator = latnDecimalSeparator + BlobDigits.stringRef
+        static let latnMinusSign = latnGroupingSeparator + BlobDigits.stringRef
+        static let stride = latnMinusSign + BlobDigits.stringRef
     }
 
     package init(
@@ -59,6 +62,9 @@ package struct NumberFormatTable: Sendable {
         let digitGlyphs = reader.string(reader.stringRef(at: record + Record.digits))
         let minGroupingRaw = Int(reader.u8(at: record + Record.minGroupingDigits))
         let defaultSystemIndex = SystemIndex(position: Int(reader.u8(at: record + Record.defaultSystemIndex)))
+        let latnDecimal = reader.string(reader.stringRef(at: record + Record.latnDecimalSeparator))
+        let latnGroupingRaw = reader.string(reader.stringRef(at: record + Record.latnGroupingSeparator))
+        let latnMinus = reader.string(reader.stringRef(at: record + Record.latnMinusSign))
 
         // The generator writes only valid values, so a failure here is a generator bug, not input.
         guard let groupingSeparator = GroupingSeparator(groupingRaw) else {
@@ -72,6 +78,9 @@ package struct NumberFormatTable: Sendable {
         }
         guard let minGroupingDigits = MinGroupingDigits(exactly: minGroupingRaw) else {
             preconditionFailure("blob minimum grouping digits is not positive")  // coverage:ignore
+        }
+        guard let latnGrouping = GroupingSeparator(latnGroupingRaw) else {
+            preconditionFailure("blob Latin grouping separator is empty")  // coverage:ignore
         }
         guard let isoCodeSpacing = Spacing(blobCode: isoSpacingCode) else {
             preconditionFailure("blob iso-code spacing code \(isoSpacingCode) is unknown")  // coverage:ignore
@@ -107,7 +116,10 @@ package struct NumberFormatTable: Sendable {
             fullNameSpacing: fullNameSpacing,
             digits: digits,
             minGroupingDigits: minGroupingDigits,
-            defaultSystemIndex: defaultSystemIndex
+            defaultSystemIndex: defaultSystemIndex,
+            latnSeparators: NumberingSystemSymbols(
+                decimalSeparator: latnDecimal, groupingSeparator: latnGrouping, minusSign: latnMinus
+            )
         )
     }
 }

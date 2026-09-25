@@ -39,6 +39,9 @@ struct NumberFormatTableTests {
         b.ref(digits)
         b.u8(minGrouping)
         b.u8(defaultSystem)
+        b.ref(decimal)   // Latin decimal separator
+        b.ref(grouping)  // Latin grouping separator
+        b.ref(minus)     // Latin minus sign
         return (b.bytes, recordsOffset)
     }
 

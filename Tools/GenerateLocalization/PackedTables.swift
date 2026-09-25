@@ -108,6 +108,9 @@ struct PackedTables {
             body.ref(format.digits)
             body.u8(format.minGroupingDigits)
             body.u8(format.defaultSystemIndex)
+            body.ref(format.latnDecimalSeparator)
+            body.ref(format.latnGroupingSeparator)
+            body.ref(format.latnMinusSign)
         }
 
         return offset

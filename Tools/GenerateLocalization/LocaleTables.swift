@@ -46,6 +46,12 @@ struct LocaleTables {
     // The CLDR name of the locale's own default numbering system, e.g. "latn" or "beng".
     let defaultNumberingSystem: String
 
+    // The locale's own Latin-system separators, used when a reuse system is requested. Equal to the baked
+    // separators for a Latin-default locale, but distinct for one whose default imposes its own.
+    let latnDecimalSeparator: String
+    let latnGroupingSeparator: String
+    let latnMinusSign: String
+
     // Swift source for the two interned tables, deduplicated by text when packed.
     let pattern: String
     let fullNamePattern: String

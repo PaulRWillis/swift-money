@@ -96,11 +96,16 @@ let digitSets: [String: String] = {
     return systems.compactMapValues { $0["_type"] == "numeric" ? $0["_digits"] : nil }
 }()
 
+// The one name for the Latin numbering system, routed through the type so the generator and the shipped
+// `NumberingSystem.latin` cannot drift and the CI coverage guard covers it. `latn` is the permanent BCP 47
+// key, so this is single-source-of-truth rather than a hedge against a rename.
+let latinNumberingSystem = NumberingSystem.latin.identifier
+
 // The digit glyphs a locale's default numbering system writes with, as the tables carry them: nil for
 // `latn` (the ASCII digits the engine writes directly), the ten glyphs for a representable non-Latin
 // system, or a refusal for a system with no glyphs or one the engine cannot render.
 func digitGlyphs(forSystem system: String) throws(LocaleSkip) -> String? {
-    guard system != "latn" else {
+    guard system != latinNumberingSystem else {
         return nil
     }
     guard let glyphs = digitSets[system], DigitGlyphs(glyphs) != nil else {
@@ -109,20 +114,31 @@ func digitGlyphs(forSystem system: String) throws(LocaleSkip) -> String? {
     return glyphs
 }
 
+// A locale's `latn` number symbols, the baseline every reuse system falls back to. Absent means the data
+// has changed shape, and every reuse system would then emit wrong separators, so refuse rather than guess.
+func latnNumberSymbols(_ numbers: [String: Any], locale: String) -> [String: String] {
+    guard let latn = numbers["symbols-numberSystem-\(latinNumberingSystem)"] as? [String: String] else {
+        fatalError("\(locale) publishes no \(latinNumberingSystem) number symbols")
+    }
+    return latn
+}
+
 // A locale's number symbols for `system`, taking the system's own block and falling back to the `latn`
 // block for any key it does not carry. CLDR files the separators under each numbering system it publishes.
-func numberSymbols(_ numbers: [String: Any], system: String) -> [String: String] {
-    let latn = numbers["symbols-numberSystem-latn"] as! [String: String]
-    guard system != "latn", let own = numbers["symbols-numberSystem-\(system)"] as? [String: String] else {
+func numberSymbols(_ numbers: [String: Any], system: String, locale: String) -> [String: String] {
+    let latn = latnNumberSymbols(numbers, locale: locale)
+    guard system != latinNumberingSystem, let own = numbers["symbols-numberSystem-\(system)"] as? [String: String] else {
         return latn
     }
     return latn.merging(own) { _, ownValue in ownValue }
 }
 
-// A locale's currency formats for `system`, with the same `latn` fallback as ``numberSymbols(_:system:)``.
-func currencyFormats(_ numbers: [String: Any], system: String) -> [String: Any] {
-    let latn = numbers["currencyFormats-numberSystem-latn"] as! [String: Any]
-    guard system != "latn", let own = numbers["currencyFormats-numberSystem-\(system)"] as? [String: Any] else {
+// A locale's currency formats for `system`, with the same `latn` fallback as ``numberSymbols(_:system:_:)``.
+func currencyFormats(_ numbers: [String: Any], system: String, locale: String) -> [String: Any] {
+    guard let latn = numbers["currencyFormats-numberSystem-\(latinNumberingSystem)"] as? [String: Any] else {
+        fatalError("\(locale) publishes no \(latinNumberingSystem) currency formats")
+    }
+    guard system != latinNumberingSystem, let own = numbers["currencyFormats-numberSystem-\(system)"] as? [String: Any] else {
         return latn
     }
     return latn.merging(own) { _, ownValue in ownValue }
@@ -153,7 +169,7 @@ func modalNumberingSymbols(system: String) -> [String]? {
         guard n["defaultNumberingSystem"] as? String == system else {
             continue
         }
-        let symbols = numberSymbols(n, system: system)
+        let symbols = numberSymbols(n, system: system, locale: locale)
         let triple = [
             required(symbols, "decimal", in: locale),
             required(symbols, "group", in: locale),
@@ -224,7 +240,7 @@ func numberingSystemRecords(into pool: inout StringPool) -> [PackedNumberingSyst
 
     for id in sortedNumberingSystemNames {
         // `latn` is the ASCII digits, stored as the empty marker so the runtime keeps its fast path.
-        let digits = id == "latn" ? "" : digitSets[id]!
+        let digits = id == latinNumberingSystem ? "" : digitSets[id]!
 
         let tag: UInt8
         let decimal: StringRef
@@ -889,8 +905,9 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip]) throws(
     // `latn` for most locales and its own set (Bengali, Devanagari, ...) for the rest.
     let system = n["defaultNumberingSystem"] as! String
     let digits = try digitGlyphs(forSystem: system)
-    let symbols = numberSymbols(n, system: system)
-    let formats = currencyFormats(n, system: system)
+    let symbols = numberSymbols(n, system: system, locale: locale)
+    let latnSymbols = numberSymbols(n, system: latinNumberingSystem, locale: locale)
+    let formats = currencyFormats(n, system: system, locale: locale)
 
     try refuseUnrepresentable(formats: formats, locale: locale)
 
@@ -925,6 +942,9 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip]) throws(
         minGroupingDigits: UInt8(minimumGroupingDigits(n, locale: locale)),
         digits: digits,
         defaultNumberingSystem: system,
+        latnDecimalSeparator: required(latnSymbols, "decimal", in: locale),
+        latnGroupingSeparator: required(latnSymbols, "group", in: locale),
+        latnMinusSign: latnSymbols["minusSign"] ?? "-",
         pattern: patternLiteral(
             side: parsed.side,
             negative: parsed.negative,
@@ -1134,7 +1154,10 @@ func pack(
         fullNamePatternIndex: index(of: tables.fullNamePattern, in: &fullNamePatterns),
         digits: pool.insert(tables.digits ?? ""),
         minGroupingDigits: tables.minGroupingDigits,
-        defaultSystemIndex: defaultSystemIndex(of: tables.defaultNumberingSystem)
+        defaultSystemIndex: defaultSystemIndex(of: tables.defaultNumberingSystem),
+        latnDecimalSeparator: pool.insert(tables.latnDecimalSeparator),
+        latnGroupingSeparator: pool.insert(tables.latnGroupingSeparator),
+        latnMinusSign: pool.insert(tables.latnMinusSign)
     )
 
     let displays = tables.displays.map { display in

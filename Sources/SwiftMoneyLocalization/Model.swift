@@ -29,6 +29,11 @@ package struct LocaleNumberFormat: Equatable {
     // Where the locale's own default numbering system sits in the numbering-system section. A request for
     // this system resolves to the baked format unchanged, so `bn_BD@beng` renders as `bn_BD` does.
     package let defaultSystemIndex: SystemIndex
+    // The locale's own Latin-system separators, used when a reuse system is requested. These are the baked
+    // separators for a locale whose default is Latin (or another reuse system), but differ for one whose
+    // default imposes its own (e.g. Urdu, whose default carries Arabic separators but whose Latin form does
+    // not), so swapping to a reuse system must fall back to these rather than keep the imposed ones.
+    package let latnSeparators: NumberingSystemSymbols
 
     package init(
         decimalSeparator: String,
@@ -43,7 +48,8 @@ package struct LocaleNumberFormat: Equatable {
         fullNameSpacing: Spacing,
         digits: Digits = .ascii,
         minGroupingDigits: MinGroupingDigits = 1,
-        defaultSystemIndex: SystemIndex
+        defaultSystemIndex: SystemIndex,
+        latnSeparators: NumberingSystemSymbols
     ) {
         self.decimalSeparator = decimalSeparator
         self.groupingSeparator = groupingSeparator
@@ -58,28 +64,16 @@ package struct LocaleNumberFormat: Equatable {
         self.digits = digits
         self.minGroupingDigits = minGroupingDigits
         self.defaultSystemIndex = defaultSystemIndex
+        self.latnSeparators = latnSeparators
     }
 }
 
 package extension LocaleNumberFormat {
-    // The same format writing a different digit set, for a numbering system that reuses the locale's
-    // separators. Everything else — separators, grouping, patterns, spacing — is unchanged.
+    // The same format writing a reuse system's digits over the locale's own Latin separators. A locale
+    // whose default imposes its own separators (Arabic-Indic, say) still reverts to its Latin separators
+    // here, so a reuse system never inherits the imposed ones. Grouping, patterns and spacing are unchanged.
     func replacingDigits(_ digits: Digits) -> LocaleNumberFormat {
-        LocaleNumberFormat(
-            decimalSeparator: decimalSeparator,
-            groupingSeparator: groupingSeparator,
-            minusSign: minusSign,
-            primaryGroupingSize: primaryGroupingSize,
-            secondaryGroupingSize: secondaryGroupingSize,
-            pattern: pattern,
-            fullNamePattern: fullNamePattern,
-            isoCodeSpacing: isoCodeSpacing,
-            symbolSpacing: symbolSpacing,
-            fullNameSpacing: fullNameSpacing,
-            digits: digits,
-            minGroupingDigits: minGroupingDigits,
-            defaultSystemIndex: defaultSystemIndex
-        )
+        replacing(symbols: latnSeparators, digits: digits)
     }
 
     // The same format writing a numbering system's own separators and digits, for a system that imposes
@@ -98,7 +92,8 @@ package extension LocaleNumberFormat {
             fullNameSpacing: fullNameSpacing,
             digits: digits,
             minGroupingDigits: minGroupingDigits,
-            defaultSystemIndex: defaultSystemIndex
+            defaultSystemIndex: defaultSystemIndex,
+            latnSeparators: latnSeparators
         )
     }
 }

@@ -47,6 +47,9 @@ struct CLDRBlobTests {
         body.ref(StringRef.empty)
         body.u8(1)
         body.u8(0)   // default numbering-system index (latn, at position 0 here)
+        body.ref(decimalSeparator)   // Latin decimal separator
+        body.ref(groupingSeparator)  // Latin grouping separator
+        body.ref(minusSign)          // Latin minus sign
 
         let displayRecordsStart = body.count
         body.currencyCode(gbp.compactValue)

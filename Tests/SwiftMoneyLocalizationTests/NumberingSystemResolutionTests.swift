@@ -54,6 +54,16 @@ struct NumberingSystemResolutionTests {
         #expect(requested.format(amount) == baked.format(amount))
     }
 
+    @Test("A reuse system on an imposing-default locale uses that locale's Latin separators")
+    func reuseOnImposingDefaultLocale() throws {
+        // ur-IN defaults to arabext (Arabic ٬/٫ separators), but its Latin form uses "," and ".".
+        // Swapping to Latin digits must revert to those, not keep the imposed Arabic ones.
+        let out = try #require(Self.rendered(1_234_56, locale: "ur-IN", system: .latin))
+        #expect(out.contains("1,234.56"))
+        #expect(!out.contains("٬"))
+        #expect(!out.contains("٫"))
+    }
+
     @Test("An unmodelled locale stays nil whatever the system")
     func uncoveredLocaleNil() {
         #expect(
