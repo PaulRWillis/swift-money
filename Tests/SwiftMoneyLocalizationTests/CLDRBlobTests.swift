@@ -46,6 +46,10 @@ struct CLDRBlobTests {
         body.u16(0)
         body.ref(StringRef.empty)
         body.u8(1)
+        body.u8(0)   // default numbering-system index (latn, at position 0 here)
+        body.ref(decimalSeparator)   // Latin decimal separator
+        body.ref(groupingSeparator)  // Latin grouping separator
+        body.ref(minusSign)          // Latin minus sign
 
         let displayRecordsStart = body.count
         body.currencyCode(gbp.compactValue)
@@ -80,6 +84,21 @@ struct CLDRBlobTests {
         body.u32(1)   // one language
         body.ref(key); body.offsetField(pluralRuleEntry); body.u8(1)
 
+        // One system, "latn", reusing the locale's separators with the ASCII digits.
+        let latnName = body.pool("latn")
+        let numberingSystemsOffset = body.count
+        body.u16(1)
+        body.ref(latnName)
+        body.u8(NumberingSystemTable.ProvenanceTag.reusesLocale)
+        body.ref(StringRef.empty)
+        body.ref(StringRef.empty)
+        body.ref(StringRef.empty)
+        body.ref(StringRef.empty)
+
+        // No per-locale overrides in this fixture.
+        let numberingOverridesOffset = body.count
+        body.u16(0)
+
         var header = BlobTestBuilder()
         header.u32(1)
         header.offsetField(localesOffset)
@@ -87,6 +106,8 @@ struct CLDRBlobTests {
         header.offsetField(displaysOffset)
         header.offsetField(fullNamesOffset)
         header.offsetField(pluralRulesOffset)
+        header.offsetField(numberingSystemsOffset)
+        header.offsetField(numberingOverridesOffset)
 
         return header.bytes + body.bytes
     }
@@ -129,7 +150,16 @@ struct CLDRBlobTests {
 
     @Test("A header offset is where the generator lays out the first section")
     func headerPrecedesTheSections() {
-        // A locale count then five section offsets.
-        #expect(CLDRBlob.headerWidth == BlobDigits.u32 + BlobDigits.offset * 5)
+        // A locale count then seven section offsets.
+        #expect(CLDRBlob.headerWidth == BlobDigits.u32 + BlobDigits.offset * 7)
+    }
+
+    @Test("The header resolves the numbering-system section")
+    func readsNumberingSystems() {
+        Self.withBlob { blob in
+            #expect(blob.numberingSystems.count == 1)
+            #expect(blob.numberingSystems.index(of: "latn") != nil)
+            #expect(blob.numberingSystems.index(of: "arab") == nil)
+        }
     }
 }

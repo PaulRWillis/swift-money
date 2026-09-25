@@ -29,6 +29,12 @@ struct PackedLocale {
         let digits: StringRef
         // How many whole digits the integer part needs before grouping shows; one for most locales.
         let minGroupingDigits: UInt8
+        // Where the locale's own default numbering system sits among the sorted systems.
+        let defaultSystemIndex: UInt8
+        // The locale's own Latin-system separators, for when a reuse system is requested.
+        let latnDecimalSeparator: StringRef
+        let latnGroupingSeparator: StringRef
+        let latnMinusSign: StringRef
     }
 
     // One currency's symbols in this locale, each with the spacing CLDR resolves for it.

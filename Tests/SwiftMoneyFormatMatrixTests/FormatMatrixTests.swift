@@ -42,18 +42,18 @@ struct FormatMatrixTests {
         #expect(FormatMatrix.shard(ofLocale: localeID, count: count) == shard)
     }
 
-    @Test("The shards partition the covered locales with nothing lost or shared")
-    func shardsPartitionTheCoveredLocales() {
+    @Test("The shards partition the golden locales with nothing lost or shared")
+    func shardsPartitionTheGoldenLocales() {
         let count = 3
         let shards = (0 ..< count).map { FormatMatrix.localeIDs(inShard: $0, of: count) }
 
-        #expect(shards.flatMap { $0 }.sorted() == FormatMatrix.coveredLocaleIDs.sorted())
-        #expect(Set(shards.flatMap { $0 }).count == FormatMatrix.coveredLocaleIDs.count)
+        #expect(shards.flatMap { $0 }.sorted() == FormatMatrix.goldenLocaleIDs.sorted())
+        #expect(Set(shards.flatMap { $0 }).count == FormatMatrix.goldenLocaleIDs.count)
     }
 
     @Test("A count of one means no sharding")
     func countOfOneReturnsEveryLocale() {
-        #expect(FormatMatrix.localeIDs(inShard: 0, of: 1) == FormatMatrix.coveredLocaleIDs)
+        #expect(FormatMatrix.localeIDs(inShard: 0, of: 1) == FormatMatrix.goldenLocaleIDs)
     }
 
     @Test("A requested subset selects the covered locales and reports the rest as unknown")

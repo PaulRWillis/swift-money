@@ -9,7 +9,7 @@ import SwiftMoneyFormatMatrix
 let repoRoot = FileManager.default.currentDirectoryPath
 let outputPath = "\(repoRoot)/Tests/SwiftMoneyFoundationTests/Generated/GoldenDigests.swift"
 
-let entries = FormatMatrix.coveredLocaleIDs
+let entries = FormatMatrix.goldenLocaleIDs
     .map { (id: $0, digest: FormatMatrix.goldenDigest(forLocale: $0)) }
     .sorted { $0.id < $1.id }
 

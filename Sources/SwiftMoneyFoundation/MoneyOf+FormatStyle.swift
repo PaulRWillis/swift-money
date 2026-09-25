@@ -34,6 +34,12 @@ public extension MoneyOf {
         // `nil` leaves the amount alone.
         private var roundingIncrement: RoundingIncrement?
 
+        // The locale's numbering system, resolved once here rather than on every `format`, because
+        // `Locale.numberingSystem` is an ICU call and the same style renders a column of amounts. `nil`
+        // means the locale's system is one the engine cannot model, so the ICU fallback renders it.
+        // Derived from `locale`, so it is recomputed whenever the locale changes and left off the wire.
+        private var resolvedNumberingSystem: NumberingSystem?
+
         /// Creates a style for the given locale.
         ///
         /// - Parameter locale: The locale to render in. Follows the user's setting by default.
@@ -46,6 +52,7 @@ public extension MoneyOf {
             self.roundingRule = .toNearestOrEven
             self.precision = nil
             self.roundingIncrement = nil
+            self.resolvedNumberingSystem = NumberingSystem(locale.numberingSystem)
         }
 
         /// Returns a copy of this style that renders in the given locale.
@@ -54,6 +61,7 @@ public extension MoneyOf {
         public func locale(_ locale: Locale) -> Self {
             var copy = self
             copy.locale = locale
+            copy.resolvedNumberingSystem = NumberingSystem(locale.numberingSystem)
             return copy
         }
 
@@ -144,8 +152,9 @@ public extension MoneyOf {
 }
 
 extension MoneyOf.FormatStyle {
-    // Both Codable halves are the compiler's: `RoundingIncrement` refuses a below-one value on
-    // decode itself. The keys stay declared so a property rename cannot silently change the wire.
+    // `RoundingIncrement` refuses a below-one value on decode itself. `resolvedNumberingSystem` is derived
+    // from the locale, so it is never on the wire: it is recomputed on decode, which keeps the encoded form
+    // identical to what the compiler synthesized before it was added.
     private enum CodingKeys: String, CodingKey {
         case locale
         case presentation
@@ -155,6 +164,33 @@ extension MoneyOf.FormatStyle {
         case roundingRule
         case precision
         case roundingIncrement
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        locale = try container.decode(Locale.self, forKey: .locale)
+        presentation = try container.decode(Configuration.Presentation.self, forKey: .presentation)
+        grouping = try container.decode(Configuration.Grouping.self, forKey: .grouping)
+        sign = try container.decode(Configuration.SignDisplayStrategy.self, forKey: .sign)
+        decimalSeparator = try container.decode(
+            Configuration.DecimalSeparatorDisplayStrategy.self, forKey: .decimalSeparator
+        )
+        roundingRule = try container.decode(Configuration.RoundingRule.self, forKey: .roundingRule)
+        precision = try container.decodeIfPresent(Configuration.Precision.self, forKey: .precision)
+        roundingIncrement = try container.decodeIfPresent(RoundingIncrement.self, forKey: .roundingIncrement)
+        resolvedNumberingSystem = NumberingSystem(locale.numberingSystem)
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(locale, forKey: .locale)
+        try container.encode(presentation, forKey: .presentation)
+        try container.encode(grouping, forKey: .grouping)
+        try container.encode(sign, forKey: .sign)
+        try container.encode(decimalSeparator, forKey: .decimalSeparator)
+        try container.encode(roundingRule, forKey: .roundingRule)
+        try container.encodeIfPresent(precision, forKey: .precision)
+        try container.encodeIfPresent(roundingIncrement, forKey: .roundingIncrement)
     }
 }
 
@@ -294,13 +330,24 @@ private extension MoneyOf.FormatStyle {
     // name depends on the amount, since a locale may name one unit differently from two, so it is
     // resolved from the amount rather than from a presentation.
     func engineFormat(for value: MoneyOf<C>) -> MoneyFormat? {
-        let identifier = LocaleIdentifier(locale.identifier)
+        // Strip any `@`-keyword suffix (e.g. `@numbers=arab`) so the base identifier resolves in the blob.
+        let identifier = LocaleIdentifier(String(locale.identifier.prefix { $0 != "@" }))
+
+        // `Locale.numberingSystem` always resolves to a concrete system, so an unmodelled resolution (a
+        // `nil` cache) means the caller asked for one we cannot render (e.g. hanidec), not that they
+        // expressed no preference. Fall back to ICU rather than silently render the locale's default digits.
+        // The engine is told the concrete system explicitly; the bridge never leaves the choice automatic.
+        guard let numberingSystem = resolvedNumberingSystem else {
+            return nil
+        }
+        let numberingSelection = NumberingSystemSelection.explicit(numberingSystem)
 
         // A custom currency renders from the display on its type. When that yields nothing (the currency
         // is not custom, the locale is uncovered, or it supplies no display), fall through to the CLDR
         // path, which for a custom currency renders the raw code and for a shipped one its own data.
         if let custom = customFormat(
-            for: value, locale: identifier, presentation: presentation, enginePresentation: enginePresentation
+            for: value, locale: identifier, presentation: presentation,
+            enginePresentation: enginePresentation, numberingSystem: numberingSelection
         ) {
             return custom
         }
@@ -309,12 +356,15 @@ private extension MoneyOf.FormatStyle {
             return MoneyLocalization.fullNameMoneyFormat(
                 for: value.currency,
                 minorUnits: value.minorUnits,
-                locale: identifier
+                locale: identifier,
+                numberingSystem: numberingSelection
             )
         }
 
         return enginePresentation.flatMap {
-            MoneyLocalization.moneyFormat(for: value.currency, locale: identifier, presentation: $0)
+            MoneyLocalization.moneyFormat(
+                for: value.currency, locale: identifier, presentation: $0, numberingSystem: numberingSelection
+            )
         }
     }
 

@@ -12,7 +12,7 @@ import Testing
 @Suite("MoneyFormatStyle golden")
 struct MoneyFormatStyleGoldenTests {
 
-    @Test("Engine output matches the committed golden, per locale", arguments: FormatMatrix.coveredLocaleIDs)
+    @Test("Engine output matches the committed golden, per locale", arguments: FormatMatrix.goldenLocaleIDs)
     func matchesGolden(_ localeID: String) {
         let digest = FormatMatrix.goldenDigest(forLocale: localeID)
 

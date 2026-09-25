@@ -96,11 +96,16 @@ let digitSets: [String: String] = {
     return systems.compactMapValues { $0["_type"] == "numeric" ? $0["_digits"] : nil }
 }()
 
+// The one name for the Latin numbering system, routed through the type so the generator and the shipped
+// `NumberingSystem.latin` cannot drift and the CI coverage guard covers it. `latn` is the permanent BCP 47
+// key, so this is single-source-of-truth rather than a hedge against a rename.
+let latinNumberingSystem = NumberingSystem.latin.identifier
+
 // The digit glyphs a locale's default numbering system writes with, as the tables carry them: nil for
 // `latn` (the ASCII digits the engine writes directly), the ten glyphs for a representable non-Latin
 // system, or a refusal for a system with no glyphs or one the engine cannot render.
 func digitGlyphs(forSystem system: String) throws(LocaleSkip) -> String? {
-    guard system != "latn" else {
+    guard system != latinNumberingSystem else {
         return nil
     }
     guard let glyphs = digitSets[system], DigitGlyphs(glyphs) != nil else {
@@ -109,23 +114,166 @@ func digitGlyphs(forSystem system: String) throws(LocaleSkip) -> String? {
     return glyphs
 }
 
+// A locale's `latn` number symbols, the baseline every reuse system falls back to. Absent means the data
+// has changed shape, and every reuse system would then emit wrong separators, so refuse rather than guess.
+func latnNumberSymbols(_ numbers: [String: Any], locale: String) -> [String: String] {
+    guard let latn = numbers["symbols-numberSystem-\(latinNumberingSystem)"] as? [String: String] else {
+        fatalError("\(locale) publishes no \(latinNumberingSystem) number symbols")
+    }
+    return latn
+}
+
 // A locale's number symbols for `system`, taking the system's own block and falling back to the `latn`
 // block for any key it does not carry. CLDR files the separators under each numbering system it publishes.
-func numberSymbols(_ numbers: [String: Any], system: String) -> [String: String] {
-    let latn = numbers["symbols-numberSystem-latn"] as! [String: String]
-    guard system != "latn", let own = numbers["symbols-numberSystem-\(system)"] as? [String: String] else {
+func numberSymbols(_ numbers: [String: Any], system: String, locale: String) -> [String: String] {
+    let latn = latnNumberSymbols(numbers, locale: locale)
+    guard system != latinNumberingSystem, let own = numbers["symbols-numberSystem-\(system)"] as? [String: String] else {
         return latn
     }
     return latn.merging(own) { _, ownValue in ownValue }
 }
 
-// A locale's currency formats for `system`, with the same `latn` fallback as ``numberSymbols(_:system:)``.
-func currencyFormats(_ numbers: [String: Any], system: String) -> [String: Any] {
-    let latn = numbers["currencyFormats-numberSystem-latn"] as! [String: Any]
-    guard system != "latn", let own = numbers["currencyFormats-numberSystem-\(system)"] as? [String: Any] else {
+// A locale's currency formats for `system`, with the same `latn` fallback as ``numberSymbols(_:system:_:)``.
+func currencyFormats(_ numbers: [String: Any], system: String, locale: String) -> [String: Any] {
+    guard let latn = numbers["currencyFormats-numberSystem-\(latinNumberingSystem)"] as? [String: Any] else {
+        fatalError("\(locale) publishes no \(latinNumberingSystem) currency formats")
+    }
+    guard system != latinNumberingSystem, let own = numbers["currencyFormats-numberSystem-\(system)"] as? [String: Any] else {
         return latn
     }
     return latn.merging(own) { _, ownValue in ownValue }
+}
+
+// MARK: - Numbering-system defaults
+
+// The systems that impose their own separators onto every locale, with the separators they carry. Pinned
+// to authoritative CLDR root (release 48): `arab`/`arabext` are the only numeric systems whose separators
+// root defines rather than inheriting from `latn`. Every other supported system reuses the locale's
+// separators (root inherits `latn` for it), so a cross-locale request renders that system's digits with
+// the caller's own separators — which is what ICU does. `numberingSystemRecords` proves each triple below
+// still equals what the pinned data yields by usage, so a CLDR bump that drifted from root would fail
+// generation rather than ship wrong separators.
+let imposingNumberingSystems: [String: (decimal: String, group: String, minus: String)] = [
+    "arab": (decimal: "\u{066B}", group: "\u{066C}", minus: "\u{061C}-"),
+    "arabext": (decimal: "\u{066B}", group: "\u{066C}", minus: "\u{200E}-\u{200E}"),
+]
+
+// The (decimal, group, minus) triple that most locales defaulting to `system` write, tie-broken to the
+// lexicographically smallest triple so the choice is stable. `nil` when no locale defaults to the system.
+// Used only to prove the pinned root separators above against the shipped data.
+func modalNumberingSymbols(system: String) -> [String]? {
+    var counts: [[String]: Int] = [:]
+
+    for locale in publishedLocales() {
+        let n = numbers(locale)
+        guard n["defaultNumberingSystem"] as? String == system else {
+            continue
+        }
+        let symbols = numberSymbols(n, system: system, locale: locale)
+        let triple = [
+            required(symbols, "decimal", in: locale),
+            required(symbols, "group", in: locale),
+            symbols["minusSign"] ?? "-",
+        ]
+        counts[triple, default: 0] += 1
+    }
+
+    // Highest count wins; equal counts break to the smallest triple, so `max` is deterministic.
+    return counts.max { a, b in
+        a.value != b.value ? a.value < b.value : b.key.lexicographicallyPrecedes(a.key)
+    }?.key
+}
+
+// Every supported numbering system's name in the order the section lays them out: sorted by UTF-8, which
+// is the order the runtime binary searches and the order a ``SystemIndex`` counts from.
+let sortedNumberingSystemNames: [String] = NumberingSystem.all
+    .map(\.identifier)
+    .sorted { $0.utf8.lexicographicallyPrecedes($1.utf8) }
+
+// A system's position among the sorted systems, which is its ``SystemIndex``.
+let numberingSystemPositions: [String: Int] = Dictionary(
+    uniqueKeysWithValues: sortedNumberingSystemNames.enumerated().map { ($1, $0) }
+)
+
+// The wire form of a locale's default numbering-system index. Every emitted locale's default system is
+// representable (it built), so it is one of the supported systems.
+func defaultSystemIndex(of system: String) -> UInt8 {
+    guard let position = numberingSystemPositions[system] else {
+        fatalError("default numbering system \(system) is not among the supported systems")
+    }
+    return UInt8(position)
+}
+
+// The imposing systems this locale writes with its own separators, differing from the system default.
+// A locale with no block for an imposing system uses the default and contributes no override; a block that
+// resolves to the default (every key inherited) likewise contributes none.
+func numberingOverrides(of numbers: [String: Any], locale: String) -> [LocaleTables.NumberingOverride] {
+    imposingNumberingSystems
+        .sorted { $0.key < $1.key }
+        .compactMap { system, root in
+            guard let block = numbers["symbols-numberSystem-\(system)"] as? [String: String] else {
+                return nil
+            }
+            let decimal = block["decimal"] ?? root.decimal
+            let group = block["group"] ?? root.group
+            let minus = block["minusSign"] ?? root.minus
+            guard [decimal, group, minus] != [root.decimal, root.group, root.minus] else {
+                return nil
+            }
+            return LocaleTables.NumberingOverride(
+                system: system, decimalSeparator: decimal, groupingSeparator: group, minusSign: minus
+            )
+        }
+}
+
+// One record per supported numbering system, sorted by name for binary search. Guards that every exposed
+// `NumberingSystem` constant is still a representable numeric system in this CLDR release, and that each
+// imposing system's pinned root separators match the shipped data.
+func numberingSystemRecords(into pool: inout StringPool) -> [PackedNumberingSystem] {
+    for system in NumberingSystem.all {
+        guard let glyphs = digitSets[system.identifier], DigitGlyphs(glyphs) != nil else {
+            fatalError("Numbering system \(system.identifier) is not a representable numeric system in CLDR \(cldrVersion)")
+        }
+    }
+
+    var records: [PackedNumberingSystem] = []
+
+    for id in sortedNumberingSystemNames {
+        // `latn` is the ASCII digits, stored as the empty marker so the runtime keeps its fast path.
+        let digits = id == latinNumberingSystem ? "" : digitSets[id]!
+
+        let tag: UInt8
+        let decimal: StringRef
+        let group: StringRef
+        let minus: StringRef
+
+        if let imposed = imposingNumberingSystems[id] {
+            let expected = [imposed.decimal, imposed.group, imposed.minus]
+            guard modalNumberingSymbols(system: id) == expected else {
+                fatalError("\(id) separators in CLDR \(cldrVersion) differ from the pinned CLDR root: \(expected)")
+            }
+            tag = NumberingSystemTable.ProvenanceTag.imposesOwn
+            decimal = pool.insert(imposed.decimal)
+            group = pool.insert(imposed.group)
+            minus = pool.insert(imposed.minus)
+        } else {
+            tag = NumberingSystemTable.ProvenanceTag.reusesLocale
+            decimal = .empty
+            group = .empty
+            minus = .empty
+        }
+
+        records.append(PackedNumberingSystem(
+            name: pool.insert(id),
+            provenanceTag: tag,
+            digits: pool.insert(digits),
+            decimalSeparator: decimal,
+            groupingSeparator: group,
+            minusSign: minus
+        ))
+    }
+
+    return records
 }
 
 // Every locale CLDR publishes, in the order the locale section is binary searched in.
@@ -757,8 +905,9 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip]) throws(
     // `latn` for most locales and its own set (Bengali, Devanagari, ...) for the rest.
     let system = n["defaultNumberingSystem"] as! String
     let digits = try digitGlyphs(forSystem: system)
-    let symbols = numberSymbols(n, system: system)
-    let formats = currencyFormats(n, system: system)
+    let symbols = numberSymbols(n, system: system, locale: locale)
+    let latnSymbols = numberSymbols(n, system: latinNumberingSystem, locale: locale)
+    let formats = currencyFormats(n, system: system, locale: locale)
 
     try refuseUnrepresentable(formats: formats, locale: locale)
 
@@ -792,6 +941,10 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip]) throws(
         fullNameSpacing: fullName.spacing,
         minGroupingDigits: UInt8(minimumGroupingDigits(n, locale: locale)),
         digits: digits,
+        defaultNumberingSystem: system,
+        latnDecimalSeparator: required(latnSymbols, "decimal", in: locale),
+        latnGroupingSeparator: required(latnSymbols, "group", in: locale),
+        latnMinusSign: latnSymbols["minusSign"] ?? "-",
         pattern: patternLiteral(
             side: parsed.side,
             negative: parsed.negative,
@@ -800,7 +953,8 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip]) throws(
         fullNamePattern: fullName.literal,
         displays: symbolForms.records,
         fullNames: names.records,
-        unusableCurrencyCodes: symbolForms.unusableCodes.union(names.unusableCodes)
+        unusableCurrencyCodes: symbolForms.unusableCodes.union(names.unusableCodes),
+        numberingOverrides: numberingOverrides(of: n, locale: locale)
     )
 }
 
@@ -999,7 +1153,11 @@ func pack(
         patternIndex: index(of: tables.pattern, in: &patterns),
         fullNamePatternIndex: index(of: tables.fullNamePattern, in: &fullNamePatterns),
         digits: pool.insert(tables.digits ?? ""),
-        minGroupingDigits: tables.minGroupingDigits
+        minGroupingDigits: tables.minGroupingDigits,
+        defaultSystemIndex: defaultSystemIndex(of: tables.defaultNumberingSystem),
+        latnDecimalSeparator: pool.insert(tables.latnDecimalSeparator),
+        latnGroupingSeparator: pool.insert(tables.latnGroupingSeparator),
+        latnMinusSign: pool.insert(tables.latnMinusSign)
     )
 
     let displays = tables.displays.map { display in
@@ -1095,7 +1253,34 @@ for (locale, tables) in emitted {
     ))
 }
 
-let blob = PackedTables(locales: packedLocales, pool: pool, pluralLanguages: packedPluralLanguages).encoded()
+let numberingSystems = numberingSystemRecords(into: &pool)
+
+// The override rows, keyed by each emitted locale's index (its position among the sorted keys, which is
+// the order `packedLocales` and the locale section hold them) and the imposing system's index.
+var numberingSystemOverrides: [PackedNumberingSystemOverride] = []
+for (localeIndex, entry) in emitted.enumerated() {
+    for override in entry.tables.numberingOverrides {
+        guard let systemPosition = numberingSystemPositions[override.system] else {
+            fatalError("override names unknown numbering system \(override.system)")
+        }
+        numberingSystemOverrides.append(PackedNumberingSystemOverride(
+            localeIndex: UInt16(localeIndex),
+            systemIndex: UInt8(systemPosition),
+            decimalSeparator: pool.insert(override.decimalSeparator),
+            groupingSeparator: pool.insert(override.groupingSeparator),
+            minusSign: pool.insert(override.minusSign)
+        ))
+    }
+}
+numberingSystemOverrides.sort { ($0.localeIndex, $0.systemIndex) < ($1.localeIndex, $1.systemIndex) }
+
+let blob = PackedTables(
+    locales: packedLocales,
+    pool: pool,
+    pluralLanguages: packedPluralLanguages,
+    numberingSystems: numberingSystems,
+    numberingSystemOverrides: numberingSystemOverrides
+).encoded()
 
 let report = SkipReport(
     cldrVersion: cldrVersion,

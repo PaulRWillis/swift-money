@@ -43,6 +43,15 @@ struct LocaleTables {
     // The locale's ten digit glyphs concatenated, or nil when it writes the ASCII 0 to 9.
     let digits: String?
 
+    // The CLDR name of the locale's own default numbering system, e.g. "latn" or "beng".
+    let defaultNumberingSystem: String
+
+    // The locale's own Latin-system separators, used when a reuse system is requested. Equal to the baked
+    // separators for a Latin-default locale, but distinct for one whose default imposes its own.
+    let latnDecimalSeparator: String
+    let latnGroupingSeparator: String
+    let latnMinusSign: String
+
     // Swift source for the two interned tables, deduplicated by text when packed.
     let pattern: String
     let fullNamePattern: String
@@ -53,4 +62,16 @@ struct LocaleTables {
     // Codes CLDR names in this locale that no currency can carry, reported rather than dropped in
     // silence.
     let unusableCurrencyCodes: Set<String>
+
+    // The imposing systems this locale writes with separators of its own, differing from the system
+    // default. Sorted by system name so the packed rows come out the same on any machine.
+    let numberingOverrides: [NumberingOverride]
+
+    // One imposing system's separators as this locale writes them, when they differ from the default.
+    struct NumberingOverride {
+        let system: String
+        let decimalSeparator: String
+        let groupingSeparator: String
+        let minusSign: String
+    }
 }

@@ -64,6 +64,25 @@ package enum FormatMatrix {
     /// being maintained by hand. The identifiers are the ones the data ships (`en`, `en-GB`, …).
     package static let coveredLocaleIDs = MoneyLocalization.coveredLocaleIdentifiers
 
+    /// Representative locale-with-numbering-system identifiers, exercising each resolution shape the engine
+    /// renders: an imposing system (`arab`), reuse systems on a Latin-default locale (`nkoo`, `deva`), each
+    /// on a non-Latin-default locale (`beng`, `deva`), an imposing default (`arabext`), and a reuse system
+    /// on an imposing-default locale (`ur-IN@latn`, which must revert to that locale's Latin separators).
+    /// Every one renders through the engine, so its golden digest stays portable.
+    package static let numberingSystemLocaleIDs = [
+        "en_GB@numbers=arab",
+        "en_GB@numbers=nkoo",
+        "en_GB@numbers=deva",
+        "bn@numbers=beng",
+        "ne@numbers=deva",
+        "fa-AF@numbers=arabext",
+        "ur-IN@numbers=latn",
+    ]
+
+    /// Every locale the golden test and the ICU report walk: the covered locales in their own default
+    /// system, plus the numbering-system combinations above.
+    package static let goldenLocaleIDs = coveredLocaleIDs + numberingSystemLocaleIDs
+
     /// Amounts spanning zero, one smallest unit, a typical value, a large value, and a negative
     /// value. One smallest unit is what reaches a locale's singular naming: a currency with no
     /// fraction digits is then exactly one whole unit.
