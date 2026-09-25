@@ -167,7 +167,7 @@ public enum MoneyLocalization {
     ) -> ResolvedNumbering {
         guard
             let numberingSystem,
-            let systemIndex = cldr.numberingSystems.index(of: numberingSystem.identifier),
+            let systemIndex = systemIndex(of: numberingSystem),
             systemIndex != baked.defaultSystemIndex
         else {
             return .baked
@@ -189,6 +189,19 @@ public enum MoneyLocalization {
     // Every language's plural rules, decoded once from the blob. A language with no rule for a category
     // takes `other`, which carries none; a language absent here does too, through the `?? [:]` above.
     private static let pluralRules = cldr.pluralRules.allRules()
+
+    // Each supported system's index by name, built once, so resolving a requested system is a dictionary
+    // lookup rather than a binary search over the pooled names on every format.
+    private static let systemIndicesByName: [String: SystemIndex] = Dictionary(
+        uniqueKeysWithValues: (0 ..< cldr.numberingSystems.count).map {
+            let index = SystemIndex(position: $0)
+            return (cldr.numberingSystems.name(at: index), index)
+        }
+    )
+
+    private static func systemIndex(of numberingSystem: NumberingSystem) -> SystemIndex? {
+        systemIndicesByName[numberingSystem.identifier]
+    }
 
     // The locale's number format with a currency written beside it, however that currency is named.
     // Not private: the custom-currency builder in another file composes a format through this too.
