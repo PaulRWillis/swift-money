@@ -113,29 +113,26 @@ func split(
         return parts
     }
 
-    distributeLeftover(abs(leftover), by: amount.signum(), toLargestOf: &remainders, in: &parts)
+    distributeLeftover(abs(leftover), by: amount.signum(), toLargestOf: remainders, in: &parts)
 
     return parts
 }
 
-// Gives one unit, of the amount's sign, to each of the `count` parts with the largest remainders. Only a
-// few units are ever distributed (`count` is below the part count), so this selects them by scanning
-// rather than sorting every index into a fresh array. `remainders` is the caller's scratch, taken `inout`
-// to avoid a copy: a part given a unit has its remainder zeroed so a later pass does not pick it again,
-// and the earliest part wins a tie because the scan keeps the first maximum.
+// Gives one unit, of the amount's sign, to each of the `count` parts with the largest remainders.
+// Sorting the indices by remainder once is O(n log n) against rescanning every remainder for each of
+// the `count` units distributed, which is O(n × count) — quadratic once `count` grows with the number
+// of parts, as it does whenever the weights rarely divide the amount evenly. `sorted` is a stable
+// sort, so two equal remainders keep their original weight order, matching what the full rescan did
+// by always keeping the first maximum it found.
 private func distributeLeftover(
     _ count: Int64,
     by unit: Int64,
-    toLargestOf remainders: inout [UInt64],
+    toLargestOf remainders: [UInt64],
     in parts: inout [Int64]
 ) {
-    for _ in 0 ..< count {
-        var largest = 0
-        for index in remainders.indices where remainders[index] > remainders[largest] {
-            largest = index
-        }
+    let byLargestRemainder = remainders.indices.sorted { remainders[$0] > remainders[$1] }
 
-        parts[largest] += unit
-        remainders[largest] = 0   // taken, so a later pass does not pick it again
+    for index in byLargestRemainder.prefix(Int(count)) {
+        parts[index] += unit
     }
 }
