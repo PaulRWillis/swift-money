@@ -15,6 +15,9 @@ struct PackedTables {
     // since CLDR publishes plural rules per language.
     let pluralLanguages: [PackedPluralLanguage]
 
+    // One entry per supported numbering system, sorted by name for binary search.
+    let numberingSystems: [PackedNumberingSystem]
+
     func encoded() -> [UInt8] {
         var body = BlobWriter(base: CLDRBlob.headerWidth)
         body.append(pool.bytes)
@@ -24,6 +27,7 @@ struct PackedTables {
         let currencyFullNames = writeFullNames(into: &body)
         let currencyDisplays = writeDisplays(into: &body)
         let pluralRules = writePluralRules(into: &body)
+        let numberingSystemsOffset = writeNumberingSystems(into: &body)
 
         var header = BlobWriter(base: 0)
         header.u32(locales.count)
@@ -32,8 +36,26 @@ struct PackedTables {
         header.offsetField(currencyDisplays)
         header.offsetField(currencyFullNames)
         header.offsetField(pluralRules)
+        header.offsetField(numberingSystemsOffset)
 
         return header.bytes + body.bytes
+    }
+
+    // A count then one fixed record per system, in the name-sorted order the runtime binary searches.
+    private func writeNumberingSystems(into body: inout BlobWriter) -> Int {
+        let offset = body.offset
+        body.u16(UInt16(numberingSystems.count))
+
+        for system in numberingSystems {
+            body.ref(system.name)
+            body.u8(system.provenanceTag)
+            body.ref(system.digits)
+            body.ref(system.decimalSeparator)
+            body.ref(system.groupingSeparator)
+            body.ref(system.minusSign)
+        }
+
+        return offset
     }
 
     private func writeLocaleKeys(into body: inout BlobWriter) -> Int {

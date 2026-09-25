@@ -128,6 +128,100 @@ func currencyFormats(_ numbers: [String: Any], system: String) -> [String: Any] 
     return latn.merging(own) { _, ownValue in ownValue }
 }
 
+// MARK: - Numbering-system defaults
+
+// The systems that impose their own separators onto every locale, with the separators they carry. Pinned
+// to authoritative CLDR root (release 48): `arab`/`arabext` are the only numeric systems whose separators
+// root defines rather than inheriting from `latn`. Every other supported system reuses the locale's
+// separators (root inherits `latn` for it), so a cross-locale request renders that system's digits with
+// the caller's own separators — which is what ICU does. `numberingSystemRecords` proves each triple below
+// still equals what the pinned data yields by usage, so a CLDR bump that drifted from root would fail
+// generation rather than ship wrong separators.
+let imposingNumberingSystems: [String: (decimal: String, group: String, minus: String)] = [
+    "arab": (decimal: "\u{066B}", group: "\u{066C}", minus: "\u{061C}-"),
+    "arabext": (decimal: "\u{066B}", group: "\u{066C}", minus: "\u{200E}-\u{200E}"),
+]
+
+// The (decimal, group, minus) triple that most locales defaulting to `system` write, tie-broken to the
+// lexicographically smallest triple so the choice is stable. `nil` when no locale defaults to the system.
+// Used only to prove the pinned root separators above against the shipped data.
+func modalNumberingSymbols(system: String) -> [String]? {
+    var counts: [[String]: Int] = [:]
+
+    for locale in publishedLocales() {
+        let n = numbers(locale)
+        guard n["defaultNumberingSystem"] as? String == system else {
+            continue
+        }
+        let symbols = numberSymbols(n, system: system)
+        let triple = [
+            required(symbols, "decimal", in: locale),
+            required(symbols, "group", in: locale),
+            symbols["minusSign"] ?? "-",
+        ]
+        counts[triple, default: 0] += 1
+    }
+
+    // Highest count wins; equal counts break to the smallest triple, so `max` is deterministic.
+    return counts.max { a, b in
+        a.value != b.value ? a.value < b.value : b.key.lexicographicallyPrecedes(a.key)
+    }?.key
+}
+
+// One record per supported numbering system, sorted by name for binary search. Guards that every exposed
+// `NumberingSystem` constant is still a representable numeric system in this CLDR release, and that each
+// imposing system's pinned root separators match the shipped data.
+func numberingSystemRecords(into pool: inout StringPool) -> [PackedNumberingSystem] {
+    for system in NumberingSystem.all {
+        guard let glyphs = digitSets[system.identifier], DigitGlyphs(glyphs) != nil else {
+            fatalError("Numbering system \(system.identifier) is not a representable numeric system in CLDR \(cldrVersion)")
+        }
+    }
+
+    let names = NumberingSystem.all
+        .map(\.identifier)
+        .sorted { $0.utf8.lexicographicallyPrecedes($1.utf8) }
+
+    var records: [PackedNumberingSystem] = []
+
+    for id in names {
+        // `latn` is the ASCII digits, stored as the empty marker so the runtime keeps its fast path.
+        let digits = id == "latn" ? "" : digitSets[id]!
+
+        let tag: UInt8
+        let decimal: StringRef
+        let group: StringRef
+        let minus: StringRef
+
+        if let imposed = imposingNumberingSystems[id] {
+            let expected = [imposed.decimal, imposed.group, imposed.minus]
+            guard modalNumberingSymbols(system: id) == expected else {
+                fatalError("\(id) separators in CLDR \(cldrVersion) differ from the pinned CLDR root: \(expected)")
+            }
+            tag = NumberingSystemTable.ProvenanceTag.imposesOwn
+            decimal = pool.insert(imposed.decimal)
+            group = pool.insert(imposed.group)
+            minus = pool.insert(imposed.minus)
+        } else {
+            tag = NumberingSystemTable.ProvenanceTag.reusesLocale
+            decimal = .empty
+            group = .empty
+            minus = .empty
+        }
+
+        records.append(PackedNumberingSystem(
+            name: pool.insert(id),
+            provenanceTag: tag,
+            digits: pool.insert(digits),
+            decimalSeparator: decimal,
+            groupingSeparator: group,
+            minusSign: minus
+        ))
+    }
+
+    return records
+}
+
 // Every locale CLDR publishes, in the order the locale section is binary searched in.
 //
 // Sorted here rather than taken as the file system gives it: that order is arbitrary, and the order
@@ -1095,7 +1189,14 @@ for (locale, tables) in emitted {
     ))
 }
 
-let blob = PackedTables(locales: packedLocales, pool: pool, pluralLanguages: packedPluralLanguages).encoded()
+let numberingSystems = numberingSystemRecords(into: &pool)
+
+let blob = PackedTables(
+    locales: packedLocales,
+    pool: pool,
+    pluralLanguages: packedPluralLanguages,
+    numberingSystems: numberingSystems
+).encoded()
 
 let report = SkipReport(
     cldrVersion: cldrVersion,

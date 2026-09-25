@@ -28,7 +28,10 @@ package struct CLDRBlob: Sendable {
     /// Each language's plural rules, for choosing a full name's wording.
     package let pluralRules: PluralRuleTable
 
-    // The locale count is a count and stays a u32; the five section positions are blob offsets.
+    /// Each supported numbering system's digits and, where it imposes them, its separators.
+    package let numberingSystems: NumberingSystemTable
+
+    // The locale count is a count and stays a u32; the section positions are blob offsets.
     private enum Header {
         static let localeCount = 0
         static let locales = localeCount + BlobDigits.u32
@@ -36,7 +39,8 @@ package struct CLDRBlob: Sendable {
         static let currencyDisplays = numberFormats + BlobDigits.offset
         static let currencyFullNames = currencyDisplays + BlobDigits.offset
         static let pluralRules = currencyFullNames + BlobDigits.offset
-        static let width = pluralRules + BlobDigits.offset
+        static let numberingSystems = pluralRules + BlobDigits.offset
+        static let width = numberingSystems + BlobDigits.offset
     }
 
     /// How many bytes the header takes, which is where the generator lays out the first section.
@@ -88,6 +92,10 @@ package struct CLDRBlob: Sendable {
         pluralRules = PluralRuleTable(
             reader: reader,
             sectionOffset: reader.offsetField(at: Header.pluralRules)
+        )
+        numberingSystems = NumberingSystemTable(
+            reader: reader,
+            sectionOffset: reader.offsetField(at: Header.numberingSystems)
         )
     }
 }
