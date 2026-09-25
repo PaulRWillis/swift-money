@@ -168,6 +168,39 @@ func modalNumberingSymbols(system: String) -> [String]? {
     }?.key
 }
 
+// Every supported numbering system's name in the order the section lays them out: sorted by UTF-8, which
+// is the order the runtime binary searches and the order a ``SystemIndex`` counts from.
+let sortedNumberingSystemNames: [String] = NumberingSystem.all
+    .map(\.identifier)
+    .sorted { $0.utf8.lexicographicallyPrecedes($1.utf8) }
+
+// A system's position among the sorted systems, which is its ``SystemIndex``.
+let numberingSystemPositions: [String: Int] = Dictionary(
+    uniqueKeysWithValues: sortedNumberingSystemNames.enumerated().map { ($1, $0) }
+)
+
+// The imposing systems this locale writes with its own separators, differing from the system default.
+// A locale with no block for an imposing system uses the default and contributes no override; a block that
+// resolves to the default (every key inherited) likewise contributes none.
+func numberingOverrides(of numbers: [String: Any], locale: String) -> [LocaleTables.NumberingOverride] {
+    imposingNumberingSystems
+        .sorted { $0.key < $1.key }
+        .compactMap { system, root in
+            guard let block = numbers["symbols-numberSystem-\(system)"] as? [String: String] else {
+                return nil
+            }
+            let decimal = block["decimal"] ?? root.decimal
+            let group = block["group"] ?? root.group
+            let minus = block["minusSign"] ?? root.minus
+            guard [decimal, group, minus] != [root.decimal, root.group, root.minus] else {
+                return nil
+            }
+            return LocaleTables.NumberingOverride(
+                system: system, decimalSeparator: decimal, groupingSeparator: group, minusSign: minus
+            )
+        }
+}
+
 // One record per supported numbering system, sorted by name for binary search. Guards that every exposed
 // `NumberingSystem` constant is still a representable numeric system in this CLDR release, and that each
 // imposing system's pinned root separators match the shipped data.
@@ -178,13 +211,9 @@ func numberingSystemRecords(into pool: inout StringPool) -> [PackedNumberingSyst
         }
     }
 
-    let names = NumberingSystem.all
-        .map(\.identifier)
-        .sorted { $0.utf8.lexicographicallyPrecedes($1.utf8) }
-
     var records: [PackedNumberingSystem] = []
 
-    for id in names {
+    for id in sortedNumberingSystemNames {
         // `latn` is the ASCII digits, stored as the empty marker so the runtime keeps its fast path.
         let digits = id == "latn" ? "" : digitSets[id]!
 
@@ -894,7 +923,8 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip]) throws(
         fullNamePattern: fullName.literal,
         displays: symbolForms.records,
         fullNames: names.records,
-        unusableCurrencyCodes: symbolForms.unusableCodes.union(names.unusableCodes)
+        unusableCurrencyCodes: symbolForms.unusableCodes.union(names.unusableCodes),
+        numberingOverrides: numberingOverrides(of: n, locale: locale)
     )
 }
 
@@ -1191,11 +1221,31 @@ for (locale, tables) in emitted {
 
 let numberingSystems = numberingSystemRecords(into: &pool)
 
+// The override rows, keyed by each emitted locale's index (its position among the sorted keys, which is
+// the order `packedLocales` and the locale section hold them) and the imposing system's index.
+var numberingSystemOverrides: [PackedNumberingSystemOverride] = []
+for (localeIndex, entry) in emitted.enumerated() {
+    for override in entry.tables.numberingOverrides {
+        guard let systemPosition = numberingSystemPositions[override.system] else {
+            fatalError("override names unknown numbering system \(override.system)")
+        }
+        numberingSystemOverrides.append(PackedNumberingSystemOverride(
+            localeIndex: UInt16(localeIndex),
+            systemIndex: UInt8(systemPosition),
+            decimalSeparator: pool.insert(override.decimalSeparator),
+            groupingSeparator: pool.insert(override.groupingSeparator),
+            minusSign: pool.insert(override.minusSign)
+        ))
+    }
+}
+numberingSystemOverrides.sort { ($0.localeIndex, $0.systemIndex) < ($1.localeIndex, $1.systemIndex) }
+
 let blob = PackedTables(
     locales: packedLocales,
     pool: pool,
     pluralLanguages: packedPluralLanguages,
-    numberingSystems: numberingSystems
+    numberingSystems: numberingSystems,
+    numberingSystemOverrides: numberingSystemOverrides
 ).encoded()
 
 let report = SkipReport(

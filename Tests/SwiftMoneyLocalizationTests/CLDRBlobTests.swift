@@ -91,6 +91,10 @@ struct CLDRBlobTests {
         body.ref(StringRef.empty)
         body.ref(StringRef.empty)
 
+        // No per-locale overrides in this fixture.
+        let numberingOverridesOffset = body.count
+        body.u16(0)
+
         var header = BlobTestBuilder()
         header.u32(1)
         header.offsetField(localesOffset)
@@ -99,6 +103,7 @@ struct CLDRBlobTests {
         header.offsetField(fullNamesOffset)
         header.offsetField(pluralRulesOffset)
         header.offsetField(numberingSystemsOffset)
+        header.offsetField(numberingOverridesOffset)
 
         return header.bytes + body.bytes
     }
@@ -141,8 +146,8 @@ struct CLDRBlobTests {
 
     @Test("A header offset is where the generator lays out the first section")
     func headerPrecedesTheSections() {
-        // A locale count then six section offsets.
-        #expect(CLDRBlob.headerWidth == BlobDigits.u32 + BlobDigits.offset * 6)
+        // A locale count then seven section offsets.
+        #expect(CLDRBlob.headerWidth == BlobDigits.u32 + BlobDigits.offset * 7)
     }
 
     @Test("The header resolves the numbering-system section")

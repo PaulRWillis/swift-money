@@ -53,4 +53,16 @@ struct LocaleTables {
     // Codes CLDR names in this locale that no currency can carry, reported rather than dropped in
     // silence.
     let unusableCurrencyCodes: Set<String>
+
+    // The imposing systems this locale writes with separators of its own, differing from the system
+    // default. Sorted by system name so the packed rows come out the same on any machine.
+    let numberingOverrides: [NumberingOverride]
+
+    // One imposing system's separators as this locale writes them, when they differ from the default.
+    struct NumberingOverride {
+        let system: String
+        let decimalSeparator: String
+        let groupingSeparator: String
+        let minusSign: String
+    }
 }

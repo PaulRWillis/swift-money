@@ -18,6 +18,9 @@ struct PackedTables {
     // One entry per supported numbering system, sorted by name for binary search.
     let numberingSystems: [PackedNumberingSystem]
 
+    // The few per-locale overrides for imposing systems, sorted by (localeIndex, systemIndex).
+    let numberingSystemOverrides: [PackedNumberingSystemOverride]
+
     func encoded() -> [UInt8] {
         var body = BlobWriter(base: CLDRBlob.headerWidth)
         body.append(pool.bytes)
@@ -28,6 +31,7 @@ struct PackedTables {
         let currencyDisplays = writeDisplays(into: &body)
         let pluralRules = writePluralRules(into: &body)
         let numberingSystemsOffset = writeNumberingSystems(into: &body)
+        let numberingSystemOverridesOffset = writeNumberingSystemOverrides(into: &body)
 
         var header = BlobWriter(base: 0)
         header.u32(locales.count)
@@ -37,6 +41,7 @@ struct PackedTables {
         header.offsetField(currencyFullNames)
         header.offsetField(pluralRules)
         header.offsetField(numberingSystemsOffset)
+        header.offsetField(numberingSystemOverridesOffset)
 
         return header.bytes + body.bytes
     }
@@ -53,6 +58,23 @@ struct PackedTables {
             body.ref(system.decimalSeparator)
             body.ref(system.groupingSeparator)
             body.ref(system.minusSign)
+        }
+
+        return offset
+    }
+
+    // A count then one fixed record per override, in the (localeIndex, systemIndex) order binary search
+    // assumes.
+    private func writeNumberingSystemOverrides(into body: inout BlobWriter) -> Int {
+        let offset = body.offset
+        body.u16(UInt16(numberingSystemOverrides.count))
+
+        for override in numberingSystemOverrides {
+            body.u16(override.localeIndex)
+            body.u8(override.systemIndex)
+            body.ref(override.decimalSeparator)
+            body.ref(override.groupingSeparator)
+            body.ref(override.minusSign)
         }
 
         return offset
