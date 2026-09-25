@@ -272,5 +272,5 @@ extension NumberingSystem {
     ]
 
     // The CLDR names ``init(_:)`` accepts, derived from ``all`` so the two cannot drift apart.
-    private static let supportedIdentifiers: Set<String> = Set(all.map(\.identifier))
+    private static let supportedIdentifiers: Set<String> = Set(all.map { $0.identifier })
 }
