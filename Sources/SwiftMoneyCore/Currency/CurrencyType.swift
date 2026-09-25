@@ -19,10 +19,27 @@ public protocol CurrencyRepresentation: Sendable {
     /// - Parameter code: The code naming the currency, or `nil` where nothing named one, in which
     ///   case only a representation that fixes a currency of its own can answer.
     static func storage(forCode code: CurrencyCode?) -> Storage?
+
+    /// What an amount carries in order to be in the currency a code and scale together name, or `nil`
+    /// where this representation cannot be that currency.
+    ///
+    /// A representation that already fixes its own currency has no use for the scale — its
+    /// ``storage(forCode:)`` already resolves the one currency it can ever be. Only a representation
+    /// whose currency is known solely at runtime needs it, to rebuild a currency the code alone does
+    /// not resolve (one the library does not ship).
+    ///
+    /// - Parameters:
+    ///   - code: The code naming the currency, or `nil` where nothing named one.
+    ///   - scale: The currency's scale, read alongside the code, or `nil` where nothing named one.
+    static func storage(forCode code: CurrencyCode?, scale: UnitScale?) -> Storage?
 }
 
 public extension CurrencyRepresentation {
     static func storage(forCode _: CurrencyCode?) -> Storage? { nil }
+
+    static func storage(forCode code: CurrencyCode?, scale _: UnitScale?) -> Storage? {
+        storage(forCode: code)
+    }
 }
 
 /// A currency fixed at compile time, so that mixing two of them is a compile error.
@@ -70,6 +87,20 @@ public enum AnyCurrency: CurrencyRepresentation {
     @inlinable
     public static func storage(forCode code: CurrencyCode?) -> Currency? {
         code.flatMap(Currency.init(iso:))
+    }
+
+    /// Resolves a currency the ISO table ships from the code alone, or a currency the table does not
+    /// ship from the code and its scale together.
+    @inlinable
+    public static func storage(forCode code: CurrencyCode?, scale: UnitScale?) -> Currency? {
+        guard let code else {
+            return nil
+        }
+        guard let scale else {
+            return Currency(iso: code)
+        }
+
+        return Currency(code: code, unitScale: scale)
     }
 
     @usableFromInline

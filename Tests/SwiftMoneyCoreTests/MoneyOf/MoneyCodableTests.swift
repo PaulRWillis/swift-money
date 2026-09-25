@@ -148,6 +148,38 @@ struct MoneyCodableTests {
         #expect(try json(price, .fields) == #"{"amount":499,"currency":"JPY"}"#)
     }
 
+    @Test("A currency outside ISO 4217 also writes its scale, so it round trips")
+    func encodesACustomCurrencyWithItsScaleAsFields() throws {
+        let currency = try #require(Currency(code: "POINTS", unitScale: 100))
+        let price = Money(minorUnits: 4_99, currency: currency)
+
+        let encoded = try encoder(.fields).encode(price)
+
+        #expect(String(decoding: encoded, as: UTF8.self) == #"{"amount":499,"currency":"POINTS","scale":2}"#)
+        #expect(try decoder(.fields).decode(Money.self, from: encoded) == price)
+    }
+
+    @Test("A currency outside ISO 4217 with no scale field still fails to decode")
+    func refusesACustomCurrencyWithNoScaleField() {
+        #expect(throws: DecodingError.self) {
+            try decoded(Money.self, from: #"{"currency":"POINTS","amount":499}"#, .fields)
+        }
+    }
+
+    @Test("An invalid scale field is refused rather than silently ignored")
+    func refusesAnInvalidScaleField() {
+        #expect(throws: DecodingError.self) {
+            try decoded(Money.self, from: #"{"currency":"POINTS","amount":499,"scale":-1}"#, .fields)
+        }
+    }
+
+    @Test("A typed amount ignores a scale field, its currency already being fixed")
+    func typedAmountIgnoresAScaleField() throws {
+        let expected = GBP(minorUnits: 4_99)
+
+        #expect(try decoded(GBP.self, from: #"{"currency":"GBP","amount":499,"scale":2}"#, .fields) == expected)
+    }
+
     @Test(
         "An amount field reads as a number or as a string, in either units",
         arguments: [#"{"currency":"GBP","amount":499}"#,

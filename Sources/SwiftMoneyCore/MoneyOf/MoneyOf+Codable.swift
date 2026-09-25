@@ -28,6 +28,13 @@ extension MoneyOf: Codable {
 
             try container.encode(currency.code, forKey: MoneyCodingKey(currencyKey))
 
+            // A currency the ISO table ships resolves from its code alone, so only a currency the
+            // table does not ship needs its scale on the wire too — keeping already-encoded
+            // ISO-currency JSON unchanged.
+            if Currency(iso: currency.code) == nil {
+                try container.encode(currency.unitScale.decimalPlaces, forKey: Self.scaleKey)
+            }
+
             switch amount {
             case .number(.minorUnits):
                 try container.encode(minorUnits, forKey: key)
@@ -153,8 +160,9 @@ extension MoneyOf: Codable {
         let keys = format.fieldKeys
         let container = try decoder.container(keyedBy: MoneyCodingKey.self)
         let code = try container.decodeIfPresent(CurrencyCode.self, forKey: keys.currency)
+        let scale = try Self.decodedScale(from: container)
 
-        guard let storage = C.storage(forCode: code) else {
+        guard let storage = C.storage(forCode: code, scale: scale) else {
             throw DecodingError.dataCorruptedError(
                 forKey: keys.currency,
                 in: container,
@@ -189,6 +197,30 @@ extension MoneyOf: Codable {
                 debugDescription: Self.refusal(of: error)
             )
         }
+    }
+
+    // The key the currency's scale is written and read under, alongside its code, on the `.fields`
+    // shape. Not one of `MoneyCodingFormat.fieldKeys`, which an API names to match itself; nothing
+    // outside this library reads this one, so it is fixed.
+    private static var scaleKey: MoneyCodingKey { MoneyCodingKey("scale") }
+
+    // The scale field, if the payload carries one. `nil` covers both an ISO-currency payload, which
+    // never needs it, and one encoded before this field existed.
+    private static func decodedScale(
+        from container: KeyedDecodingContainer<MoneyCodingKey>
+    ) throws -> UnitScale? {
+        guard let rawScale = try container.decodeIfPresent(Int.self, forKey: Self.scaleKey) else {
+            return nil
+        }
+        guard let scale = UnitScale(decimalPlaces: rawScale) else {
+            throw DecodingError.dataCorruptedError(
+                forKey: Self.scaleKey,
+                in: container,
+                debugDescription: "Not a valid currency scale: \(rawScale). A scale is 0 to 18 decimal places."
+            )
+        }
+
+        return scale
     }
 
     // What an amount of this type carries when nothing names a currency, and `nil` where the
