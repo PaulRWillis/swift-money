@@ -336,16 +336,18 @@ private extension MoneyOf.FormatStyle {
         // `Locale.numberingSystem` always resolves to a concrete system, so an unmodelled resolution (a
         // `nil` cache) means the caller asked for one we cannot render (e.g. hanidec), not that they
         // expressed no preference. Fall back to ICU rather than silently render the locale's default digits.
+        // The engine is told the concrete system explicitly; the bridge never leaves the choice automatic.
         guard let numberingSystem = resolvedNumberingSystem else {
             return nil
         }
+        let numberingSelection = NumberingSystemSelection.explicit(numberingSystem)
 
         // A custom currency renders from the display on its type. When that yields nothing (the currency
         // is not custom, the locale is uncovered, or it supplies no display), fall through to the CLDR
         // path, which for a custom currency renders the raw code and for a shipped one its own data.
         if let custom = customFormat(
             for: value, locale: identifier, presentation: presentation,
-            enginePresentation: enginePresentation, numberingSystem: numberingSystem
+            enginePresentation: enginePresentation, numberingSystem: numberingSelection
         ) {
             return custom
         }
@@ -355,13 +357,13 @@ private extension MoneyOf.FormatStyle {
                 for: value.currency,
                 minorUnits: value.minorUnits,
                 locale: identifier,
-                numberingSystem: numberingSystem
+                numberingSystem: numberingSelection
             )
         }
 
         return enginePresentation.flatMap {
             MoneyLocalization.moneyFormat(
-                for: value.currency, locale: identifier, presentation: $0, numberingSystem: numberingSystem
+                for: value.currency, locale: identifier, presentation: $0, numberingSystem: numberingSelection
             )
         }
     }

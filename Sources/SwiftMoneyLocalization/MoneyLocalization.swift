@@ -22,14 +22,14 @@ public enum MoneyLocalization {
     ///   - locale: The locale identifier, e.g. `"en-GB"` or `"de_DE"` (either separator; a
     ///     language-region identifier falls back to its language).
     ///   - presentation: Whether to show the symbol, the ISO code, or the narrow symbol.
-    ///   - numberingSystem: The digits and separators to render in. `nil` (the default) uses the
-    ///     locale's own default system, so the output is unchanged.
+    ///   - numberingSystem: The digits and separators to render in. ``NumberingSystemSelection/automatic``
+    ///     (the default) uses the locale's own default system, so the output is unchanged.
     /// - Returns: A ``MoneyFormat``, or `nil` when the locale is outside the covered set.
     public static func moneyFormat(
         for currency: Currency,
         locale: LocaleIdentifier,
         presentation: CurrencyPresentation = .standard,
-        numberingSystem: NumberingSystem? = nil
+        numberingSystem: NumberingSystemSelection = .automatic
     ) -> MoneyFormat? {
         guard let localeIndex = cldr.locales.index(of: locale) else {
             return nil
@@ -72,15 +72,15 @@ public enum MoneyLocalization {
     ///     plural form: a currency showing fraction digits is never named in the singular.
     ///   - minorUnits: The amount, in the currency's smallest units.
     ///   - locale: The locale identifier, as ``moneyFormat(for:locale:presentation:)`` takes it.
-    ///   - numberingSystem: The digits and separators to render in. `nil` (the default) uses the
-    ///     locale's own default system, so the output is unchanged.
+    ///   - numberingSystem: The digits and separators to render in. ``NumberingSystemSelection/automatic``
+    ///     (the default) uses the locale's own default system, so the output is unchanged.
     /// - Returns: A ``MoneyFormat``, or `nil` when the locale is outside the covered set or CLDR
     ///   gives the currency no name there.
     public static func fullNameMoneyFormat(
         for currency: Currency,
         minorUnits: Int64,
         locale: LocaleIdentifier,
-        numberingSystem: NumberingSystem? = nil
+        numberingSystem: NumberingSystemSelection = .automatic
     ) -> MoneyFormat? {
         guard let localeIndex = cldr.locales.index(of: locale) else {
             return nil
@@ -147,26 +147,27 @@ public enum MoneyLocalization {
         numberFormats[localeIndex.position]
     }
 
-    // The locale's format rendered in a chosen numbering system, or its baked default when none is asked
-    // for. The nil and own-default paths return the baked format untouched, so they stay byte-identical.
+    // The locale's format rendered in a chosen numbering system, or its baked default when the selection is
+    // automatic. The automatic and own-default paths return the baked format untouched, so they stay
+    // byte-identical.
     static func numberFormat(
         at localeIndex: LocaleIndex,
-        numberingSystem: NumberingSystem?
+        numberingSystem: NumberingSystemSelection
     ) -> LocaleNumberFormat {
         let baked = numberFormat(at: localeIndex)
         return resolvedNumbering(at: localeIndex, for: numberingSystem, baked: baked).applied(to: baked)
     }
 
-    // How a requested system resolves against the baked format: unchanged when none is asked for, when the
-    // system is not modelled, or when it is the locale's own default; a digit swap for a reuse system; or
-    // the system's separators (default or per-locale override) plus its digits for an imposing one.
+    // How a requested system resolves against the baked format: unchanged when the selection is automatic,
+    // when the system is not modelled, or when it is the locale's own default; a digit swap for a reuse
+    // system; or the system's separators (default or per-locale override) plus its digits for an imposing one.
     private static func resolvedNumbering(
         at localeIndex: LocaleIndex,
-        for numberingSystem: NumberingSystem?,
+        for selection: NumberingSystemSelection,
         baked: LocaleNumberFormat
     ) -> ResolvedNumbering {
         guard
-            let numberingSystem,
+            case .explicit(let numberingSystem) = selection,
             let systemIndex = systemIndex(of: numberingSystem),
             systemIndex != baked.defaultSystemIndex
         else {

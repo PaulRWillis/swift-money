@@ -13,7 +13,7 @@ extension MoneyOf.FormatStyle {
         locale: LocaleIdentifier,
         presentation: Configuration.Presentation,
         enginePresentation: CurrencyPresentation?,
-        numberingSystem: NumberingSystem?
+        numberingSystem: NumberingSystemSelection
     ) -> MoneyFormat? {
         guard let type = C.self as? any CustomCurrencyFormattable.Type else {
             return nil
@@ -39,7 +39,7 @@ extension MoneyOf.FormatStyle {
         locale: LocaleIdentifier,
         presentation: Configuration.Presentation,
         enginePresentation: CurrencyPresentation?,
-        numberingSystem: NumberingSystem?
+        numberingSystem: NumberingSystemSelection
     ) -> MoneyFormat? {
         if presentation == .fullName {
             return type.names(for: locale).flatMap {

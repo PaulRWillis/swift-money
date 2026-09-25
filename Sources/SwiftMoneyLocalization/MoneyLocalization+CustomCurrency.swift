@@ -17,15 +17,15 @@ public extension MoneyLocalization {
     ///   - money: The amount whose currency supplies the display.
     ///   - locale: The locale identifier, as ``moneyFormat(for:locale:presentation:)`` takes it.
     ///   - presentation: Whether to show the symbol, the ISO code, or the narrow symbol.
-    ///   - numberingSystem: The digits and separators to render in. `nil` (the default) uses the
-    ///     locale's own default system, so the output is unchanged.
+    ///   - numberingSystem: The digits and separators to render in. ``NumberingSystemSelection/automatic``
+    ///     (the default) uses the locale's own default system, so the output is unchanged.
     /// - Returns: A ``MoneyFormat``, or `nil` when the locale is outside the covered set or the currency
     ///   has no display for it.
     static func moneyFormat<C: CustomCurrencyFormattable>(
         for money: MoneyOf<C>,
         locale: LocaleIdentifier,
         presentation: CurrencyPresentation = .standard,
-        numberingSystem: NumberingSystem? = nil
+        numberingSystem: NumberingSystemSelection = .automatic
     ) -> MoneyFormat? {
         C.display(for: locale).flatMap {
             moneyFormat(
@@ -45,14 +45,14 @@ public extension MoneyLocalization {
     /// - Parameters:
     ///   - money: The amount whose currency supplies the names.
     ///   - locale: The locale identifier, as ``moneyFormat(for:locale:presentation:)`` takes it.
-    ///   - numberingSystem: The digits and separators to render in. `nil` (the default) uses the
-    ///     locale's own default system, so the output is unchanged.
+    ///   - numberingSystem: The digits and separators to render in. ``NumberingSystemSelection/automatic``
+    ///     (the default) uses the locale's own default system, so the output is unchanged.
     /// - Returns: A ``MoneyFormat``, or `nil` when the locale is outside the covered set or the currency
     ///   supplies no names for it.
     static func fullNameMoneyFormat<C: CustomCurrencyFormattable>(
         for money: MoneyOf<C>,
         locale: LocaleIdentifier,
-        numberingSystem: NumberingSystem? = nil
+        numberingSystem: NumberingSystemSelection = .automatic
     ) -> MoneyFormat? {
         C.names(for: locale).flatMap {
             fullNameMoneyFormat(
@@ -71,7 +71,7 @@ package extension MoneyLocalization {
         display: CustomCurrencyDisplay,
         locale: LocaleIdentifier,
         presentation: CurrencyPresentation,
-        numberingSystem: NumberingSystem? = nil
+        numberingSystem: NumberingSystemSelection = .automatic
     ) -> MoneyFormat? {
         guard let localeIndex = cldr.locales.index(of: locale) else {
             return nil
@@ -97,7 +97,7 @@ package extension MoneyLocalization {
         names: CustomCurrencyNames,
         minorUnits: Int64,
         locale: LocaleIdentifier,
-        numberingSystem: NumberingSystem? = nil
+        numberingSystem: NumberingSystemSelection = .automatic
     ) -> MoneyFormat? {
         guard let localeIndex = cldr.locales.index(of: locale) else {
             return nil
