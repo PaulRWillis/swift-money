@@ -12,7 +12,8 @@ extension MoneyOf.FormatStyle {
         for value: MoneyOf<C>,
         locale: LocaleIdentifier,
         presentation: Configuration.Presentation,
-        enginePresentation: CurrencyPresentation?
+        enginePresentation: CurrencyPresentation?,
+        numberingSystem: NumberingSystem?
     ) -> MoneyFormat? {
         guard let type = C.self as? any CustomCurrencyFormattable.Type else {
             return nil
@@ -24,7 +25,8 @@ extension MoneyOf.FormatStyle {
             minorUnits: value.minorUnits,
             locale: locale,
             presentation: presentation,
-            enginePresentation: enginePresentation
+            enginePresentation: enginePresentation,
+            numberingSystem: numberingSystem
         )
     }
 
@@ -36,19 +38,24 @@ extension MoneyOf.FormatStyle {
         minorUnits: Int64,
         locale: LocaleIdentifier,
         presentation: Configuration.Presentation,
-        enginePresentation: CurrencyPresentation?
+        enginePresentation: CurrencyPresentation?,
+        numberingSystem: NumberingSystem?
     ) -> MoneyFormat? {
         if presentation == .fullName {
             return type.names(for: locale).flatMap {
                 MoneyLocalization.fullNameMoneyFormat(
-                    for: currency, names: $0, minorUnits: minorUnits, locale: locale
+                    for: currency, names: $0, minorUnits: minorUnits, locale: locale,
+                    numberingSystem: numberingSystem
                 )
             }
         }
 
         return enginePresentation.flatMap { resolved in
             type.display(for: locale).flatMap {
-                MoneyLocalization.moneyFormat(for: currency, display: $0, locale: locale, presentation: resolved)
+                MoneyLocalization.moneyFormat(
+                    for: currency, display: $0, locale: locale, presentation: resolved,
+                    numberingSystem: numberingSystem
+                )
             }
         }
     }

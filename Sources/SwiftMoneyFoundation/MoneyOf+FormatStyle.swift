@@ -294,13 +294,22 @@ private extension MoneyOf.FormatStyle {
     // name depends on the amount, since a locale may name one unit differently from two, so it is
     // resolved from the amount rather than from a presentation.
     func engineFormat(for value: MoneyOf<C>) -> MoneyFormat? {
-        let identifier = LocaleIdentifier(locale.identifier)
+        // Strip any `@`-keyword suffix (e.g. `@numbers=arab`) so the base identifier resolves in the blob.
+        let identifier = LocaleIdentifier(String(locale.identifier.prefix { $0 != "@" }))
+
+        // `Locale.numberingSystem` always resolves to a concrete system, so a system we cannot model means
+        // the caller asked for one (e.g. hanidec), not that they expressed no preference. Fall back to ICU
+        // rather than silently render the locale's default digits.
+        guard let numberingSystem = NumberingSystem(locale.numberingSystem) else {
+            return nil
+        }
 
         // A custom currency renders from the display on its type. When that yields nothing (the currency
         // is not custom, the locale is uncovered, or it supplies no display), fall through to the CLDR
         // path, which for a custom currency renders the raw code and for a shipped one its own data.
         if let custom = customFormat(
-            for: value, locale: identifier, presentation: presentation, enginePresentation: enginePresentation
+            for: value, locale: identifier, presentation: presentation,
+            enginePresentation: enginePresentation, numberingSystem: numberingSystem
         ) {
             return custom
         }
@@ -309,12 +318,15 @@ private extension MoneyOf.FormatStyle {
             return MoneyLocalization.fullNameMoneyFormat(
                 for: value.currency,
                 minorUnits: value.minorUnits,
-                locale: identifier
+                locale: identifier,
+                numberingSystem: numberingSystem
             )
         }
 
         return enginePresentation.flatMap {
-            MoneyLocalization.moneyFormat(for: value.currency, locale: identifier, presentation: $0)
+            MoneyLocalization.moneyFormat(
+                for: value.currency, locale: identifier, presentation: $0, numberingSystem: numberingSystem
+            )
         }
     }
 
