@@ -127,6 +127,36 @@ struct WeightedSplitTests {
         #expect(amounts == [GBP(minorUnits: -2), GBP(minorUnits: -5)])
     }
 
+    // Pins the exact distribution for more than one leftover unit among more than a handful of ties,
+    // computed by hand: 23 ÷ 7 is 3 remainder 2, so the earliest two of seven equal parts take the
+    // extra unit each.
+    @Test("Several leftover units all break toward the earliest parts, not just the first")
+    func severalLeftoverUnitsBreakTowardEarliestParts() throws {
+        let weights = try #require(Weights(Array(repeating: Weight(integerLiteral: 1), count: 7)))
+
+        let amounts = GBP(minorUnits: 23).split(by: weights).amounts
+
+        #expect(amounts == [
+            GBP(minorUnits: 4), GBP(minorUnits: 4),
+            GBP(minorUnits: 3), GBP(minorUnits: 3), GBP(minorUnits: 3), GBP(minorUnits: 3), GBP(minorUnits: 3),
+        ])
+    }
+
+    // `distributeLeftover` used to fully rescan every remainder for each leftover unit, which measured
+    // at about 18 seconds for 16,000 equal weights. Two seconds is a generous ceiling well clear of
+    // ordinary noise, that only a quadratic regression would come close to.
+    @Test("A weighted split with many parts completes quickly, not quadratically")
+    func manyPartsSplitCompletesQuickly() throws {
+        let weights = try #require(Weights(Array(repeating: Weight(integerLiteral: 1), count: 16_000)))
+        let money = GBP(minorUnits: 999_999_99)
+
+        let elapsed = ContinuousClock().measure {
+            _ = money.split(by: weights)
+        }
+
+        #expect(elapsed < .seconds(2))
+    }
+
     // A naive amount-times-weight product overflows on the first weight, so this pins the
     // full-width path: weighted splitting never traps.
     @Test("The largest amount splits without overflow")
