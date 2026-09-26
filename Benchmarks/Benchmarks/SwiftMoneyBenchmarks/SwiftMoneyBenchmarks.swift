@@ -85,6 +85,7 @@ let benchmarks: @Sendable () -> Void = {
     let decimalOperands: [Decimal] = operands.map { Decimal($0) }
     let moneyOperands: [GBP] = operands.map { GBP(minorUnits: $0) }
     let int128Operands: [Int128] = operands.map { Int128($0) }
+    let int64Operands: [Int64] = operands.map { Int64($0) }
     let fixedOperands: [FixedPointDecimal] = operands.map { FixedPointDecimal(integerValue: Int64($0)) }
 
     Benchmark("MoneyOf addition", configuration: defaultConfiguration) { benchmark in
@@ -238,6 +239,19 @@ let benchmarks: @Sendable () -> Void = {
 
         for _ in benchmark.scaledIterations {
             accumulated = accumulated + price * operands[index % operands.count]
+            index &+= 1
+        }
+
+        blackHole(accumulated)
+    }
+
+    Benchmark("MoneyOf scalar multiplication, Int64 operand", configuration: defaultConfiguration) { benchmark in
+        let price = GBP(minorUnits: 12_50)
+        var accumulated = GBP(minorUnits: 0)
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            accumulated = accumulated + price * int64Operands[index % int64Operands.count]
             index &+= 1
         }
 

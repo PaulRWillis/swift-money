@@ -60,10 +60,54 @@ public extension MoneyOf {
 public extension MoneyOf where C: CurrencyType {
     /// Returns the result of multiplying this amount by a whole number.
     ///
-    /// Traps on overflow.
+    /// Traps on overflow. `Int` always fits `Int64` exactly, so this checks the actual product at
+    /// 64-bit width instead of widening through `Int128` — the fast path for the overwhelmingly
+    /// common case (a plain number literal or count).
+    @inlinable
+    static func * (lhs: Self, rhs: Int) -> Self {
+        let (product, overflow) = lhs.minorUnits.multipliedReportingOverflow(by: Int64(rhs))
+        guard !overflow else {
+            preconditionFailure("Scaling by \(rhs) is not representable")
+        }
+        return Self(unchecked: product, storage: .implied)
+    }
+
+    /// Returns the result of multiplying this amount by a whole number.
+    ///
+    /// Traps on overflow. `Int64` is already the width `minorUnits` is stored in, so this checks the
+    /// actual product directly instead of widening through `Int128` — the same fast path as the `Int`
+    /// overload above, for callers whose count is explicitly `Int64` rather than the platform `Int`.
+    @inlinable
+    static func * (lhs: Self, rhs: Int64) -> Self {
+        let (product, overflow) = lhs.minorUnits.multipliedReportingOverflow(by: rhs)
+        guard !overflow else {
+            preconditionFailure("Scaling by \(rhs) is not representable")
+        }
+        return Self(unchecked: product, storage: .implied)
+    }
+
+    /// Returns the result of multiplying this amount by a whole number.
+    ///
+    /// Traps on overflow. Zero is checked first, before `rhs` is ever converted: zero times any
+    /// magnitude is always representable, however wide `rhs`'s own type is (`Int128`, `UInt128`, or
+    /// wider still), so this can never trap on a multiplier that doesn't fit some fixed-width box
+    /// when the true answer would have been fine.
     @inlinable
     static func * (lhs: Self, rhs: some BinaryInteger) -> Self {
-        Self(unchecked: lhs.minorUnits * Int64(rhs), storage: .implied)
+        guard lhs.minorUnits != 0 else {
+            return Self(unchecked: 0, storage: .implied)
+        }
+
+        guard let factor = Int128(exactly: rhs) else {
+            preconditionFailure("Scaling by \(rhs) is not representable")
+        }
+
+        let (product, overflow) = Int128(lhs.minorUnits).multipliedReportingOverflow(by: factor)
+        guard !overflow, let representable = Int64(exactly: product) else {
+            preconditionFailure("Scaling by \(rhs) is not representable")
+        }
+
+        return Self(unchecked: representable, storage: .implied)
     }
 
     /// Returns the result of multiplying a whole number by this amount.
@@ -141,10 +185,54 @@ public extension MoneyOf where C == AnyCurrency {
 
     /// Returns this amount scaled by a whole number.
     ///
-    /// Traps on overflow.
+    /// Traps on overflow. `Int` always fits `Int64` exactly, so this checks the actual product at
+    /// 64-bit width instead of widening through `Int128` — the fast path for the overwhelmingly
+    /// common case (a plain number literal or count).
+    @inlinable
+    static func * (lhs: Self, rhs: Int) -> Self {
+        let (product, overflow) = lhs.minorUnits.multipliedReportingOverflow(by: Int64(rhs))
+        guard !overflow else {
+            preconditionFailure("Scaling by \(rhs) is not representable")
+        }
+        return Self(unchecked: product, storage: lhs.storage)
+    }
+
+    /// Returns this amount scaled by a whole number.
+    ///
+    /// Traps on overflow. `Int64` is already the width `minorUnits` is stored in, so this checks the
+    /// actual product directly instead of widening through `Int128` — the same fast path as the `Int`
+    /// overload above, for callers whose count is explicitly `Int64` rather than the platform `Int`.
+    @inlinable
+    static func * (lhs: Self, rhs: Int64) -> Self {
+        let (product, overflow) = lhs.minorUnits.multipliedReportingOverflow(by: rhs)
+        guard !overflow else {
+            preconditionFailure("Scaling by \(rhs) is not representable")
+        }
+        return Self(unchecked: product, storage: lhs.storage)
+    }
+
+    /// Returns this amount scaled by a whole number.
+    ///
+    /// Traps on overflow. Zero is checked first, before `rhs` is ever converted: zero times any
+    /// magnitude is always representable, however wide `rhs`'s own type is (`Int128`, `UInt128`, or
+    /// wider still), so this can never trap on a multiplier that doesn't fit some fixed-width box
+    /// when the true answer would have been fine.
     @inlinable
     static func * (lhs: Self, rhs: some BinaryInteger) -> Self {
-        Self(unchecked: lhs.minorUnits * Int64(rhs), storage: lhs.storage)
+        guard lhs.minorUnits != 0 else {
+            return Self(unchecked: 0, storage: lhs.storage)
+        }
+
+        guard let factor = Int128(exactly: rhs) else {
+            preconditionFailure("Scaling by \(rhs) is not representable")
+        }
+
+        let (product, overflow) = Int128(lhs.minorUnits).multipliedReportingOverflow(by: factor)
+        guard !overflow, let representable = Int64(exactly: product) else {
+            preconditionFailure("Scaling by \(rhs) is not representable")
+        }
+
+        return Self(unchecked: representable, storage: lhs.storage)
     }
 
     /// Returns this amount scaled by a whole number.
