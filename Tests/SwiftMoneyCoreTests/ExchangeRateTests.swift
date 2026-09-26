@@ -1,6 +1,18 @@
 import SwiftMoneyCore
 import Testing
 
+// A currency at the coarsest scale (no minor units), for pairing against `HighPrecision` to force a
+// rescale wide enough to overflow `Fixed`.
+private enum LowPrecision: CurrencyType {
+    static let currency = customCurrency(code: "LOW", unitScale: 1)
+}
+
+// A currency at the finest scale the engine allows, so a rate rescaled against `LowPrecision` is
+// genuinely unrepresentable rather than merely large.
+private enum HighPrecision: CurrencyType {
+    static let currency = customCurrency(code: "HGH", unitScale: 1_000_000_000_000_000_000)
+}
+
 @Suite("Exchange Rate Tests")
 struct ExchangeRateTests {
 
@@ -15,6 +27,20 @@ struct ExchangeRateTests {
     func nonPositiveIsNil() {
         #expect(ExchangeRate<Currencies.EUR, Currencies.GBP>(.percent(0)) == nil)
         #expect(ExchangeRate<Currencies.EUR, Currencies.GBP>(.percent(-1)) == nil)
+    }
+
+    @Test("A rate that overflows once rescaled between very different currency scales returns nil")
+    func extremeScaleDifferenceReturnsNil() throws {
+        let rate = try #require(Rate(string: "1000"))
+
+        #expect(ExchangeRate<LowPrecision, HighPrecision>(rate) == nil)
+    }
+
+    @Test("An ordinary rate between currencies of different scales still builds")
+    func ordinaryScaleDifferenceStillBuilds() throws {
+        let rate = try #require(Rate(string: "149.5"))
+
+        #expect(ExchangeRate<Currencies.USD, Currencies.JPY>(rate) != nil)
     }
 
     @Test("Applying a margin takes the spread off the mid rate")

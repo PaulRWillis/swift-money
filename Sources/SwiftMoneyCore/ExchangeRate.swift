@@ -24,15 +24,20 @@ public struct ExchangeRate<From: CurrencyType, To: CurrencyType>: Sendable, Equa
 
     /// Creates an exchange rate from a market quote: `To` major units per one `From` major unit.
     ///
-    /// - Returns: `nil` unless the rate is strictly positive — a zero or negative exchange rate would
-    ///   zero or sign-flip a conversion.
+    /// - Returns: `nil` if the rate is not strictly positive — a zero or negative exchange rate would
+    ///   zero or sign-flip a conversion — or if rescaling it between the two currencies overflows the
+    ///   representable range.
     public init?(_ marketRate: Rate) {
         // A major-unit rate scaled to minor units: multiplying a `From`-minor amount by the result
         // gives a `To`-minor amount. `× toScale ÷ fromScale` converts between the two quote forms —
         // e.g. $1 = ¥149.5 (per major) becomes 1.495 ¥-minor per ¢, since ¥ has scale 1 and $ has 100.
-        let scaled = marketRate.value
-            .multiplied(by: Int64(To.currency.unitScale))
-            .divided(by: Int64(From.currency.unitScale))
+        // The multiply is checked because the two scales can differ widely enough to overflow; the
+        // divide that follows only shrinks an already-representable value, so it cannot.
+        guard let scaled = marketRate.value
+            .multipliedIfRepresentable(by: Int64(To.currency.unitScale))?
+            .divided(by: Int64(From.currency.unitScale)) else {
+            return nil
+        }
 
         self.init(minorPerMinor: Rate(scaled))
     }
