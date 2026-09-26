@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """Report how well tested the lines a branch adds are.
 
-Intersects the added-line ranges from a git diff with the per-line hit counts in an lcov report. Lines
-with no lcov record are not executable, so blank lines, comments and declarations drop out without
-needing to be recognized. A line tagged `// coverage:ignore` is excluded too — see `ignored_lines`.
+Intersects the added-line ranges from a git diff with the per-line hit counts in an lcov report. The
+diff runs against the working tree, not `HEAD`, so uncommitted changes — staged, unstaged, or a
+brand-new untracked file — count as "added" too; that matches what the lcov report was just measured
+against (`run.sh` runs the tests, and coverage, against the real working tree). Lines with no lcov
+record are not executable, so blank lines, comments and declarations drop out without needing to be
+recognized. A line tagged `// coverage:ignore` is excluded too — see `ignored_lines`.
 
 Usage:
     python3 Coverage/diff-coverage.py <base-ref> <lcov-file> [--format text|markdown] [--paths <glob>]
@@ -24,13 +27,42 @@ IGNORE_MARKER = "// coverage:ignore"
 
 
 def added_lines(base, paths):
-    """The line numbers this branch adds, per file, from the diff's hunk headers."""
-    diff = subprocess.run(
-        ["git", "diff", "--unified=0", f"{base}...HEAD", "--", paths],
+    """The line numbers this branch adds, per file, from the diff's hunk headers.
+
+    Diffed against the working tree at `base`'s merge-base with `HEAD` — not `HEAD` itself — so
+    uncommitted work counts as "added." A brand-new untracked file is invisible to `git diff` until
+    it is in the index, so one is marked with `--intent-to-add` (an empty blob; no content is
+    staged) for the duration of the diff, then unmarked again — `git reset` on a path git added only
+    via `--intent-to-add` drops it from the index entirely, restoring untracked status — so the
+    caller's index is unchanged whether this returns normally or raises.
+    """
+    merge_base = subprocess.run(
+        ["git", "merge-base", base, "HEAD"], capture_output=True, text=True, check=True
+    ).stdout.strip()
+
+    untracked = subprocess.run(
+        ["git", "ls-files", "--others", "--exclude-standard", "--", paths],
         capture_output=True,
         text=True,
         check=True,
-    ).stdout
+    ).stdout.splitlines()
+
+    if untracked:
+        subprocess.run(["git", "add", "--intent-to-add", "--", *untracked], capture_output=True, check=True)
+
+    try:
+        diff = subprocess.run(
+            ["git", "diff", "--unified=0", merge_base, "--", paths],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+    finally:
+        if untracked:
+            # `git reset` prints an "Unstaged changes after reset" summary of every unstaged tracked
+            # file in the repo, not just the ones passed here — capture and discard it, or it leaks
+            # into this script's own stdout report.
+            subprocess.run(["git", "reset", "--", *untracked], capture_output=True, check=True)
 
     added, path = {}, None
 
