@@ -38,7 +38,7 @@ public struct MoneyCodingFormat: Sendable, Equatable, Hashable {
 
     enum Shape: Sendable, Equatable, Hashable {
         case codedString(Units)
-        case fields(currencyKey: String, amountKey: String, amount: Amount)
+        case fields(currencyKey: CurrencyKey, amountKey: AmountKey, amount: Amount)
         case amountOnly(Amount)
     }
 
@@ -62,25 +62,46 @@ public struct MoneyCodingFormat: Sendable, Equatable, Hashable {
     /// The code and the amount in two fields, `{"currency": "GBP", "amount": 499}`.
     public static let fields = MoneyCodingFormat.fields()
 
-    /// The code and the amount in two fields, under the keys an API uses.
+    /// The code and the amount in two fields, under this shape's own keys.
     ///
     /// ```swift
-    /// .fields()                                        // {"currency": "GBP", "amount": 499}
-    /// .fields(amount: .number(.majorUnits))            // {"currency": "GBP", "amount": 4.99}
-    /// .fields(amount: .string(.majorUnits))            // {"currency": "GBP", "amount": "4.99"}
-    /// .fields(currencyKey: "ccy", amountKey: "value")  // {"ccy": "GBP", "value": 499}
+    /// .fields()                              // {"currency": "GBP", "amount": 499}
+    /// .fields(amount: .number(.majorUnits))  // {"currency": "GBP", "amount": 4.99}
+    /// .fields(amount: .string(.majorUnits))  // {"currency": "GBP", "amount": "4.99"}
+    /// ```
+    ///
+    /// - Parameter amount: How the amount is written.
+    public static func fields(amount: Amount = .number(.minorUnits)) -> MoneyCodingFormat {
+        MoneyCodingFormat(shape: .fields(currencyKey: .default, amountKey: .default, amount: amount))
+    }
+
+    /// The code and the amount in two fields, under the keys named.
+    ///
+    /// ```swift
+    /// try .fields(currencyKey: "ccy", amountKey: "value")  // {"ccy": "GBP", "value": 499}
     /// ```
     ///
     /// - Parameters:
     ///   - currencyKey: The key the currency code is written under.
     ///   - amountKey: The key the amount is written under.
     ///   - amount: How the amount is written.
+    /// - Throws: `MoneyCodingFormatError.duplicateFieldKey` if `currencyKey`, `amountKey`, or the
+    ///   reserved key `"scale"` (which a currency outside ISO 4217 may also need on the wire) are
+    ///   not all different — writing two of them under the same key would silently drop one.
     public static func fields(
-        currencyKey: String = "currency",
-        amountKey: String = "amount",
+        currencyKey: CurrencyKey,
+        amountKey: AmountKey,
         amount: Amount = .number(.minorUnits)
-    ) -> MoneyCodingFormat {
-        MoneyCodingFormat(shape: .fields(currencyKey: currencyKey, amountKey: amountKey, amount: amount))
+    ) throws(MoneyCodingFormatError) -> MoneyCodingFormat {
+        // "scale" — drop this entry, and this guard shrinks to just the two caller keys, once the
+        // custom-currency registry ships and a scale never needs to be written at all.
+        let keys = [String(currencyKey), String(amountKey), "scale"]
+
+        guard let duplicate = keys.firstDuplicate() else {
+            return MoneyCodingFormat(shape: .fields(currencyKey: currencyKey, amountKey: amountKey, amount: amount))
+        }
+
+        throw .duplicateFieldKey(duplicate)
     }
 
     /// The amount alone, `499`, for a currency the type already names.
@@ -178,6 +199,19 @@ extension MoneyCodingFormat {
         return (MoneyCodingKey(currencyKey), MoneyCodingKey(amountKey))
     }
     #endif
+}
+
+private extension Array where Element: Hashable {
+    // The first element also seen earlier in the array, or `nil` if all are distinct.
+    func firstDuplicate() -> Element? {
+        var seen: Set<Element> = []
+
+        for element in self where !seen.insert(element).inserted {
+            return element
+        }
+
+        return nil
+    }
 }
 
 #if !hasFeature(Embedded)

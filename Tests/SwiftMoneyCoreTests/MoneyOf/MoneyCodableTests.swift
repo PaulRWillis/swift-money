@@ -226,7 +226,7 @@ struct MoneyCodableTests {
 
     @Test("Non-default keys read back")
     func decodesNonDefaultKeys() throws {
-        let format = MoneyCodingFormat.fields(currencyKey: "ccy", amountKey: "value")
+        let format = try MoneyCodingFormat.fields(currencyKey: "ccy", amountKey: "value")
 
         #expect(try decoded(GBP.self, from: #"{"ccy":"GBP","value":499}"#, format) == GBP(minorUnits: 4_99))
     }
@@ -272,7 +272,7 @@ struct MoneyCodableTests {
             .fields,
             .fields(amount: .string(.minorUnits)),
             .fields(amount: .string(.majorUnits)),
-            .fields(currencyKey: "ccy", amountKey: "value"),
+            try .fields(currencyKey: "ccy", amountKey: "value"),
         ]
 
         for format in formats {
