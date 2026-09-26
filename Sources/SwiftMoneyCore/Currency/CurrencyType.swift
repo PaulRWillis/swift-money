@@ -48,6 +48,19 @@ public extension CurrencyRepresentation {
     }
 }
 
+extension CurrencyRepresentation {
+    /// The currency this representation would resolve from a code alone, with no scale — what
+    /// `storage(for:)` already does for a payload naming a code and nothing else, composed with
+    /// `currency(for:)` to answer in `Currency` rather than in `Storage`.
+    ///
+    /// Encoding uses this to decide whether a currency needs its scale on the wire: if the code
+    /// alone already resolves to the same currency, a scale would be written only to be thrown
+    /// away on decode.
+    package static func currency(resolvedFromCodeAlone code: CurrencyCode) -> Currency? {
+        storage(for: .code(code)).map(currency(for:))
+    }
+}
+
 /// A currency fixed at compile time, so that mixing two of them is a compile error.
 ///
 /// Conforming types carry no state and are never instantiated. They exist to be used as a generic

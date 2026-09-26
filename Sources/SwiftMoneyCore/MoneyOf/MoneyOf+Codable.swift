@@ -28,10 +28,11 @@ extension MoneyOf: Codable {
 
             try container.encode(currency.code, forKey: MoneyCodingKey(currencyKey))
 
-            // A currency the ISO table ships resolves from its code alone, so only a currency the
-            // table does not ship needs its scale on the wire too — keeping already-encoded
-            // ISO-currency JSON unchanged.
-            if Currency(iso: currency.code) == nil {
+            // Only a currency this representation cannot already rebuild from its code alone needs
+            // its scale on the wire too — a fixed representation's own currency always rebuilds
+            // from the code alone, so it never reaches this branch; only a runtime currency the
+            // ISO table doesn't ship does.
+            if C.currency(resolvedFromCodeAlone: currency.code) != currency {
                 try container.encode(currency.unitScale.decimalPlaces, forKey: Self.scaleKey)
             }
 

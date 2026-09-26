@@ -85,6 +85,21 @@ struct MoneyCodableTests {
         #expect(try json(sevenEighths, .codedString(.majorUnits)) == "\"MIL 0.875\"")
     }
 
+    @Test("A fixed-currency type's own custom currency writes no scale field, since it resolves from its code alone")
+    func encodesAFixedCustomCurrencyWithoutAScaleField() throws {
+        let sevenEighths = MoneyOf<Mills>(minorUnits: 875)
+
+        #expect(try json(sevenEighths, .fields) == #"{"amount":875,"currency":"MIL"}"#)
+    }
+
+    @Test("A fixed-currency type's custom currency round trips through fields, with no scale on the wire")
+    func roundTripsAFixedCustomCurrencyThroughFields() throws {
+        let sevenEighths = MoneyOf<Mills>(minorUnits: 875)
+        let encoded = try encoder(.fields).encode(sevenEighths)
+
+        #expect(try decoder(.fields).decode(MoneyOf<Mills>.self, from: encoded) == sevenEighths)
+    }
+
     @Test(
         "A typed amount reads either spelling, with or without its code",
         arguments: ["\"GBP 499\"", "\"GBP 4.99\"", "\"499\"", "\"4.99\""]
