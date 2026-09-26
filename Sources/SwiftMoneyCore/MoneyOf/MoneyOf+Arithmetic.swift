@@ -74,6 +74,20 @@ public extension MoneyOf where C: CurrencyType {
 
     /// Returns the result of multiplying this amount by a whole number.
     ///
+    /// Traps on overflow. `Int64` is already the width `minorUnits` is stored in, so this checks the
+    /// actual product directly instead of widening through `Int128` — the same fast path as the `Int`
+    /// overload above, for callers whose count is explicitly `Int64` rather than the platform `Int`.
+    @inlinable
+    static func * (lhs: Self, rhs: Int64) -> Self {
+        let (product, overflow) = lhs.minorUnits.multipliedReportingOverflow(by: rhs)
+        guard !overflow else {
+            preconditionFailure("Scaling by \(rhs) is not representable")
+        }
+        return Self(unchecked: product, storage: .implied)
+    }
+
+    /// Returns the result of multiplying this amount by a whole number.
+    ///
     /// Traps on overflow. Zero is checked first, before `rhs` is ever converted: zero times any
     /// magnitude is always representable, however wide `rhs`'s own type is (`Int128`, `UInt128`, or
     /// wider still), so this can never trap on a multiplier that doesn't fit some fixed-width box
@@ -177,6 +191,20 @@ public extension MoneyOf where C == AnyCurrency {
     @inlinable
     static func * (lhs: Self, rhs: Int) -> Self {
         let (product, overflow) = lhs.minorUnits.multipliedReportingOverflow(by: Int64(rhs))
+        guard !overflow else {
+            preconditionFailure("Scaling by \(rhs) is not representable")
+        }
+        return Self(unchecked: product, storage: lhs.storage)
+    }
+
+    /// Returns this amount scaled by a whole number.
+    ///
+    /// Traps on overflow. `Int64` is already the width `minorUnits` is stored in, so this checks the
+    /// actual product directly instead of widening through `Int128` — the same fast path as the `Int`
+    /// overload above, for callers whose count is explicitly `Int64` rather than the platform `Int`.
+    @inlinable
+    static func * (lhs: Self, rhs: Int64) -> Self {
+        let (product, overflow) = lhs.minorUnits.multipliedReportingOverflow(by: rhs)
         guard !overflow else {
             preconditionFailure("Scaling by \(rhs) is not representable")
         }
