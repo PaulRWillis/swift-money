@@ -15,19 +15,19 @@ struct JSONDecoderMoneyCodingFormatTests {
     }
 
     @Test("A format that is set reads back")
-    func readsBackASetFormat() {
+    func readsBackASetFormat() throws {
         let decoder = JSONDecoder()
 
-        decoder.moneyCodingFormat = .fields(currencyKey: "ccy", amountKey: "value")
+        decoder.moneyCodingFormat = try .fields(currencyKey: "ccy", amountKey: "value")
 
-        #expect(decoder.moneyCodingFormat == .fields(currencyKey: "ccy", amountKey: "value"))
+        #expect(decoder.moneyCodingFormat == (try .fields(currencyKey: "ccy", amountKey: "value")))
     }
 
     @Test("A set format supplies the field names the decoder reads")
     func decodesWithTheSetFormat() throws {
         let decoder = JSONDecoder()
 
-        decoder.moneyCodingFormat = .fields(currencyKey: "ccy", amountKey: "value")
+        decoder.moneyCodingFormat = try .fields(currencyKey: "ccy", amountKey: "value")
 
         let payload = Data(#"{"ccy":"GBP","value":499}"#.utf8)
 

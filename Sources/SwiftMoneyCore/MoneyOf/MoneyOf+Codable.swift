@@ -28,6 +28,14 @@ extension MoneyOf: Codable {
 
             try container.encode(currency.code, forKey: MoneyCodingKey(currencyKey))
 
+            // Only a currency this representation cannot already rebuild from its code alone needs
+            // its scale on the wire too — a fixed representation's own currency always rebuilds
+            // from the code alone, so it never reaches this branch; only a runtime currency the
+            // ISO table doesn't ship does.
+            if C.currency(resolvedFromCodeAlone: currency.code) != currency {
+                try container.encode(currency.unitScale.decimalPlaces, forKey: Self.scaleKey)
+            }
+
             switch amount {
             case .number(.minorUnits):
                 try container.encode(minorUnits, forKey: key)
@@ -153,8 +161,10 @@ extension MoneyOf: Codable {
         let keys = format.fieldKeys
         let container = try decoder.container(keyedBy: MoneyCodingKey.self)
         let code = try container.decodeIfPresent(CurrencyCode.self, forKey: keys.currency)
+        let rawScale = try container.decodeIfPresent(Int.self, forKey: Self.scaleKey)
+        let field = CurrencyField(code: code, rawScale: rawScale)
 
-        guard let storage = C.storage(forCode: code) else {
+        guard let storage = C.storage(for: field) else {
             throw DecodingError.dataCorruptedError(
                 forKey: keys.currency,
                 in: container,
@@ -190,6 +200,11 @@ extension MoneyOf: Codable {
             )
         }
     }
+
+    // The key the currency's scale is written and read under, alongside its code, on the `.fields`
+    // shape. Not one of `MoneyCodingFormat.fieldKeys`, which an API names to match itself; nothing
+    // outside this library reads this one, so it is fixed.
+    private static var scaleKey: MoneyCodingKey { MoneyCodingKey("scale") }
 
     // What an amount of this type carries when nothing names a currency, and `nil` where the
     // currency is known only at runtime.

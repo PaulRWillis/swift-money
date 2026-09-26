@@ -19,10 +19,46 @@ public protocol CurrencyRepresentation: Sendable {
     /// - Parameter code: The code naming the currency, or `nil` where nothing named one, in which
     ///   case only a representation that fixes a currency of its own can answer.
     static func storage(forCode code: CurrencyCode?) -> Storage?
+
+    /// What an amount carries in order to be in the currency a decoded ``CurrencyField`` names, or
+    /// `nil` where this representation cannot be that currency.
+    ///
+    /// A representation that already fixes its own currency has no use for a scale — its
+    /// ``storage(forCode:)`` already resolves the one currency it can ever be, so the default
+    /// implementation below ignores ``CurrencyField/custom(code:rawScale:)``'s scale entirely. Only a
+    /// representation whose currency is known solely at runtime needs it, to rebuild a currency the
+    /// code alone does not resolve (one the library does not ship).
+    ///
+    /// - Parameter field: What a decoded payload named as the currency.
+    static func storage(for field: CurrencyField) -> Storage?
 }
 
 public extension CurrencyRepresentation {
     static func storage(forCode _: CurrencyCode?) -> Storage? { nil }
+
+    static func storage(for field: CurrencyField) -> Storage? {
+        switch field {
+        case .none:
+            storage(forCode: nil)
+        case let .code(code):
+            storage(forCode: code)
+        case let .custom(code, _):
+            storage(forCode: code)
+        }
+    }
+}
+
+extension CurrencyRepresentation {
+    /// The currency this representation would resolve from a code alone, with no scale — what
+    /// `storage(for:)` already does for a payload naming a code and nothing else, composed with
+    /// `currency(for:)` to answer in `Currency` rather than in `Storage`.
+    ///
+    /// Encoding uses this to decide whether a currency needs its scale on the wire: if the code
+    /// alone already resolves to the same currency, a scale would be written only to be thrown
+    /// away on decode.
+    package static func currency(resolvedFromCodeAlone code: CurrencyCode) -> Currency? {
+        storage(for: .code(code)).map(currency(for:))
+    }
 }
 
 /// A currency fixed at compile time, so that mixing two of them is a compile error.
@@ -70,6 +106,28 @@ public enum AnyCurrency: CurrencyRepresentation {
     @inlinable
     public static func storage(forCode code: CurrencyCode?) -> Currency? {
         code.flatMap(Currency.init(iso:))
+    }
+
+    /// Resolves a currency the ISO table ships from the code alone, or a currency the table does not
+    /// ship from the code and its scale together. Validates the scale itself, since this is the one
+    /// representation that ever looks at it — a malformed scale here is refused, not silently
+    /// dropped, but it never reaches a representation that would have ignored it anyway.
+    @inlinable
+    public static func storage(for field: CurrencyField) -> Currency? {
+        switch field {
+        case .none:
+            return nil
+
+        case let .code(code):
+            return Currency(iso: code)
+
+        case let .custom(code, rawScale):
+            guard let scale = UnitScale(decimalPlaces: rawScale) else {
+                return nil
+            }
+
+            return Currency(code: code, unitScale: scale)
+        }
     }
 
     @usableFromInline

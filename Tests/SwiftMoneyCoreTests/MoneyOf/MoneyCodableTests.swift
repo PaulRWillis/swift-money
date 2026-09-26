@@ -85,6 +85,21 @@ struct MoneyCodableTests {
         #expect(try json(sevenEighths, .codedString(.majorUnits)) == "\"MIL 0.875\"")
     }
 
+    @Test("A fixed-currency type's own custom currency writes no scale field, since it resolves from its code alone")
+    func encodesAFixedCustomCurrencyWithoutAScaleField() throws {
+        let sevenEighths = MoneyOf<Mills>(minorUnits: 875)
+
+        #expect(try json(sevenEighths, .fields) == #"{"amount":875,"currency":"MIL"}"#)
+    }
+
+    @Test("A fixed-currency type's custom currency round trips through fields, with no scale on the wire")
+    func roundTripsAFixedCustomCurrencyThroughFields() throws {
+        let sevenEighths = MoneyOf<Mills>(minorUnits: 875)
+        let encoded = try encoder(.fields).encode(sevenEighths)
+
+        #expect(try decoder(.fields).decode(MoneyOf<Mills>.self, from: encoded) == sevenEighths)
+    }
+
     @Test(
         "A typed amount reads either spelling, with or without its code",
         arguments: ["\"GBP 499\"", "\"GBP 4.99\"", "\"499\"", "\"4.99\""]
@@ -148,6 +163,48 @@ struct MoneyCodableTests {
         #expect(try json(price, .fields) == #"{"amount":499,"currency":"JPY"}"#)
     }
 
+    @Test("A currency outside ISO 4217 also writes its scale, so it round trips")
+    func encodesACustomCurrencyWithItsScaleAsFields() throws {
+        let currency = try #require(Currency(code: "POINTS", unitScale: 100))
+        let price = Money(minorUnits: 4_99, currency: currency)
+
+        let encoded = try encoder(.fields).encode(price)
+
+        #expect(String(decoding: encoded, as: UTF8.self) == #"{"amount":499,"currency":"POINTS","scale":2}"#)
+        #expect(try decoder(.fields).decode(Money.self, from: encoded) == price)
+    }
+
+    @Test("A currency outside ISO 4217 with no scale field still fails to decode")
+    func refusesACustomCurrencyWithNoScaleField() {
+        #expect(throws: DecodingError.self) {
+            try decoded(Money.self, from: #"{"currency":"POINTS","amount":499}"#, .fields)
+        }
+    }
+
+    @Test("An invalid scale field is refused rather than silently ignored")
+    func refusesAnInvalidScaleField() {
+        #expect(throws: DecodingError.self) {
+            try decoded(Money.self, from: #"{"currency":"POINTS","amount":499,"scale":-1}"#, .fields)
+        }
+    }
+
+    @Test("A typed amount ignores a scale field, its currency already being fixed")
+    func typedAmountIgnoresAScaleField() throws {
+        let expected = GBP(minorUnits: 4_99)
+
+        #expect(try decoded(GBP.self, from: #"{"currency":"GBP","amount":499,"scale":2}"#, .fields) == expected)
+    }
+
+    // A typed amount's currency is fixed at compile time and never looks at a scale field at all, so
+    // an invalid one must not break a decode it has no bearing on — unlike Money, which does consult
+    // it and correctly refuses one, covered by `refusesAnInvalidScaleField` above.
+    @Test("A typed amount ignores an invalid scale field too")
+    func typedAmountIgnoresAnInvalidScaleField() throws {
+        let expected = GBP(minorUnits: 4_99)
+
+        #expect(try decoded(GBP.self, from: #"{"currency":"GBP","amount":499,"scale":-1}"#, .fields) == expected)
+    }
+
     @Test(
         "An amount field reads as a number or as a string, in either units",
         arguments: [#"{"currency":"GBP","amount":499}"#,
@@ -169,7 +226,7 @@ struct MoneyCodableTests {
 
     @Test("Non-default keys read back")
     func decodesNonDefaultKeys() throws {
-        let format = MoneyCodingFormat.fields(currencyKey: "ccy", amountKey: "value")
+        let format = try MoneyCodingFormat.fields(currencyKey: "ccy", amountKey: "value")
 
         #expect(try decoded(GBP.self, from: #"{"ccy":"GBP","value":499}"#, format) == GBP(minorUnits: 4_99))
     }
@@ -215,7 +272,7 @@ struct MoneyCodableTests {
             .fields,
             .fields(amount: .string(.minorUnits)),
             .fields(amount: .string(.majorUnits)),
-            .fields(currencyKey: "ccy", amountKey: "value"),
+            try .fields(currencyKey: "ccy", amountKey: "value"),
         ]
 
         for format in formats {
