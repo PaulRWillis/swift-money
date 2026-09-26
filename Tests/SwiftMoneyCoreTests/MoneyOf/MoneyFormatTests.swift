@@ -90,4 +90,21 @@ struct MoneyFormatTests {
         #expect(Self.dollar.format(Self.money(1_234_56, "USD"), options: .init(grouping: .never)) == "$1234.56")
         #expect(jpy.format(Self.money(1_234, "JPY"), options: .init(decimalSeparator: .always)) == "¥1,234.")
     }
+
+    @Test("A fixed precision far beyond the currency's scale pads with zeros instead of overflowing")
+    func fixedPrecisionFarBeyondScalePadsWithoutOverflowing() throws {
+        // 19 is the highest fraction length the Foundation integration ever asks this engine for
+        // (`MoneyOf+FormatStyle.fractionLength(of:)`), and previously overflowed for any amount.
+        let length = try #require(FractionLength(exactly: 19))
+        let padding = String(repeating: "0", count: 19 - 2)
+
+        #expect(
+            Self.dollar.format(Self.money(1_00, "USD"), options: .init(precision: .fixed(length, rounding: .toNearestOrEven)))
+                == "$1.00\(padding)"
+        )
+        #expect(
+            Self.dollar.format(Self.money(-1_00, "USD"), options: .init(precision: .fixed(length, rounding: .toNearestOrEven)))
+                == "-$1.00\(padding)"
+        )
+    }
 }

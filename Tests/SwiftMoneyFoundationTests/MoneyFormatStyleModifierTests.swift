@@ -143,6 +143,15 @@ struct MoneyFormatStyleModifierTests {
         #expect(sut.format(GBP(minorUnits: 1_234_56)) == "+£1234.56")
     }
 
+    @Test("The highest engine-expressible fraction length pads with zeros instead of overflowing")
+    func highestFractionLengthPadsWithoutOverflowing() {
+        // 19 is the widest fraction length `fractionLength(of:)` still routes to the engine; it used to
+        // overflow the engine's internal arithmetic for any amount.
+        let sut = Self.sterling.precision(.fractionLength(19))
+
+        #expect(sut.format(GBP(minorUnits: 4_99)) == "£4.9900000000000000000")
+    }
+
 #if canImport(Darwin)
     // The whole test asserts Foundation's fallback output (the dropped symbol), which only Apple's
     // Foundation produces; swift-corelibs-foundation differs and races under parallel tests.

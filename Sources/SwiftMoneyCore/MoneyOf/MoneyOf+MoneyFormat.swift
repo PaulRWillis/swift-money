@@ -189,10 +189,14 @@ public extension MoneyFormat {
         )
 
         let amountSign = Sign(of: value)
-        let magnitude = value.magnitude
+        let wideMagnitude = value.magnitude
         let unit = UInt64.powerOfTen(digitsShown)
-        let whole = digitsShown == 0 ? magnitude : magnitude / unit
-        let fraction = digitsShown == 0 ? 0 : magnitude % unit
+        // Splitting by `unit` (a `UInt64`) always brings each half back within `UInt64`'s range, even
+        // when the combined `wideMagnitude` needed more than 64 bits to hold.
+        guard let whole = UInt64(exactly: digitsShown == 0 ? wideMagnitude : wideMagnitude / UInt128(unit)),
+              let fraction = UInt64(exactly: digitsShown == 0 ? 0 : wideMagnitude % UInt128(unit)) else {
+            preconditionFailure("Formatted amount is out of the display engine's range")  // coverage:ignore — exit-test trap
+        }
 
         let wholeDigits = MoneyFormat.digitCount(whole)
         let bytesPerDigit = digits.bytesPerDigit
@@ -410,20 +414,25 @@ public extension MoneyFormat {
     // The minor-unit count re-expressed at `showing` fraction digits: unchanged when that equals the
     // currency's scale, padded (× a power of ten) when it is more, and rounded by `rounding` when it is
     // fewer. The result counts `10 ^ showing` per major unit.
+    //
+    // Widened to `Int128` because padding can need more than 64 bits to hold the whole and padded
+    // fraction combined, even though each half (once split by `unit` at the call site) always fits back
+    // into `UInt64` on its own. `Int64(minorUnits)` magnitude times `UInt64.powerOfTen`'s own ceiling
+    // never comes close to overflowing `Int128`, so this multiply is never truly at risk.
     @inlinable
-    static func displayValue(
+    package static func displayValue(
         _ minorUnits: Int64,
         scalePlaces: Int,
         showing: Int,
         rounding: RoundingRule
-    ) -> Int64 {
+    ) -> Int128 {
         if showing == scalePlaces {
-            return minorUnits
+            return Int128(minorUnits)
         }
         if showing > scalePlaces {
-            return minorUnits * Int64(UInt64.powerOfTen(showing - scalePlaces))
+            return Int128(minorUnits) * Int128(UInt64.powerOfTen(showing - scalePlaces))
         }
-        return roundedQuotient(minorUnits, by: Int64(UInt64.powerOfTen(scalePlaces - showing)), rule: rounding)
+        return Int128(roundedQuotient(minorUnits, by: Int64(UInt64.powerOfTen(scalePlaces - showing)), rule: rounding))
     }
 
     // `value / divisor`, rounded to a whole quotient by `rule`. Self-contained (no wide-int helpers) so
@@ -486,10 +495,14 @@ package extension MoneyFormat {
         )
 
         let amountSign = Sign(of: value)
-        let magnitude = value.magnitude
+        let wideMagnitude = value.magnitude
         let unit = UInt64.powerOfTen(digitsShown)
-        let whole = digitsShown == 0 ? magnitude : magnitude / unit
-        let fraction = digitsShown == 0 ? 0 : magnitude % unit
+        // Splitting by `unit` (a `UInt64`) always brings each half back within `UInt64`'s range, even
+        // when the combined `wideMagnitude` needed more than 64 bits to hold.
+        guard let whole = UInt64(exactly: digitsShown == 0 ? wideMagnitude : wideMagnitude / UInt128(unit)),
+              let fraction = UInt64(exactly: digitsShown == 0 ? 0 : wideMagnitude % UInt128(unit)) else {
+            preconditionFailure("Formatted amount is out of the display engine's range")  // coverage:ignore — exit-test trap
+        }
         let wholeDigits = MoneyFormat.digitCount(whole)
 
         let groups: (primary: Int, secondary: Int, separator: String)?
