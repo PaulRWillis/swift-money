@@ -180,6 +180,16 @@ struct MoneyCodableTests {
         #expect(try decoded(GBP.self, from: #"{"currency":"GBP","amount":499,"scale":2}"#, .fields) == expected)
     }
 
+    // A typed amount's currency is fixed at compile time and never looks at a scale field at all, so
+    // an invalid one must not break a decode it has no bearing on — unlike Money, which does consult
+    // it and correctly refuses one, covered by `refusesAnInvalidScaleField` above.
+    @Test("A typed amount ignores an invalid scale field too")
+    func typedAmountIgnoresAnInvalidScaleField() throws {
+        let expected = GBP(minorUnits: 4_99)
+
+        #expect(try decoded(GBP.self, from: #"{"currency":"GBP","amount":499,"scale":-1}"#, .fields) == expected)
+    }
+
     @Test(
         "An amount field reads as a number or as a string, in either units",
         arguments: [#"{"currency":"GBP","amount":499}"#,

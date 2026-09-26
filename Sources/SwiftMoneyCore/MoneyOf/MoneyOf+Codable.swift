@@ -160,9 +160,10 @@ extension MoneyOf: Codable {
         let keys = format.fieldKeys
         let container = try decoder.container(keyedBy: MoneyCodingKey.self)
         let code = try container.decodeIfPresent(CurrencyCode.self, forKey: keys.currency)
-        let scale = try Self.decodedScale(from: container)
+        let rawScale = try container.decodeIfPresent(Int.self, forKey: Self.scaleKey)
+        let field = CurrencyField(code: code, rawScale: rawScale)
 
-        guard let storage = C.storage(forCode: code, scale: scale) else {
+        guard let storage = C.storage(for: field) else {
             throw DecodingError.dataCorruptedError(
                 forKey: keys.currency,
                 in: container,
@@ -203,25 +204,6 @@ extension MoneyOf: Codable {
     // shape. Not one of `MoneyCodingFormat.fieldKeys`, which an API names to match itself; nothing
     // outside this library reads this one, so it is fixed.
     private static var scaleKey: MoneyCodingKey { MoneyCodingKey("scale") }
-
-    // The scale field, if the payload carries one. `nil` covers both an ISO-currency payload, which
-    // never needs it, and one encoded before this field existed.
-    private static func decodedScale(
-        from container: KeyedDecodingContainer<MoneyCodingKey>
-    ) throws -> UnitScale? {
-        guard let rawScale = try container.decodeIfPresent(Int.self, forKey: Self.scaleKey) else {
-            return nil
-        }
-        guard let scale = UnitScale(decimalPlaces: rawScale) else {
-            throw DecodingError.dataCorruptedError(
-                forKey: Self.scaleKey,
-                in: container,
-                debugDescription: "Not a valid currency scale: \(rawScale). A scale is 0 to 18 decimal places."
-            )
-        }
-
-        return scale
-    }
 
     // What an amount of this type carries when nothing names a currency, and `nil` where the
     // currency is known only at runtime.
