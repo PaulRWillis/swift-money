@@ -112,6 +112,30 @@ struct BlobReaderTests {
         }
     }
 
+    @Test("Reading a raw byte past the packed bytes traps")
+    func bytePastBoundsTraps() async {
+        await #expect(processExitsWith: .failure) {
+            var builder = BlobTestBuilder()
+            builder.u8(42)
+
+            Self.withReader(builder.bytes) { reader in
+                _ = reader.byte(at: builder.count)
+            }
+        }
+    }
+
+    @Test("Reading a raw byte at a negative offset traps")
+    func byteNegativeOffsetTraps() async {
+        await #expect(processExitsWith: .failure) {
+            var builder = BlobTestBuilder()
+            builder.u8(42)
+
+            Self.withReader(builder.bytes) { reader in
+                _ = reader.byte(at: -1)
+            }
+        }
+    }
+
     @Test("Reading a string reference past the packed bytes traps")
     func stringPastBoundsTraps() async {
         await #expect(processExitsWith: .failure) {
