@@ -97,6 +97,71 @@ struct BlobReaderTests {
         }
     }
 
+    // An exit test's body is spawned as a fresh process, so it may not capture anything from outside
+    // itself: every value the body needs is built inside it.
+
+    @Test("Reading an integer past the packed bytes traps")
+    func integerPastBoundsTraps() async {
+        await #expect(processExitsWith: .failure) {
+            var builder = BlobTestBuilder()
+            builder.u8(42)
+
+            Self.withReader(builder.bytes) { reader in
+                _ = reader.u8(at: BlobDigits.u8)
+            }
+        }
+    }
+
+    @Test("Reading a raw byte past the packed bytes traps")
+    func bytePastBoundsTraps() async {
+        await #expect(processExitsWith: .failure) {
+            var builder = BlobTestBuilder()
+            builder.u8(42)
+
+            Self.withReader(builder.bytes) { reader in
+                _ = reader.byte(at: builder.count)
+            }
+        }
+    }
+
+    @Test("Reading a raw byte at a negative offset traps")
+    func byteNegativeOffsetTraps() async {
+        await #expect(processExitsWith: .failure) {
+            var builder = BlobTestBuilder()
+            builder.u8(42)
+
+            Self.withReader(builder.bytes) { reader in
+                _ = reader.byte(at: -1)
+            }
+        }
+    }
+
+    @Test("Reading a string reference past the packed bytes traps")
+    func stringPastBoundsTraps() async {
+        await #expect(processExitsWith: .failure) {
+            var builder = BlobTestBuilder()
+            _ = builder.pool("hello")
+
+            Self.withReader(builder.bytes) { reader in
+                _ = reader.string(StringRef(offset: 999, length: 1))
+            }
+        }
+    }
+
+    @Test("Searching past the packed bytes traps")
+    func recordSearchPastBoundsTraps() async {
+        await #expect(processExitsWith: .failure) {
+            var builder = BlobTestBuilder()
+            builder.u64(10)
+
+            Self.withReader(builder.bytes) { reader in
+                _ = reader.recordOffset(
+                    code: 10, codeWidth: BlobDigits.u64, start: 0, count: 4, stride: BlobDigits.u64
+                )
+            }
+        }
+    }
+
     @Test("Finds a record by its leading code, and reports a code it has none for")
     func recordSearch() {
         var builder = BlobTestBuilder()

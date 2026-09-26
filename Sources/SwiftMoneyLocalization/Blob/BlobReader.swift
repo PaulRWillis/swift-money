@@ -1,8 +1,10 @@
 /// A Foundation-free cursor over the packed table bytes, so this module still compiles under Embedded:
 /// integers written as ``BlobDigits`` and strings sliced from the pool by offset and length.
 ///
-/// The bytes are a `StaticString` the generator wrote, so reads are not bounds-checked and a digit run
-/// always holds the field it is read as.
+/// The bytes are a `StaticString` the generator wrote, and a digit run always holds the field it is
+/// read as. Every read is bounds-checked with `precondition`, which stays active in release builds
+/// (including Embedded release builds), so a generator bug or a hand-edited blob traps instead of
+/// reading past the buffer.
 ///
 /// The reader is `Sendable` because it points at a string literal: static, read-only bytes that outlive
 /// every use of them.
@@ -21,7 +23,9 @@ package struct BlobReader: @unchecked Sendable {
     /// pool's UTF-8.
     @usableFromInline
     package func byte(at offset: Int) -> UInt8 {
-        base[offset]
+        precondition(offset >= 0 && offset < count, "read past the packed tables")
+
+        return base[offset]
     }
 
     /// The integer written as `width` digits at `offset`, most significant first.
@@ -30,7 +34,7 @@ package struct BlobReader: @unchecked Sendable {
     /// digit of a `UInt64` field carries four bits and the excess is never written.
     @usableFromInline
     package func integer(at offset: Int, width: Int) -> UInt64 {
-        assert(offset >= 0 && offset + width <= count, "read past the packed tables")
+        precondition(offset >= 0 && offset + width <= count, "read past the packed tables")
 
         var value: UInt64 = 0
 
@@ -85,7 +89,7 @@ package struct BlobReader: @unchecked Sendable {
     package func string(_ ref: StringRef) -> String {
         guard ref.length > 0 else { return "" }
 
-        assert(Int(ref.offset) + Int(ref.length) <= count, "read past the packed tables")
+        precondition(Int(ref.offset) + Int(ref.length) <= count, "read past the packed tables")
 
         let slice = UnsafeBufferPointer(start: base + Int(ref.offset), count: Int(ref.length))
 
@@ -121,7 +125,7 @@ package struct BlobReader: @unchecked Sendable {
     /// record's into an integer: the alphabet is order-preserving and the width fixed, so digit order is
     /// integer order, and a probe stops at the first digit that differs instead of reading all of them.
     private func compareCode(at offset: Int, to code: UInt64, width: Int) -> Int {
-        assert(offset >= 0 && offset + width <= count, "read past the packed tables")
+        precondition(offset >= 0 && offset + width <= count, "read past the packed tables")
 
         for position in 0 ..< width {
             let shift = (width - 1 - position) * BlobDigits.bits
