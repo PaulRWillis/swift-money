@@ -383,18 +383,6 @@ extension MoneyOf {
     }
 }
 
-// Why a JSON number is not an amount.
-private enum WireNumberError: Error {
-    // A fraction arrived where a whole number of the smallest units was expected.
-    case fractionalMinorUnits(Currency, value: Double)
-
-    // The digits are not a whole number of the smallest units of the currency they are in.
-    case inexactAmount(Currency, text: String)
-
-    // Past where a `Double` can tell one amount from the next.
-    case beyondExactRange(Currency, text: String)
-}
-
 // Two amounts one smallest unit apart stay distinguishable in a `Double` only below this. It is not
 // a tight limit: 2^52 smallest units is 45 trillion pounds, and 45,035,996 bitcoin against a supply
 // capped at 21 million.
