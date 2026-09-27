@@ -341,6 +341,16 @@ struct ParsedPattern {
     let grouping: GroupSizes
     let negative: NegativeArrangement
     let accounting: AccountingArrangement
+
+    // The accounting pattern's own positive subpattern, side and grouping — read alongside the
+    // standard ones above so a caller can tell whether the accounting *positive* arrangement needs its
+    // own interned `CurrencyArrangement` (Axis A of the accounting-currency-side design). Equal to
+    // `positivePattern`/`side`/`grouping` for every locale `refuseUnrepresentable` lets through today,
+    // since it already refuses any locale whose accounting positive differs — these fields are read
+    // for real, but the emitted tables cannot yet differ from standard because of that upstream skip.
+    let accountingPositivePattern: String
+    let accountingSide: CurrencySide
+    let accountingGrouping: GroupSizes
 }
 
 func negativeSubpattern(of pattern: String) -> String? {
@@ -399,13 +409,24 @@ func parse(standard: String, accounting: String) throws(LocaleSkip) -> ParsedPat
         accountingArrangement = (accountingSubpattern ?? "").contains("(") ? .parentheses : .minusSign
     }
 
+    // `CurrencySide`/`GroupSizes` split off the positive subpattern themselves, so the raw (unstripped)
+    // accounting string is enough; `refuseUnrepresentable` has already checked it carries a currency
+    // placeholder, so a `nil` side here cannot happen for a locale that reaches this point.
+    let accountingRawPositive = String(accounting.split(separator: ";").first ?? Substring(accounting))
+    guard let parsedAccountingSide = CurrencySide(pattern: accounting) else {
+        throw .noCurrencyPlaceholder(pattern: accounting)
+    }
+
     return ParsedPattern(
         positivePattern: rawPositive,
         side: side,
         patternSpacing: patternSpacing,
         grouping: GroupSizes(pattern: strippedStandard),
         negative: negative,
-        accounting: accountingArrangement
+        accounting: accountingArrangement,
+        accountingPositivePattern: accountingRawPositive,
+        accountingSide: parsedAccountingSide,
+        accountingGrouping: GroupSizes(pattern: accounting)
     )
 }
 
@@ -977,6 +998,34 @@ func blobLiteral(_ blob: [UInt8]) -> String {
     return String(decoding: escaped, as: UTF8.self)
 }
 
+// The accounting arrangement's own Swift source, when its positive side or grouping departs from the
+// standard arrangement's — `nil` when it matches. Axis A of the accounting-currency-side design: a
+// locale like Norwegian moves the currency to the other side for accounting, which one arrangement per
+// locale cannot represent, so it gets a second, interned one instead.
+//
+// `negative` here is `.defaultLeadingSign` rather than `parsed.negative`: this arrangement is only ever
+// read through the `.accounting` sign strategy (`MoneyFormatPattern.affixes(for:sign:)` never reaches a
+// plain `.negative` case there), so this field is unreachable at render time — but reusing
+// `parsed.negative` (built for the *standard* pattern's own side) would have synthesized a spurious,
+// textually distinct arrangement even when accounting's side and grouping equal standard's, defeating
+// interning.
+func accountingArrangementLiteral(_ parsed: ParsedPattern) throws(LocaleSkip) -> String? {
+    guard parsed.accountingSide != parsed.side || parsed.accountingGrouping != parsed.grouping else {
+        return nil
+    }
+
+    return arrangementLiteral(
+        pattern: try patternLiteral(
+            positivePattern: parsed.accountingPositivePattern,
+            side: parsed.accountingSide,
+            negative: .defaultLeadingSign,
+            accounting: parsed.accounting
+        ),
+        primary: parsed.accountingGrouping.primary,
+        secondary: parsed.accountingGrouping.secondary
+    )
+}
+
 // A symbol CLDR publishes for every locale. Missing means the data has changed shape, which is a fault
 // in how this tool reads it rather than something to format around.
 func required(_ symbols: [String: String], _ field: String, in locale: String) -> String {
@@ -1050,6 +1099,7 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip]) throws(
             secondary: parsed.grouping.secondary
         ),
         fullNamePattern: fullName.literal,
+        accountingArrangement: try accountingArrangementLiteral(parsed),
         displays: symbolForms.records,
         fullNames: names.records,
         unusableCurrencyCodes: symbolForms.unusableCodes.union(names.unusableCodes),
@@ -1368,12 +1418,38 @@ for (localeIndex, entry) in emitted.enumerated() {
 }
 numberingSystemOverrides.sort { ($0.localeIndex, $0.systemIndex) < ($1.localeIndex, $1.systemIndex) }
 
+// The variant rows, keyed by each emitted locale's index. Only Axis A (the accounting arrangement) is
+// detected today; the two alpha cells always match standard until the letter-form classification
+// (commit 5) and the skip lift (commit 6) land, so a row is emitted only when accounting differs.
+var currencyArrangementVariants: [PackedCurrencyArrangementVariant] = []
+for (localeIndex, entry) in emitted.enumerated() {
+    guard let literal = entry.tables.accountingArrangement else {
+        continue
+    }
+
+    let standardIndex = packedLocales[localeIndex].numberFormat.standardArrangementIndex
+    let accountingIndex = index(of: literal, in: &arrangements)
+
+    guard accountingIndex != standardIndex else {
+        continue
+    }
+
+    currencyArrangementVariants.append(PackedCurrencyArrangementVariant(
+        localeIndex: UInt16(localeIndex),
+        accountingArrangementIndex: accountingIndex,
+        alphaArrangementIndex: standardIndex,
+        alphaAccountingArrangementIndex: standardIndex
+    ))
+}
+currencyArrangementVariants.sort { $0.localeIndex < $1.localeIndex }
+
 let blob = PackedTables(
     locales: packedLocales,
     pool: pool,
     pluralLanguages: packedPluralLanguages,
     numberingSystems: numberingSystems,
-    numberingSystemOverrides: numberingSystemOverrides
+    numberingSystemOverrides: numberingSystemOverrides,
+    currencyArrangementVariants: currencyArrangementVariants
 ).encoded()
 
 let report = SkipReport(

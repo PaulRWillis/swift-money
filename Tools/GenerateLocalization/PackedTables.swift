@@ -21,6 +21,9 @@ struct PackedTables {
     // The few per-locale overrides for imposing systems, sorted by (localeIndex, systemIndex).
     let numberingSystemOverrides: [PackedNumberingSystemOverride]
 
+    // The few per-locale currency-arrangement variant rows, sorted by localeIndex.
+    let currencyArrangementVariants: [PackedCurrencyArrangementVariant]
+
     func encoded() -> [UInt8] {
         var body = BlobWriter(base: CLDRBlob.headerWidth)
         body.append(pool.bytes)
@@ -32,6 +35,7 @@ struct PackedTables {
         let pluralRules = writePluralRules(into: &body)
         let numberingSystemsOffset = writeNumberingSystems(into: &body)
         let numberingSystemOverridesOffset = writeNumberingSystemOverrides(into: &body)
+        let currencyArrangementVariantsOffset = writeCurrencyArrangementVariants(into: &body)
 
         var header = BlobWriter(base: 0)
         header.u32(locales.count)
@@ -42,8 +46,24 @@ struct PackedTables {
         header.offsetField(pluralRules)
         header.offsetField(numberingSystemsOffset)
         header.offsetField(numberingSystemOverridesOffset)
+        header.offsetField(currencyArrangementVariantsOffset)
 
         return header.bytes + body.bytes
+    }
+
+    // A count then one fixed record per row, in the localeIndex-sorted order binary search assumes.
+    private func writeCurrencyArrangementVariants(into body: inout BlobWriter) -> Int {
+        let offset = body.offset
+        body.u32(currencyArrangementVariants.count)
+
+        for variant in currencyArrangementVariants {
+            body.u16(variant.localeIndex)
+            body.u16(variant.accountingArrangementIndex)
+            body.u16(variant.alphaArrangementIndex)
+            body.u16(variant.alphaAccountingArrangementIndex)
+        }
+
+        return offset
     }
 
     // A count then one fixed record per system, in the name-sorted order the runtime binary searches.

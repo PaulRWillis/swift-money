@@ -54,6 +54,11 @@ struct LocaleTables {
     let arrangement: String
     let fullNamePattern: String
 
+    // The accounting arrangement's own Swift source, when its positive side or grouping differs from
+    // `arrangement`'s — `nil` when it matches (the common case, and the only case any locale reaching
+    // here can be in today: `refuseUnrepresentable` already refuses one where it would not).
+    let accountingArrangement: String?
+
     let displays: [Display]
     let fullNames: [FullName]
 

@@ -11,6 +11,7 @@ package struct NumberFormatTable: Sendable {
     let reader: BlobReader
     let recordsOffset: Int
     let arrangements: [CurrencyArrangement]
+    let variants: CurrencyArrangementVariantTable
     let fullNamePatterns: [FullNameLayout]
 
     private enum Record {
@@ -35,11 +36,13 @@ package struct NumberFormatTable: Sendable {
         reader: BlobReader,
         recordsOffset: Int,
         arrangements: [CurrencyArrangement],
+        variants: CurrencyArrangementVariantTable,
         fullNamePatterns: [FullNameLayout]
     ) {
         self.reader = reader
         self.recordsOffset = recordsOffset
         self.arrangements = arrangements
+        self.variants = variants
         self.fullNamePatterns = fullNamePatterns
     }
 
@@ -93,11 +96,23 @@ package struct NumberFormatTable: Sendable {
             preconditionFailure("blob digit set is not ten uniform-width glyphs")  // coverage:ignore
         }
 
+        // The sparse variant row for this locale, or `nil` when every cell matches standard. Each cell
+        // is then resolved on its own: an index equal to `standardArrangementIndex` is the in-band
+        // sentinel for "no variant" (§4.3), collapsed to `nil` here — the one place both the row's raw
+        // indices and this record's own `standardArrangementIndex` are in scope together.
+        let variantRow = variants.variants(localeIndex: localeIndex)
+        func resolve(_ rawIndex: UInt16) -> CurrencyArrangement? {
+            Int(rawIndex) == standardArrangementIndex ? nil : arrangements[Int(rawIndex)]
+        }
+
         return LocaleNumberFormat(
             decimalSeparator: decimalSeparator,
             groupingSeparator: groupingSeparator,
             minusSign: minusSign,
             standardArrangement: arrangements[standardArrangementIndex],
+            accountingArrangement: variantRow.flatMap { resolve($0.accounting) },
+            alphaArrangement: variantRow.flatMap { resolve($0.alpha) },
+            alphaAccountingArrangement: variantRow.flatMap { resolve($0.alphaAccounting) },
             fullNamePattern: fullNamePatterns[fullNamePatternIndex],
             isoCodeSpacing: isoCodeSpacing,
             symbolSpacing: symbolSpacing,

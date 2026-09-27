@@ -34,6 +34,10 @@ package struct CLDRBlob: Sendable {
     /// The few per-locale separator overrides for a system that imposes its own.
     package let numberingSystemOverrides: NumberingSystemOverrideTable
 
+    /// The few per-locale rows where the accounting or letter-adjacent-symbol presentation arranges
+    /// the currency differently from the locale's standard arrangement.
+    package let currencyArrangementVariants: CurrencyArrangementVariantTable
+
     // The locale count is a count and stays a u32; the section positions are blob offsets.
     private enum Header {
         static let localeCount = 0
@@ -44,7 +48,8 @@ package struct CLDRBlob: Sendable {
         static let pluralRules = currencyFullNames + BlobDigits.offset
         static let numberingSystems = pluralRules + BlobDigits.offset
         static let numberingSystemOverrides = numberingSystems + BlobDigits.offset
-        static let width = numberingSystemOverrides + BlobDigits.offset
+        static let currencyArrangementVariants = numberingSystemOverrides + BlobDigits.offset
+        static let width = currencyArrangementVariants + BlobDigits.offset
     }
 
     /// How many bytes the header takes, which is where the generator lays out the first section.
@@ -79,10 +84,15 @@ package struct CLDRBlob: Sendable {
             entriesOffset: reader.offsetField(at: Header.locales),
             localeCount: Int(reader.u32(at: Header.localeCount))
         )
+        currencyArrangementVariants = CurrencyArrangementVariantTable(
+            reader: reader,
+            sectionOffset: reader.offsetField(at: Header.currencyArrangementVariants)
+        )
         numberFormats = NumberFormatTable(
             reader: reader,
             recordsOffset: reader.offsetField(at: Header.numberFormats),
             arrangements: arrangements,
+            variants: currencyArrangementVariants,
             fullNamePatterns: fullNamePatterns
         )
         currencyDisplays = CurrencyDisplayTable(

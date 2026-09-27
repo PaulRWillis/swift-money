@@ -10,6 +10,19 @@ package struct LocaleNumberFormat: Equatable, Hashable, Sendable {
     // How this locale arranges a currency symbol, a sign and the digits, and the grouping sizes its
     // own CLDR pattern carries, from the interned standard arrangement.
     package let standardArrangement: CurrencyArrangement
+    // The arrangement the accounting sign strategy renders a *non-negative* amount with, when that
+    // differs from `standardArrangement` by more than the negative affix (which the pattern's own
+    // `accountingNegative` already carries) — `nil` is the common case, meaning accounting matches
+    // standard. Not yet read by rendering; wired in a later commit.
+    package let accountingArrangement: CurrencyArrangement?
+    // The arrangement a letter-adjacent symbol (an ISO code, "US$") renders with, when that differs
+    // from `standardArrangement` — `nil` when every symbol in this locale is a plain glyph. Not yet
+    // read by rendering; wired in a later commit.
+    package let alphaArrangement: CurrencyArrangement?
+    // The arrangement a letter-adjacent symbol renders with under the accounting sign strategy, when
+    // that differs from `alphaArrangement` (or, absent one, `standardArrangement`) — `nil` when
+    // accounting matches whichever of those applies. Not yet read by rendering; wired in a later commit.
+    package let alphaAccountingArrangement: CurrencyArrangement?
     // The same, for a currency written out in words, per plural category, from CLDR's unit patterns.
     // A name never takes accounting parentheses, so this carries no accounting form of its own.
     package let fullNamePattern: FullNameLayout
@@ -39,6 +52,9 @@ package struct LocaleNumberFormat: Equatable, Hashable, Sendable {
         groupingSeparator: GroupingSeparator,
         minusSign: String,
         standardArrangement: CurrencyArrangement,
+        accountingArrangement: CurrencyArrangement? = nil,
+        alphaArrangement: CurrencyArrangement? = nil,
+        alphaAccountingArrangement: CurrencyArrangement? = nil,
         fullNamePattern: FullNameLayout,
         isoCodeSpacing: Spacing,
         symbolSpacing: Spacing,
@@ -52,6 +68,9 @@ package struct LocaleNumberFormat: Equatable, Hashable, Sendable {
         self.groupingSeparator = groupingSeparator
         self.minusSign = minusSign
         self.standardArrangement = standardArrangement
+        self.accountingArrangement = accountingArrangement
+        self.alphaArrangement = alphaArrangement
+        self.alphaAccountingArrangement = alphaAccountingArrangement
         self.fullNamePattern = fullNamePattern
         self.isoCodeSpacing = isoCodeSpacing
         self.symbolSpacing = symbolSpacing
@@ -79,6 +98,9 @@ package extension LocaleNumberFormat {
             groupingSeparator: symbols.groupingSeparator,
             minusSign: symbols.minusSign,
             standardArrangement: standardArrangement,
+            accountingArrangement: accountingArrangement,
+            alphaArrangement: alphaArrangement,
+            alphaAccountingArrangement: alphaAccountingArrangement,
             fullNamePattern: fullNamePattern,
             isoCodeSpacing: isoCodeSpacing,
             symbolSpacing: symbolSpacing,

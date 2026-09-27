@@ -97,6 +97,10 @@ struct CLDRBlobTests {
         let numberingOverridesOffset = body.count
         body.u16(0)
 
+        // No currency-arrangement variants in this fixture.
+        let currencyArrangementVariantsOffset = body.count
+        body.u32(0)
+
         var header = BlobTestBuilder()
         header.u32(1)
         header.offsetField(localesOffset)
@@ -106,6 +110,7 @@ struct CLDRBlobTests {
         header.offsetField(pluralRulesOffset)
         header.offsetField(numberingSystemsOffset)
         header.offsetField(numberingOverridesOffset)
+        header.offsetField(currencyArrangementVariantsOffset)
 
         return header.bytes + body.bytes
     }
@@ -150,8 +155,8 @@ struct CLDRBlobTests {
 
     @Test("A header offset is where the generator lays out the first section")
     func headerPrecedesTheSections() {
-        // A locale count then seven section offsets.
-        #expect(CLDRBlob.headerWidth == BlobDigits.u32 + BlobDigits.offset * 7)
+        // A locale count then eight section offsets.
+        #expect(CLDRBlob.headerWidth == BlobDigits.u32 + BlobDigits.offset * 8)
     }
 
     @Test("The header resolves the numbering-system section")
@@ -160,6 +165,14 @@ struct CLDRBlobTests {
             #expect(blob.numberingSystems.count == 1)
             #expect(blob.numberingSystems.index(of: "latn") != nil)
             #expect(blob.numberingSystems.index(of: "arab") == nil)
+        }
+    }
+
+    @Test("The header resolves the currency-arrangement-variant section")
+    func readsCurrencyArrangementVariants() {
+        Self.withBlob { blob in
+            #expect(blob.currencyArrangementVariants.count == 0)
+            #expect(blob.currencyArrangementVariants.variants(localeIndex: LocaleIndex(position: 0)) == nil)
         }
     }
 }
