@@ -54,7 +54,7 @@ public enum MoneyLocalization {
             spacing = format.isoCodeSpacing
         }
 
-        return moneyFormat(symbol: symbol, pattern: format.pattern, gap: spacing.rendered, from: format)
+        return moneyFormat(symbol: symbol, pattern: format.standardArrangement.pattern, gap: spacing.rendered, from: format)
     }
 
     /// The currency format for one amount, naming the currency in full, as in "British pounds".
@@ -218,8 +218,8 @@ public enum MoneyLocalization {
             currencySpacing: gap,
             decimalSeparator: format.decimalSeparator,
             grouping: .digits(
-                primary: format.primaryGroupingSize,
-                secondary: format.secondaryGroupingSize,
+                primary: format.standardArrangement.primaryGroupingSize,
+                secondary: format.standardArrangement.secondaryGroupingSize,
                 separator: format.groupingSeparator,
                 minGroupingDigits: format.minGroupingDigits
             ),

@@ -3,14 +3,13 @@ import SwiftMoneyCore
 // The locale-dependent pieces the CLDR tables carry, composed into a `MoneyFormat` at lookup time. The
 // public surface is `MoneyLocalization.moneyFormat(for:locale:presentation:)`; `package` so the blob
 // decoder can build it and tests can read it.
-package struct LocaleNumberFormat: Equatable {
+package struct LocaleNumberFormat: Equatable, Hashable, Sendable {
     package let decimalSeparator: String
     package let groupingSeparator: GroupingSeparator
     package let minusSign: String
-    package let primaryGroupingSize: GroupingSize
-    package let secondaryGroupingSize: GroupingSize
-    // How this locale arranges a currency symbol, a sign and the digits, from its CLDR pattern.
-    package let pattern: MoneyFormatPattern
+    // How this locale arranges a currency symbol, a sign and the digits, and the grouping sizes its
+    // own CLDR pattern carries, from the interned standard arrangement.
+    package let standardArrangement: CurrencyArrangement
     // The same, for a currency written out in words, per plural category, from CLDR's unit patterns.
     // A name never takes accounting parentheses, so this carries no accounting form of its own.
     package let fullNamePattern: FullNameLayout
@@ -39,9 +38,7 @@ package struct LocaleNumberFormat: Equatable {
         decimalSeparator: String,
         groupingSeparator: GroupingSeparator,
         minusSign: String,
-        primaryGroupingSize: GroupingSize,
-        secondaryGroupingSize: GroupingSize,
-        pattern: MoneyFormatPattern,
+        standardArrangement: CurrencyArrangement,
         fullNamePattern: FullNameLayout,
         isoCodeSpacing: Spacing,
         symbolSpacing: Spacing,
@@ -54,9 +51,7 @@ package struct LocaleNumberFormat: Equatable {
         self.decimalSeparator = decimalSeparator
         self.groupingSeparator = groupingSeparator
         self.minusSign = minusSign
-        self.primaryGroupingSize = primaryGroupingSize
-        self.secondaryGroupingSize = secondaryGroupingSize
-        self.pattern = pattern
+        self.standardArrangement = standardArrangement
         self.fullNamePattern = fullNamePattern
         self.isoCodeSpacing = isoCodeSpacing
         self.symbolSpacing = symbolSpacing
@@ -83,9 +78,7 @@ package extension LocaleNumberFormat {
             decimalSeparator: symbols.decimalSeparator,
             groupingSeparator: symbols.groupingSeparator,
             minusSign: symbols.minusSign,
-            primaryGroupingSize: primaryGroupingSize,
-            secondaryGroupingSize: secondaryGroupingSize,
-            pattern: pattern,
+            standardArrangement: standardArrangement,
             fullNamePattern: fullNamePattern,
             isoCodeSpacing: isoCodeSpacing,
             symbolSpacing: symbolSpacing,

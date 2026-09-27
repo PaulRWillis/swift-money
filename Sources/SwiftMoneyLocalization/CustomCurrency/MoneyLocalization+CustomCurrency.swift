@@ -82,7 +82,7 @@ package extension MoneyLocalization {
 
         return moneyFormat(
             symbol: form.symbol,
-            pattern: pattern(for: form.placement, inheriting: format.pattern),
+            pattern: pattern(for: form.placement, inheriting: format.standardArrangement.pattern),
             gap: renderedGap(for: form.spacing, symbol: form.symbol, in: format),
             from: format
         )

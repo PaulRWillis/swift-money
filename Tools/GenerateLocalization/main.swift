@@ -607,8 +607,23 @@ func signedPrefix(leadingWith prefix: [MoneyFormatToken]) -> [MoneyFormatToken] 
     return result
 }
 
-// The index of a pattern among the distinct ones, adding it if it is new. Patterns repeat heavily
-// across locales, so a locale's record holds an index and the pattern itself is written once.
+// One `CurrencyArrangement` as the Swift source that reconstructs it: the pattern plus the grouping
+// sizes CLDR's own pattern carries alongside it. `primary`/`secondary` are CLDR-derived digit counts,
+// not arbitrary literals, and `GroupingSize` is `ExpressibleByIntegerLiteral`, so they are emitted as
+// plain integers.
+func arrangementLiteral(pattern: String, primary: Int, secondary: Int) -> String {
+    """
+    CurrencyArrangement(
+                pattern: \(pattern),
+                primaryGroupingSize: \(primary),
+                secondaryGroupingSize: \(secondary)
+            )
+    """
+}
+
+// The index of an arrangement among the distinct ones, adding it if it is new. Arrangements repeat
+// heavily across locales, so a locale's record holds an index and the arrangement itself is written
+// once.
 func index(of literal: String, in table: inout [String]) -> UInt16 {
     if let existing = table.firstIndex(of: literal) {
         return UInt16(existing)
@@ -1017,8 +1032,6 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip]) throws(
             insertBetween: insertBetween
         ),
         symbolSpacing: symbolSpacing,
-        primaryGroupingSize: UInt8(parsed.grouping.primary),
-        secondaryGroupingSize: UInt8(parsed.grouping.secondary),
         fullNameSpacing: fullName.spacing,
         minGroupingDigits: UInt8(minimumGroupingDigits(n, locale: locale)),
         digits: digits,
@@ -1026,11 +1039,15 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip]) throws(
         latnDecimalSeparator: required(latnSymbols, "decimal", in: locale),
         latnGroupingSeparator: required(latnSymbols, "group", in: locale),
         latnMinusSign: latnSymbols["minusSign"] ?? "-",
-        pattern: try patternLiteral(
-            positivePattern: parsed.positivePattern,
-            side: parsed.side,
-            negative: parsed.negative,
-            accounting: parsed.accounting
+        arrangement: arrangementLiteral(
+            pattern: try patternLiteral(
+                positivePattern: parsed.positivePattern,
+                side: parsed.side,
+                negative: parsed.negative,
+                accounting: parsed.accounting
+            ),
+            primary: parsed.grouping.primary,
+            secondary: parsed.grouping.secondary
         ),
         fullNamePattern: fullName.literal,
         displays: symbolForms.records,
@@ -1211,13 +1228,13 @@ func pluralRuleSets(
 
 // MARK: - Packing
 
-// One decided locale written into the shared pool and pattern tables. Separate from deciding so that
+// One decided locale written into the shared pool and interned tables. Separate from deciding so that
 // nothing of a locale reaches them until the whole of it is known to be representable.
 func pack(
     _ tables: LocaleTables,
     locale: String,
     into pool: inout StringPool,
-    patterns: inout [String],
+    arrangements: inout [String],
     fullNamePatterns: inout [String]
 ) -> PackedLocale {
     let numberFormat = PackedLocale.NumberFormat(
@@ -1226,10 +1243,8 @@ func pack(
         minusSign: pool.insert(tables.minusSign),
         isoCodeSpacing: tables.isoCodeSpacing,
         symbolSpacing: tables.symbolSpacing,
-        primaryGroupingSize: tables.primaryGroupingSize,
-        secondaryGroupingSize: tables.secondaryGroupingSize,
         fullNameSpacing: tables.fullNameSpacing,
-        patternIndex: index(of: tables.pattern, in: &patterns),
+        standardArrangementIndex: index(of: tables.arrangement, in: &arrangements),
         fullNamePatternIndex: index(of: tables.fullNamePattern, in: &fullNamePatterns),
         digits: pool.insert(tables.digits ?? ""),
         minGroupingDigits: tables.minGroupingDigits,
@@ -1267,7 +1282,7 @@ func pack(
 }
 
 var pool = StringPool(base: CLDRBlob.headerWidth)
-var patterns: [String] = []
+var arrangements: [String] = []
 var fullNamePatterns: [String] = []
 var packedLocales: [PackedLocale] = []
 var packedPluralLanguages: [PackedPluralLanguage] = []
@@ -1327,7 +1342,7 @@ for (locale, tables) in emitted {
         tables,
         locale: locale,
         into: &pool,
-        patterns: &patterns,
+        arrangements: &arrangements,
         fullNamePatterns: &fullNamePatterns
     ))
 }
@@ -1380,17 +1395,17 @@ import SwiftMoneyCore
 // equivalent literals defeat the compiler well before every CLDR locale is covered, where a literal of
 // this size costs it nothing. `CLDRBlob` reads it, and the layout is documented on the types that do.
 //
-// What stays a Swift value is what there is little of: the distinct patterns a locale's record indexes.
-// Those are built in `@_optimize(none)` functions because under `-O` the Swift 6.3.2 optimizer (Xcode
-// 26.5) spends many minutes on literal tables, enough to stall CI; skipping optimization of the builder
-// avoids it. The data is identical either way and built once.
+// What stays a Swift value is what there is little of: the distinct arrangements a locale's record
+// indexes. Those are built in `@_optimize(none)` functions because under `-O` the Swift 6.3.2
+// optimizer (Xcode 26.5) spends many minutes on literal tables, enough to stall CI; skipping
+// optimization of the builder avoids it. The data is identical either way and built once.
 extension MoneyLocalization {
     static let cldrVersion = \(quote(cldrVersion))
 
     /// The packed CLDR tables every lookup reads.
     package static let cldr = CLDRBlob(
         bytes: packedTables,
-        patterns: makePatterns(),
+        arrangements: makeArrangements(),
         fullNamePatterns: makeFullNamePatterns()
     )
 
@@ -1398,9 +1413,9 @@ extension MoneyLocalization {
 
     /// The distinct arrangements of a currency symbol, a sign and the digits, in the order a locale's
     /// record counts them.
-    @_optimize(none) private static func makePatterns() -> [MoneyFormatPattern] {
+    @_optimize(none) private static func makeArrangements() -> [CurrencyArrangement] {
         [
-\(patterns.map { "            \($0)," }.joined(separator: "\n"))
+\(arrangements.map { "            \($0)," }.joined(separator: "\n"))
         ]
     }
 
@@ -1422,5 +1437,5 @@ try! report.rendered.write(toFile: reportPath, atomically: true, encoding: .utf8
 print("""
     Wrote \(outputPath) from CLDR \(cldrVersion)
     Covered \(report.emitted) of \(candidates.count) locales; \(skipped.count) skipped, see \(reportPath)
-    Packed tables: \(blob.count) bytes, \(patterns.count) pattern(s), \(fullNamePatterns.count) full-name layout(s)
+    Packed tables: \(blob.count) bytes, \(arrangements.count) arrangement(s), \(fullNamePatterns.count) full-name layout(s)
     """)

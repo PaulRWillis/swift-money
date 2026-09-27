@@ -33,8 +33,6 @@ struct LocaleTables {
     let isoCodeSpacing: Spacing
     // The gap the standard pattern bakes in beside every symbol, glyph included.
     let symbolSpacing: Spacing
-    let primaryGroupingSize: UInt8
-    let secondaryGroupingSize: UInt8
     let fullNameSpacing: Spacing
 
     // How many whole digits the integer part needs before grouping shows; one for most locales.
@@ -53,7 +51,7 @@ struct LocaleTables {
     let latnMinusSign: String
 
     // Swift source for the two interned tables, deduplicated by text when packed.
-    let pattern: String
+    let arrangement: String
     let fullNamePattern: String
 
     let displays: [Display]

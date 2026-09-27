@@ -1,16 +1,16 @@
 import SwiftMoneyCore
 
-/// The number-format section of the packed blob: one record per locale, holding the locale's separators,
-/// grouping and the indices of its symbol and full-name patterns among the interned pattern arrays.
+/// The number-format section of the packed blob: one record per locale, holding the locale's separators
+/// and the indices of its standard arrangement and full-name pattern among the interned arrays.
 ///
 /// Every integer is written as ``BlobDigits``, so a field's position is the width of the fields before
 /// it. There is one fixed record per locale, indexed directly by ``LocaleIndex`` with no search.
-/// Patterns are interned — few are distinct across all locales — so a record carries an index into the
-/// arrays passed in here rather than a packed pattern of its own.
+/// Arrangements are interned — few are distinct across all locales — so a record carries an index into
+/// the arrays passed in here rather than a packed arrangement of its own.
 package struct NumberFormatTable: Sendable {
     let reader: BlobReader
     let recordsOffset: Int
-    let patterns: [MoneyFormatPattern]
+    let arrangements: [CurrencyArrangement]
     let fullNamePatterns: [FullNameLayout]
 
     private enum Record {
@@ -19,11 +19,9 @@ package struct NumberFormatTable: Sendable {
         static let minusSign = groupingSeparator + BlobDigits.stringRef
         static let isoCodeSpacing = minusSign + BlobDigits.stringRef
         static let symbolSpacing = isoCodeSpacing + BlobDigits.u8
-        static let primaryGroupingSize = symbolSpacing + BlobDigits.u8
-        static let secondaryGroupingSize = primaryGroupingSize + BlobDigits.u8
-        static let fullNameSpacing = secondaryGroupingSize + BlobDigits.u8
-        static let patternIndex = fullNameSpacing + BlobDigits.u8
-        static let fullNamePatternIndex = patternIndex + BlobDigits.u16
+        static let fullNameSpacing = symbolSpacing + BlobDigits.u8
+        static let standardArrangementIndex = fullNameSpacing + BlobDigits.u8
+        static let fullNamePatternIndex = standardArrangementIndex + BlobDigits.u16
         static let digits = fullNamePatternIndex + BlobDigits.u16
         static let minGroupingDigits = digits + BlobDigits.stringRef
         static let defaultSystemIndex = minGroupingDigits + BlobDigits.u8
@@ -36,12 +34,12 @@ package struct NumberFormatTable: Sendable {
     package init(
         reader: BlobReader,
         recordsOffset: Int,
-        patterns: [MoneyFormatPattern],
+        arrangements: [CurrencyArrangement],
         fullNamePatterns: [FullNameLayout]
     ) {
         self.reader = reader
         self.recordsOffset = recordsOffset
-        self.patterns = patterns
+        self.arrangements = arrangements
         self.fullNamePatterns = fullNamePatterns
     }
 
@@ -54,10 +52,8 @@ package struct NumberFormatTable: Sendable {
         let minusSign = reader.string(reader.stringRef(at: record + Record.minusSign))
         let isoSpacingCode = reader.u8(at: record + Record.isoCodeSpacing)
         let symbolSpacingCode = reader.u8(at: record + Record.symbolSpacing)
-        let primaryRaw = Int(reader.u8(at: record + Record.primaryGroupingSize))
-        let secondaryRaw = Int(reader.u8(at: record + Record.secondaryGroupingSize))
         let spacingCode = reader.u8(at: record + Record.fullNameSpacing)
-        let patternIndex = Int(reader.u16(at: record + Record.patternIndex))
+        let standardArrangementIndex = Int(reader.u16(at: record + Record.standardArrangementIndex))
         let fullNamePatternIndex = Int(reader.u16(at: record + Record.fullNamePatternIndex))
         let digitGlyphs = reader.string(reader.stringRef(at: record + Record.digits))
         let minGroupingRaw = Int(reader.u8(at: record + Record.minGroupingDigits))
@@ -69,12 +65,6 @@ package struct NumberFormatTable: Sendable {
         // The generator writes only valid values, so a failure here is a generator bug, not input.
         guard let groupingSeparator = GroupingSeparator(groupingRaw) else {
             preconditionFailure("blob grouping separator is empty")  // coverage:ignore
-        }
-        guard
-            let primaryGroupingSize = GroupingSize(exactly: primaryRaw),
-            let secondaryGroupingSize = GroupingSize(exactly: secondaryRaw)
-        else {
-            preconditionFailure("blob grouping size is not positive")  // coverage:ignore
         }
         guard let minGroupingDigits = MinGroupingDigits(exactly: minGroupingRaw) else {
             preconditionFailure("blob minimum grouping digits is not positive")  // coverage:ignore
@@ -107,9 +97,7 @@ package struct NumberFormatTable: Sendable {
             decimalSeparator: decimalSeparator,
             groupingSeparator: groupingSeparator,
             minusSign: minusSign,
-            primaryGroupingSize: primaryGroupingSize,
-            secondaryGroupingSize: secondaryGroupingSize,
-            pattern: patterns[patternIndex],
+            standardArrangement: arrangements[standardArrangementIndex],
             fullNamePattern: fullNamePatterns[fullNamePatternIndex],
             isoCodeSpacing: isoCodeSpacing,
             symbolSpacing: symbolSpacing,

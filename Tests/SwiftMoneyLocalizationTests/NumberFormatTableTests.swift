@@ -31,8 +31,6 @@ struct NumberFormatTableTests {
         b.ref(minus)
         b.u8(Spacing.nonBreakingSpace.blobCode)
         b.u8(Spacing.narrowNonBreakingSpace.blobCode)
-        b.u8(3)
-        b.u8(3)
         b.u8(Spacing.asciiSpace.blobCode)
         b.u16(0)
         b.u16(0)
@@ -52,7 +50,9 @@ struct NumberFormatTableTests {
             body(NumberFormatTable(
                 reader: reader,
                 recordsOffset: recordsOffset,
-                patterns: [symbolPattern],
+                arrangements: [
+                    CurrencyArrangement(pattern: symbolPattern, primaryGroupingSize: 3, secondaryGroupingSize: 3),
+                ],
                 fullNamePatterns: [fullName]
             ))
         }
@@ -67,10 +67,10 @@ struct NumberFormatTableTests {
             #expect(format.minusSign == "-")
             #expect(format.isoCodeSpacing == .nonBreakingSpace)
             #expect(format.symbolSpacing == .narrowNonBreakingSpace)
-            #expect(format.primaryGroupingSize == 3)
-            #expect(format.secondaryGroupingSize == 3)
+            #expect(format.standardArrangement.primaryGroupingSize == 3)
+            #expect(format.standardArrangement.secondaryGroupingSize == 3)
             #expect(format.fullNameSpacing == .asciiSpace)
-            #expect(format.pattern == Self.symbolPattern)
+            #expect(format.standardArrangement.pattern == Self.symbolPattern)
             #expect(format.fullNamePattern == Self.fullName)
             #expect(format.minGroupingDigits == 1)
         }

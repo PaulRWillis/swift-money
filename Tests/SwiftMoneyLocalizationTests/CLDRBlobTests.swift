@@ -39,8 +39,6 @@ struct CLDRBlobTests {
         body.ref(minusSign)
         body.u8(Spacing.nonBreakingSpace.blobCode)
         body.u8(Spacing.none.blobCode)
-        body.u8(3)
-        body.u8(3)
         body.u8(Spacing.asciiSpace.blobCode)
         body.u16(0)
         body.u16(0)
@@ -120,7 +118,9 @@ struct CLDRBlobTests {
             }
             body(CLDRBlob(
                 reader: BlobReader(base: base, count: buffer.count),
-                patterns: [pattern],
+                arrangements: [
+                    CurrencyArrangement(pattern: pattern, primaryGroupingSize: 3, secondaryGroupingSize: 3),
+                ],
                 fullNamePatterns: [fullNamePattern]
             ))
         }

@@ -10,8 +10,8 @@ import SwiftMoneyCore
 /// - the offsets of the locale, number-format, currency-display, currency-full-name and plural-rule
 ///   sections, each a `UInt32`.
 ///
-/// Patterns stay Swift values rather than packed bytes: only a handful are distinct across every locale,
-/// so a record carries an index into these arrays.
+/// Arrangements stay Swift values rather than packed bytes: only a handful are distinct across every
+/// locale, so a record carries an index into these arrays.
 package struct CLDRBlob: Sendable {
     /// Every covered locale's identifier, resolving one to the index the other sections are read with.
     package let locales: LocaleTable
@@ -54,16 +54,16 @@ package struct CLDRBlob: Sendable {
     ///
     /// - Parameters:
     ///   - bytes: The packed tables. A literal, so the bytes are static and outlive every read of them.
-    ///   - patterns: The distinct symbol patterns, in the order a record's index counts.
+    ///   - arrangements: The distinct currency arrangements, in the order a record's index counts.
     ///   - fullNamePatterns: The distinct full-name layouts, in the same way.
     package init(
         bytes: StaticString,
-        patterns: [MoneyFormatPattern],
+        arrangements: [CurrencyArrangement],
         fullNamePatterns: [FullNameLayout]
     ) {
         self.init(
             reader: BlobReader(base: bytes.utf8Start, count: bytes.utf8CodeUnitCount),
-            patterns: patterns,
+            arrangements: arrangements,
             fullNamePatterns: fullNamePatterns
         )
     }
@@ -71,7 +71,7 @@ package struct CLDRBlob: Sendable {
     /// Reads the tables through a reader over their bytes, for a test that builds a blob of its own.
     package init(
         reader: BlobReader,
-        patterns: [MoneyFormatPattern],
+        arrangements: [CurrencyArrangement],
         fullNamePatterns: [FullNameLayout]
     ) {
         locales = LocaleTable(
@@ -82,7 +82,7 @@ package struct CLDRBlob: Sendable {
         numberFormats = NumberFormatTable(
             reader: reader,
             recordsOffset: reader.offsetField(at: Header.numberFormats),
-            patterns: patterns,
+            arrangements: arrangements,
             fullNamePatterns: fullNamePatterns
         )
         currencyDisplays = CurrencyDisplayTable(
