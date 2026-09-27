@@ -10,13 +10,16 @@ import SwiftMoneyLocalization
 // The two arrays are held in the order their strings should reach the pool, which is not the order
 // they are searched in: `pack` sorts the records afterwards.
 struct LocaleTables {
-    // What a locale calls one currency in symbol form, and the gap each form takes beside the digits.
+    // What a locale calls one currency in symbol form, the gap each form takes beside the digits, and
+    // whether a letter touches the number in each.
     struct Display {
         let code: CurrencyCode
         let standardSymbol: String
         let standardSpacing: Spacing
+        let standardForm: SymbolForm
         let narrowSymbol: String
         let narrowSpacing: Spacing
+        let narrowForm: SymbolForm
     }
 
     // What a locale calls one currency in words: the name CLDR always publishes, and any plural

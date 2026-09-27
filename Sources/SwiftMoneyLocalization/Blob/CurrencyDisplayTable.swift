@@ -1,7 +1,8 @@
 import SwiftMoneyCore
 
 /// The currency-display section of the packed blob: per locale, the currencies whose symbol differs from
-/// their code, each with a standard and narrow symbol and their spacings.
+/// their code, each with a standard and narrow symbol, their spacings, and whether a letter touches the
+/// number in each.
 ///
 /// Every integer is written as ``BlobDigits``, so a field's position is the width of the fields before
 /// it. The section is a **directory** of one entry per locale, indexed by ``LocaleIndex``, and the
@@ -23,7 +24,15 @@ package struct CurrencyDisplayTable: Sendable {
         static let standardSpacing = standardSymbol + BlobDigits.stringRef
         static let narrowSymbol = standardSpacing + BlobDigits.u8
         static let narrowSpacing = narrowSymbol + BlobDigits.stringRef
-        static let stride = narrowSpacing + BlobDigits.u8
+        // Bit 0 is `standardForm`, bit 1 is `narrowForm`, each a `SymbolForm.blobBit`.
+        static let forms = narrowSpacing + BlobDigits.u8
+        static let stride = forms + BlobDigits.u8
+    }
+
+    // The forms bit field's two positions within the byte.
+    private enum FormsBit {
+        static let standard: UInt8 = 0
+        static let narrow: UInt8 = 1
     }
 
     package init(reader: BlobReader, directoryOffset: Int) {
@@ -50,11 +59,15 @@ package struct CurrencyDisplayTable: Sendable {
             return nil
         }
 
+        let formsByte = reader.u8(at: record + Record.forms)
+
         return CurrencyDisplay(
             standardSymbol: reader.string(reader.stringRef(at: record + Record.standardSymbol)),
             standardSpacing: spacing(at: record + Record.standardSpacing),
+            standardForm: form(formsByte, bit: FormsBit.standard),
             narrowSymbol: reader.string(reader.stringRef(at: record + Record.narrowSymbol)),
-            narrowSpacing: spacing(at: record + Record.narrowSpacing)
+            narrowSpacing: spacing(at: record + Record.narrowSpacing),
+            narrowForm: form(formsByte, bit: FormsBit.narrow)
         )
     }
 
@@ -65,5 +78,15 @@ package struct CurrencyDisplayTable: Sendable {
             preconditionFailure("blob currency spacing code \(code) is unknown")  // coverage:ignore
         }
         return spacing
+    }
+
+    // The form at one bit position of the packed byte. The generator writes only valid bits, so an
+    // unknown one is a generator bug, not input.
+    private func form(_ byte: UInt8, bit: UInt8) -> SymbolForm {
+        let value = (byte >> bit) & 1
+        guard let form = SymbolForm(blobBit: value) else {
+            preconditionFailure("blob symbol form bit \(value) is unknown")  // coverage:ignore
+        }
+        return form
     }
 }

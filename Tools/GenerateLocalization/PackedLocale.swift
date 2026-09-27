@@ -35,13 +35,16 @@ struct PackedLocale {
         let latnMinusSign: StringRef
     }
 
-    // One currency's symbols in this locale, each with the spacing CLDR resolves for it.
+    // One currency's symbols in this locale, each with the spacing CLDR resolves for it and whether a
+    // letter touches the number in each.
     struct Display {
         let code: CurrencyCode
         let standardSymbol: StringRef
         let standardSpacing: Spacing
+        let standardForm: SymbolForm
         let narrowSymbol: StringRef
         let narrowSpacing: Spacing
+        let narrowForm: SymbolForm
     }
 
     // What this locale calls one currency: the name it always publishes, and any category that names it

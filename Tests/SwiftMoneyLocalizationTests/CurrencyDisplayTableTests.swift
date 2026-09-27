@@ -12,12 +12,16 @@ struct CurrencyDisplayTableTests {
         return code
     }
 
-    // One locale (index 0) displaying GBP (£, no gap) and USD (US$ standard, $ narrow).
+    // One locale (index 0) displaying GBP (£, no gap, a glyph both forms) and USD (US$ standard, a
+    // letter-adjacent form as in a locale that takes it through `-alphaNextToNumber`; $ narrow, a glyph).
     static func makeBlob() -> (bytes: [UInt8], directoryOffset: Int) {
         var b = BlobTestBuilder()
-        let records: [(code: CurrencyCode, standard: StringRef, standardGap: Spacing, narrow: StringRef, narrowGap: Spacing)] = [
-            (code("GBP"), b.pool("£"), .none, b.pool("£"), .none),
-            (code("USD"), b.pool("US$"), .nonBreakingSpace, b.pool("$"), .none),
+        let records: [(
+            code: CurrencyCode, standard: StringRef, standardGap: Spacing, standardForm: SymbolForm,
+            narrow: StringRef, narrowGap: Spacing, narrowForm: SymbolForm
+        )] = [
+            (code("GBP"), b.pool("£"), .none, .glyph, b.pool("£"), .none, .glyph),
+            (code("USD"), b.pool("US$"), .nonBreakingSpace, .letters, b.pool("$"), .none, .glyph),
         ].sorted { $0.code.compactValue < $1.code.compactValue }
 
         let recordsStart = b.count
@@ -27,6 +31,7 @@ struct CurrencyDisplayTableTests {
             b.u8(record.standardGap.blobCode)
             b.ref(record.narrow)
             b.u8(record.narrowGap.blobCode)
+            b.u8(record.standardForm.blobBit | (record.narrowForm.blobBit << 1))
         }
 
         let directoryOffset = b.count
@@ -43,12 +48,13 @@ struct CurrencyDisplayTableTests {
         }
     }
 
-    @Test("Decodes a currency's symbols and spacings")
+    @Test("Decodes a currency's symbols, spacings and letter forms")
     func decodesSymbols() {
         Self.withTable { table in
             let usd = table.display(localeIndex: LocaleIndex(position: 0), code: Self.code("USD"))
             #expect(usd == CurrencyDisplay(
-                standardSymbol: "US$", standardSpacing: .nonBreakingSpace, narrowSymbol: "$", narrowSpacing: .none
+                standardSymbol: "US$", standardSpacing: .nonBreakingSpace, standardForm: .letters,
+                narrowSymbol: "$", narrowSpacing: .none, narrowForm: .glyph
             ))
         }
     }

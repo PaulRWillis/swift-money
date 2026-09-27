@@ -202,6 +202,8 @@ struct PackedTables {
             image.u8(display.standardSpacing.blobCode)
             image.ref(display.narrowSymbol)
             image.u8(display.narrowSpacing.blobCode)
+            // Bit 0 is standardForm, bit 1 is narrowForm — see `CurrencyDisplayTable.Record.forms`.
+            image.u8(display.standardForm.blobBit | (display.narrowForm.blobBit << 1))
         }
 
         return image.bytes

@@ -1138,6 +1138,18 @@ func refuseUnrepresentable(
     }
 }
 
+// MARK: - Symbol form (Axis B: letters vs. glyph)
+
+// The letters-vs-glyph classification as `SymbolForm`, from `CurrencySide`'s own boundary-scalar
+// predicate. Baked here rather than at render time: Embedded has no Unicode property tables to
+// classify a scalar, so the choice is baked into the data per (currency, presentation) instead.
+// Matches CLDR's own `alphaNextToNumber` intent — `"US$"` and `"F CFA"` classify `.letters`, `"€"`
+// and `"£"` classify `.glyph` — including the wide tail of letter-adjacent symbols this is not
+// limited to (`"kr"`, `"Kč"`, `"zł"`, ...).
+func symbolForm(for symbol: String, side: CurrencySide) -> SymbolForm {
+    side.letterTouchesTheNumber(in: symbol) ? .letters : .glyph
+}
+
 // What a locale calls each currency in symbol form, with the gap each form takes beside the digits.
 //
 // Iterated in sorted order, because a dictionary's order varies between runs and the order strings
@@ -1175,8 +1187,10 @@ func displays(
             code: currencyCode,
             standardSymbol: symbol,
             standardSpacing: try gap(symbol),
+            standardForm: symbolForm(for: symbol, side: parsed.side),
             narrowSymbol: narrow,
-            narrowSpacing: try gap(narrow)
+            narrowSpacing: try gap(narrow),
+            narrowForm: symbolForm(for: narrow, side: parsed.side)
         ))
     }
 
@@ -1309,8 +1323,10 @@ func pack(
             code: display.code,
             standardSymbol: pool.insert(display.standardSymbol),
             standardSpacing: display.standardSpacing,
+            standardForm: display.standardForm,
             narrowSymbol: pool.insert(display.narrowSymbol),
-            narrowSpacing: display.narrowSpacing
+            narrowSpacing: display.narrowSpacing,
+            narrowForm: display.narrowForm
         )
     }
 
