@@ -48,9 +48,29 @@ package enum LocaleSkip: Error, Equatable, Sendable {
 
     /// The locale's currency names do not share a single gap, which one packed spacing cannot hold.
     case multipleNameGaps(Set<Spacing>)
+
+    /// Apple's `Locale` resolves this identifier back to a different one before this library ever reads
+    /// it, so emitting this locale's own data would render under the wrong identifier on that platform.
+    ///
+    /// Distinct from ``duplicateOfShorterIdentifier``: there, the data really is identical under both
+    /// spellings, so the platform collapsing them is harmless. Here, the data differs (confirmed against
+    /// real CLDR text, not inferred), so it is not — `Locale(identifier: "shi-Latn").identifier` and
+    /// `.language.script` both come back as plain `shi` on Darwin (verified 2026-09-27), discarding the
+    /// script this locale needs, while Linux preserves it correctly. Tracked as its own item, not part of
+    /// the plan that found it (`accounting-currency-side-plan` session handover).
+    case platformIdentifierUnreliable(resolvesTo: String)
 }
 
 package extension LocaleSkip {
+    /// Identifiers Apple's own `Locale` resolves to a different one, mapped to what it wrongly resolves
+    /// to, checked directly (not inferred) on Darwin: `Locale(identifier: "shi-Latn").identifier` and
+    /// `.language.script` both come back as `shi`, discarding the script this locale needs, though
+    /// `shi-Latn`'s own CLDR data (its currency names) differs from bare `shi`'s. `uz-Arab`, `sr-Latn`,
+    /// `zh-Hant`, `sd-Arab` and `kxv-Latn` were checked the same way and all resolve correctly, so this
+    /// stays a named exception rather than a general rule: widening it needs the same direct check, not
+    /// a pattern guess.
+    static let unreliablePlatformResolution: [String: String] = ["shi-Latn": "shi"]
+
     /// The category this skip falls under, carrying nothing specific to the locale that raised it.
     ///
     /// The report groups and counts on this, so two locales skipped for one cause have to produce the
@@ -77,6 +97,8 @@ package extension LocaleSkip {
             "writes a gap between currency and digits that no spacing code holds"
         case .multipleNameGaps:
             "writes its currency names with more than one gap"
+        case .platformIdentifierUnreliable:
+            "the platform's own Locale type does not reliably resolve this identifier"
         }
     }
 
@@ -106,6 +128,8 @@ package extension LocaleSkip {
             "\(Self.escapingEveryScalar(gap)) beside \(Self.readable(symbol))"
         case .multipleNameGaps(let spacings):
             spacings.map(Self.readable).sorted().joined(separator: ", ")
+        case .platformIdentifierUnreliable(let resolvesTo):
+            "resolves to \(resolvesTo) on at least one supported platform"
         }
     }
 

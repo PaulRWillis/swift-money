@@ -357,6 +357,47 @@ func negativeSubpattern(of pattern: String) -> String? {
     pattern.split(separator: ";").dropFirst().first.map(String.init)
 }
 
+// The gap between the currency and the digits in a mark-stripped positive subpattern, given the side
+// the currency sits on. Factored out of `parse` so a second pattern (the accounting one) can be read
+// for the same gap, independent of its side or grouping. The extraction itself is
+// `CLDRCurrencyPatterns.patternGap(ofStrippedPositive:side:)`, so it is tested there; this wrapper
+// only adds the `LocaleSkip` this tool reports a missing placeholder as.
+func patternGap(of strippedPositive: String, side: CurrencySide) throws(LocaleSkip) -> String {
+    guard let gap = CLDRCurrencyPatterns.patternGap(ofStrippedPositive: strippedPositive, side: side) else {
+        throw .noCurrencyPlaceholder(pattern: strippedPositive)
+    }
+    return gap
+}
+
+// Whether `first` and `second`'s own gaps — the text between the currency and the digits in each's
+// positive subpattern — differ, independent of whether their side or grouping also differs.
+//
+// `UnsupportedAccountingPattern`'s own side → grouping → gap comparison stops at the first
+// difference, so a pattern whose grouping *and* gap both differ from its counterpart would be
+// classified as only a grouping change and lifted below — but the interned accounting arrangement
+// carries side and grouping, never a gap of its own (§4.4: the per-symbol gap stays anchored to the
+// plain standard column). Lifting a locale in that state would render every accounting amount with
+// the wrong gap. This predicate reads both patterns' gaps directly so that case is caught before it
+// is lifted, whichever of the other two shapes masks it. Unlike the letter-adjacent case below, a
+// direct comparison is right here: every locale this actually gates has a non-empty gap of its own
+// (verified against the ICU audit, §8), so there is no `currencySpacing`-insertion fallback to allow
+// for.
+func gapsDiffer(_ first: String, _ second: String) throws(LocaleSkip) -> Bool {
+    let strippedFirst = strippingDirectionalMarks(first)
+    let strippedSecond = strippingDirectionalMarks(second)
+    let firstPositive = String(strippedFirst.split(separator: ";").first ?? Substring(strippedFirst))
+    let secondPositive = String(strippedSecond.split(separator: ";").first ?? Substring(strippedSecond))
+
+    guard let firstSide = CurrencySide(pattern: strippedFirst) else {
+        throw .noCurrencyPlaceholder(pattern: first)
+    }
+    guard let secondSide = CurrencySide(pattern: strippedSecond) else {
+        throw .noCurrencyPlaceholder(pattern: second)
+    }
+
+    return try patternGap(of: firstPositive, side: firstSide) != patternGap(of: secondPositive, side: secondSide)
+}
+
 func parse(standard: String, accounting: String) throws(LocaleSkip) -> ParsedPattern {
     // The structural fields (which side the currency sits on, how the digits group, the gap beside the
     // currency) are read from a mark-stripped copy: a directional mark is zero-width formatting, not
@@ -367,27 +408,13 @@ func parse(standard: String, accounting: String) throws(LocaleSkip) -> ParsedPat
     let positive = String(strippedStandard.split(separator: ";").first ?? Substring(strippedStandard))
     let rawPositive = String(standard.split(separator: ";").first ?? Substring(standard))
 
-    // `CurrencySide` reads the same two positions, so a pattern it can place is one with both of these.
-    guard
-        let side = CurrencySide(pattern: strippedStandard),
-        let symbolIndex = positive.firstIndex(of: "¤"),
-        let firstNumber = positive.firstIndex(where: { integerNumberChars.contains($0) })
-    else {
+    // `CurrencySide` reads the same two positions `patternGap` needs, so a pattern it can place is one
+    // `patternGap` can also read a gap from.
+    guard let side = CurrencySide(pattern: strippedStandard) else {
         throw .noCurrencyPlaceholder(pattern: standard)
     }
 
-    let patternSpacing: String
-    switch side {
-    case .leading:
-        // Chars between ¤ and the first number character.
-        patternSpacing = String(positive[positive.index(after: symbolIndex) ..< firstNumber])
-    case .trailing:
-        // Chars between the last number character and ¤.
-        guard let lastNumber = positive.lastIndex(where: { integerNumberChars.contains($0) }) else {
-            throw .noCurrencyPlaceholder(pattern: standard)
-        }
-        patternSpacing = String(positive[positive.index(after: lastNumber) ..< symbolIndex])
-    }
+    let patternSpacing = try patternGap(of: positive, side: side)
 
     // A locale that arranges its own negative has that arrangement, and its accounting form, read here so
     // the sign lands where CLDR places it rather than at the front. Where CLDR gives no accounting
@@ -998,31 +1025,35 @@ func blobLiteral(_ blob: [UInt8]) -> String {
     return String(decoding: escaped, as: UTF8.self)
 }
 
-// The accounting arrangement's own Swift source, when its positive side or grouping departs from the
-// standard arrangement's — `nil` when it matches. Axis A of the accounting-currency-side design: a
-// locale like Norwegian moves the currency to the other side for accounting, which one arrangement per
-// locale cannot represent, so it gets a second, interned one instead.
+// A `CurrencyArrangement` literal built from one pattern's own shape (positive text, side, grouping,
+// negative, accounting-negative), when that shape's side or grouping departs from `baseSide`/
+// `baseGrouping` — `nil` when it matches, the common case.
 //
-// `negative` here is `.defaultLeadingSign` rather than `parsed.negative`: this arrangement is only ever
-// read through the `.accounting` sign strategy (`MoneyFormatPattern.affixes(for:sign:)` never reaches a
-// plain `.negative` case there), so this field is unreachable at render time — but reusing
-// `parsed.negative` (built for the *standard* pattern's own side) would have synthesized a spurious,
-// textually distinct arrangement even when accounting's side and grouping equal standard's, defeating
-// interning.
-func accountingArrangementLiteral(_ parsed: ParsedPattern) throws(LocaleSkip) -> String? {
-    guard parsed.accountingSide != parsed.side || parsed.accountingGrouping != parsed.grouping else {
+// Every one of the three variant cells (the accounting pattern's own shape, a letter-adjacent symbol's
+// standard pattern, and its accounting pattern) is compared against the *same* base — the locale's
+// plain standard pattern — never against one another. That is what makes two cells that happen to
+// share identical underlying CLDR text (as `no`'s accounting and letter-adjacent-accounting patterns
+// do) resolve to the same interned index automatically, with no cross-referencing of one cell against
+// another anywhere in this tool: §6's render side depends on exactly that equality.
+func arrangementLiteral(
+    ifDiffersFrom baseSide: CurrencySide,
+    baseGrouping: GroupSizes,
+    positivePattern: String,
+    side: CurrencySide,
+    grouping: GroupSizes,
+    negative: NegativeArrangement,
+    accounting: AccountingArrangement
+) throws(LocaleSkip) -> String? {
+    guard side != baseSide || grouping != baseGrouping else {
         return nil
     }
 
     return arrangementLiteral(
         pattern: try patternLiteral(
-            positivePattern: parsed.accountingPositivePattern,
-            side: parsed.accountingSide,
-            negative: .defaultLeadingSign,
-            accounting: parsed.accounting
+            positivePattern: positivePattern, side: side, negative: negative, accounting: accounting
         ),
-        primary: parsed.accountingGrouping.primary,
-        secondary: parsed.accountingGrouping.secondary
+        primary: grouping.primary,
+        secondary: grouping.secondary
     )
 }
 
@@ -1044,6 +1075,9 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip]) throws(
     if let skip = unusableLanguages[language(of: locale)] {
         throw skip
     }
+    if let resolvesTo = LocaleSkip.unreliablePlatformResolution[locale] {
+        throw .platformIdentifierUnreliable(resolvesTo: resolvesTo)
+    }
 
     let n = numbers(locale)
     // The separators, pattern and digits all come from the locale's default numbering system, which is
@@ -1054,13 +1088,25 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip]) throws(
     let latnSymbols = numberSymbols(n, system: latinNumberingSystem, locale: locale)
     let formats = currencyFormats(n, system: system, locale: locale)
 
-    try refuseUnrepresentable(formats: formats, locale: locale)
-
     let insertBetween = try currencySpacingInsertion(formats["currencySpacing"] as! [String: Any], locale: locale)
+    try refuseUnrepresentable(formats: formats, locale: locale, insertBetween: insertBetween)
+
     let parsed = try parse(standard: formats["standard"] as! String, accounting: formats["accounting"] as! String)
     let fullName = try fullNameLayout(formats.compactMapValues { $0 as? String }, locale: locale)
     let symbolForms = try displays(of: locale, parsed: parsed, insertBetween: insertBetween)
     let names = fullNameRecords(of: locale)
+
+    // A letter-adjacent symbol's own pair, parsed exactly as the plain (standard, accounting) pair
+    // above — `parse` is generic over which pair it reads, so the same function gives this pair its
+    // own correctly-derived side, grouping and negative arrangements. `nil` when CLDR gives this
+    // locale no `-alphaNextToNumber` shape at all (every locale in the emitted set today gives both).
+    let alphaParsed: ParsedPattern?
+    if let alphaStandard = formats["standard-alphaNextToNumber"] as? String,
+       let alphaAccounting = formats["accounting-alphaNextToNumber"] as? String {
+        alphaParsed = try parse(standard: alphaStandard, accounting: alphaAccounting)
+    } else {
+        alphaParsed = nil
+    }
 
     // The pattern's own literal gap, which applies beside every symbol including a glyph. An empty gap
     // is `.none`; any non-empty one is already a `Spacing`, since the ISO spacing above reads the same
@@ -1099,12 +1145,60 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip]) throws(
             secondary: parsed.grouping.secondary
         ),
         fullNamePattern: fullName.literal,
-        accountingArrangement: try accountingArrangementLiteral(parsed),
+        accountingArrangement: try arrangementLiteral(
+            ifDiffersFrom: parsed.side, baseGrouping: parsed.grouping,
+            positivePattern: parsed.accountingPositivePattern, side: parsed.accountingSide, grouping: parsed.accountingGrouping,
+            negative: .defaultLeadingSign, accounting: parsed.accounting
+        ),
+        alphaArrangement: try alphaParsed.flatMap { alpha throws(LocaleSkip) in
+            try arrangementLiteral(
+                ifDiffersFrom: parsed.side, baseGrouping: parsed.grouping,
+                positivePattern: alpha.positivePattern, side: alpha.side, grouping: alpha.grouping,
+                negative: alpha.negative, accounting: alpha.accounting
+            )
+        },
+        alphaAccountingArrangement: try alphaParsed.flatMap { alpha throws(LocaleSkip) in
+            try arrangementLiteral(
+                ifDiffersFrom: parsed.side, baseGrouping: parsed.grouping,
+                positivePattern: alpha.accountingPositivePattern, side: alpha.accountingSide, grouping: alpha.accountingGrouping,
+                negative: .defaultLeadingSign, accounting: alpha.accounting
+            )
+        },
         displays: symbolForms.records,
         fullNames: names.records,
         unusableCurrencyCodes: symbolForms.unusableCodes.union(names.unusableCodes),
         numberingOverrides: numberingOverrides(of: n, locale: locale)
     )
+}
+
+// Whether `letterAdjacent` (a locale's `-alphaNextToNumber` pattern) would render with the wrong gap
+// through `standard`'s own column — the mark-stripping and positive/side extraction this tool's other
+// pattern reading already does, handed to `CLDRCurrencyPatterns.letterAdjacentGapWouldMismatch`
+// (tested there) for the actual comparison.
+func gapMismatchesTheStandardColumn(
+    standard: String,
+    letterAdjacent: String,
+    insertBetween: String
+) throws(LocaleSkip) -> Bool {
+    let strippedStandard = strippingDirectionalMarks(standard)
+    let standardPositive = String(strippedStandard.split(separator: ";").first ?? Substring(strippedStandard))
+    let strippedLetterAdjacent = strippingDirectionalMarks(letterAdjacent)
+    let letterAdjacentPositive = String(strippedLetterAdjacent.split(separator: ";").first ?? Substring(strippedLetterAdjacent))
+
+    guard let standardSide = CurrencySide(pattern: strippedStandard) else {
+        throw .noCurrencyPlaceholder(pattern: standard)
+    }
+    guard let letterAdjacentSide = CurrencySide(pattern: strippedLetterAdjacent) else {
+        throw .noCurrencyPlaceholder(pattern: letterAdjacent)
+    }
+    guard let mismatches = letterAdjacentGapWouldMismatch(
+        plainPositive: standardPositive, plainSide: standardSide,
+        letterAdjacentPositive: letterAdjacentPositive, letterAdjacentSide: letterAdjacentSide,
+        insertBetween: insertBetween
+    ) else {
+        throw .noCurrencyPlaceholder(pattern: standard)
+    }
+    return mismatches
 }
 
 // Everything about a locale that can be refused before any of it is read in detail.
@@ -1113,28 +1207,72 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip]) throws(
 // reader takes the part before the first `;` and looks only between the currency and the nearest
 // digit, so it would pass over a relocated negative or a grouping threshold without noticing.
 // `formats` is the locale's default numbering system's block, so a relocated negative is caught in
-// the pattern the locale actually renders with. A directional mark is no longer refused here: `parse`
-// and `patternLiteral` carry it, so a mark alone is never why a locale is left out.
+// the pattern the locale actually renders with. A directional mark in the *standard*/*accounting*
+// fields is no longer refused here: `parse` and `patternLiteral` carry it. Neither field's own
+// `-alphaNextToNumber` pattern carries one yet, so a side-move or grouping-move that only becomes
+// representable once a letter-adjacent symbol is involved (Axis B) — or, symmetrically, once the
+// accounting arrangement itself moves (Axis A) — is only lifted below when all four of the locale's
+// patterns are free of one; otherwise it stays refused, so a marked locale is never emitted with a
+// stripped arrangement. `insertBetween` is the locale's own `currencySpacing` insertion, read by the
+// caller before this runs, so the Axis B gap check below can use it too.
 func refuseUnrepresentable(
     formats: [String: Any],
-    locale: String
+    locale: String,
+    insertBetween: String
 ) throws(LocaleSkip) {
     let standard = formats["standard"] as! String
     let accounting = formats["accounting"] as! String
+    let alphaStandard = formats["standard-alphaNextToNumber"] as? String
+    let alphaAccounting = formats["accounting-alphaNextToNumber"] as? String
+
+    let allFourMarkFree = ![standard, accounting, alphaStandard, alphaAccounting]
+        .compactMap { $0 }
+        .contains { hasDirectionalMark($0) }
 
     for field in PatternField.allCases {
+        let alpha = formats["\(field.rawValue)-alphaNextToNumber"] as? String
+
         if let unsupported = UnsupportedPattern(
             pattern: field == .standard ? standard : accounting,
-            letterSymbolPattern: formats["\(field.rawValue)-alphaNextToNumber"] as? String
+            letterSymbolPattern: alpha
         ) {
-            throw .unrepresentablePattern(unsupported, field: field)
+            switch unsupported {
+            case .currencyMovesForLetterSymbols where allFourMarkFree,
+                 .groupingChangesForLetterSymbols where allFourMarkFree:
+                // Axis B: representable only if the letter-adjacent pattern's own gap also matches
+                // what a letter-adjacent symbol actually renders with — the plain pattern's column,
+                // never the letter-adjacent pattern's own raw text directly (`letterAdjacentGapWould
+                // Mismatch`'s own comment says why those two differ). `alpha` is never `nil` here:
+                // `UnsupportedPattern.init` only returns non-`nil` when its own `letterSymbolPattern`
+                // argument was.
+                if let alpha, try gapMismatchesTheStandardColumn(standard: standard, letterAdjacent: alpha, insertBetween: insertBetween) {
+                    throw .unrepresentablePattern(unsupported, field: field)
+                }
+                continue
+            default:
+                throw .unrepresentablePattern(unsupported, field: field)
+            }
         }
     }
 
-    // One arrangement serves both presentations, so an accounting pattern that changes more than the
-    // parentheses would be written out as the standard one and be wrong.
+    // One arrangement served both presentations before Axis A; now a side-move or grouping-move gets
+    // its own interned arrangement (§4), so it is representable too, under the same mark-free guard —
+    // and only when the accounting pattern's own gap still matches the standard one's. The interned
+    // arrangement carries side and grouping, never a gap of its own (§4.4: the per-symbol gap stays
+    // anchored to the standard column), so a locale whose gap *also* differs cannot be represented
+    // yet even though `UnsupportedAccountingPattern`'s side → grouping → gap check never reaches that
+    // third comparison to say so. A gap-only change (with no side or grouping move) stays out of
+    // scope (§1) and always refuses, unaffected by this.
     if let unsupported = UnsupportedAccountingPattern(standard: standard, accounting: accounting) {
-        throw .unrepresentableAccountingPattern(unsupported)
+        switch unsupported {
+        case .currencyMovesForAccounting where allFourMarkFree,
+             .groupingChangesForAccounting where allFourMarkFree:
+            if try gapsDiffer(standard, accounting) {
+                throw .unrepresentableAccountingPattern(unsupported)
+            }
+        default:
+            throw .unrepresentableAccountingPattern(unsupported)
+        }
     }
 }
 
@@ -1434,27 +1572,32 @@ for (localeIndex, entry) in emitted.enumerated() {
 }
 numberingSystemOverrides.sort { ($0.localeIndex, $0.systemIndex) < ($1.localeIndex, $1.systemIndex) }
 
-// The variant rows, keyed by each emitted locale's index. Only Axis A (the accounting arrangement) is
-// detected today; the two alpha cells always match standard until the letter-form classification
-// (commit 5) and the skip lift (commit 6) land, so a row is emitted only when accounting differs.
+// The variant rows, keyed by each emitted locale's index. Each of the three cells is interned
+// (falling back to the locale's own standard index when its literal is `nil`, i.e. it matches
+// standard) independently — never against one another — so two cells sharing identical CLDR text
+// (as `no`'s accounting and letter-adjacent-accounting patterns do) land on the same index for free.
+// A row is emitted only when at least one cell actually differs from standard.
 var currencyArrangementVariants: [PackedCurrencyArrangementVariant] = []
 for (localeIndex, entry) in emitted.enumerated() {
-    guard let literal = entry.tables.accountingArrangement else {
-        continue
+    let standardIndex = packedLocales[localeIndex].numberFormat.standardArrangementIndex
+
+    func cellIndex(_ literal: String?) -> UInt16 {
+        literal.map { index(of: $0, in: &arrangements) } ?? standardIndex
     }
 
-    let standardIndex = packedLocales[localeIndex].numberFormat.standardArrangementIndex
-    let accountingIndex = index(of: literal, in: &arrangements)
+    let accountingIndex = cellIndex(entry.tables.accountingArrangement)
+    let alphaIndex = cellIndex(entry.tables.alphaArrangement)
+    let alphaAccountingIndex = cellIndex(entry.tables.alphaAccountingArrangement)
 
-    guard accountingIndex != standardIndex else {
+    guard accountingIndex != standardIndex || alphaIndex != standardIndex || alphaAccountingIndex != standardIndex else {
         continue
     }
 
     currencyArrangementVariants.append(PackedCurrencyArrangementVariant(
         localeIndex: UInt16(localeIndex),
         accountingArrangementIndex: accountingIndex,
-        alphaArrangementIndex: standardIndex,
-        alphaAccountingArrangementIndex: standardIndex
+        alphaArrangementIndex: alphaIndex,
+        alphaAccountingArrangementIndex: alphaAccountingIndex
     ))
 }
 currencyArrangementVariants.sort { $0.localeIndex < $1.localeIndex }

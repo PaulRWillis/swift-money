@@ -129,5 +129,6 @@ struct LocaleSkipTests {
         .unreadableCurrencySpacing(rule: "currencyMatch [:^S:]"),
         .unrepresentableGap("\u{2009}", symbol: "kr"),
         .multipleNameGaps([.none, .asciiSpace]),
+        .platformIdentifierUnreliable(resolvesTo: "shi"),
     ]
 }

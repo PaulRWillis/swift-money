@@ -3,9 +3,10 @@
 Generated from CLDR 48.2.0 by GenerateSwiftMoneyLocalization. Do not edit by hand.
 Regenerate with: (cd Tools/cldr && npm ci) && swift run GenerateSwiftMoneyLocalization
 
-The engine formats 623 of the 766 CLDR locales this build reads. The 143 below are left out, each because it writes something the packed tables have no shape for. They keep the ICU fallback, and rejoin the list on their own once that shape exists.
+The engine formats 661 of the 766 CLDR locales this build reads. The 105 below are left out, each because it writes something the packed tables have no shape for. They keep the ICU fallback, and rejoin the list on their own once that shape exists.
 
-## arranges a currency written with letters in a way this tool does not model, in its accounting pattern (32)
+## arranges a currency written with letters in a way this tool does not model, in its accounting pattern (33)
+- an: \u{A4}\u{A0}#,##0.00 against \u{A4}\u{A0}#,##0.00;(\u{A4}\u{A0}#,##0.00)
 - bem: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
 - bm: \u{A4}#,##0.00;(\u{A4}#,##0.00) against \u{A4}\u{A0}#,##0.00
 - bm-Nkoo: \u{A4}\u{A0}#,##0.00 against \u{A4}\u{A0}#,##0.00;(\u{A4}\u{A0}#,##0.00)
@@ -66,50 +67,7 @@ The engine formats 623 of the 766 CLDR locales this build reads. The 143 below a
 - nn: #,##0.00\u{A0}\u{A4};-#,##0.00\u{A0}\u{A4} against #,##0.00\u{A0}\u{A4}
 - no: #,##0.00\u{A0}\u{A4};-#,##0.00\u{A0}\u{A4} against #,##0.00\u{A0}\u{A4}
 
-## groups the digits differently for a currency written with letters, in its standard pattern (3)
-- dv
-- dz
-- sa
-
-## moves the currency to the other side of the digits for a currency written with letters, in its accounting pattern (1)
-- szl
-
-## moves the currency to the other side of the digits for a currency written with letters, in its standard pattern (33)
-- ab
-- agq
-- an
-- bez
-- ccp
-- ccp-IN
-- ckb
-- ckb-IR
-- co
-- cu
-- dje
-- kab
-- khq
-- ksb
-- lg
-- lu
-- luo
-- rif
-- rn
-- rwk
-- sbp
-- sd
-- sd-Arab
-- sdh
-- sdh-IQ
-- seh
-- ses
-- shi
-- shi-Latn
-- shi-Tfng
-- twq
-- uz-Arab
-- zgh
-
-## shortens to an identifier another locale already uses (20)
+## shortens to an identifier another locale already uses (23)
 - az-Latn: az
 - bal-Arab: bal
 - bs-Latn: bs
@@ -120,33 +78,30 @@ The engine formats 623 of the 766 CLDR locales this build reads. The 143 below a
 - kok-Deva: kok
 - ks-Arab: ks
 - ku-Latn: ku
+- kxv-Latn: kxv
 - mni-Beng: mni
 - mww-Hmnp: mww
 - pi-Latn: pi
 - rhg-Rohg: rhg
 - sat-Olck: sat
+- sd-Arab: sd
+- shi-Tfng: shi
 - sr-Cyrl: sr
 - su-Latn: su
 - suz-Deva: suz
 - yue-Hant: yue
 - zh-Hans: zh
 
-## the currency moves to the other side of the digits in the accounting pattern (3)
-- my
+## the currency moves to the other side of the digits in the accounting pattern (2)
 - uz
 - uz-Latn
 
-## the digits are grouped differently in the accounting pattern (10)
+## the digits are grouped differently in the accounting pattern (5)
 - as
 - brx
-- en-IN
-- kxv
-- kxv-Latn
 - pa
 - pa-Guru
-- ta
-- ta-LK
-- te
+- sa
 
 ## the gap between the currency and the digits changes in the accounting pattern (16)
 - ar
@@ -165,3 +120,6 @@ The engine formats 623 of the 766 CLDR locales this build reads. The 143 below a
 - ps-PK
 - ta-MY
 - ta-SG
+
+## the platform's own Locale type does not reliably resolve this identifier (1)
+- shi-Latn: resolves to shi on at least one supported platform

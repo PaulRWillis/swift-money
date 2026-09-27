@@ -58,9 +58,14 @@ struct LocaleTables {
     let fullNamePattern: String
 
     // The accounting arrangement's own Swift source, when its positive side or grouping differs from
-    // `arrangement`'s — `nil` when it matches (the common case, and the only case any locale reaching
-    // here can be in today: `refuseUnrepresentable` already refuses one where it would not).
+    // `arrangement`'s — `nil` when it matches (the common case).
     let accountingArrangement: String?
+
+    // A letter-adjacent symbol's own standard and accounting arrangements, each `nil` when it matches
+    // the locale's plain `arrangement` (the common case, and the only case for a locale with no
+    // `-alphaNextToNumber` shape of its own).
+    let alphaArrangement: String?
+    let alphaAccountingArrangement: String?
 
     let displays: [Display]
     let fullNames: [FullName]

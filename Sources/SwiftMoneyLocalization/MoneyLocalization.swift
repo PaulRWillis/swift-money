@@ -39,22 +39,37 @@ public enum MoneyLocalization {
         let display = cldr.currencyDisplays.display(localeIndex: localeIndex, code: currency.code)
 
         // Build the code string only where it is used: as the fallback when a locale has no symbol, and
-        // for the ISO presentation. The common case (a currency with a symbol) never builds it.
+        // for the ISO presentation. The common case (a currency with a symbol) never builds it. An ISO
+        // code is always letters, so a display-less fallback takes the letter column too.
         let symbol: String
         let spacing: Spacing
+        let form: SymbolForm
         switch presentation {
         case .standard:
             symbol = display?.standardSymbol ?? String(currency.code)
             spacing = display?.standardSpacing ?? format.isoCodeSpacing
+            form = display?.standardForm ?? .letters
         case .narrow:
             symbol = display?.narrowSymbol ?? String(currency.code)
             spacing = display?.narrowSpacing ?? format.isoCodeSpacing
+            form = display?.narrowForm ?? .letters
         case .isoCode:
             symbol = String(currency.code)
             spacing = format.isoCodeSpacing
+            form = .letters
         }
 
-        return moneyFormat(symbol: symbol, pattern: format.standardArrangement.pattern, gap: spacing.rendered, from: format)
+        let (standard, accounting) = resolvedArrangements(for: form, in: format)
+
+        return moneyFormat(
+            symbol: symbol,
+            pattern: standard.pattern,
+            primaryGroupingSize: standard.primaryGroupingSize,
+            secondaryGroupingSize: standard.secondaryGroupingSize,
+            gap: spacing.rendered,
+            from: format,
+            accountingArrangement: accounting
+        )
     }
 
     /// The currency format for one amount, naming the currency in full, as in "British pounds".
@@ -102,6 +117,8 @@ public enum MoneyLocalization {
         return moneyFormat(
             symbol: name,
             pattern: MoneyFormatPattern(positive: affixes, negative: affixes, accountingNegative: affixes),
+            primaryGroupingSize: format.standardArrangement.primaryGroupingSize,
+            secondaryGroupingSize: format.standardArrangement.secondaryGroupingSize,
             gap: format.fullNameSpacing.rendered,
             from: format
         )
@@ -206,11 +223,19 @@ public enum MoneyLocalization {
 
     // The locale's number format with a currency written beside it, however that currency is named.
     // Not private: the custom-currency builder in another file composes a format through this too.
+    //
+    // `primaryGroupingSize`/`secondaryGroupingSize` are separate from `pattern` rather than a single
+    // `CurrencyArrangement`, because two of this function's four callers (a full name's join, and a
+    // custom currency's caller-forced side) pair the locale's own sizes with a pattern that is not
+    // itself an interned arrangement.
     static func moneyFormat(
         symbol: String,
         pattern: MoneyFormatPattern,
+        primaryGroupingSize: GroupingSize,
+        secondaryGroupingSize: GroupingSize,
         gap: String,
-        from format: LocaleNumberFormat
+        from format: LocaleNumberFormat,
+        accountingArrangement: MoneyFormat.Arrangement? = nil
     ) -> MoneyFormat {
         MoneyFormat(
             symbol: symbol,
@@ -218,13 +243,58 @@ public enum MoneyLocalization {
             currencySpacing: gap,
             decimalSeparator: format.decimalSeparator,
             grouping: .digits(
-                primary: format.standardArrangement.primaryGroupingSize,
-                secondary: format.standardArrangement.secondaryGroupingSize,
+                primary: primaryGroupingSize,
+                secondary: secondaryGroupingSize,
                 separator: format.groupingSeparator,
                 minGroupingDigits: format.minGroupingDigits
             ),
             minusSign: format.minusSign,
-            digits: format.digits
+            digits: format.digits,
+            accountingArrangement: accountingArrangement
+        )
+    }
+
+    // The standard-presentation arrangement to render every sign strategy with, and the engine-level
+    // accounting override to render `.accounting` with — `nil` when accounting does not move anything
+    // `pattern.accountingNegative` does not already say. Both cells are read from the locale's own
+    // baked variants, which are themselves `nil` whenever they equal the locale's plain standard
+    // arrangement (an in-band sentinel resolved once, at blob-decode time, in `NumberFormatTable`).
+    //
+    // Each of `format`'s three variant cells is baked *independently*, always relative to the plain
+    // standard arrangement — never relative to one another — so two cells that happen to share the same
+    // underlying CLDR text (as `no`'s `accountingArrangement` and `alphaAccountingArrangement` do)
+    // resolve to equal values without this function having to know that. That equality is exactly what
+    // the final comparison below tests: when the accounting side has nothing left to add once the
+    // letter-form column is already chosen, this returns `nil` and the fast path stays untouched.
+    private static func resolvedArrangements(
+        for form: SymbolForm,
+        in format: LocaleNumberFormat
+    ) -> (standard: CurrencyArrangement, accounting: MoneyFormat.Arrangement?) {
+        let useAlpha = form == .letters
+        let standard = useAlpha ? (format.alphaArrangement ?? format.standardArrangement) : format.standardArrangement
+        let accountingBase = useAlpha
+            ? (format.alphaAccountingArrangement ?? format.standardArrangement)
+            : (format.accountingArrangement ?? format.standardArrangement)
+
+        guard accountingBase != standard else {
+            return (standard, nil)
+        }
+        return (standard, engineArrangement(accountingBase, from: format))
+    }
+
+    // A baked `CurrencyArrangement` (Localization) as the engine's own `MoneyFormat.Arrangement`
+    // (Core), with the group separator and minimum grouping digits — known only once a locale is
+    // resolved — assembled alongside the sizes the arrangement itself carries. Not private: the
+    // custom-currency builder in another file resolves its own accounting arrangement through this too.
+    static func engineArrangement(_ arrangement: CurrencyArrangement, from format: LocaleNumberFormat) -> MoneyFormat.Arrangement {
+        MoneyFormat.Arrangement(
+            pattern: arrangement.pattern,
+            grouping: .digits(
+                primary: arrangement.primaryGroupingSize,
+                secondary: arrangement.secondaryGroupingSize,
+                separator: format.groupingSeparator,
+                minGroupingDigits: format.minGroupingDigits
+            )
         )
     }
 

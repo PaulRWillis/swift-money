@@ -13,15 +13,19 @@ package struct LocaleNumberFormat: Equatable, Hashable, Sendable {
     // The arrangement the accounting sign strategy renders a *non-negative* amount with, when that
     // differs from `standardArrangement` by more than the negative affix (which the pattern's own
     // `accountingNegative` already carries) — `nil` is the common case, meaning accounting matches
-    // standard. Not yet read by rendering; wired in a later commit.
+    // standard. Read by `MoneyLocalization.resolvedArrangements(for:in:)` for a glyph symbol.
     package let accountingArrangement: CurrencyArrangement?
     // The arrangement a letter-adjacent symbol (an ISO code, "US$") renders with, when that differs
-    // from `standardArrangement` — `nil` when every symbol in this locale is a plain glyph. Not yet
-    // read by rendering; wired in a later commit.
+    // from `standardArrangement` — `nil` when every symbol in this locale is a plain glyph. Read by
+    // `MoneyLocalization.resolvedArrangements(for:in:)` in place of `standardArrangement` for a
+    // letter-adjacent symbol.
     package let alphaArrangement: CurrencyArrangement?
     // The arrangement a letter-adjacent symbol renders with under the accounting sign strategy, when
-    // that differs from `alphaArrangement` (or, absent one, `standardArrangement`) — `nil` when
-    // accounting matches whichever of those applies. Not yet read by rendering; wired in a later commit.
+    // that differs from `standardArrangement` — always compared against `standardArrangement`, never
+    // against `alphaArrangement`, so two cells sharing identical CLDR text resolve to the same value
+    // without the two ever being compared to each other. `nil` when accounting matches standard. Read
+    // by `MoneyLocalization.resolvedArrangements(for:in:)` in place of `accountingArrangement` for a
+    // letter-adjacent symbol.
     package let alphaAccountingArrangement: CurrencyArrangement?
     // The same, for a currency written out in words, per plural category, from CLDR's unit patterns.
     // A name never takes accounting parentheses, so this carries no accounting form of its own.

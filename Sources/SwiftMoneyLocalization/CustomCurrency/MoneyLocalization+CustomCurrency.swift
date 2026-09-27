@@ -80,11 +80,27 @@ package extension MoneyLocalization {
         let format = numberFormat(at: localeIndex, numberingSystem: numberingSystem)
         let form = symbolForm(display, presentation: presentation, code: currency.code)
 
+        // A caller-forced side has no CLDR arrangement to inherit, so it never carries an accounting
+        // override either: standard and accounting already render identically at that side. `.automatic`
+        // inherits the locale's own accounting arrangement (Axis A only — a custom currency never
+        // participates in Axis B's letter/glyph classification, since that is baked per shipped
+        // `CurrencyDisplayTable` record, not per custom currency).
+        let accountingArrangement: MoneyFormat.Arrangement?
+        switch form.placement {
+        case .automatic:
+            accountingArrangement = format.accountingArrangement.map { engineArrangement($0, from: format) }
+        case .leading, .trailing:
+            accountingArrangement = nil
+        }
+
         return moneyFormat(
             symbol: form.symbol,
             pattern: pattern(for: form.placement, inheriting: format.standardArrangement.pattern),
+            primaryGroupingSize: format.standardArrangement.primaryGroupingSize,
+            secondaryGroupingSize: format.standardArrangement.secondaryGroupingSize,
             gap: renderedGap(for: form.spacing, symbol: form.symbol, in: format),
-            from: format
+            from: format,
+            accountingArrangement: accountingArrangement
         )
     }
 
@@ -114,6 +130,8 @@ package extension MoneyLocalization {
         return moneyFormat(
             symbol: name.rawValue,
             pattern: MoneyFormatPattern(positive: affixes, negative: affixes, accountingNegative: affixes),
+            primaryGroupingSize: format.standardArrangement.primaryGroupingSize,
+            secondaryGroupingSize: format.standardArrangement.secondaryGroupingSize,
             gap: gap,
             from: format
         )
