@@ -14,6 +14,12 @@ file, every group of deviation tables is followed by a verdict line saying wheth
 BETTER or WORSE than main, which is what each benchmark is filed under here. The status is still
 checked against the file, and a shard where the two disagree is reported as failed rather than trusted.
 
+Not every flagged benchmark is reported as a change. The tool flags a wall-clock time as soon as any one
+percentile crosses its threshold, and on a shared runner the cheapest benchmarks do that on noise alone.
+So a wall-clock deviation counts only when p25, p50 and p75 all cross, in the same direction. The rest
+are set aside as noise: counted in the comment and folded away with their tables, but kept out of the
+headline and the lists. Allocation and instruction counts are exact, so they count on any percentile.
+
 Lives here rather than inside the workflow so that it can be run and read on a laptop, and tested. The
 shell it replaced listed every flagged benchmark as one undifferentiated list under a "regressed"
 headline, even when most of them had improved.
@@ -83,6 +89,20 @@ class Percentile(Enum):
     P100 = "p100"
 
 
+# The percentiles the wall-clock thresholds are set on (`defaultThresholds` in SwiftMoneyBenchmarks.swift).
+# A timed metric's deviation counts only when every one of them crossed.
+CENTRAL_PERCENTILES = frozenset({Percentile.P25, Percentile.P50, Percentile.P75})
+
+
+class Measurement(Enum):
+    """How a metric is measured, which decides how much a single crossed percentile is worth."""
+
+    # Read off a clock on a runner shared with other jobs, where one percentile can cross on noise alone.
+    TIMED = "timed"
+    # Counted exactly, so any crossing is a real change.
+    COUNTED = "counted"
+
+
 class Metric(Enum):
     """A metric whose threshold deviations this script knows how to judge, keyed on the tool's table title.
 
@@ -94,6 +114,21 @@ class Metric(Enum):
     WALL_CLOCK = "Time (wall clock)"
     MALLOC_TOTAL = "Malloc (total)"
     INSTRUCTIONS = "Instructions"
+
+    @property
+    def measurement(self):
+        match self:
+            case Metric.WALL_CLOCK:
+                return Measurement.TIMED
+            case Metric.MALLOC_TOTAL | Metric.INSTRUCTIONS:
+                return Measurement.COUNTED
+
+
+class Significance(Enum):
+    """Whether a deviation is a change worth reporting or runner noise to set aside."""
+
+    SIGNIFICANT = "significant"
+    NOISE = "noise"
 
 
 @dataclass(frozen=True)
@@ -275,6 +310,23 @@ def moves(row, direction):
             return row.difference <= 0
 
 
+def significance(deviation):
+    """A deviation is significant when any of its tables is. Every row in it moved the same way, since
+    each was checked against the deviation's verdict as it was parsed."""
+    judged = {judgement(table) for table in deviation.tables}
+    return Significance.SIGNIFICANT if Significance.SIGNIFICANT in judged else Significance.NOISE
+
+
+def judgement(table):
+    """A counted metric is significant on any percentile; a timed one only when all the central ones crossed."""
+    match table.metric.measurement:
+        case Measurement.COUNTED:
+            return Significance.SIGNIFICANT
+        case Measurement.TIMED:
+            crossed = {row.percentile for row in table.rows}
+            return Significance.SIGNIFICANT if CENTRAL_PERCENTILES <= crossed else Significance.NOISE
+
+
 def agrees(status, found):
     """Whether the stderr status tells the same story as the directions parsed out of the file."""
     match status:
@@ -339,18 +391,36 @@ def headline(regressed, improved, incomplete):
     return "### ✅ No significant benchmark changes"
 
 
+def names(found):
+    return [f"- {flagged.benchmark}" for flagged in found]
+
+
 def bullets(title, found):
-    return [f"**{title}:**", *(f"- {deviation.benchmark}" for deviation in found)]
+    return [f"**{title}:**", *names(found)]
 
 
-def folded(summary, found):
-    return [
-        f"<details><summary>{summary}</summary>",
-        "",
-        "\n\n".join(flagged.printed for flagged in found),
-        "",
-        "</details>",
-    ]
+def printed(found):
+    return "\n\n".join(flagged.printed for flagged in found)
+
+
+def folded(summary, lines):
+    return [f"<details><summary>{summary}</summary>", "", *lines, "", "</details>"]
+
+
+def tally(significant, noise, shard_count):
+    """The line under the headline: how many benchmarks count, and how many were set aside."""
+    flagged = f"{len(significant)} benchmark(s) flagged across {shard_count} shards"
+    if not noise:
+        return f"{flagged}."
+    more = " more" if significant else ""
+    return f"{flagged}; {len(noise)}{more} set aside as noise."
+
+
+def set_aside(noise):
+    return folded(
+        f"Set aside as noise ({len(noise)}): time crossed its threshold at only some of p25, p50 and p75",
+        [*names(noise), "", printed(noise)],
+    )
 
 
 def paragraphs(*blocks):
@@ -385,8 +455,10 @@ def comment(shards, job, run_url):
     failed = [shard for shard in shards if isinstance(shard, Failed)]
     found = [deviation for shard in shards if isinstance(shard, Compared) for deviation in shard.deviations]
     by_name = sorted(found, key=lambda deviation: deviation.benchmark)
-    regressed = [d for d in by_name if d.direction is Direction.REGRESSED]
-    improved = [d for d in by_name if d.direction is Direction.IMPROVED]
+    significant = [d for d in by_name if significance(d) is Significance.SIGNIFICANT]
+    noise = [d for d in by_name if significance(d) is Significance.NOISE]
+    regressed = [d for d in significant if d.direction is Direction.REGRESSED]
+    improved = [d for d in significant if d.direction is Direction.IMPROVED]
 
     # A shard that failed before uploading leaves no artifact, so the job's own result is a failure
     # signal in its own right, on top of any shard that uploaded a failed status.
@@ -394,18 +466,20 @@ def comment(shards, job, run_url):
 
     body = paragraphs(
         [MARKER, headline(regressed, improved, incomplete)],
-        [f"{len(found)} benchmark(s) flagged across {len(shards)} shards. [Run details]({run_url})"],
+        [f"{tally(significant, noise, len(shards))} [Run details]({run_url})"],
         [
             "> A shard failed to build or compare, so the picture may be incomplete.",
             *(f"> - {shard.shard}: {shard.reason}" for shard in failed),
         ] if incomplete else [],
         bullets("Regressed", regressed) if regressed else [],
         bullets("Improved", improved) if improved else [],
-        # The tool prints only a shard's regressions when it has any, dropping that shard's improvements.
-        ["> A shard that regressed does not report its improvements, so the improved list may be short."]
-        if regressed else [],
-        folded("Regression tables (numbers)", regressed) if regressed else [],
-        folded("Improvement tables (numbers)", improved) if improved else [],
+        # The tool prints only a shard's regressions when it has any, dropping that shard's improvements,
+        # and it does so for a regression this script then sets aside as noise too.
+        ["> A shard that flags any regression does not report its improvements, so some may be missing."]
+        if any(d.direction is Direction.REGRESSED for d in found) else [],
+        folded("Regression tables (numbers)", [printed(regressed)]) if regressed else [],
+        folded("Improvement tables (numbers)", [printed(improved)]) if improved else [],
+        set_aside(noise) if noise else [],
     )
 
     news = regressed or improved or incomplete
@@ -472,7 +546,32 @@ BOTH_GROUPS = BETTER_ONLY + WORSE_ONLY
 
 WITHIN = "\nNew baseline 'pull_request' is WITHIN the 'main' baseline thresholds.\n"
 
-ORPHAN = fixture_block("Orphan", wall_clock(fixture_rows(["p25"], 1, 2, 100)))
+# Runner noise, as PR #240 saw it in code it did not touch: past the threshold on one percentile or two.
+ONE_PERCENTILE = fixture_block("FractionLength construction", wall_clock(fixture_rows(["p25"], 1591, 2234, 40)))
+TWO_PERCENTILES = fixture_block(
+    "Money scalar multiplication, amount times integer",
+    wall_clock([("p25", 2251, 2853, 26, 20), ("p75", 2517, 3074, 22, 20)]),
+)
+NOISE_ONLY = ONE_PERCENTILE + TWO_PERCENTILES + fixture_verdict("WORSE")
+
+REAL_AND_NOISE = (
+    fixture_block("Int from MoneyOf minor units", wall_clock(fixture_rows(EVERY_THRESHOLD, 1678, 2513, 49)))
+    + ONE_PERCENTILE
+    + TWO_PERCENTILES
+    + fixture_verdict("WORSE")
+)
+
+# One benchmark slower at its fastest runs and faster at its typical and slow ones.
+MIXED_DIRECTIONS = (
+    fixture_block("Harness floor, an integer", wall_clock(fixture_rows(["p25"], 1556, 1900, 22)))
+    + fixture_verdict("WORSE")
+    + fixture_block("Harness floor, an integer", wall_clock(fixture_rows(["p50", "p75"], 1600, 1200, -25)))
+    + fixture_verdict("BETTER")
+)
+
+ONE_MALLOC = fixture_block("Money bytes decode", mallocs(fixture_rows(["p50"], 16, 22, 6, 4))) + fixture_verdict("WORSE")
+
+ORPHAN =fixture_block("Orphan", wall_clock(fixture_rows(["p25"], 1, 2, 100)))
 
 
 def selftest():
@@ -571,6 +670,37 @@ def selftest():
         else:
             raise AssertionError(f"expected a format error for {why}")
 
+    # Wall clock counts only when p25, p50 and p75 all cross in the same direction. Allocations and
+    # instructions are counted exactly, so they count on any percentile.
+    def judged(text):
+        return [(d.benchmark, significance(d)) for d in parse_comparison(text)]
+
+    assert judged(WORSE_ONLY) == [("Int from MoneyOf minor units", Significance.SIGNIFICANT)]
+    assert judged(BETTER_ONLY) == [
+        ("MoneyOf unrounded converted", Significance.SIGNIFICANT),
+        ("Rate from percent", Significance.SIGNIFICANT),
+    ]
+    assert judged(TWO_PERCENTILES + fixture_verdict("WORSE")) == [
+        ("Money scalar multiplication, amount times integer", Significance.NOISE),
+    ]
+    assert judged(ONE_PERCENTILE + fixture_verdict("WORSE")) == [
+        ("FractionLength construction", Significance.NOISE),
+    ]
+    assert judged(MIXED_DIRECTIONS) == [
+        ("Harness floor, an integer", Significance.NOISE),
+        ("Harness floor, an integer", Significance.NOISE),
+    ]
+    assert judged(ONE_MALLOC) == [("Money bytes decode", Significance.SIGNIFICANT)]
+    assert judged(
+        fixture_block(
+            "Money split by weights",
+            wall_clock(fixture_rows(["p25"], 144, 191, 32)),
+            mallocs(fixture_rows(["p75"], 3000, 3900, 900, 0)),
+        )
+        + fixture_verdict("WORSE")
+    ) == [("Money split by weights", Significance.SIGNIFICANT)], "an exact metric outweighs a noisy one"
+    assert [significance(d) for d in instructions] == [Significance.SIGNIFICANT]
+
     # The stderr status and the parsed file must tell the same story, or the shard is not trusted.
     assert shard_from("shard0", "4\n", BETTER_ONLY) == Compared(parse_comparison(BETTER_ONLY))
     assert shard_from("shard0", "2\n", BOTH_GROUPS) == Compared(parse_comparison(BOTH_GROUPS))
@@ -580,6 +710,8 @@ def selftest():
     assert isinstance(shard_from("shard0", "0", ""), Failed), "status 0 with no verdict"
     assert isinstance(shard_from("shard0", "failed\n", BETTER_ONLY), Failed)
     assert isinstance(shard_from("shard0", "banana", BETTER_ONLY), Failed)
+    # The status reports what the tool flagged, noise included, so noise still agrees with it.
+    assert shard_from("shard0", "2", NOISE_ONLY) == Compared(parse_comparison(NOISE_ONLY))
 
     mixed = [
         shard_from("shard0", "4", BETTER_ONLY),
@@ -601,6 +733,49 @@ def selftest():
     assert body.index("Int from MoneyOf minor units\n=") < body.index("Rate from percent\n=")
     assert body.count("<details>") == 2
     assert "incomplete" not in body
+    assert "noise" not in body
+
+    # Noise stays out of the headline and the lists, and folds away below the real changes.
+    with_noise = comment(
+        [shard_from("shard0", "4", BETTER_ONLY), shard_from("shard1", "2", REAL_AND_NOISE)],
+        JobResult.SUCCESS,
+        RUN_URL,
+    )
+    lines = with_noise.body.splitlines()
+    assert lines[1] == "### ⚠️ 1 regressed, 2 improved vs main", lines[1]
+    assert f"3 benchmark(s) flagged across 2 shards; 2 more set aside as noise. [Run details]({RUN_URL})" in lines
+    regressed_at = lines.index("**Regressed:**")
+    assert lines[regressed_at + 1:regressed_at + 3] == ["- Int from MoneyOf minor units", ""], lines
+    assert with_noise.delivery is Delivery.POST
+    body = with_noise.body
+    noise_at = body.index("<details><summary>Set aside as noise (2)")
+    assert body.index("Improvement tables") < noise_at
+    for name in ["FractionLength construction", "Money scalar multiplication, amount times integer"]:
+        assert body.index(f"- {name}") > noise_at and body.index(f"{name}\n=") > noise_at, name
+    assert body.count("<details>") == 3
+
+    # A run whose every flag was noise is no news.
+    all_noise = comment(
+        [shard_from("shard0", "2", NOISE_ONLY), shard_from("shard1", "0", WITHIN)],
+        JobResult.SUCCESS,
+        RUN_URL,
+    )
+    lines = all_noise.body.splitlines()
+    assert lines[1] == "### ✅ No significant benchmark changes", lines[1]
+    assert f"0 benchmark(s) flagged across 2 shards; 2 set aside as noise. [Run details]({RUN_URL})" in lines, lines
+    assert "**Regressed:**" not in all_noise.body and "**Improved:**" not in all_noise.body
+    assert "- FractionLength construction" in all_noise.body
+    assert all_noise.delivery is Delivery.REFRESH_ONLY
+    # The tool drops a shard's improvements for any regression, noise or not.
+    assert "does not report its improvements" in all_noise.body
+
+    noise_and_failed = comment(
+        [shard_from("shard0", "2", NOISE_ONLY), shard_from("shard3", "failed", "")],
+        JobResult.FAILURE,
+        RUN_URL,
+    )
+    assert noise_and_failed.body.splitlines()[1] == "### ❓ Benchmark comparison incomplete"
+    assert noise_and_failed.delivery is Delivery.POST
 
     regressed_only = comment([shard_from("shard0", "2", WORSE_ONLY)], JobResult.SUCCESS, RUN_URL)
     assert regressed_only.body.splitlines()[1] == "### ⚠️ 1 regressed vs main"
