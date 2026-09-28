@@ -294,9 +294,9 @@ typealias Points = MoneyOf<LoyaltyPoints>
 let balance = Points(minorUnits: 250)   // LTY 250
 ```
 
-For a currency known only at runtime, build a `Currency` value and use `Money`. A scale is valid
-when it has an exact decimal form: any `2^a * 5^b`, to at most eighteen decimal places. So 100,
-10, 5, and 256 all work, and US Treasury bond pricing in 256ths is representable.
+For a currency known only at runtime, build a `Currency` value and use `Money`. A scale must be a
+power of ten, from 1 to 10^18: 1, 100, and 100,000,000 all work, while 5 and 256 do not. Every
+ISO 4217 currency is decimal, and so is every cryptocurrency in practice.
 
 ## Design
 
