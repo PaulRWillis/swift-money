@@ -85,6 +85,20 @@ struct UnroundedTests {
         #expect(runtime.divided(byExactly: UInt8(0)) == nil)
     }
 
+    @Test("Typed and runtime-currency amounts settle to the same minor units")
+    func typedMatchesRuntimeCurrency() throws {
+        let third = try #require(Rate(string: "1/3"))
+        let typed = GBP(minorUnits: 10_00).unrounded * third
+        let runtime = Money(minorUnits: 10_00, currency: .gbp).unrounded * third
+        let settledTyped = GBP(minorUnits: 2_50)
+        let settledRuntime = Money(minorUnits: 2_50, currency: .gbp)
+
+        #expect((typed + settledTyped).rounded(.up).minorUnits == (try runtime + settledRuntime).rounded(.up).minorUnits)
+        #expect((settledTyped - typed).rounded(.down).minorUnits == (try settledRuntime - runtime).rounded(.down).minorUnits)
+        #expect([typed, typed, typed].total().rounded(.toNearestOrEven).minorUnits
+            == (try [runtime, runtime, runtime].total())?.rounded(.toNearestOrEven).minorUnits)
+    }
+
     @Test("Scaling by an integer wider than Int128 traps")
     func scalingByIntegerWiderThanInt128Traps() async {
         await #expect(processExitsWith: .failure) {

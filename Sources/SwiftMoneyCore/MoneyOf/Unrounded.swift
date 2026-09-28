@@ -351,7 +351,7 @@ public extension MoneyOf.Unrounded where C: CurrencyType {
     /// `GBP.Unrounded(majorUnits: "0.023")` is 2.3 pence, ready to scale and settle once.
     ///
     /// - Precondition: the amount is representable.
-    init(majorUnits: Rate) {
+    @inlinable init(majorUnits: Rate) {
         self.init(majorUnits.value.multiplied(by: Int128(Int64(C.currency.unitScale))), storage: .implied)
     }
 
@@ -369,7 +369,7 @@ public extension MoneyOf.Unrounded where C: CurrencyType {
     /// than at each hop.
     ///
     /// - Precondition: the converted amount is representable.
-    func converted<To>(using rate: ExchangeRate<C, To>) -> MoneyOf<To>.Unrounded {
+    @inlinable func converted<To>(using rate: ExchangeRate<C, To>) -> MoneyOf<To>.Unrounded {
         guard let converted = minorUnits.multipliedIfRepresentable(by: rate.minorPerMinorRate.value) else {
             preconditionFailure("Converting is not representable")  // coverage:ignore — exit-test trap
         }

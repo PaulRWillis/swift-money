@@ -12,7 +12,7 @@ public struct ExchangeRate<From: CurrencyType, To: CurrencyType>: Sendable, Equa
     // Stored as `To` minor units per one `From` minor unit — the form `converted` and `crossed` use
     // directly. The public quote is per major unit; the two differ only when the currencies' scales
     // differ, and the conversion between them lives solely in `init?(_:)`.
-    let minorPerMinorRate: Rate
+    @usableFromInline let minorPerMinorRate: Rate
 
     private init?(minorPerMinor rate: Rate) {
         guard rate.isPositive else {

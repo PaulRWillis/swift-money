@@ -133,7 +133,7 @@ extension Fixed {
     /// Returns this value scaled by a whole number.
     ///
     /// - Precondition: the result is representable. Use ``multipliedIfRepresentable(by:)`` otherwise.
-    package func multiplied(by n: Int128) -> Fixed {
+    @usableFromInline package func multiplied(by n: Int128) -> Fixed {
         let (value, overflow) = multipliedReportingOverflow(by: n)
         precondition(!overflow, "Fixed integer multiplication overflowed")
 
