@@ -47,12 +47,13 @@ extension MoneyOf {
                 offset += 1
             }
 
-            whole.writeDigits(into: buffer, at: &offset, count: whole.digitCount)
+            whole.writeDigits(into: buffer, at: &offset, from: UInt64.powerOfTen(.init(leadingDigitOf: whole)))
 
             if places > 0 {
                 buffer[offset] = UInt8(ascii: ".")
                 offset += 1
-                fraction.writeDigits(into: buffer, at: &offset, count: places)
+                // `scale` is ten to `places`, so this writes `places` digits.
+                fraction.writeDigits(into: buffer, at: &offset, from: scale / 10)
             }
 
             return offset
@@ -71,13 +72,6 @@ extension MoneyOf {
     }
 }
 
-extension UInt64 {
-    @usableFromInline
-    package static func powerOfTen(_ exponent: Int) -> UInt64 {
-        (0 ..< exponent).reduce(into: UInt64(1)) { power, _ in power *= 10 }
-    }
-}
-
 private extension UInt64 {
     var digitCount: Int {
         var digits = 1
@@ -91,14 +85,14 @@ private extension UInt64 {
         return digits
     }
 
-    // Written most significant digit first, zero padded to `count`, so a caller composing a longer
-    // string never has to reverse or pad afterwards.
+    // Written most significant digit first, from the place `divisor` counts down to the units, so a
+    // caller composing a longer string never has to reverse or pad afterwards.
     func writeDigits(
         into buffer: UnsafeMutableBufferPointer<UInt8>,
         at offset: inout Int,
-        count: Int
+        from divisor: UInt64
     ) {
-        var divisor = UInt64.powerOfTen(count - 1)
+        var divisor = divisor
         var remaining = self
 
         while divisor > 0 {

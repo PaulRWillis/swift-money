@@ -104,14 +104,6 @@ extension UnitScale: ExpressibleByIntegerLiteral {
 public extension Int64 {
     /// Creates an integer from a unit scale: the number of smallest units per major unit.
     init(_ scale: UnitScale) {
-        self = UnitScale.scales[scale.decimalPlaces]
-    }
-}
-
-extension UnitScale {
-    // Ten to each place, 0...18, as a table: `Int64(scale)` is read on the parsing and description hot
-    // paths, so it indexes this rather than recomputing a power of ten each time.
-    fileprivate static let scales: [Int64] = (0 ... maxDecimalPlaces).map { places in
-        Int64(UInt64.powerOfTen(places))
+        self = Int64(UInt64.powerOfTen(UInt64.DecimalExponent(scale)))
     }
 }

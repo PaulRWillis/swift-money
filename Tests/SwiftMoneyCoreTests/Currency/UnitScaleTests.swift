@@ -79,6 +79,20 @@ struct UnitScaleTests {
         #expect(scale.decimalPlaces == places)
     }
 
+    @Test("Every number of decimal places gives its power of ten")
+    func everyPlaceGivesItsPowerOfTen() throws {
+        var expected: Int64 = 1
+
+        for places in 0 ... 18 {
+            let scale = try #require(UnitScale(decimalPlaces: places))
+            #expect(Int64(scale) == expected, "places \(places)")
+
+            if places < 18 {
+                expected *= 10
+            }
+        }
+    }
+
     @Test(
         "A number of decimal places outside zero to eighteen is rejected",
         arguments: [-1, 19, 100]
