@@ -238,8 +238,7 @@ extension Fixed {
     // `significand × 10^power` as raw storage, or nil if it overflows.
     private static func scaledUp(_ significand: Int128, byPowerOfTen power: Int) -> Int128? {
         // Widening a whole number shifts by exactly `fractionalDigits`, so its multiplier is the `scale`
-        // constant. Reusing it keeps the common `Fixed(someInteger)` off the `powerOfTen` loop, which
-        // every `.unrounded` would otherwise pay eighteen iterations for.
+        // constant. Reusing it keeps `Fixed(exactly:)` off the `powerOfTen` loop's eighteen iterations.
         let multiplier = power == Fixed.fractionalDigits ? Fixed.scale : Int128.powerOfTen(power)
 
         guard let multiplier else {
@@ -276,23 +275,17 @@ extension Fixed {
         return signedRounded(quotient: quotient, roundsAway: roundsAway, sign: sign)
     }
 
-    /// Creates a whole value.
-    ///
-    /// - Precondition: `value` is within the representable range. Use ``init(exactly:)`` otherwise.
-    @usableFromInline package init(_ value: some BinaryInteger) {
-        guard let fixed = Fixed(significand: Int128(value), exponent: 0) else {
-            preconditionFailure("Value is out of range for Fixed")  // coverage:ignore — exit-test trap
-        }
-
-        self = fixed
+    /// Creates a whole value. Every `Int64` is representable.
+    @usableFromInline package init(_ value: Int64) {
+        // An `Int64` times 10^18 stays below `Int128.max`, so the product cannot overflow.
+        self.init(_storage: Int128(value) &* Fixed.scale)
     }
 
     /// Creates a whole value.
     ///
     /// - Returns: `nil` if `value` is outside the representable range.
-    package init?(exactly value: some BinaryInteger) {
-        guard let significand = Int128(exactly: value),
-              let fixed = Fixed(significand: significand, exponent: 0) else {
+    package init?(exactly value: Int128) {
+        guard let fixed = Fixed(significand: value, exponent: 0) else {
             return nil
         }
 

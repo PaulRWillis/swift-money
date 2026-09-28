@@ -100,7 +100,7 @@ enum GDATestRunner {
         // Round-to-integral is where the rounding mode is the subject, so its rounding conditions are the
         // point, not a reason to skip; only trap conditions rule it out.
         if vector.operation == "tointegral" || vector.operation == "tointegralx" {
-            return roundToIntegral(vector) { fixed, rule in Fixed(Int128(fixed, rounding: rule)) }
+            return roundToIntegral(vector) { fixed, rule in Fixed(exactly: Int128(fixed, rounding: rule)) }
         }
 
         if let reason = skipReason(for: vector.conditions) { return .skipped(reason) }
@@ -149,14 +149,14 @@ enum GDATestRunner {
 
     // MARK: - Operations
 
-    private static func roundToIntegral(_ vector: Vector, _ round: (Fixed, RoundingRule) -> Fixed) -> LineOutcome {
+    private static func roundToIntegral(_ vector: Vector, _ round: (Fixed, RoundingRule) -> Fixed?) -> LineOutcome {
         guard vector.operands.count == 1 else { return .skipped(.unsupportedOperation) }
         if vector.conditions.contains(where: trapConditions.contains) { return .skipped(.expectsTrap) }
         guard let rule = roundingRule(for: vector.rounding) else { return .skipped(.unsupportedRounding) }
 
         switch (operand(vector.operands[0]), operand(vector.expected)) {
         case let (.value(a), .value(e)):
-            let result = round(a, rule)
+            guard let result = round(a, rule) else { return .skipped(.outOfRange) }
             return result == e
                 ? .passed
                 : .failed("expected \(vector.expected), got \(result) under \(vector.rounding)")
