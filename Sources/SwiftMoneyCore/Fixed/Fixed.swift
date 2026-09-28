@@ -234,8 +234,10 @@ extension Fixed {
     // `significand × 10^power` as raw storage, or nil if it overflows.
     private static func scaledUp(_ significand: Int128, byPowerOfTen power: Int) -> Int128? {
         // Widening a whole number shifts by exactly `fractionalDigits`, so its multiplier is the `scale`
-        // constant. Reusing it keeps `Fixed(exactly:)` off the `powerOfTen` loop's eighteen iterations.
-        let multiplier = power == Fixed.fractionalDigits ? Fixed.scale : Int128.powerOfTen(power)
+        // constant. Reusing it skips the table read, which measured cheaper on every string parse.
+        let multiplier = power == Fixed.fractionalDigits
+            ? Fixed.scale
+            : Int128.DecimalExponent(exactly: power).map(Int128.powerOfTen)
 
         guard let multiplier else {
             return nil
@@ -251,9 +253,11 @@ extension Fixed {
         byPowerOfTen power: Int,
         rounding: RoundingRule
     ) -> Int128? {
-        guard let divisor = Int128.powerOfTen(power) else {
+        guard let exponent = Int128.DecimalExponent(exactly: power) else {
             return nil
         }
+
+        let divisor = Int128.powerOfTen(exponent)
 
         let sign = Sign(of: significand)
         let (quotient, remainder) = significand.magnitude.quotientAndRemainder(dividingBy: divisor.magnitude)
