@@ -290,22 +290,6 @@ public extension MoneyFormat {
     // `1,234,567` and Indian `12,34,567` shapes. Without `groups`, the digits are written plain. Each digit
     // is `glyphs` or, when that is `nil`, a plain ASCII byte. Returns the offset just past the whole part.
     @inlinable
-    func writeGroupedWhole(
-        _ whole: UInt64,
-        digits: Int,
-        groups: (primary: Int, secondary: Int, separator: String)?,
-        into buffer: UnsafeMutableBufferPointer<UInt8>,
-        at offset: Int
-    ) -> Int {
-        guard let leadingDigit = UInt64.DecimalExponent(exactly: digits - 1) else {
-            preconditionFailure("A whole part has 1 to 20 digits")  // coverage:ignore — exit-test trap
-        }
-
-        return writeGroupedWhole(whole, from: leadingDigit, groups: groups, into: buffer, at: offset)
-    }
-
-    // The same, from the whole part's leading digit, which `format` has already found.
-    @inlinable
     internal func writeGroupedWhole(
         _ whole: UInt64,
         from leadingDigit: UInt64.DecimalExponent,
@@ -337,7 +321,7 @@ public extension MoneyFormat {
     // Writes one digit's value into the buffer, returning the offset just past it: a plain ASCII byte on
     // the default path, or the locale's own glyph otherwise.
     @inlinable
-    func writeDigit(
+    internal func writeDigit(
         _ value: UInt8,
         into buffer: UnsafeMutableBufferPointer<UInt8>,
         at offset: Int
@@ -353,7 +337,7 @@ public extension MoneyFormat {
 
     // Writes one Unicode scalar's UTF8 bytes into the buffer, returning the offset just past them.
     @inlinable
-    static func writeScalar(
+    internal static func writeScalar(
         _ scalar: Unicode.Scalar,
         into buffer: UnsafeMutableBufferPointer<UInt8>,
         at offset: Int
@@ -368,7 +352,7 @@ public extension MoneyFormat {
 
     // Copies a string's UTF8 bytes into the buffer, returning the offset just past them.
     @inlinable
-    static func copy(
+    internal static func copy(
         _ string: String,
         into buffer: UnsafeMutableBufferPointer<UInt8>,
         at offset: Int
@@ -381,23 +365,8 @@ public extension MoneyFormat {
         return next
     }
 
-    // The fraction, zero padded to `count` digits, most significant first, in the format's digits. Returns
-    // the offset just past.
-    @inlinable
-    func writeDigits(
-        _ value: UInt64,
-        count: Int,
-        into buffer: UnsafeMutableBufferPointer<UInt8>,
-        at offset: Int
-    ) -> Int {
-        guard let leadingDigit = UInt64.DecimalExponent(exactly: count - 1) else {
-            preconditionFailure("A fraction has 1 to 20 digits")  // coverage:ignore — exit-test trap
-        }
-
-        return writeDigits(value, from: UInt64.powerOfTen(leadingDigit), into: buffer, at: offset)
-    }
-
-    // The same, from the place `divisor` counts down to the units.
+    // The fraction, most significant digit first, from the place `divisor` counts down to the units, in
+    // the format's digits. Returns the offset just past.
     @inlinable
     internal func writeDigits(
         _ value: UInt64,
@@ -416,19 +385,6 @@ public extension MoneyFormat {
         }
 
         return next
-    }
-
-    @inlinable
-    static func digitCount(_ value: UInt64) -> Int {
-        var digits = 1
-        var remaining = value
-
-        while remaining >= 10 {
-            remaining /= 10
-            digits += 1
-        }
-
-        return digits
     }
 
     // The minor-unit count re-expressed at `showing` fraction digits: unchanged when that equals the
@@ -471,7 +427,7 @@ public extension MoneyFormat {
     // `value / divisor`, rounded to a whole quotient by `rule`. Self-contained (no wide-int helpers) so
     // it stays inlinable. `divisor` is a positive power of ten.
     @inlinable
-    static func roundedQuotient(_ value: Int64, by divisor: Int64, rule: RoundingRule) -> Int64 {
+    internal static func roundedQuotient(_ value: Int64, by divisor: Int64, rule: RoundingRule) -> Int64 {
         let quotient = value / divisor
         let remainder = value % divisor
         guard remainder != 0 else {
