@@ -211,6 +211,10 @@ jobs:
     # Both runs read the same shard selection, so head and base cover the identical locales and their
     # outputs stay comparable. A base commit whose tool predates sharding ignores these and runs the
     # whole set. A recording run stops after its own report, which is what gets recorded.
+    #
+    # Whenever this shard produced the target commit's report itself, it hands it on as
+    # reference-output.txt for the save-reference job. When it used a recorded report instead, it says
+    # so in restored.txt, and there is nothing new to save.
     - name: Run the ICU deviation report
       env:
         ICU_SHARD_INDEX: ${{ matrix.shard }}
@@ -218,12 +222,17 @@ jobs:
       run: |
         tool/head > head-output.txt
 
-        if [ "$RECORD" = true ]; then exit 0; fi
+        if [ "$RECORD" = true ]; then
+          cp head-output.txt reference-output.txt
+          exit 0
+        fi
 
         if [ "$REFERENCE_RESTORED" = true ]; then
           cp "reference/shard$ICU_SHARD_INDEX.txt" base-output.txt
+          echo true > restored.txt
         else
           tool/base > base-output.txt
+          cp base-output.txt reference-output.txt
         fi
 
     # The tool prints one deviation per line and marks everything else with `#`, so dropping those
@@ -269,17 +278,21 @@ jobs:
           status.txt
           head-output.txt
           reference-key.txt
+          reference-output.txt
+          restored.txt
         if-no-files-found: warn
         # A recording run's shards matter only until the job below gathers them.
         retention-days: ${{ env.RECORD == 'true' && 1 || 0 }}
 
-  # Gathers a recording run's shard reports into one cache entry per platform, so a pull request finds
-  # either every shard's report or none. On the platform it is for, since a cache saved on one runner OS
-  # is not promised to restore on another.
+  # Gathers every shard's report on the target commit into one cache entry per platform, so a later run
+  # finds either every shard's report or none. A run started by hand on main records it for every pull
+  # request. A pull request records it for its own later pushes, since that is as far as a pull
+  # request's cache reaches. On the platform it is for, since a cache saved on one runner OS is not
+  # promised to restore on another.
   save-reference:
-    needs: report
+    needs: [ gate, report ]
     # !cancelled(), so one platform's failed shard does not stop the other platform being recorded.
-    if: ${{ !cancelled() && github.ref == 'refs/heads/main' }}
+    if: ${{ !cancelled() && needs.gate.outputs.decision == 'run' }}
     timeout-minutes: 10
     strategy:
       fail-fast: false
@@ -295,7 +308,7 @@ jobs:
 
     # A shard uploads only after its report succeeded, so a missing upload is a failed shard. Shards on
     # different runner images compute different keys. Either way nothing is recorded, rather than a
-    # partial or mixed report.
+    # partial or mixed report. A shard that used an already recorded report has nothing new to add.
     - name: Gather the shard reports
       id: gather
       env:
@@ -303,18 +316,29 @@ jobs:
       run: |
         mkdir reference
         keys=()
+        restored=false
         for shard in $(seq 0 $((ICU_SHARD_COUNT - 1))); do
           upload="shards/icu-deviations-$OS-shard$shard"
-          if [ ! -f "$upload/head-output.txt" ] || [ ! -f "$upload/reference-key.txt" ]; then
+          if [ ! -f "$upload/reference-key.txt" ]; then
             echo "::warning::Shard $shard did not finish, so nothing is recorded for $OS."
             exit 0
           fi
-          cp "$upload/head-output.txt" "reference/shard$shard.txt"
           keys+=("$(cat "$upload/reference-key.txt")")
+
+          if [ -f "$upload/restored.txt" ]; then
+            restored=true
+          else
+            cp "$upload/reference-output.txt" "reference/shard$shard.txt"
+          fi
         done
 
         if [ "$(printf '%s\n' "${keys[@]}" | sort -u | wc -l)" -ne 1 ]; then
           echo "::warning::The shards ran on different runner images, so nothing is recorded for $OS."
+          exit 0
+        fi
+
+        if [ "$restored" = true ]; then
+          echo "This run used an already recorded report for $OS, so there is nothing new to record."
           exit 0
         fi
 
