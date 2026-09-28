@@ -14,11 +14,13 @@ on:
     # with those steps skipped, which reports the required check as passed with nothing to measure.
 
 # A newer push to the same pull request supersedes this run, so the older one is cancelled rather
-# than holding runners the newer one is queued for. Every other run gets a group of its own, so a push
-# to main is never cancelled or queued behind another.
+# than holding runners the newer one is queued for. Runs on main queue instead, one at a time, so the
+# badge is published in merge order: two at once would race to push it, and the older one finishing
+# last would fail its rebase. GitHub keeps only the newest waiting run, so the middle one of three quick
+# merges is never measured.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: write
