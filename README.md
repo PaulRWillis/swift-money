@@ -109,6 +109,7 @@ price * 3          // GBP 30.00
 
 let refund = -price
 refund.isNegative  // true
+refund.isPositive  // false
 refund.magnitude   // GBP 10.00
 ```
 
