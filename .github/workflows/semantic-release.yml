@@ -5,6 +5,14 @@ on:
   push:
     branches: [ main ]
 
+# Two pushes to main close together would otherwise release in parallel and race on the same tags
+# and notes refs. Queue them instead, and never cancel a release part-way through: a cancelled run
+# can leave a tag with no GitHub Release. GitHub keeps only the newest pending run, which is safe
+# because it releases every commit up to its own HEAD.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
 jobs:
   semantic-release:
     runs-on: ubuntu-24.04
