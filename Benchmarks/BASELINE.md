@@ -1,14 +1,16 @@
 # Performance baseline
 
-The reference the performance work is measured against (spec §16). Every change is a diff against these
-numbers, so a regression or a win is measured, not impressioned. This captures the full public API — every
-public operation a caller can run, common and edge cases — so a future regression anywhere is visible.
+The reference performance work is measured against. Every change is a diff against these numbers, so a
+regression or a win is measured, not impressioned. It covers every public `SwiftMoneyCore` operation that
+does work, common and edge cases, grouped by the type that owns it. Stored-property reads and constants
+(`currency`, `min`, `max`, `zero`, `Split.Group`'s fields, the coding-key literals) have no row of their own.
 
 **Read the instruction column.** Wall-clock is noisy (CI gates it at 20% for that reason) and malloc is
-near-zero across the arithmetic; the p50 **instruction count** is the stable signal, and it is the one no
-CI runner exposes — which is exactly why it is captured here by hand.
+near-zero across the arithmetic. The p50 **instruction count** is the stable signal, and no CI runner
+exposes it, which is why it is captured here by hand. Every row includes handing its result to the harness:
+7 instructions for an integer, 22 for a struct (see *Harness floor*).
 
-Captured on Apple Silicon (arm64, macOS 26.6), Swift 6.2.4, release build, `scalingFactor: .mega`, p50 of
+Captured on Apple Silicon (arm64, macOS 26.6), Swift 6.4, release build, `scalingFactor: .mega`, p50 of
 each metric. Reproduce with:
 
 ```sh
@@ -16,356 +18,334 @@ swift package --package-path Benchmarks --disable-sandbox --allow-writing-to-pac
     benchmark --format markdown
 ```
 
-## Where the fractional path landed
+## Where the fractional path stands
 
-Addition, subtraction, scalar-multiply and comparison are `Int64` operations at `Int` parity, far ahead of
-`Decimal`. The fractional operations carried the `Fixed`-engine regression, which the performance program
-(PRs through the `Fixed` fast path) drove back down:
+Addition, subtraction, scalar multiplication and comparison are `Int64` operations at `Int` parity, far
+ahead of `Decimal`. The fractional operations are measured against the closest peer:
 
-| Operation | start of Part II | now | FixedPointDecimal (peer) |
+| Operation | Start of Part II | Now | FixedPointDecimal (peer) |
 |---|--:|--:|--:|
-| Scale by a rate and round | 2506 | 287 | 198 |
-| Chained scaling (three rates) | 7454 | 869 | 530 |
+| Scale by a rate and round | 2506 | 238 | 179 |
+| Chained scaling (three rates) | 7454 | 717 | 473 |
 
-`FixedPointDecimal` (ordo-one, `Int64`-backed, 8 fraction digits) is the same-class yardstick; `Int128`
-(same storage width, truncating) shows the arithmetic floor beneath the renormalization (27 / 107). Scale-
-and-round is now 1.45× the peer, down from ~12×.
+## By type
 
-Known outlier: **`WeightedSplit amounts` reads ~22K instructions** — the accessor is not specialized for a
-typed currency (the same generic tax the weighted split itself had before it was made inlinable). A
-candidate for the specialization sweep.
-
-## Baselines
-
-- **Int / Int128** — what type safety costs; `Int128` is the scaling engine's own width, truncating.
-- **Double** — the fast answer that is wrong at scale.
-- **FixedPointDecimal** — the closest published peer, same benchmark harness.
-- **Decimal** — the exact answer that is slow.
-
-### Addition
+### MoneyOf (typed currency)
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
-| MoneyOf addition | 8 | 0 | 0 |
-| Int addition | 8 | 0 | 0 |
-| Int128 addition | 11 | 0 | 1 |
-| Double addition | 6 | 0 | 1 |
-| FixedPoint addition | 11 | 0 | 0 |
-| Decimal addition | 7130 | 6 | 212 |
+| Int from MoneyOf minor units | 29 | 0 | 1 |
+| MoneyOf addition | 9 | 0 | 1 |
+| MoneyOf addition in place | 9 | 0 | 1 |
+| MoneyOf addition near the maximum | 8 | 0 | 0 |
+| MoneyOf applying a rate | 57 | 0 | 2 |
+| MoneyOf comparison | 15 | 0 | 1 |
+| MoneyOf currency | 10 | 0 | 0 |
+| MoneyOf description | 430 | 0 | 14 |
+| MoneyOf description, large negative | 1638 | 1 | 69 |
+| MoneyOf equality | 7 | 0 | 1 |
+| MoneyOf hashing | 152 | 0 | 7 |
+| MoneyOf init exactly | 25 | 0 | 1 |
+| MoneyOf is multiple | 16 | 0 | 1 |
+| MoneyOf is negative | 10 | 0 | 1 |
+| MoneyOf magnitude | 30 | 0 | 1 |
+| MoneyOf negation | 29 | 0 | 1 |
+| MoneyOf parsing | 234 | 0 | 6 |
+| MoneyOf parsing a large amount | 661 | 0 | 18 |
+| MoneyOf parsing a negative amount | 211 | 0 | 5 |
+| MoneyOf proportion | 233 | 0 | 8 |
+| MoneyOf proportion of large amounts | 365 | 0 | 15 |
+| MoneyOf scalar multiplication | 14 | 0 | 1 |
+| MoneyOf scalar multiplication in place | 45 | 0 | 1 |
+| MoneyOf scalar multiplication near the maximum | 32 | 0 | 1 |
+| MoneyOf scalar multiplication, Int32 operand | 61 | 0 | 2 |
+| MoneyOf scalar multiplication, Int64 operand | 14 | 0 | 1 |
+| MoneyOf scaled and rounded | 238 | 0 | 9 |
+| MoneyOf scaled and rounded, large amount | 258 | 0 | 10 |
+| MoneyOf subtraction | 9 | 0 | 1 |
 
-### Subtraction
-
-| Operation | Instructions | Malloc | Wall (ns) |
-|---|--:|--:|--:|
-| MoneyOf subtraction | 8 | 0 | 0 |
-| Int subtraction | 8 | 0 | 0 |
-| Int128 subtraction | 11 | 0 | 1 |
-| Double subtraction | 7 | 0 | 0 |
-| FixedPoint subtraction | 11 | 0 | 0 |
-| Decimal subtraction | 7829 | 7 | 237 |
-
-### Scalar multiplication
-
-| Operation | Instructions | Malloc | Wall (ns) |
-|---|--:|--:|--:|
-| MoneyOf scalar multiplication | 12 | 0 | 1 |
-| Int scalar multiplication | 12 | 0 | 1 |
-| Int128 scalar multiplication | 23 | 0 | 1 |
-| Double scalar multiplication | 7 | 0 | 1 |
-| FixedPoint scalar multiplication | 167 | 0 | 6 |
-| Decimal scalar multiplication | 6240 | 5 | 178 |
-
-### Scale by a rate and round
-
-| Operation | Instructions | Malloc | Wall (ns) |
-|---|--:|--:|--:|
-| MoneyOf scaled and rounded | 287 | 0 | 12 |
-| Int scaled, truncating | 6 | 0 | 0 |
-| Int128 scaled, truncating | 27 | 0 | 1 |
-| Double scaled and rounded | 7 | 0 | 1 |
-| FixedPoint scaled and rounded | 198 | 0 | 8 |
-| Decimal scaled and rounded | 107K | 83 | 3203 |
-
-### Chained scaling (three rates)
+### Money (runtime currency)
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
-| MoneyOf unrounded chain | 2135 | 0 | 89 |
-| MoneyOf chain, rounding each step | 869 | 0 | 46 |
-| Int chained scaling, truncating | 23 | 0 | 1 |
-| Int128 chained scaling, truncating | 107 | 0 | 6 |
-| Double chained scaling | 12 | 0 | 1 |
-| FixedPoint chained scaling | 530 | 0 | 31 |
-| Decimal chained scaling | 55K | 41 | 1644 |
+| Money addition in place, throwing | 24 | 0 | 1 |
+| Money addition, separately built currencies | 25 | 0 | 1 |
+| Money addition, throwing | 25 | 0 | 1 |
+| Money applying a rate | 61 | 0 | 2 |
+| Money description | 420 | 0 | 14 |
+| Money equality | 20 | 0 | 1 |
+| Money hashing | 215 | 0 | 11 |
+| Money init exactly | 28 | 0 | 1 |
+| Money is less than, throwing | 20 | 0 | 1 |
+| Money is multiple, throwing | 24 | 0 | 1 |
+| Money parsing | 352 | 0 | 9 |
+| Money parsing, caller's currency | 308 | 0 | 9 |
+| Money proportion, throwing | 252 | 0 | 7 |
+| Money scalar multiplication, amount times integer | 32 | 0 | 1 |
+| Money scalar multiplication, integer times amount | 46 | 0 | 1 |
+| Money subtraction in place, throwing | 14 | 0 | 1 |
+| Money subtraction, throwing | 39 | 0 | 1 |
 
-### Unrounded (round-once) building blocks
+### MoneyOf.Unrounded (typed currency)
+
+Most rows here cost several times their `Money.Unrounded` twin. The typed operators and `.unrounded` reach generic `Fixed` entry points that are not `@inlinable`, so they run unspecialized across the module boundary.
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
-| MoneyOf unrounded scaling | 1138 | 0 | 46 |
-| MoneyOf unrounded divided | 1736 | 0 | 69 |
-| MoneyOf unrounded addition | 36 | 0 | 1 |
-| MoneyOf unrounded subtraction | 36 | 0 | 1 |
-| MoneyOf unrounded plus settled | 774 | 0 | 34 |
-| MoneyOf unrounded minus settled | 774 | 0 | 24 |
-| MoneyOf unrounded divided exactly | 1626 | 0 | 55 |
+| MoneyOf chain, rounding each step | 717 | 0 | 36 |
+| MoneyOf unrounded | 746 | 0 | 24 |
+| MoneyOf unrounded addition | 37 | 0 | 1 |
+| MoneyOf unrounded chain | 2091 | 0 | 94 |
+| MoneyOf unrounded converted | 867 | 0 | 31 |
+| MoneyOf unrounded divided | 1676 | 0 | 66 |
+| MoneyOf unrounded divided exactly | 1584 | 0 | 52 |
+| MoneyOf unrounded from major units | 2483 | 0 | 103 |
+| MoneyOf unrounded from minor units | 29 | 0 | 1 |
+| MoneyOf unrounded minus settled | 762 | 0 | 25 |
+| MoneyOf unrounded plus settled | 762 | 0 | 25 |
+| MoneyOf unrounded rounded | 231 | 0 | 9 |
+| MoneyOf unrounded scaling | 1126 | 0 | 41 |
+| MoneyOf unrounded subtraction | 37 | 0 | 1 |
+| MoneyOf unrounded times an integer | 746 | 0 | 24 |
+| MoneyOf unrounded total of 10 | 837 | 0 | 28 |
 
 ### Money.Unrounded (runtime currency)
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
-| Money unrounded scaling by a rate | 444 | 0 | 15 |
-| Money unrounded scaling by an integer | 743 | 0 | 24 |
-| Money unrounded applying a rate | 444 | 0 | 15 |
-| Money unrounded divided by an integer | 994 | 0 | 33 |
-| Money unrounded divided exactly | 1183 | 0 | 36 |
-| Money unrounded rounded | 275 | 0 | 9 |
-| Money unrounded addition, throwing | 45 | 0 | 1 |
-| Money unrounded subtraction, throwing | 45 | 0 | 1 |
-| Money unrounded plus settled, throwing | 94 | 0 | 2 |
+| Money unrounded addition, throwing | 46 | 0 | 1 |
+| Money unrounded applying a rate | 453 | 0 | 16 |
+| Money unrounded divided by an integer | 955 | 0 | 34 |
+| Money unrounded divided exactly | 1139 | 0 | 37 |
+| Money unrounded minus settled, throwing | 95 | 0 | 3 |
+| Money unrounded plus settled, throwing | 90 | 0 | 2 |
+| Money unrounded rounded | 238 | 0 | 9 |
+| Money unrounded scaling by a rate | 453 | 0 | 16 |
+| Money unrounded scaling by an integer | 751 | 0 | 25 |
+| Money unrounded subtraction, throwing | 46 | 0 | 1 |
+| Money unrounded total of 10, throwing | 171 | 0 | 5 |
 
-### Comparison
-
-| Operation | Instructions | Malloc | Wall (ns) |
-|---|--:|--:|--:|
-| MoneyOf comparison | 13 | 0 | 0 |
-| Int comparison | 13 | 0 | 0 |
-| Int128 comparison | 15 | 0 | 1 |
-| Double comparison | 13 | 0 | 0 |
-| FixedPoint comparison | 13 | 0 | 0 |
-| Decimal comparison | 3932 | 4 | 124 |
-
-### Money (runtime currency) arithmetic
+### Rate
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
-| Money addition, throwing | 25 | 0 | 1 |
-| Money addition, separately built currencies | 26 | 0 | 1 |
-| Money subtraction, throwing | 34 | 0 | 1 |
-| Money addition in place, throwing | 25 | 0 | 1 |
-| Money scalar multiplication, amount times integer | 31 | 0 | 1 |
-| Money scalar multiplication, integer times amount | 31 | 0 | 1 |
-| Money applying a rate | 68 | 0 | 2 |
-| Money is less than, throwing | 18 | 0 | 1 |
-| Money proportion, throwing | 470 | 0 | 15 |
-| Money is multiple, throwing | 20 | 0 | 1 |
+| Rate equality | 19 | 0 | 1 |
+| Rate from a decimal string | 1914 | 0 | 91 |
+| Rate from a Double | 2561 | 0 | 95 |
+| Rate from a fraction string | 1791 | 0 | 58 |
+| Rate from a large decimal string | 2042 | 0 | 68 |
+| Rate from a negative decimal string | 1990 | 0 | 95 |
+| Rate from a negative fraction string | 2091 | 0 | 69 |
+| Rate from a percent string | 2359 | 0 | 105 |
+| Rate from a string literal | 1914 | 0 | 93 |
+| Rate from basis points | 1013 | 0 | 37 |
+| Rate from percent | 1056 | 0 | 43 |
+| Rate to basis points, rounded | 266 | 0 | 8 |
+| Rate to whole basis points | 163 | 0 | 5 |
 
-### Description
-
-| Operation | Instructions | Malloc | Wall (ns) |
-|---|--:|--:|--:|
-| MoneyOf description | 445 | 0 | 12 |
-| Money description | 437 | 0 | 12 |
-| Int description | 470 | 0 | 15 |
-| Double description | 524 | 0 | 17 |
-| Decimal description | 6654 | 3 | 208 |
-| CurrencyCode description | 126 | 0 | 4 |
-
-### Parsing
+### ExchangeRate and Margin
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
-| Money parsing | 274 | 0 | 7 |
-| MoneyOf parsing | 211 | 0 | 6 |
-| MoneyOf parsing a large amount | 624 | 0 | 16 |
-| MoneyOf parsing a negative amount | 198 | 0 | 6 |
-| Int parsing | 79 | 0 | 2 |
-| Double parsing | 298 | 0 | 8 |
-| Decimal parsing | 4749 | 2 | 167 |
-
-### Decimal bridge
-
-| Operation | Instructions | Malloc | Wall (ns) |
-|---|--:|--:|--:|
-| MoneyOf from Decimal | 18K | 11 | 552 |
-| MoneyOf from a negative Decimal | 18K | 11 | 624 |
-| Money from Decimal | 18K | 11 | 553 |
-| Decimal from MoneyOf | 6338 | 5 | 188 |
-| Int from MoneyOf minor units | 27 | 0 | 1 |
-
-### Proportion
-
-| Operation | Instructions | Malloc | Wall (ns) |
-|---|--:|--:|--:|
-| MoneyOf proportion | 449 | 0 | 15 |
-| MoneyOf proportion of large amounts | 464 | 0 | 16 |
-
-### Splitting
-
-| Operation | Instructions | Malloc | Wall (ns) |
-|---|--:|--:|--:|
-| Weights construction | 778 | 1 | 23 |
-| MoneyOf split into 3 | 56 | 0 | 2 |
-| Money split into 3 | 58 | 0 | 2 |
-| MoneyOf split by weights | 4360 | 4 | 137 |
-| Money split by weights | 4375 | 4 | 140 |
-| MoneyOf split by weights that divide exactly | 3110 | 3 | 104 |
-| WeightedSplit amounts | 22K | 9 | 706 |
-| WeightedSplit weights | 22K | 9 | 706 |
-| Int quotient and remainder | 28 | 0 | 1 |
-| Double divided by 3 | 9 | 0 | 0 |
-| Decimal divided by 3 | 50K | 37 | 1545 |
-| MoneyOf split, iterating the parts | 6326 | 0 | 188 |
-| Split counting the parts | 900 | 0 | 26 |
-
-### Total
-
-| Operation | Instructions | Malloc | Wall (ns) |
-|---|--:|--:|--:|
-| MoneyOf total of 10 | 87 | 0 | 3 |
-| Money total of 10, throwing | 142 | 0 | 4 |
-| MoneyOf unrounded total of 10 | 854 | 0 | 28 |
-| Money unrounded total of 10, throwing | 160 | 0 | 5 |
-
-### Currency & code
-
-| Operation | Instructions | Malloc | Wall (ns) |
-|---|--:|--:|--:|
-| CurrencyCode validation | 244 | 0 | 8 |
-| CurrencyCode validation, eight characters | 427 | 0 | 15 |
-| ISO currency lookup | 87 | 0 | 3 |
-| Currency construction, custom | 107 | 0 | 4 |
-| UnitScale construction | 91 | 0 | 3 |
-
-### Rate construction & conversion
-
-| Operation | Instructions | Malloc | Wall (ns) |
-|---|--:|--:|--:|
-| Rate from basis points | 971 | 0 | 31 |
-| Rate from percent | 1008 | 0 | 32 |
-| Rate from a decimal string | 1800 | 0 | 56 |
-| Rate from a percent string | 2265 | 0 | 72 |
-| Rate from a fraction string | 1934 | 0 | 60 |
-| Rate from a large decimal string | 2066 | 0 | 62 |
-| Rate from a negative decimal string | 1876 | 0 | 60 |
-| Rate from a negative fraction string | 2239 | 0 | 73 |
-| Rate from a string literal | 1792 | 0 | 57 |
-| Double from a decimal string | 322 | 0 | 11 |
-| Decimal from a decimal string | 4678 | 2 | 163 |
-| Rate to whole basis points | 162 | 0 | 6 |
-| Rate to basis points, rounded | 301 | 0 | 9 |
-| Rate from a Double | 2575 | 0 | 83 |
-
-### FX
-
-| Operation | Instructions | Malloc | Wall (ns) |
-|---|--:|--:|--:|
-| MoneyOf converted | 1612 | 0 | 52 |
-| ExchangeRate crossed | 368 | 0 | 11 |
-| ExchangeRate applying a margin | 380 | 0 | 11 |
-| Margin construction | 43 | 0 | 2 |
-| Double multiplied by a rate | 9 | 0 | 1 |
-| Decimal multiplied by a rate | 13K | 10 | 392 |
+| ExchangeRate applying a margin | 382 | 0 | 11 |
+| ExchangeRate construction | 334 | 0 | 10 |
+| ExchangeRate construction, across scales | 334 | 0 | 10 |
+| ExchangeRate crossed | 370 | 0 | 11 |
+| Margin construction | 44 | 0 | 2 |
+| MoneyOf converted | 57 | 0 | 2 |
 
 ### UnitPrice
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
-| UnitPrice total for a whole quantity | 753 | 0 | 24 |
-| UnitPrice total for a fractional quantity | 397 | 0 | 12 |
-| MoneyOf unrounded from major units | 2373 | 0 | 69 |
+| UnitPrice total for a fractional quantity | 401 | 0 | 12 |
+| UnitPrice total for a whole quantity | 757 | 0 | 25 |
 
-### Value-type edge cases
-
-| Operation | Instructions | Malloc | Wall (ns) |
-|---|--:|--:|--:|
-| MoneyOf negation | 28 | 0 | 1 |
-| MoneyOf magnitude | 28 | 0 | 1 |
-| MoneyOf is multiple | 14 | 0 | 1 |
-
-### Codable / JSON
+### Currency, CurrencyCode, UnitScale, AnyCurrency
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
-| Money JSON encode | 7214 | 2 | 250 |
-| Money JSON decode | 14K | 6 | 450 |
-| Money JSON encode, two fields | 28K | 11 | 925 |
-| Money JSON decode, two fields | 52K | 29 | 1723 |
-| Money JSON encode, major units | 10K | 3 | 350 |
-| MoneyOf JSON encode, amount only | 9719 | 3 | 347 |
-| Control JSON encode | 5948 | 2 | 207 |
-| Control JSON decode | 8417 | 6 | 282 |
-| Decimal JSON encode | 11K | 5 | 361 |
-| Decimal JSON decode | 12K | 8 | 388 |
-| Money encode, no coder | 1285 | 0 | 42 |
-| Money encode, no coder, two fields | 4312 | 1 | 132 |
+| AnyCurrency storage for a custom field | 107 | 0 | 4 |
+| Currency construction, custom | 109 | 0 | 4 |
+| Currency description | 155 | 0 | 6 |
+| Currency equality | 26 | 0 | 1 |
+| CurrencyCode description | 177 | 0 | 7 |
+| CurrencyCode equality | 21 | 0 | 1 |
+| CurrencyCode validation | 268 | 0 | 10 |
+| CurrencyCode validation, eight characters | 490 | 0 | 17 |
+| CurrencyCode validation, lowercase | 266 | 0 | 8 |
+| ISO currency lookup | 87 | 0 | 3 |
+| UnitScale construction | 68 | 0 | 3 |
+| UnitScale from decimal places | 27 | 0 | 1 |
 
-### Binary serializer
+### Splitting: Split, WeightedSplit, Weights, PartCount, Weight
 
-Fixed fifteen bytes, no coder and no `String`, so it runs allocation-free and orders of magnitude below
-every JSON row. The typed decode only checks the code and scale against the type's own; the runtime decode
-rebuilds the currency, which is the table check it pays for. The `Unrounded` rows are the 23-byte peer;
-`unroundedBytes` costs more because it widens a settled amount by 10^18 before encoding.
+`Split.amounts` iterates through members that are `@usableFromInline` but not `@inlinable`, so every element is an unspecialized cross-module call: ~470 instructions a part.
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
-| MoneyOf bytes encode | 403 | 0 | 11 |
+| Money split by weights | 4020 | 4 | 133 |
+| Money split into 3 | 62 | 0 | 2 |
+| MoneyOf split by 10 weights | 5683 | 4 | 185 |
+| MoneyOf split by weights | 4010 | 4 | 140 |
+| MoneyOf split by weights that divide exactly | 3037 | 3 | 94 |
+| MoneyOf split into 1000, materialized | 472K | 1 | 14000 |
+| MoneyOf split into 3 | 58 | 0 | 2 |
+| MoneyOf split, iterating the parts | 3005 | 0 | 84 |
+| PartCount construction | 25 | 0 | 1 |
+| Split counting the parts | 13 | 0 | 1 |
+| Weight construction | 25 | 0 | 1 |
+| WeightedSplit amounts | 944 | 1 | 29 |
+| WeightedSplit count | 15 | 0 | 1 |
+| WeightedSplit weights | 944 | 1 | 29 |
+| Weights construction | 777 | 1 | 22 |
+
+### Sequence.total
+
+| Operation | Instructions | Malloc | Wall (ns) |
+|---|--:|--:|--:|
+| Money total of 10, throwing | 149 | 0 | 4 |
+| MoneyOf total of 10 | 86 | 0 | 5 |
+| MoneyOf total of 1000 | 6027 | 0 | 232 |
+
+### Serialization: bytes, Codable, MoneyCodingFormat
+
+The JSON rows are mostly Foundation's coder; the `Control` peer (a plain `Int64` in the same coder) is the floor. The byte serializer is fifteen bytes, allocation-free.
+
+| Operation | Instructions | Malloc | Wall (ns) |
+|---|--:|--:|--:|
+| Money bytes decode | 212 | 0 | 5 |
+| Money bytes encode | 255 | 0 | 10 |
+| Money encode, no coder | 796 | 0 | 32 |
+| Money encode, no coder, two fields | 4691 | 1 | 152 |
+| Money JSON decode | 14K | 6 | 464 |
+| Money JSON decode, two fields | 54K | 29 | 1958 |
+| Money JSON encode | 6712 | 2 | 242 |
+| Money JSON encode, major units | 9595 | 3 | 366 |
+| Money JSON encode, two fields | 28K | 11 | 1002 |
+| Money Unrounded bytes decode | 228 | 0 | 6 |
+| MoneyCodingFormat custom fields | 4421 | 2 | 157 |
 | MoneyOf bytes decode | 174 | 0 | 5 |
-| Money bytes decode | 219 | 0 | 6 |
-| MoneyOf Unrounded bytes encode | 627 | 0 | 16 |
-| MoneyOf Unrounded bytes decode | 197 | 0 | 5 |
-| Money Unrounded bytes decode | 241 | 0 | 6 |
-| MoneyOf unroundedBytes | 1376 | 0 | 40 |
+| MoneyOf bytes encode | 266 | 0 | 10 |
+| MoneyOf bytes encode, extremes | 266 | 0 | 9 |
+| MoneyOf JSON decode, amount only | 19K | 12 | 686 |
+| MoneyOf JSON encode, amount only | 10K | 3 | 353 |
+| MoneyOf Unrounded bytes decode | 190 | 0 | 5 |
+| MoneyOf Unrounded bytes encode | 511 | 0 | 17 |
+| MoneyOf unroundedBytes | 1233 | 0 | 38 |
 
-### Currency formatting, option by option
+### MoneyFormat (Core engine)
 
-Recaptured on Swift 6.4, so these rows are not comparable with the Swift 6.2.4 numbers elsewhere in this
-document; the ratios within the section are, every row here having been measured in one run.
-
-Each row's name ends in the path it takes. **`[engine]`** renders through the Foundation-free engine with
-no ICU at all. **`[ICU fallback]`** is this library handing the work to Foundation, which happens for any
-explicit precision, any rounding increment, a sign strategy outside the four Foundation names, or a
-locale the CLDR data does not cover — the rule is `engineRenderInputs` in `MoneyOf+FormatStyle.swift`.
-**`[ICU]`** is Foundation's own `Decimal.FormatStyle.Currency`, the peer each option is measured against
-with the same setting applied to both sides.
-
-Two things stand out. Where the engine renders, it is roughly 2.3× to 4.7× cheaper than Foundation and,
-since the packed tables landed, allocates nothing at all against ten to twenty times. A fixed fraction
-length now renders in the engine too, so `precision 2dp` costs what the default does (8913 against 8596)
-rather than the ~32K it cost when it fell back. What still falls back — a rounding increment,
-significant-digit or range precision, a full name at an explicit precision, or an uncovered locale — is
-about 1.4× **dearer** than calling Foundation directly, because it rebuilds the underlying style and
-converts the amount on every call.
-
-| Operation | Instructions | Malloc | Wall (ns) | Foundation | Malloc | Wall (ns) |
-|---|--:|--:|--:|--:|--:|--:|
-| Default `[engine]` | 8596 | 0 | 317 | 22K | 10 | 789 |
-| Default, runtime currency `[engine]` | 8577 | 0 | 316 | 22K | 10 | 789 |
-| ISO code `[engine]` | 8713 | 0 | 328 | 23K | 10 | 804 |
-| Narrow symbol `[engine]` | 8651 | 0 | 323 | 23K | 10 | 803 |
-| Full name `[engine]` | 13K | 1 | 466 | 25K | 11 | 859 |
-| Sign, never `[engine]` | 8640 | 0 | 336 | 25K | 11 | 874 |
-| Sign, always `[engine]` | 8750 | 0 | 337 | 25K | 11 | 866 |
-| Sign, accounting `[engine]` | 8898 | 0 | 346 | 26K | 12 | 897 |
-| Grouping, never `[engine]` | 8800 | 0 | 339 | 41K | 21 | 1373 |
-| Decimal separator, always `[engine]` | 8596 | 0 | 317 | 24K | 11 | 840 |
-| Precision, 2dp `[engine]` | 8913 | 0 | 349 | 22K | 10 | 804 |
-| Precision, 1dp `[engine]` | 8857 | 0 | 345 | 22K | 10 | 797 |
-| Precision 1dp and accounting `[engine]` | 9183 | 0 | 343 | 25K | 12 | 900 |
-| Every option `[engine]` | 9292 | 0 | 346 | 21K | 10 | 732 |
-| Rounding increment `[ICU fallback]` | 36K | 18 | 1264 | n/a | n/a | n/a |
-| Attributed `[engine]` | 206K | 59 | 8915 | 146K | 39 | 5793 |
-| Parse `[ICU]` | 46K | 19 | 1622 | 25K | 8 | 888 |
-| Parse, runtime currency `[ICU]` | 45K | 19 | 1597 | 25K | 8 | 888 |
-
-The rounding increment has no Foundation column: Foundation counts an increment in whole units where this
-library counts the currency's smallest, and beside a pinned fraction length Foundation ignores the
-increment and drops the currency symbol, so there is nothing equivalent to measure.
-
-Rendering an `AttributedString` is the one output that is dearer than ICU's, because it builds the string
-run by run. It exists for consistency with `format(_:)` rather than for speed.
-
-### Non-ICU formatter engine (§15)
-
-The Foundation-free engine measured directly, rendering with a prebuilt descriptor. Allocation-free and
-~19× below ICU; grouping adds the per-separator work. `MoneyOf.FormatStyle` renders through this engine
-for a covered locale (the rows above), building the descriptor from the packed CLDR tables on each call,
-which is the whole of the gap between 1159 and 8531.
+The engine alone, rendering with a prebuilt descriptor. The `MoneyOf format` rows under *Outside Core* add building that descriptor from the packed CLDR tables on every call.
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
-| Engine format, default, en_GB `[engine]` | 1159 | 0 | 33 |
-| Engine format, grouped, en_GB `[engine]` | 1640 | 0 | 50 |
+| Engine format, accounting, en_GB [engine] | 2300 | 0 | 74 |
+| Engine format, default, en_GB [engine] | 2231 | 0 | 74 |
+| Engine format, grouped, en_GB [engine] | 2701 | 0 | 98 |
+| Engine format, precision 1dp, en_GB [engine] | 2137 | 0 | 77 |
+| FractionLength construction | 27 | 0 | 1 |
+
+### Peer baselines
+
+`Int`/`Int128` show what type safety costs, `Double` is the fast answer that is wrong at scale, `FixedPointDecimal` is the closest published peer, and `Decimal` is the exact answer that is slow. `Control` is a plain `Int64` through the same JSON coder.
+
+| Operation | Instructions | Malloc | Wall (ns) |
+|---|--:|--:|--:|
+| Control JSON decode | 8393 | 6 | 293 |
+| Control JSON encode | 5947 | 2 | 209 |
+| Decimal addition | 7127 | 6 | 219 |
+| Decimal chained scaling | 55K | 41 | 1705 |
+| Decimal comparison | 3933 | 4 | 123 |
+| Decimal description | 6654 | 3 | 214 |
+| Decimal divided by 3 | 50K | 37 | 1577 |
+| Decimal from a decimal string | 4667 | 2 | 172 |
+| Decimal JSON decode | 12K | 8 | 401 |
+| Decimal JSON encode | 11K | 5 | 372 |
+| Decimal multiplied by a rate | 13K | 10 | 411 |
+| Decimal parsing | 4740 | 2 | 172 |
+| Decimal scalar multiplication | 6241 | 5 | 189 |
+| Decimal scaled and rounded | 107K | 83 | 3451 |
+| Decimal subtraction | 7826 | 7 | 241 |
+| Double addition | 6 | 0 | 0 |
+| Double chained scaling | 12 | 0 | 1 |
+| Double comparison | 15 | 0 | 1 |
+| Double description | 526 | 0 | 16 |
+| Double divided by 3 | 9 | 0 | 0 |
+| Double from a decimal string | 292 | 0 | 10 |
+| Double multiplied by a rate | 9 | 0 | 1 |
+| Double parsing | 270 | 0 | 8 |
+| Double scalar multiplication | 7 | 0 | 1 |
+| Double scaled and rounded | 7 | 0 | 1 |
+| Double subtraction | 8 | 0 | 1 |
+| FixedPoint addition | 13 | 0 | 1 |
+| FixedPoint chained scaling | 473 | 0 | 31 |
+| FixedPoint comparison | 15 | 0 | 1 |
+| FixedPoint scalar multiplication | 150 | 0 | 5 |
+| FixedPoint scaled and rounded | 179 | 0 | 8 |
+| FixedPoint subtraction | 13 | 0 | 1 |
+| Int addition | 9 | 0 | 1 |
+| Int chained scaling, truncating | 23 | 0 | 1 |
+| Int comparison | 15 | 0 | 1 |
+| Int description | 470 | 0 | 16 |
+| Int hashing | 152 | 0 | 7 |
+| Int parsing | 91 | 0 | 3 |
+| Int quotient and remainder | 28 | 0 | 1 |
+| Int scalar multiplication | 14 | 0 | 1 |
+| Int scaled, truncating | 6 | 0 | 0 |
+| Int subtraction | 9 | 0 | 1 |
+| Int128 addition | 12 | 0 | 1 |
+| Int128 chained scaling, truncating | 108 | 0 | 7 |
+| Int128 comparison | 17 | 0 | 1 |
+| Int128 scalar multiplication | 29 | 0 | 1 |
+| Int128 scaled, truncating | 27 | 0 | 1 |
+| Int128 subtraction | 12 | 0 | 1 |
+
+### Outside Core: Foundation and Localization
+
+Not `SwiftMoneyCore`, kept so the whole run is in one place. `[engine]` renders without ICU, `[ICU fallback]` hands the work to Foundation, `[ICU]` is Foundation's own style.
+
+| Operation | Instructions | Malloc | Wall (ns) |
+|---|--:|--:|--:|
+| Decimal attributed, default, en_GB [ICU] | 146K | 39 | 5946 |
+| Decimal format, default, en_GB [ICU] | 22K | 10 | 778 |
+| Decimal format, every option, en_GB [ICU] | 21K | 10 | 727 |
+| Decimal format, full name, en_GB [ICU] | 25K | 11 | 860 |
+| Decimal format, grouping never, en_GB [ICU] | 41K | 21 | 1361 |
+| Decimal format, ISO code, en_GB [ICU] | 23K | 10 | 823 |
+| Decimal format, narrow, en_GB [ICU] | 23K | 10 | 797 |
+| Decimal format, precision 1dp and accounting, en_GB [ICU] | 25K | 12 | 887 |
+| Decimal format, precision 1dp, en_GB [ICU] | 22K | 10 | 788 |
+| Decimal format, precision 2dp, en_GB [ICU] | 23K | 10 | 804 |
+| Decimal format, separator always, en_GB [ICU] | 24K | 11 | 846 |
+| Decimal format, sign accounting, en_GB [ICU] | 26K | 12 | 918 |
+| Decimal format, sign always, en_GB [ICU] | 25K | 11 | 908 |
+| Decimal format, sign never, en_GB [ICU] | 25K | 11 | 860 |
+| Decimal from MoneyOf | 6315 | 5 | 195 |
+| Decimal parse, en_GB [ICU] | 25K | 8 | 888 |
+| Money format, default, en_GB [engine] | 15K | 0 | 567 |
+| Money from Decimal | 18K | 11 | 569 |
+| Money parse, en_GB [ICU] | 45K | 19 | 1600 |
+| MoneyLocalization moneyFormat, en_GB | 8086 | 0 | 340 |
+| MoneyLocalization moneyFormat, ISO code, en_GB | 8357 | 0 | 340 |
+| MoneyOf attributed, default, en_GB [engine] | 214K | 59 | 9400 |
+| MoneyOf format, default, en_GB [engine] | 15K | 0 | 595 |
+| MoneyOf format, every option, en_GB [engine] | 16K | 0 | 610 |
+| MoneyOf format, full name, en_GB [engine] | 19K | 1 | 686 |
+| MoneyOf format, grouping never, en_GB [engine] | 16K | 0 | 582 |
+| MoneyOf format, increment, en_GB [ICU fallback] | 36K | 18 | 1266 |
+| MoneyOf format, ISO code, en_GB [engine] | 16K | 0 | 585 |
+| MoneyOf format, narrow, en_GB [engine] | 15K | 0 | 580 |
+| MoneyOf format, precision 1dp and accounting, en_GB [engine] | 16K | 0 | 653 |
+| MoneyOf format, precision 1dp, en_GB [engine] | 15K | 0 | 595 |
+| MoneyOf format, precision 2dp, en_GB [engine] | 16K | 0 | 619 |
+| MoneyOf format, separator always, en_GB [engine] | 16K | 0 | 590 |
+| MoneyOf format, sign accounting, en_GB [engine] | 16K | 0 | 610 |
+| MoneyOf format, sign always, en_GB [engine] | 15K | 0 | 578 |
+| MoneyOf format, sign never, en_GB [engine] | 15K | 0 | 577 |
+| MoneyOf from a negative Decimal | 19K | 11 | 586 |
+| MoneyOf from Decimal | 18K | 11 | 581 |
+| MoneyOf parse, en_GB [ICU] | 46K | 19 | 1669 |
 
 ### Harness floor
 
