@@ -13,24 +13,40 @@ public extension Rate {
     /// A rate equal to `p` percent, so `Rate.percent(50)` is one half.
     ///
     /// - Precondition: `p` is within the representable range; any realistic percentage is.
-    static func percent(_ p: some BinaryInteger) -> Rate {
-        guard let significand = Int128(exactly: p),
-              let fixed = Fixed(significand: significand, exponent: -percentFractionDigits) else {
+    @inlinable static func percent(_ p: some BinaryInteger) -> Rate {
+        guard let significand = Int128(exactly: p), let rate = Rate(percentSignificand: significand) else {
             preconditionFailure("Rate.percent(\(p)) is out of range")  // coverage:ignore — exit-test trap
         }
-        return Rate(fixed)
+        return rate
     }
 
     /// A rate equal to `bp` basis points — one basis point is a hundredth of one percent, so
     /// `Rate.basisPoints(5000)` is one half.
     ///
     /// - Precondition: `bp` is within the representable range; any realistic rate is.
-    static func basisPoints(_ bp: some BinaryInteger) -> Rate {
-        guard let significand = Int128(exactly: bp),
-              let fixed = Fixed(significand: significand, exponent: -basisPointFractionDigits) else {
+    @inlinable static func basisPoints(_ bp: some BinaryInteger) -> Rate {
+        guard let significand = Int128(exactly: bp), let rate = Rate(basisPointSignificand: significand) else {
             preconditionFailure("Rate.basisPoints(\(bp)) is out of range")  // coverage:ignore — exit-test trap
         }
-        return Rate(fixed)
+        return rate
+    }
+}
+
+extension Rate {
+    // `significand` percent, or `nil` if out of range.
+    @usableFromInline init?(percentSignificand significand: Int128) {
+        guard let fixed = Fixed(significand: significand, exponent: -Rate.percentFractionDigits) else {
+            return nil
+        }
+        self.init(fixed)
+    }
+
+    // `significand` basis points, or `nil` if out of range.
+    @usableFromInline init?(basisPointSignificand significand: Int128) {
+        guard let fixed = Fixed(significand: significand, exponent: -Rate.basisPointFractionDigits) else {
+            return nil
+        }
+        self.init(fixed)
     }
 }
 
