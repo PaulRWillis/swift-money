@@ -2252,4 +2252,6 @@ let benchmarks: @Sendable () -> Void = {
             index &+= 1
         }
     }
+
+    coreCoverageBenchmarks(configuration: defaultConfiguration)
 }
