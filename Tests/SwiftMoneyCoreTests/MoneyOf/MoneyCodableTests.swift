@@ -135,12 +135,85 @@ struct MoneyCodableTests {
         #expect(throws: DecodingError.self) { try decoded(GBP.self, from: text) }
     }
 
-    @Test("What the encoder was told to write does not narrow what the decoder reads")
-    func readsEitherSpellingWhateverIsConfigured() throws {
-        let major = MoneyCodingFormat.codedString(.majorUnits)
+    @Test(
+        "A coded string's digits without a point count the format's units, and a point always means major",
+        arguments: [
+            // Go's decimal library pads every amount, the legacy client drops the point from a whole
+            // one, and this library writes smallest units unless told otherwise.
+            ("\"GBP 4.99\"", nil, 4_99),
+            ("\"GBP 15\"", nil, 15),
+            ("\"GBP 499\"", nil, 4_99),
+            ("\"GBP 4.99\"", .codedString, 4_99),
+            ("\"GBP 15\"", .codedString, 15),
+            ("\"GBP 499\"", .codedString, 4_99),
+            ("\"GBP 4.99\"", .codedString(.majorUnits), 4_99),
+            ("\"GBP 15\"", .codedString(.majorUnits), 15_00),
+            ("\"GBP 15.00\"", .codedString(.majorUnits), 15_00),
+            // Data an app wrote before it switched to major units. Nothing in "GBP 499" says which
+            // units it counts, so it reads as the format now says.
+            ("\"GBP 499\"", .codedString(.majorUnits), 499_00),
+        ] as [(String, MoneyCodingFormat?, Int64)]
+    )
+    func readsACodedStringInTheUnitsConfigured(
+        _ text: String,
+        _ format: MoneyCodingFormat?,
+        _ expected: Int64
+    ) throws {
+        #expect(try decoded(GBP.self, from: text, format) == GBP(minorUnits: expected))
+        #expect(try decoded(Money.self, from: text, format) == Money(minorUnits: expected, currency: .gbp))
+    }
 
-        #expect(try decoded(GBP.self, from: "\"GBP 499\"", major) == GBP(minorUnits: 4_99))
-        #expect(try decoded(GBP.self, from: "\"GBP 4.99\"", .codedString) == GBP(minorUnits: 4_99))
+    @Test(
+        "A string amount counts the format's units where it has no point",
+        arguments: [
+            (#"{"currency":"GBP","amount":"15"}"#, .fields(amount: .string(.majorUnits)), 15_00),
+            (#"{"currency":"GBP","amount":"15.00"}"#, .fields(amount: .string(.majorUnits)), 15_00),
+            (#"{"currency":"GBP","amount":"1500"}"#, .fields(amount: .string(.minorUnits)), 15_00),
+            (#"{"currency":"GBP","amount":"4.99"}"#, .fields(amount: .string(.minorUnits)), 4_99),
+            // A point means major units whatever the format names, so a producer writing smallest
+            // units with a fraction is read a hundredfold high. No known producer does.
+            (#"{"currency":"GBP","amount":"400.00"}"#, .fields(amount: .string(.minorUnits)), 400_00),
+            ("\"15\"", .amountOnly(.string(.majorUnits)), 15_00),
+            ("\"15\"", .amountOnly(.string(.minorUnits)), 15),
+        ] as [(String, MoneyCodingFormat, Int64)]
+    )
+    func readsAStringAmountInTheUnitsConfigured(
+        _ text: String,
+        _ format: MoneyCodingFormat,
+        _ expected: Int64
+    ) throws {
+        #expect(try decoded(GBP.self, from: text, format) == GBP(minorUnits: expected))
+    }
+
+    @Test("A string amount finer than the currency divides is refused, whichever units are named")
+    func refusesAStringAmountTooPrecise() {
+        let major = MoneyCodingFormat.fields(amount: .string(.majorUnits))
+
+        #expect(throws: DecodingError.self) {
+            try decoded(GBP.self, from: #"{"currency":"GBP","amount":"15.001"}"#, major)
+        }
+    }
+
+    @Test("Whole major units too large for the range once scaled are refused rather than wrapped")
+    func refusesMajorUnitsPastTheRange() {
+        #expect(throws: DecodingError.self) {
+            try decoded(GBP.self, from: "\"GBP 92233720368547759\"", .codedString(.majorUnits))
+        }
+    }
+
+    @Test("One decoder reads every amount in a model in the units it names")
+    func readsAModelInTheUnitsConfigured() throws {
+        struct Invoice: Decodable, Equatable {
+            let price: GBP
+            let total: Money
+            let fee: Money
+        }
+
+        let payload = #"{"price":"15","total":"GBP 15","fee":{"currency":"GBP","amount":"15"}}"#
+        let invoice = try decoded(Invoice.self, from: payload, .fields(amount: .string(.majorUnits)))
+        let fifteenPounds = Money(minorUnits: 15_00, currency: .gbp)
+
+        #expect(invoice == Invoice(price: GBP(minorUnits: 15_00), total: fifteenPounds, fee: fifteenPounds))
     }
 
     @Test("Two fields are written under the keys the format names")
@@ -264,26 +337,6 @@ struct MoneyCodableTests {
         #expect(message.contains("Expected GBP"))
     }
 
-    @Test("Both shapes round trip both money types, whichever is configured")
-    func roundTripsEveryShape() throws {
-        let formats: [MoneyCodingFormat] = [
-            .codedString,
-            .codedString(.majorUnits),
-            .fields,
-            .fields(amount: .string(.minorUnits)),
-            .fields(amount: .string(.majorUnits)),
-            try .fields(currencyKey: "ccy", amountKey: "value"),
-        ]
-
-        for format in formats {
-            let typed = GBP(minorUnits: -4_99)
-            let runtime = Money(minorUnits: 1, currency: .kwd)
-
-            #expect(try decoder(format).decode(GBP.self, from: encoder(format).encode(typed)) == typed)
-            #expect(try decoder(format).decode(Money.self, from: encoder(format).encode(runtime)) == runtime)
-        }
-    }
-
     @Test("An amount alone is written as named, and carries no currency")
     func encodesAsAnAmountAlone() throws {
         let price = GBP(minorUnits: 4_99)
@@ -341,21 +394,6 @@ struct MoneyCodableTests {
         #expect(!message.contains("hold exactly"))
     }
 
-    @Test("An amount alone round trips both spellings")
-    func roundTripsAnAmountAlone() throws {
-        let formats: [MoneyCodingFormat] = [
-            .amountOnly,
-            .amountOnly(.string(.minorUnits)),
-            .amountOnly(.string(.majorUnits)),
-        ]
-
-        for format in formats {
-            let typed = GBP(minorUnits: -4_99)
-
-            #expect(try decoder(format).decode(GBP.self, from: encoder(format).encode(typed)) == typed)
-        }
-    }
-
     @Test("A number counts the units the format names, never the units it happens to be written in")
     func readsANumberInTheUnitsConfigured() throws {
         let minor = MoneyCodingFormat.amountOnly
@@ -374,12 +412,12 @@ struct MoneyCodableTests {
         #expect(try decoded(GBP.self, from: "400.00", major) == GBP(minorUnits: 400_00))
     }
 
-    @Test("A string says its own units, whatever the format names")
-    func readsAStringInItsOwnUnits() throws {
+    @Test("A string counts the format's units whichever form the format names for writing")
+    func readsAStringInTheFormatsUnits() throws {
         let major = MoneyCodingFormat.amountOnly(.number(.majorUnits))
 
         #expect(try decoded(GBP.self, from: "\"4.00\"", major) == GBP(minorUnits: 4_00))
-        #expect(try decoded(GBP.self, from: "\"400\"", major) == GBP(minorUnits: 400))
+        #expect(try decoded(GBP.self, from: "\"400\"", major) == GBP(minorUnits: 400_00))
     }
 
     @Test("A fraction is refused where the number counts smallest units, and taken where it counts major")
@@ -500,24 +538,22 @@ struct MoneyCodableTests {
         #expect(swept.map(\.refused).reduce(0, +) > 0)
     }
 
-    @Test("Every amount this library writes, it reads back")
-    func roundTrips() throws {
-        let amounts: [Money] = [
-            Money(minorUnits: 4_99, currency: .gbp),
-            Money(minorUnits: -4_99, currency: .gbp),
-            Money(minorUnits: 0, currency: .gbp),
-            Money(minorUnits: 499, currency: .jpy),
-            Money(minorUnits: 1, currency: .kwd),
-            Money(minorUnits: Int64.max, currency: .gbp),
-            Money(minorUnits: Int64.min, currency: .gbp),
-        ]
-
-        for format in [MoneyCodingFormat.codedString, .codedString(.majorUnits)] {
-            for amount in amounts {
-                let encoded = try encoder(format).encode(amount)
-
-                #expect(try decoder(format).decode(Money.self, from: encoded) == amount)
+    @Test(
+        "Every format reads back every amount it writes, at every scale",
+        arguments: [0, 1, -1, 99, -99, 100, -100, 123_456_789, -123_456_789,
+                    exactNumberBound - 1, exactNumberBound, Int64.max, Int64.min] as [Int64]
+    )
+    func roundTripsEveryFormat(_ minorUnits: Int64) throws {
+        for format in try formatsNamingTheCurrency() where crosses(minorUnits, format) {
+            for currency in [Currency.gbp, .jpy, .kwd] {
+                #expect(try readsBack(Money(minorUnits: minorUnits, currency: currency), format))
             }
+
+            try expectTypedAmountsReadBack(minorUnits, format)
+        }
+
+        for format in formatsLeavingOutTheCurrency where crosses(minorUnits, format) {
+            try expectTypedAmountsReadBack(minorUnits, format)
         }
     }
 
@@ -605,6 +641,52 @@ private func sweepingNumbers<C: CurrencyType>(_ type: MoneyOf<C>.Type) -> (cross
     outcomes.compactMap { $0 }.forEach { #expect($0) }
 
     return (outcomes.compactMap { $0 }.count, outcomes.filter { $0 == nil }.count)
+}
+
+// Every format that writes the currency too, so either money type can read it back.
+private func formatsNamingTheCurrency() throws -> [MoneyCodingFormat] {
+    [
+        .codedString,
+        .codedString(.majorUnits),
+        .fields,
+        .fields(amount: .number(.majorUnits)),
+        .fields(amount: .string(.minorUnits)),
+        .fields(amount: .string(.majorUnits)),
+        try .fields(currencyKey: "ccy", amountKey: "value", amount: .string(.majorUnits)),
+    ]
+}
+
+private let formatsLeavingOutTheCurrency: [MoneyCodingFormat] = [
+    .amountOnly,
+    .amountOnly(.number(.majorUnits)),
+    .amountOnly(.string(.minorUnits)),
+    .amountOnly(.string(.majorUnits)),
+]
+
+// Past this, a scale finer than sterling's needs more digits than a `Double`'s shortest text carries,
+// and the amount is refused rather than misread. `neverReadsBackADifferentAmount` sweeps that edge;
+// the round trip above keeps to amounts every scale carries.
+private let ordinaryNumberBound: UInt64 = 1_000_000_000
+
+// Whether an amount crosses in a format at all: a major units number carries ordinary amounts only.
+private func crosses(_ minorUnits: Int64, _ format: MoneyCodingFormat) -> Bool {
+    let majorUnitsNumbers: [MoneyCodingFormat] = [
+        .fields(amount: .number(.majorUnits)),
+        .amountOnly(.number(.majorUnits)),
+    ]
+
+    return !majorUnitsNumbers.contains(format) || minorUnits.magnitude < ordinaryNumberBound
+}
+
+private func expectTypedAmountsReadBack(_ minorUnits: Int64, _ format: MoneyCodingFormat) throws {
+    #expect(try readsBack(GBP(minorUnits: minorUnits), format))
+    #expect(try readsBack(JPY(minorUnits: minorUnits), format))
+    #expect(try readsBack(MoneyOf<Mills>(minorUnits: minorUnits), format))
+    #expect(try readsBack(MoneyOf<Bitcoin>(minorUnits: minorUnits), format))
+}
+
+private func readsBack<C>(_ amount: MoneyOf<C>, _ format: MoneyCodingFormat) throws -> Bool {
+    try decoder(format).decode(MoneyOf<C>.self, from: encoder(format).encode(amount)) == amount
 }
 
 private func encodingRefusalMessage(_ encode: () throws -> Data) throws -> String {

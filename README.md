@@ -261,7 +261,16 @@ try encoder.encode(price)   // {"currency":"GBP","amount":499}
 
 Decoding accepts every default shape the library writes, and the payload itself decides which
 arrived. Two choices must also be set on the decoder, because the payload cannot carry them:
-custom field keys, and major units written as bare numbers.
+custom field keys, and the units that digits without a `.` count. A `.` always means major units.
+
+```swift
+let decoder = JSONDecoder()
+decoder.moneyCodingFormat = .codedString(.majorUnits)
+
+try decoder.decode(GBP.self, from: Data(#""GBP 15""#.utf8))   // £15.00, rather than 15p
+```
+
+`GBP(string: "15", units: .majorUnits)` does the same outside `Codable`.
 
 ## Decimal interop
 

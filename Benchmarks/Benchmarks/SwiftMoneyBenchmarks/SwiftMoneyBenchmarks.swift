@@ -803,6 +803,27 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    // Whole major units without a point, the one branch that scales digits with no point in them.
+    let codedMinorUnitStrings = minorUnitStrings.map { "GBP \($0)" }
+
+    Benchmark("Money parsing, whole major units", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Money(string: codedMinorUnitStrings[index % codedMinorUnitStrings.count], units: .majorUnits) != nil)
+            index &+= 1
+        }
+    }
+
+    Benchmark("MoneyOf parsing, whole major units", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(GBP(string: minorUnitStrings[index % minorUnitStrings.count], units: .majorUnits) != nil)
+            index &+= 1
+        }
+    }
+
     Benchmark("Int parsing", configuration: defaultConfiguration) { benchmark in
         var index = 0
 
@@ -1681,6 +1702,22 @@ let benchmarks: @Sendable () -> Void = {
 
         for _ in benchmark.scaledIterations {
             blackHole(try jsonDecoder.decode(GBP.self, from: codedStringPayloads[index % codedStringPayloads.count]))
+            index &+= 1
+        }
+    }
+
+    // The same payloads, read as whole pounds: the one branch that scales digits with no point. It
+    // runs about 3K above `Money JSON decode` because any format set at all costs that, read back out
+    // of `userInfo`; setting plain `.codedString` costs the same.
+    let majorUnitsDecoder = JSONDecoder()
+
+    majorUnitsDecoder.userInfo[.moneyCodingFormat] = MoneyCodingFormat.codedString(.majorUnits)
+
+    Benchmark("Money JSON decode, whole major units", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(try majorUnitsDecoder.decode(GBP.self, from: codedStringPayloads[index % codedStringPayloads.count]))
             index &+= 1
         }
     }

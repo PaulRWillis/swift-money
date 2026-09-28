@@ -33,4 +33,13 @@ struct JSONDecoderMoneyCodingFormatTests {
 
         #expect(try decoder.decode(GBP.self, from: payload) == GBP(minorUnits: 4_99))
     }
+
+    @Test("A set format's units decide what a string's digits without a point count")
+    func decodesStringsInTheSetUnits() throws {
+        let decoder = JSONDecoder()
+
+        decoder.moneyCodingFormat = .codedString(.majorUnits)
+
+        #expect(try decoder.decode(Money.self, from: Data(#""GBP 15""#.utf8)) == Money(minorUnits: 15_00, currency: .gbp))
+    }
 }

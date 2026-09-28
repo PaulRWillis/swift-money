@@ -96,21 +96,26 @@ extension MoneyOf: Codable {
     /// The payload's own shape decides, so no format has to be set to read any of these. The
     /// currency may be left out only where the type names it, and must match where it is given.
     ///
-    /// A string says which units it counts, a `.` meaning major units and none meaning the
-    /// currency's smallest. A number cannot say, `400` and `400.00` being one JSON number, so it
-    /// counts whichever units the format names, the smallest of them unless told otherwise.
+    /// A `.` in a string always means major units. Digits without one, and every number, count
+    /// whichever units the format names, the currency's smallest unless told otherwise:
+    ///
+    /// ```swift
+    /// "GBP 15"   // 15p, or £15 where the format names major units
+    /// "GBP 4.99" // £4.99 whatever the format names
+    /// ```
     ///
     /// - Throws: `DecodingError.dataCorrupted` if the payload is not an amount this currency can
     ///   hold exactly, or leaves out a currency this type cannot supply.
     public init(from decoder: any Decoder) throws {
         // The payload's own shape decides, so nothing has to be configured to read any of them, and
         // a string is tried first because it is what this library writes unless told otherwise. The
-        // format supplies only the keys, which nothing else could know.
+        // format supplies the keys and the units digits without a point count, which nothing in the
+        // payload could say.
         let container = try decoder.singleValueContainer()
         let format = decoder.moneyCodingFormat
 
         if let text = try? container.decode(String.self) {
-            self = try Self.fromCodedString(text, in: container)
+            self = try Self.fromCodedString(text, units: format.units, in: container)
         } else if let number = WireNumber(in: container) {
             self = try Self.fromBareAmount(number, units: format.units, in: container)
         } else {
@@ -120,10 +125,11 @@ extension MoneyOf: Codable {
 
     private static func fromCodedString(
         _ text: String,
+        units: MoneyCodingUnits,
         in container: SingleValueDecodingContainer
     ) throws -> MoneyOf {
         do {
-            return try MoneyOf(codedString: text)
+            return try MoneyOf(codedString: text, units: units)
         } catch {
             throw DecodingError.dataCorruptedError(
                 in: container,
@@ -135,7 +141,7 @@ extension MoneyOf: Codable {
     // An amount written on its own, in the currency this type names.
     private static func fromBareAmount(
         _ number: WireNumber,
-        units: MoneyCodingFormat.Units,
+        units: MoneyCodingUnits,
         in container: SingleValueDecodingContainer
     ) throws -> MoneyOf {
         guard let storage = impliedStorage else {
@@ -175,7 +181,7 @@ extension MoneyOf: Codable {
         let currency = C.currency(for: storage)
 
         if let text = try? container.decode(String.self, forKey: keys.amount) {
-            guard let minorUnits = parsedMinorUnits(text, in: currency) else {
+            guard let minorUnits = parsedMinorUnits(text, in: currency, units: format.units) else {
                 throw DecodingError.dataCorruptedError(
                     forKey: keys.amount,
                     in: container,
@@ -336,11 +342,11 @@ extension MoneyOf {
 
         func minorUnits(
             in currency: Currency,
-            units: MoneyCodingFormat.Units
+            units: MoneyCodingUnits
         ) throws(WireNumberError) -> MinorUnits {
             let text = try digits(in: currency, units: units)
 
-            guard let amount = parsedMinorUnits(text, in: currency) else {
+            guard let amount = parsedMinorUnits(text, in: currency, units: units) else {
                 throw .inexactAmount(currency, text: text)
             }
 
@@ -354,22 +360,22 @@ extension MoneyOf {
             return amount
         }
 
-        // The digits the parser reads. A `.` is what tells it they count major units, and neither a
-        // whole number nor an expanded exponent carries one.
+        // The digits the parser reads, which count `units` wherever they carry no point.
         private func digits(
             in currency: Currency,
-            units: MoneyCodingFormat.Units
+            units: MoneyCodingUnits
         ) throws(WireNumberError) -> String {
             switch self {
             case let .whole(value):
-                return units == .majorUnits ? "\(value).0" : "\(value)"
+                return "\(value)"
 
             case let .fractional(value):
                 let plain = value.plainDecimalText
 
                 guard units == .majorUnits else {
                     // 400 and 400.00 are one JSON number, so a whole value is taken whichever way it
-                    // was written. A real fraction is finer than the smallest unit.
+                    // was written, its point dropped so it is not read as major units. A real
+                    // fraction is finer than the smallest unit.
                     guard value == value.rounded(.towardZero) else {
                         throw .fractionalMinorUnits(currency, value: value)
                     }
@@ -377,7 +383,7 @@ extension MoneyOf {
                     return String(plain.prefix { $0 != "." })
                 }
 
-                return plain.contains(".") ? plain : plain + ".0"
+                return plain
             }
         }
     }
