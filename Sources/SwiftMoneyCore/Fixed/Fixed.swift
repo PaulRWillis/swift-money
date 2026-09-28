@@ -68,7 +68,7 @@ extension Fixed {
         let sign = Sign(of: _storage) * Sign(of: other._storage)
         let product = Wide256Magnitude(_storage.magnitude, times: other._storage.magnitude)
 
-        guard let result = bankersDivide256(product, by: UInt128(Fixed.scale), sign: sign) else {
+        guard let result = bankersDivide256(product, by: UInt64(Fixed.scale), sign: sign) else {
             return (.zero, true)
         }
 
@@ -219,23 +219,45 @@ extension Fixed {
     ///
     /// - Returns: `nil` if the value is outside the representable range.
     package init?(significand: Int128, exponent: Int, rounding: RoundingRule = .toNearestOrEven) {
-        let shift = exponent + Fixed.fractionalDigits   // _storage = significand × 10^shift
-        let storage = shift >= 0
-            ? Fixed.scaledUp(significand, byPowerOfTen: shift)
-            : Fixed.scaledDown(significand, byPowerOfTen: -shift, rounding: rounding)
-
-        guard let storage else {
+        guard let built = Fixed.exactness(significand: significand, exponent: exponent, rounding: rounding) else {
             return nil
         }
 
-        self.init(_storage: storage)
+        self = built.value
+    }
+
+    // A value built from a significand and exponent, and whether building it rounded.
+    enum Exactness: Equatable, Hashable, Sendable {
+        case exact(Fixed)
+
+        // Non-zero digits past the eighteenth were dropped.
+        case rounded(Fixed)
+
+        var value: Fixed {
+            switch self {
+            case let .exact(value), let .rounded(value): value
+            }
+        }
+    }
+
+    // `significand × 10^exponent`, and whether digits past the eighteenth had to be rounded; nil if out
+    // of range.
+    static func exactness(significand: Int128, exponent: Int, rounding: RoundingRule) -> Exactness? {
+        let shift = exponent + Fixed.fractionalDigits   // _storage = significand × 10^shift
+        guard shift < 0 else {
+            return Fixed.scaledUp(significand, byPowerOfTen: shift).map { .exact(Fixed(_storage: $0)) }
+        }
+
+        return Fixed.scaledDown(significand, byPowerOfTen: -shift, rounding: rounding)
     }
 
     // `significand × 10^power` as raw storage, or nil if it overflows.
     private static func scaledUp(_ significand: Int128, byPowerOfTen power: Int) -> Int128? {
         // Widening a whole number shifts by exactly `fractionalDigits`, so its multiplier is the `scale`
-        // constant. Reusing it keeps `Fixed(exactly:)` off the `powerOfTen` loop's eighteen iterations.
-        let multiplier = power == Fixed.fractionalDigits ? Fixed.scale : Int128.powerOfTen(power)
+        // constant. Reusing it skips the table read, which measured cheaper on every string parse.
+        let multiplier = power == Fixed.fractionalDigits
+            ? Fixed.scale
+            : Int128.DecimalExponent(exactly: power).map(Int128.powerOfTen)
 
         guard let multiplier else {
             return nil
@@ -245,21 +267,23 @@ extension Fixed {
         return overflow ? nil : storage
     }
 
-    // `significand ÷ 10^power` as raw storage, rounding the dropped digits by `rounding`; nil on overflow.
+    // `significand ÷ 10^power`, rounding the dropped digits by `rounding`; nil on overflow.
     private static func scaledDown(
         _ significand: Int128,
         byPowerOfTen power: Int,
         rounding: RoundingRule
-    ) -> Int128? {
-        guard let divisor = Int128.powerOfTen(power) else {
+    ) -> Exactness? {
+        guard let exponent = Int128.DecimalExponent(exactly: power) else {
             return nil
         }
+
+        let divisor = Int128.powerOfTen(exponent)
 
         let sign = Sign(of: significand)
         let (quotient, remainder) = significand.magnitude.quotientAndRemainder(dividingBy: divisor.magnitude)
 
         guard remainder != 0 else {
-            return Int128(magnitude: quotient, sign: sign)
+            return Int128(magnitude: quotient, sign: sign).map { .exact(Fixed(_storage: $0)) }
         }
 
         let roundsAway = roundsAwayFromZero(
@@ -269,6 +293,7 @@ extension Fixed {
             comparedToHalf: comparedToHalf(remainder: remainder, divisor: divisor.magnitude)
         )
         return signedRounded(quotient: quotient, roundsAway: roundsAway, sign: sign)
+            .map { .rounded(Fixed(_storage: $0)) }
     }
 
     /// Creates a whole value. Every `Int64` is representable.

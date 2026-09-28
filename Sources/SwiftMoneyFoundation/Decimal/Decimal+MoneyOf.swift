@@ -31,26 +31,11 @@ func exactMajorUnits(
     _ minorUnits: Money.MinorUnits,
     in currency: Currency
 ) -> Decimal {
-    let scale = UInt64(Int64(currency.unitScale))
-    let places = currency.unitScale.decimalPlaces
-
-    // The scale divides `10 ^ places` exactly, that being what a unit scale guarantees, so the
-    // multiplier is whole. A scale stops at eighteen places, so `10 ^ places` reaches `10 ^ 18` and
-    // stays inside a `UInt64`, which holds up to `10 ^ 19`.
-    let multiplier = UInt64.powerOfTen(places) / scale
-
-    // Multiplied in `Decimal` because the product can pass `UInt64`: a scale of 2 with an amount
-    // near `Int64.max` needs twenty digits. It cannot trap `Decimal`'s `*`: the multiplier peaks
-    // at `5 ^ 18`, thirteen digits, for a scale of `2 ^ 18`, so the product holds at most
-    // thirty-two digits of the thirty-eight `Decimal` can, and the exponent of `-places` is at
-    // worst -18 against a floor of -128.
-    let scaled = Decimal(minorUnits.magnitude) * Decimal(multiplier)
-
-    // Signed last, the magnitude having carried the digits, so that `Int64.min` never needs an
-    // `Int64` of its own to sit in.
-    return Decimal(
+    // A unit scale is a power of ten, so the minor units are the significand as they stand. Signed
+    // last, the magnitude carrying the digits, so that `Int64.min` never needs an `Int64` of its own.
+    Decimal(
         sign: minorUnits < 0 ? .minus : .plus,
-        exponent: -places,
-        significand: scaled
+        exponent: -currency.unitScale.decimalPlaces,
+        significand: Decimal(minorUnits.magnitude)
     )
 }

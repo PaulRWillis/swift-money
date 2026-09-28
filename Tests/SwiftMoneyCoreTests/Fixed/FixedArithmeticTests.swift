@@ -1,8 +1,67 @@
 import SwiftMoneyCore
 import Testing
 
+// A stored value and a power of ten, 10^-k, to multiply it by.
+private struct PowerOfTenProduct: Sendable, CustomTestStringConvertible {
+    let storage: Int128
+    let k: Int
+
+    var testDescription: String {
+        "\(storage) × 10^-\(k)"
+    }
+}
+
+private let largestStoredPowerOfTenLessOne: Int128 = 99_999_999_999_999_999_999_999_999_999_999_999_999
+
+private let powerOfTenProducts: [PowerOfTenProduct] = samples(
+    zip(
+        Gen { seed in Int128.random(in: .min ... .max, using: &seed) },
+        Gen<Int64>.int(in: 1 ... 18).map(Int.init)
+    ).map { PowerOfTenProduct(storage: $0, k: $1) },
+    seed: PropertySeed.powerOfTenProduct,
+    edges: [Int128.max, Int128.min, largestStoredPowerOfTenLessOne, -largestStoredPowerOfTenLessOne, 1, -1]
+        .flatMap { storage in [1, 9, 18].map { PowerOfTenProduct(storage: storage, k: $0) } }
+)
+
 @Suite("Fixed Arithmetic Tests")
 struct FixedArithmeticTests {
+
+    // The right-hand side rounds through the constructor's own division, so it checks the product's
+    // remainders and ties independently.
+    @Test("Multiplying by a power of ten rounds exactly as building the shifted value does", arguments: powerOfTenProducts)
+    private func multiplyingByAPowerOfTen(_ testCase: PowerOfTenProduct) throws {
+        let value = Fixed(storageBits: testCase.storage)
+        let power = try #require(Fixed(significand: 1, exponent: -testCase.k))
+        let shifted = try #require(Fixed(significand: testCase.storage, exponent: -18 - testCase.k))
+
+        #expect(value * power == shifted)
+    }
+
+    @Test("A product that is exactly half a step rounds to even, across sign")
+    func halfStepProductRoundsToEven() throws {
+        let half = try #require(Fixed(decimal: "0.5"))
+
+        #expect(Fixed(storageBits: 5) * half == Fixed(storageBits: 2))       // 2.5 steps
+        #expect(Fixed(storageBits: 15) * half == Fixed(storageBits: 8))      // 7.5 steps
+        #expect(Fixed(storageBits: -5) * half == Fixed(storageBits: -2))
+        #expect(Fixed(storageBits: -15) * half == Fixed(storageBits: -8))
+
+        // A tie whose full product needs the upper 128 bits.
+        let wide = Fixed(storageBits: largestStoredPowerOfTenLessOne)
+        #expect(wide * half == Fixed(storageBits: 50_000_000_000_000_000_000_000_000_000_000_000_000))
+    }
+
+    @Test("Multiplying at the edges of the range")
+    func multiplyingAtTheEdges() throws {
+        let largest = Fixed(storageBits: .max)
+        let mostNegative = Fixed(storageBits: .min)
+        let oneAndAHalf = try #require(Fixed(decimal: "1.5"))
+
+        #expect(largest * Fixed(1) == largest)
+        #expect(mostNegative * Fixed(1) == mostNegative)
+        #expect(mostNegative.multipliedIfRepresentable(by: Fixed(-1)) == nil)
+        #expect(largest.multipliedIfRepresentable(by: oneAndAHalf) == nil)   // fits 128 bits, not `Int128`
+    }
 
     @Test("Addition and subtraction combine values")
     func additionSubtraction() throws {

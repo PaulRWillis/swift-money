@@ -91,9 +91,29 @@ struct FixedConstructionTests {
     @Test("Values out of range fail")
     func outOfRange() {
         #expect(Fixed(exactly: Int128.max) == nil)                          // × scale overflows
-        #expect(Fixed(significand: 1, exponent: 21) == nil)                 // 10^39 overflows
-        #expect(Fixed(significand: 1, exponent: -57) == nil)                // dividing by 10^39 overflows
         #expect(Fixed(decimal: String(repeating: "9", count: 40)) == nil)   // significand too large
+    }
+
+    // Each exponent shifts the stored value by `k + 18` places, so this reaches every power of ten
+    // from 10^0 to 10^38, the largest an `Int128` holds.
+    @Test("Every power of ten from 10^-18 to 10^20 builds exactly")
+    func everyPowerOfTenBuilds() throws {
+        var expected: Int128 = 1
+
+        for exponent in -18 ... 20 {
+            let value = try #require(Fixed(significand: 1, exponent: exponent))
+            #expect(value.storageBits == expected, "exponent \(exponent)")
+
+            if exponent < 20 {
+                expected *= 10
+            }
+        }
+    }
+
+    @Test("An exponent one past the largest power of ten fails")
+    func exponentPastTheLargestPowerFails() {
+        #expect(Fixed(significand: 1, exponent: 21) == nil)    // 10^39 overflows
+        #expect(Fixed(significand: 1, exponent: -57) == nil)   // dividing by 10^39 overflows
     }
 
     @Test("Approximates a Double as its shortest decimal")

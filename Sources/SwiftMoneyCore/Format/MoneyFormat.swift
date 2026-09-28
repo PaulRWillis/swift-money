@@ -140,15 +140,17 @@ public extension MoneyFormat {
     /// The amount, rendered with this format and the given display options.
     @inlinable
     func format<C: CurrencyRepresentation>(_ money: MoneyOf<C>, options: MoneyFormatOptions) -> String {
-        let places = money.currency.unitScale.decimalPlaces
+        let scalePlaces = UInt64.DecimalExponent(money.currency.unitScale)
+        let places = Int(scalePlaces)
         let digitsShown: Int
+        let shown: UInt64.DecimalExponent
         let rounding: RoundingRule
         switch options.precision {
         case .currencyScale:
             // Shows every digit the currency divides into, so nothing is dropped and rounding is moot.
-            (digitsShown, rounding) = (places, .toNearestOrEven)
+            (digitsShown, shown, rounding) = (places, scalePlaces, .toNearestOrEven)
         case .fixed(let length, let rule):
-            (digitsShown, rounding) = (length.rawValue, rule)
+            (digitsShown, shown, rounding) = (length.rawValue, UInt64.DecimalExponent(length), rule)
         }
         let value = MoneyFormat.displayValue(
             money.minorUnits, scalePlaces: places, showing: digitsShown, rounding: rounding
@@ -156,7 +158,7 @@ public extension MoneyFormat {
 
         let amountSign = Sign(of: value)
         let wideMagnitude = value.magnitude
-        let unit = UInt64.powerOfTen(digitsShown)
+        let unit = UInt64.powerOfTen(shown)
         // Splitting by `unit` (a `UInt64`) always brings each half back within `UInt64`'s range, even
         // when the combined `wideMagnitude` needed more than 64 bits to hold.
         guard let whole = UInt64(exactly: digitsShown == 0 ? wideMagnitude : wideMagnitude / UInt128(unit)),
@@ -164,7 +166,8 @@ public extension MoneyFormat {
             preconditionFailure("Formatted amount is out of the display engine's range")  // coverage:ignore — exit-test trap
         }
 
-        let wholeDigits = MoneyFormat.digitCount(whole)
+        let leadingDigit = UInt64.DecimalExponent(leadingDigitOf: whole)
+        let wholeDigits = Int(leadingDigit) + 1
         let bytesPerDigit = digits.bytesPerDigit
 
         // Under `.accounting`, an arrangement that moves the side (or grouping) for a non-negative
@@ -221,12 +224,13 @@ public extension MoneyFormat {
                 offset = write(token, sign: sign, into: buffer, at: offset)
             }
 
-            offset = writeGroupedWhole(whole, digits: wholeDigits, groups: groups, into: buffer, at: offset)
+            offset = writeGroupedWhole(whole, from: leadingDigit, groups: groups, into: buffer, at: offset)
             if showsSeparator {
                 offset = MoneyFormat.copy(decimalSeparator, into: buffer, at: offset)
             }
             if digitsShown > 0 {
-                offset = writeDigits(fraction, count: digitsShown, into: buffer, at: offset)
+                // `unit` is ten to `digitsShown`, so this writes `digitsShown` digits.
+                offset = writeDigits(fraction, from: unit / 10, into: buffer, at: offset)
             }
 
             for token in affixes.suffix {
@@ -286,15 +290,16 @@ public extension MoneyFormat {
     // `1,234,567` and Indian `12,34,567` shapes. Without `groups`, the digits are written plain. Each digit
     // is `glyphs` or, when that is `nil`, a plain ASCII byte. Returns the offset just past the whole part.
     @inlinable
-    func writeGroupedWhole(
+    internal func writeGroupedWhole(
         _ whole: UInt64,
-        digits: Int,
+        from leadingDigit: UInt64.DecimalExponent,
         groups: (primary: Int, secondary: Int, separator: String)?,
         into buffer: UnsafeMutableBufferPointer<UInt8>,
         at offset: Int
     ) -> Int {
+        let digits = Int(leadingDigit) + 1
         var next = offset
-        var divisor = UInt64.powerOfTen(digits - 1)
+        var divisor = UInt64.powerOfTen(leadingDigit)
         var remaining = whole
 
         for index in 0 ..< digits {
@@ -316,7 +321,7 @@ public extension MoneyFormat {
     // Writes one digit's value into the buffer, returning the offset just past it: a plain ASCII byte on
     // the default path, or the locale's own glyph otherwise.
     @inlinable
-    func writeDigit(
+    internal func writeDigit(
         _ value: UInt8,
         into buffer: UnsafeMutableBufferPointer<UInt8>,
         at offset: Int
@@ -332,7 +337,7 @@ public extension MoneyFormat {
 
     // Writes one Unicode scalar's UTF8 bytes into the buffer, returning the offset just past them.
     @inlinable
-    static func writeScalar(
+    internal static func writeScalar(
         _ scalar: Unicode.Scalar,
         into buffer: UnsafeMutableBufferPointer<UInt8>,
         at offset: Int
@@ -347,7 +352,7 @@ public extension MoneyFormat {
 
     // Copies a string's UTF8 bytes into the buffer, returning the offset just past them.
     @inlinable
-    static func copy(
+    internal static func copy(
         _ string: String,
         into buffer: UnsafeMutableBufferPointer<UInt8>,
         at offset: Int
@@ -360,17 +365,17 @@ public extension MoneyFormat {
         return next
     }
 
-    // The fraction, zero padded to `count` digits, most significant first, in the format's digits. Returns
-    // the offset just past.
+    // The fraction, most significant digit first, from the place `divisor` counts down to the units, in
+    // the format's digits. Returns the offset just past.
     @inlinable
-    func writeDigits(
+    internal func writeDigits(
         _ value: UInt64,
-        count: Int,
+        from divisor: UInt64,
         into buffer: UnsafeMutableBufferPointer<UInt8>,
         at offset: Int
     ) -> Int {
         var next = offset
-        var divisor = UInt64.powerOfTen(count - 1)
+        var divisor = divisor
         var remaining = value
 
         while divisor > 0 {
@@ -380,19 +385,6 @@ public extension MoneyFormat {
         }
 
         return next
-    }
-
-    @inlinable
-    static func digitCount(_ value: UInt64) -> Int {
-        var digits = 1
-        var remaining = value
-
-        while remaining >= 10 {
-            remaining /= 10
-            digits += 1
-        }
-
-        return digits
     }
 
     // The minor-unit count re-expressed at `showing` fraction digits: unchanged when that equals the
@@ -413,16 +405,29 @@ public extension MoneyFormat {
         if showing == scalePlaces {
             return Int128(minorUnits)
         }
+
         if showing > scalePlaces {
-            return Int128(minorUnits) * Int128(UInt64.powerOfTen(showing - scalePlaces))
+            return Int128(minorUnits) * Int128(UInt64.powerOfTen(placesBetween(showing, scalePlaces)))
         }
-        return Int128(roundedQuotient(minorUnits, by: Int64(UInt64.powerOfTen(scalePlaces - showing)), rule: rounding))
+        let divisor = UInt64.powerOfTen(placesBetween(scalePlaces, showing))
+        return Int128(roundedQuotient(minorUnits, by: Int64(divisor), rule: rounding))
+    }
+
+    // How many places `more` is past `fewer`. Both count fraction digits, `0...19`, so the difference
+    // always has a power of ten in a `UInt64`.
+    @inlinable
+    internal static func placesBetween(_ more: Int, _ fewer: Int) -> UInt64.DecimalExponent {
+        guard let places = UInt64.DecimalExponent(exactly: more - fewer) else {
+            preconditionFailure("Fraction digit counts differ by more than 19")  // coverage:ignore — unreachable
+        }
+
+        return places
     }
 
     // `value / divisor`, rounded to a whole quotient by `rule`. Self-contained (no wide-int helpers) so
     // it stays inlinable. `divisor` is a positive power of ten.
     @inlinable
-    static func roundedQuotient(_ value: Int64, by divisor: Int64, rule: RoundingRule) -> Int64 {
+    internal static func roundedQuotient(_ value: Int64, by divisor: Int64, rule: RoundingRule) -> Int64 {
         let quotient = value / divisor
         let remainder = value % divisor
         guard remainder != 0 else {
@@ -465,14 +470,16 @@ package extension MoneyFormat {
     /// with no text is left out, and concatenating the runs' text gives exactly ``format(_:)``'s
     /// string. This is the seam a Foundation `AttributedString` renderer walks.
     func runs<C: CurrencyRepresentation>(_ money: MoneyOf<C>, options: MoneyFormatOptions) -> [MoneyFormatRun] {
-        let places = money.currency.unitScale.decimalPlaces
+        let scalePlaces = UInt64.DecimalExponent(money.currency.unitScale)
+        let places = Int(scalePlaces)
         let digitsShown: Int
+        let shown: UInt64.DecimalExponent
         let rounding: RoundingRule
         switch options.precision {
         case .currencyScale:
-            (digitsShown, rounding) = (places, .toNearestOrEven)
+            (digitsShown, shown, rounding) = (places, scalePlaces, .toNearestOrEven)
         case .fixed(let length, let rule):
-            (digitsShown, rounding) = (length.rawValue, rule)
+            (digitsShown, shown, rounding) = (length.rawValue, UInt64.DecimalExponent(length), rule)
         }
         let value = MoneyFormat.displayValue(
             money.minorUnits, scalePlaces: places, showing: digitsShown, rounding: rounding
@@ -480,14 +487,15 @@ package extension MoneyFormat {
 
         let amountSign = Sign(of: value)
         let wideMagnitude = value.magnitude
-        let unit = UInt64.powerOfTen(digitsShown)
+        let unit = UInt64.powerOfTen(shown)
         // Splitting by `unit` (a `UInt64`) always brings each half back within `UInt64`'s range, even
         // when the combined `wideMagnitude` needed more than 64 bits to hold.
         guard let whole = UInt64(exactly: digitsShown == 0 ? wideMagnitude : wideMagnitude / UInt128(unit)),
               let fraction = UInt64(exactly: digitsShown == 0 ? 0 : wideMagnitude % UInt128(unit)) else {
             preconditionFailure("Formatted amount is out of the display engine's range")  // coverage:ignore — exit-test trap
         }
-        let wholeDigits = MoneyFormat.digitCount(whole)
+        let leadingDigit = UInt64.DecimalExponent(leadingDigitOf: whole)
+        let wholeDigits = Int(leadingDigit) + 1
 
         // See `format(_:options:)` for why this reads the accounting arrangement only under
         // `.accounting`, and only when one is present, and for why a `switch` rather than a ternary.
@@ -518,7 +526,7 @@ package extension MoneyFormat {
         for token in affixes.prefix {
             appendToken(token, sign: sign, into: &result)
         }
-        appendInteger(whole, digits: wholeDigits, groups: groups, into: &result)
+        appendInteger(whole, from: leadingDigit, groups: groups, into: &result)
         if showsSeparator {
             result.append(.decimalSeparator(decimalSeparator))
         }
@@ -548,12 +556,13 @@ package extension MoneyFormat {
     // `(digits - i - primary)` is a non-negative multiple of `secondary`.
     private func appendInteger(
         _ whole: UInt64,
-        digits: Int,
+        from leadingDigit: UInt64.DecimalExponent,
         groups: (primary: Int, secondary: Int, separator: String)?,
         into runs: inout [MoneyFormatRun]
     ) {
+        let digits = Int(leadingDigit) + 1
         var group = ""
-        var divisor = UInt64.powerOfTen(digits - 1)
+        var divisor = UInt64.powerOfTen(leadingDigit)
         var remaining = whole
 
         for index in 0 ..< digits {
