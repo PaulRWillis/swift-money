@@ -2,19 +2,6 @@ name: ICU deviation report
 
 on:
   workflow_dispatch:
-  # A push to main records main's own report, which pull requests then compare against rather than
-  # each running it again. The same paths as the pull request filter below.
-  push:
-    branches: [ main ]
-    paths:
-      - 'Sources/SwiftMoneyCore/**'
-      - 'Sources/SwiftMoneyLocalization/**'
-      - 'Sources/SwiftMoneyFoundation/**'
-      - 'Sources/SwiftMoneyFormatMatrix/**'
-      - 'Tools/CompareFormattingToICU/**'
-      - 'Package.swift'
-      - 'Package.resolved'
-      - '.github/workflows/swift-icu-deviation-report.yml'
   pull_request:
     branches: [ main ]
     # Scoped to what the CompareFormattingToICU tool exercises, so an unrelated future package does not
@@ -30,8 +17,7 @@ on:
       - '.github/workflows/swift-icu-deviation-report.yml'
 
 # A newer push to the same pull request supersedes this run, so the older one is cancelled rather
-# than holding runners the newer one is queued for. Every other run gets a group of its own, so a push
-# to main is never cancelled or queued behind another.
+# than holding runners the newer one is queued for. A run started by hand gets a group of its own.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
@@ -45,8 +31,8 @@ permissions:
 env:
   # Part of the cached report's key, since a report split another way cannot be read shard by shard.
   ICU_SHARD_COUNT: "16"
-  # A run on main, pushed or started by hand, records main's report for pull requests to compare
-  # against. Every other run is a comparison.
+  # A run started by hand on main records main's report for every pull request to compare against.
+  # Every other run is a comparison.
   RECORD: ${{ github.ref == 'refs/heads/main' }}
 
 jobs:
