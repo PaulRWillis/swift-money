@@ -46,8 +46,11 @@ let benchmarks: @Sendable () -> Void = {
         ),
     ]
 
+    // Counts are printed whole: the default rounds anything past ten thousand to the nearest
+    // thousand, which hides every change smaller than that on the larger rows.
     let defaultConfiguration = Benchmark.Configuration(
         metrics: defaultMetrics,
+        units: [.instructions: .count, .mallocCountTotal: .count],
         scalingFactor: .mega,
         thresholds: defaultThresholds
     )
