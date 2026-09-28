@@ -68,7 +68,7 @@ extension Fixed {
         let sign = Sign(of: _storage) * Sign(of: other._storage)
         let product = Wide256Magnitude(_storage.magnitude, times: other._storage.magnitude)
 
-        guard let result = bankersDivide256(product, by: UInt128(Fixed.scale), sign: sign) else {
+        guard let result = bankersDivide256(product, by: UInt64(Fixed.scale), sign: sign) else {
             return (.zero, true)
         }
 

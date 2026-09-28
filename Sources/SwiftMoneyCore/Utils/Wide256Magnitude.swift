@@ -28,4 +28,24 @@ struct Wide256Magnitude {
 
         return divisor.dividingFullWidth((high: high, low: low))
     }
+
+    // The same, for a divisor that fits one 64-bit word: long division, one 64-bit limb at a time.
+    // `high < divisor` keeps both steps' quotients within a word, so neither `dividingFullWidth` traps.
+    func quotientAndRemainder(
+        dividingBy divisor: UInt64
+    ) -> (quotient: UInt128, remainder: UInt64)? {
+        guard high < UInt128(divisor) else {
+            return nil
+        }
+
+        // Below the divisor, `high` is its own low limb, the running remainder of the first step.
+        let (upper, carried) = divisor.dividingFullWidth(
+            (high: UInt64(truncatingIfNeeded: high), low: UInt64(truncatingIfNeeded: low >> 64))
+        )
+        let (lower, remainder) = divisor.dividingFullWidth(
+            (high: carried, low: UInt64(truncatingIfNeeded: low))
+        )
+
+        return (UInt128(upper) << 64 | UInt128(lower), remainder)
+    }
 }

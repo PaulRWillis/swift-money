@@ -13,6 +13,28 @@ func bankersDivide256(
         return nil
     }
 
+    return bankersRounded(quotient: quotient, remainder: remainder, divisor: divisor, sign: sign)
+}
+
+// The same, for a divisor that fits one 64-bit word, which divides in two cheaper steps.
+func bankersDivide256(
+    _ dividend: Wide256Magnitude,
+    by divisor: UInt64,
+    sign: Sign
+) -> Int128? {
+    guard let (quotient, remainder) = dividend.quotientAndRemainder(dividingBy: divisor) else {
+        return nil
+    }
+
+    return bankersRounded(quotient: quotient, remainder: UInt128(remainder), divisor: UInt128(divisor), sign: sign)
+}
+
+private func bankersRounded(
+    quotient: UInt128,
+    remainder: UInt128,
+    divisor: UInt128,
+    sign: Sign
+) -> Int128? {
     let roundsAway = switch comparedToHalf(remainder: remainder, divisor: divisor) {
     case .lessThanHalf: false
     case .moreThanHalf: true
