@@ -4,6 +4,8 @@ on:
   workflow_dispatch:
   pull_request:
     branches: [ main ]
+    # The label events let adding or removing the run-benchmarks label start or stop the comparison.
+    types: [ opened, synchronize, reopened, labeled, unlabeled ]
     # Scoped to the sources the benchmarks exercise, mirroring swift-benchmark-update.yml, so an
     # unrelated future package does not trigger the 8-shard delta run.
     paths:
@@ -14,10 +16,17 @@ on:
       - '.github/workflows/swift-benchmark-delta.yml'
 
 # A newer push to the same pull request supersedes this run, so the older one is cancelled rather
-# than holding runners the newer one is queued for. Every other run gets a group of its own, so a push
-# to main is never cancelled or queued behind another.
+# than holding runners the newer one is queued for. So does adding or removing the run-benchmarks
+# label. A run started by hand gets a group of its own, and so does an event the gate job ignores (the
+# pull request is closed, or a different label changed), so that event never cancels a comparison in
+# progress. Keep the label name here in step with OPT_IN_LABEL below.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  group: >-
+    ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}${{
+      (github.event.pull_request.state == 'closed'
+        || ((github.event.action == 'labeled' || github.event.action == 'unlabeled')
+          && github.event.label.name != 'run-benchmarks'))
+      && format('-{0}', github.run_id) || '' }}
   cancel-in-progress: true
 
 # Stated rather than inherited from the repository default, since the comment below needs write access
@@ -26,12 +35,52 @@ permissions:
   contents: read
   pull-requests: write
 
+env:
+  # The comparison is off by default. A pull request runs it only while it carries this label.
+  OPT_IN_LABEL: run-benchmarks
+
 jobs:
+  # Decides once what this run does, first match winning:
+  #   ignore  the pull request is closed, or a different label changed: nothing runs or comments.
+  #   run     started by hand, or the pull request carries the label.
+  #   skip    otherwise: nothing runs, and the comment says how to turn the comparison on.
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      decision: ${{ steps.decide.outputs.decision }}
+
+    steps:
+    - name: Decide whether the comparison runs
+      id: decide
+      env:
+        EVENT: ${{ github.event_name }}
+        ACTION: ${{ github.event.action }}
+        STATE: ${{ github.event.pull_request.state }}
+        CHANGED_LABEL: ${{ github.event.label.name }}
+        LABELLED: ${{ contains(github.event.pull_request.labels.*.name, env.OPT_IN_LABEL) }}
+      run: |
+        if [ "$EVENT" != pull_request ]; then
+          decision=run
+        elif [ "$STATE" != open ]; then
+          decision=ignore
+        elif { [ "$ACTION" = labeled ] || [ "$ACTION" = unlabeled ]; } && [ "$CHANGED_LABEL" != "$OPT_IN_LABEL" ]; then
+          decision=ignore
+        elif [ "$LABELLED" = true ]; then
+          decision=run
+        else
+          decision=skip
+        fi
+
+        echo "decision=$decision" >> "$GITHUB_OUTPUT"
+
   # The benchmark run dominates this job's time, so it is split across shards: each leg runs a disjoint
   # subset of the benchmarks for BOTH the PR and main on one runner, which keeps the same-machine
   # wall-clock comparison intact while cutting wall time. The subset is derived from `benchmark list`
   # every run, so a newly added benchmark is picked up with no change here.
   benchmark:
+    needs: gate
+    if: needs.gate.outputs.decision == 'run'
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -169,10 +218,13 @@ jobs:
   # One rolled-up PR comment across all shards, written to be skimmed: the verdict and the regressed and
   # improved benchmark names sit at the top in plain words; the per-metric numbers are folded away.
   comment:
-    needs: benchmark
+    needs: [ gate, benchmark ]
     # !cancelled(), so a failed or timed-out shard still gets a comment (the ❓ verdict) rather than the
-    # whole comment job being skipped. A run a newer push cancelled posts nothing; the newer run owns it.
-    if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+    # whole comment job being skipped. A run cancelled by a newer push or a label change posts nothing;
+    # the newer run owns it. An ignored event leaves the comment as it is.
+    if: >-
+      ${{ !cancelled() && github.event_name == 'pull_request'
+        && needs.gate.result == 'success' && needs.gate.outputs.decision != 'ignore' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -184,6 +236,7 @@ jobs:
         sparse-checkout: Benchmarks
 
     - uses: actions/download-artifact@v7
+      if: needs.gate.outputs.decision == 'run'
       with:
         pattern: benchmark-delta-shard*
         path: shards
@@ -194,12 +247,19 @@ jobs:
       run: python3 Benchmarks/delta_comment.py --selftest
 
     - name: Build the combined comment body
+      if: needs.gate.outputs.decision == 'run'
       env:
         RUN_URL: "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
         BENCHMARK_RESULT: ${{ needs.benchmark.result }}
       run: |
         python3 Benchmarks/delta_comment.py shards \
           --job-result "$BENCHMARK_RESULT" --run-url "$RUN_URL" --github-env "$GITHUB_ENV" \
+          > comment_body.md
+
+    - name: Build the not-run comment body
+      if: needs.gate.outputs.decision == 'skip'
+      run: |
+        python3 Benchmarks/delta_comment.py --not-run "$OPT_IN_LABEL" --github-env "$GITHUB_ENV" \
           > comment_body.md
 
     # Mirrors swift-benchmark-delta's own long-standing technique: a hidden marker lets this workflow
