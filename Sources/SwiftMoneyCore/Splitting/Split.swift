@@ -81,15 +81,15 @@ extension Split {
     @usableFromInline struct Amounts: Sequence {
         @usableFromInline let split: Split
 
-        @usableFromInline init(_ split: Split) {
+        @inlinable init(_ split: Split) {
             self.split = split
         }
 
-        @usableFromInline var underestimatedCount: Int {
+        @inlinable var underestimatedCount: Int {
             Int(split.count)
         }
 
-        @usableFromInline func makeIterator() -> Iterator {
+        @inlinable func makeIterator() -> Iterator {
             Iterator(split)
         }
 
@@ -103,7 +103,7 @@ extension Split {
             @usableFromInline let count: Int
             @usableFromInline var position = 0
 
-            @usableFromInline init(_ split: Split) {
+            @inlinable init(_ split: Split) {
                 switch split {
                 case let .even(group):
                     larger = group.amount
@@ -118,7 +118,7 @@ extension Split {
                 }
             }
 
-            @usableFromInline mutating func next() -> Amount? {
+            @inlinable mutating func next() -> Amount? {
                 guard position < count else {
                     return nil
                 }
