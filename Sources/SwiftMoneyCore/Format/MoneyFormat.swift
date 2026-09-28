@@ -43,6 +43,21 @@ public struct MoneyFormat: Equatable, Hashable, Sendable {
         case minusSign
     }
 
+    /// A pattern and grouping bundled together, for a presentation the accounting sign strategy
+    /// renders differently enough that it needs both — not just a different negative affix.
+    @usableFromInline
+    package struct Arrangement: Equatable, Hashable, Sendable {
+        @usableFromInline
+        package let pattern: MoneyFormatPattern
+        @usableFromInline
+        package let grouping: GroupingScheme
+
+        package init(pattern: MoneyFormatPattern, grouping: GroupingScheme) {
+            self.pattern = pattern
+            self.grouping = grouping
+        }
+    }
+
     /// The currency symbol as the chosen presentation renders it: `"£"`, `"GBP"`, a narrow symbol, etc.
     @usableFromInline
     package let symbol: String
@@ -67,6 +82,13 @@ public struct MoneyFormat: Equatable, Hashable, Sendable {
     /// The glyphs the digits are rendered with: ASCII by default, or a locale's own set.
     @usableFromInline
     package let digits: Digits
+    /// The pattern and grouping the accounting sign strategy renders a **non-negative** amount with,
+    /// when that differs from ``pattern``/``grouping`` by more than the negative affix (which
+    /// ``MoneyFormatPattern/accountingNegative`` already carries). `nil` — the common case — means
+    /// accounting renders exactly like the standard presentation but for its negative affix, so the
+    /// standard `pattern`/`grouping` serve every sign strategy unchanged.
+    @usableFromInline
+    package let accountingArrangement: Arrangement?
 
     package init(
         symbol: String,
@@ -76,7 +98,8 @@ public struct MoneyFormat: Equatable, Hashable, Sendable {
         grouping: GroupingScheme = .repeating(3, separator: ","),
         minusSign: String = "-",
         plusSign: String = "+",
-        digits: Digits = .ascii
+        digits: Digits = .ascii,
+        accountingArrangement: Arrangement? = nil
     ) {
         self.symbol = symbol
         self.pattern = pattern
@@ -86,6 +109,7 @@ public struct MoneyFormat: Equatable, Hashable, Sendable {
         self.minusSign = minusSign
         self.plusSign = plusSign
         self.digits = digits
+        self.accountingArrangement = accountingArrangement
     }
 }
 
@@ -142,6 +166,24 @@ public extension MoneyFormat {
 
         let wholeDigits = MoneyFormat.digitCount(whole)
         let bytesPerDigit = digits.bytesPerDigit
+
+        // Under `.accounting`, an arrangement that moves the side (or grouping) for a non-negative
+        // amount takes over both; every other sign strategy, `accountingArrangement == nil`, and a
+        // negative amount (whose affix already comes from `pattern.accountingNegative`) fall through
+        // to the standard fields. A `switch` on the pair, rather than a ternary feeding `??`, is the
+        // shape that measured no cost on this path: a ternary-and-coalesce over a `MoneyFormatPattern`
+        // (array-backed) still forced the optimizer to materialize both branches' value.
+        let pattern: MoneyFormatPattern
+        let grouping: GroupingScheme
+        switch (options.sign, accountingArrangement) {
+        case (.accounting, .some(let arrangement)):
+            pattern = arrangement.pattern
+            grouping = arrangement.grouping
+        default:
+            pattern = self.pattern
+            grouping = self.grouping
+        }
+
         // The grouping to apply, or `nil` to write the whole part ungrouped: the format has no grouping
         // scheme, the caller turned grouping off, or the number is too short to reach a group boundary.
         let groups: (primary: Int, secondary: Int, separator: String)?
@@ -446,6 +488,19 @@ package extension MoneyFormat {
             preconditionFailure("Formatted amount is out of the display engine's range")  // coverage:ignore — exit-test trap
         }
         let wholeDigits = MoneyFormat.digitCount(whole)
+
+        // See `format(_:options:)` for why this reads the accounting arrangement only under
+        // `.accounting`, and only when one is present, and for why a `switch` rather than a ternary.
+        let pattern: MoneyFormatPattern
+        let grouping: GroupingScheme
+        switch (options.sign, accountingArrangement) {
+        case (.accounting, .some(let arrangement)):
+            pattern = arrangement.pattern
+            grouping = arrangement.grouping
+        default:
+            pattern = self.pattern
+            grouping = self.grouping
+        }
 
         let groups: (primary: Int, secondary: Int, separator: String)?
         switch (grouping, options.grouping) {

@@ -3,14 +3,30 @@ import SwiftMoneyCore
 // The locale-dependent pieces the CLDR tables carry, composed into a `MoneyFormat` at lookup time. The
 // public surface is `MoneyLocalization.moneyFormat(for:locale:presentation:)`; `package` so the blob
 // decoder can build it and tests can read it.
-package struct LocaleNumberFormat: Equatable {
+package struct LocaleNumberFormat: Equatable, Hashable, Sendable {
     package let decimalSeparator: String
     package let groupingSeparator: GroupingSeparator
     package let minusSign: String
-    package let primaryGroupingSize: GroupingSize
-    package let secondaryGroupingSize: GroupingSize
-    // How this locale arranges a currency symbol, a sign and the digits, from its CLDR pattern.
-    package let pattern: MoneyFormatPattern
+    // How this locale arranges a currency symbol, a sign and the digits, and the grouping sizes its
+    // own CLDR pattern carries, from the interned standard arrangement.
+    package let standardArrangement: CurrencyArrangement
+    // The arrangement the accounting sign strategy renders a *non-negative* amount with, when that
+    // differs from `standardArrangement` by more than the negative affix (which the pattern's own
+    // `accountingNegative` already carries) — `nil` is the common case, meaning accounting matches
+    // standard. Read by `MoneyLocalization.resolvedArrangements(for:in:)` for a glyph symbol.
+    package let accountingArrangement: CurrencyArrangement?
+    // The arrangement a letter-adjacent symbol (an ISO code, "US$") renders with, when that differs
+    // from `standardArrangement` — `nil` when every symbol in this locale is a plain glyph. Read by
+    // `MoneyLocalization.resolvedArrangements(for:in:)` in place of `standardArrangement` for a
+    // letter-adjacent symbol.
+    package let alphaArrangement: CurrencyArrangement?
+    // The arrangement a letter-adjacent symbol renders with under the accounting sign strategy, when
+    // that differs from `standardArrangement` — always compared against `standardArrangement`, never
+    // against `alphaArrangement`, so two cells sharing identical CLDR text resolve to the same value
+    // without the two ever being compared to each other. `nil` when accounting matches standard. Read
+    // by `MoneyLocalization.resolvedArrangements(for:in:)` in place of `accountingArrangement` for a
+    // letter-adjacent symbol.
+    package let alphaAccountingArrangement: CurrencyArrangement?
     // The same, for a currency written out in words, per plural category, from CLDR's unit patterns.
     // A name never takes accounting parentheses, so this carries no accounting form of its own.
     package let fullNamePattern: FullNameLayout
@@ -39,9 +55,10 @@ package struct LocaleNumberFormat: Equatable {
         decimalSeparator: String,
         groupingSeparator: GroupingSeparator,
         minusSign: String,
-        primaryGroupingSize: GroupingSize,
-        secondaryGroupingSize: GroupingSize,
-        pattern: MoneyFormatPattern,
+        standardArrangement: CurrencyArrangement,
+        accountingArrangement: CurrencyArrangement? = nil,
+        alphaArrangement: CurrencyArrangement? = nil,
+        alphaAccountingArrangement: CurrencyArrangement? = nil,
         fullNamePattern: FullNameLayout,
         isoCodeSpacing: Spacing,
         symbolSpacing: Spacing,
@@ -54,9 +71,10 @@ package struct LocaleNumberFormat: Equatable {
         self.decimalSeparator = decimalSeparator
         self.groupingSeparator = groupingSeparator
         self.minusSign = minusSign
-        self.primaryGroupingSize = primaryGroupingSize
-        self.secondaryGroupingSize = secondaryGroupingSize
-        self.pattern = pattern
+        self.standardArrangement = standardArrangement
+        self.accountingArrangement = accountingArrangement
+        self.alphaArrangement = alphaArrangement
+        self.alphaAccountingArrangement = alphaAccountingArrangement
         self.fullNamePattern = fullNamePattern
         self.isoCodeSpacing = isoCodeSpacing
         self.symbolSpacing = symbolSpacing
@@ -83,9 +101,10 @@ package extension LocaleNumberFormat {
             decimalSeparator: symbols.decimalSeparator,
             groupingSeparator: symbols.groupingSeparator,
             minusSign: symbols.minusSign,
-            primaryGroupingSize: primaryGroupingSize,
-            secondaryGroupingSize: secondaryGroupingSize,
-            pattern: pattern,
+            standardArrangement: standardArrangement,
+            accountingArrangement: accountingArrangement,
+            alphaArrangement: alphaArrangement,
+            alphaAccountingArrangement: alphaAccountingArrangement,
             fullNamePattern: fullNamePattern,
             isoCodeSpacing: isoCodeSpacing,
             symbolSpacing: symbolSpacing,

@@ -74,22 +74,36 @@ struct NumberingSystemOverrideTableTests {
 
     // MARK: - The generated section
 
-    // Every locale whose arab/arabext block differs from the system default (ckb, fa, sd and their variants)
-    // is currently skipped for an unrelated reason, so no covered locale overrides an imposing system yet.
-    // The section is present and correct; it populates once those locales become renderable.
-    // Of the locales whose arab/arabext block differs from the system default (ckb, fa, sd families), only
-    // fa-AF is currently covered; the rest are skipped for unrelated reasons. So the section holds one row.
-    @Test("fa-AF is the one covered locale that overrides arabext")
-    func generatedFaAF() throws {
+    // fa-AF overrides arabext, as it always has. `ckb`, `ckb-IR` and `sd` override arab: the
+    // accounting-currency-side plan's Axis B lift (§8) newly covers them, each with its own minus
+    // sign or decimal separator that differs from the arab system's pinned root default. `sdh`/`sdh-IQ`
+    // are also newly covered but publish an arab block identical to the default, so they contribute no
+    // row — the section holds exactly these four.
+    @Test("The newly-covered arab/arabext locales override exactly where their own block differs from root")
+    func generatedOverrides() throws {
         let cldr = MoneyLocalization.cldr
-        #expect(cldr.numberingSystemOverrides.count == 1)
+        #expect(cldr.numberingSystemOverrides.count == 4)
+
+        let arab = try #require(cldr.numberingSystems.index(of: "arab"))
+        let arabext = try #require(cldr.numberingSystems.index(of: "arabext"))
 
         let faAF = try #require(cldr.locales.index(of: "fa-AF"))
-        let arabext = try #require(cldr.numberingSystems.index(of: "arabext"))
-        let symbols = try #require(cldr.numberingSystemOverrides.symbols(localeIndex: faAF, systemIndex: arabext))
-        #expect(symbols.decimalSeparator == "\u{066B}")
-        #expect(symbols.groupingSeparator == "\u{066C}")
-        #expect(symbols.minusSign == "\u{200E}\u{2212}")
+        let fromFaAF = try #require(cldr.numberingSystemOverrides.symbols(localeIndex: faAF, systemIndex: arabext))
+        #expect(fromFaAF.decimalSeparator == "\u{066B}")
+        #expect(fromFaAF.groupingSeparator == "\u{066C}")
+        #expect(fromFaAF.minusSign == "\u{200E}\u{2212}")
+
+        let ckb = try #require(cldr.locales.index(of: "ckb"))
+        let fromCkb = try #require(cldr.numberingSystemOverrides.symbols(localeIndex: ckb, systemIndex: arab))
+        #expect(fromCkb.minusSign == "\u{200F}-")
+
+        let sd = try #require(cldr.locales.index(of: "sd"))
+        let fromSd = try #require(cldr.numberingSystemOverrides.symbols(localeIndex: sd, systemIndex: arab))
+        #expect(fromSd.decimalSeparator == ".")
+
+        // sdh publishes an arab block identical to the pinned root default, so it contributes no row.
+        let sdh = try #require(cldr.locales.index(of: "sdh"))
+        #expect(cldr.numberingSystemOverrides.symbols(localeIndex: sdh, systemIndex: arab) == nil)
     }
 
     @Test("A covered locale with no arabext override misses")

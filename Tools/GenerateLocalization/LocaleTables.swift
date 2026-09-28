@@ -10,13 +10,16 @@ import SwiftMoneyLocalization
 // The two arrays are held in the order their strings should reach the pool, which is not the order
 // they are searched in: `pack` sorts the records afterwards.
 struct LocaleTables {
-    // What a locale calls one currency in symbol form, and the gap each form takes beside the digits.
+    // What a locale calls one currency in symbol form, the gap each form takes beside the digits, and
+    // whether a letter touches the number in each.
     struct Display {
         let code: CurrencyCode
         let standardSymbol: String
         let standardSpacing: Spacing
+        let standardForm: SymbolForm
         let narrowSymbol: String
         let narrowSpacing: Spacing
+        let narrowForm: SymbolForm
     }
 
     // What a locale calls one currency in words: the name CLDR always publishes, and any plural
@@ -33,8 +36,6 @@ struct LocaleTables {
     let isoCodeSpacing: Spacing
     // The gap the standard pattern bakes in beside every symbol, glyph included.
     let symbolSpacing: Spacing
-    let primaryGroupingSize: UInt8
-    let secondaryGroupingSize: UInt8
     let fullNameSpacing: Spacing
 
     // How many whole digits the integer part needs before grouping shows; one for most locales.
@@ -53,8 +54,18 @@ struct LocaleTables {
     let latnMinusSign: String
 
     // Swift source for the two interned tables, deduplicated by text when packed.
-    let pattern: String
+    let arrangement: String
     let fullNamePattern: String
+
+    // The accounting arrangement's own Swift source, when its positive side or grouping differs from
+    // `arrangement`'s — `nil` when it matches (the common case).
+    let accountingArrangement: String?
+
+    // A letter-adjacent symbol's own standard and accounting arrangements, each `nil` when it matches
+    // the locale's plain `arrangement` (the common case, and the only case for a locale with no
+    // `-alphaNextToNumber` shape of its own).
+    let alphaArrangement: String?
+    let alphaAccountingArrangement: String?
 
     let displays: [Display]
     let fullNames: [FullName]

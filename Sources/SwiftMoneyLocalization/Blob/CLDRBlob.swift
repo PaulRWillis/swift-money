@@ -10,8 +10,8 @@ import SwiftMoneyCore
 /// - the offsets of the locale, number-format, currency-display, currency-full-name and plural-rule
 ///   sections, each a `UInt32`.
 ///
-/// Patterns stay Swift values rather than packed bytes: only a handful are distinct across every locale,
-/// so a record carries an index into these arrays.
+/// Arrangements stay Swift values rather than packed bytes: only a handful are distinct across every
+/// locale, so a record carries an index into these arrays.
 package struct CLDRBlob: Sendable {
     /// Every covered locale's identifier, resolving one to the index the other sections are read with.
     package let locales: LocaleTable
@@ -34,6 +34,10 @@ package struct CLDRBlob: Sendable {
     /// The few per-locale separator overrides for a system that imposes its own.
     package let numberingSystemOverrides: NumberingSystemOverrideTable
 
+    /// The few per-locale rows where the accounting or letter-adjacent-symbol presentation arranges
+    /// the currency differently from the locale's standard arrangement.
+    package let currencyArrangementVariants: CurrencyArrangementVariantTable
+
     // The locale count is a count and stays a u32; the section positions are blob offsets.
     private enum Header {
         static let localeCount = 0
@@ -44,7 +48,8 @@ package struct CLDRBlob: Sendable {
         static let pluralRules = currencyFullNames + BlobDigits.offset
         static let numberingSystems = pluralRules + BlobDigits.offset
         static let numberingSystemOverrides = numberingSystems + BlobDigits.offset
-        static let width = numberingSystemOverrides + BlobDigits.offset
+        static let currencyArrangementVariants = numberingSystemOverrides + BlobDigits.offset
+        static let width = currencyArrangementVariants + BlobDigits.offset
     }
 
     /// How many bytes the header takes, which is where the generator lays out the first section.
@@ -54,16 +59,16 @@ package struct CLDRBlob: Sendable {
     ///
     /// - Parameters:
     ///   - bytes: The packed tables. A literal, so the bytes are static and outlive every read of them.
-    ///   - patterns: The distinct symbol patterns, in the order a record's index counts.
+    ///   - arrangements: The distinct currency arrangements, in the order a record's index counts.
     ///   - fullNamePatterns: The distinct full-name layouts, in the same way.
     package init(
         bytes: StaticString,
-        patterns: [MoneyFormatPattern],
+        arrangements: [CurrencyArrangement],
         fullNamePatterns: [FullNameLayout]
     ) {
         self.init(
             reader: BlobReader(base: bytes.utf8Start, count: bytes.utf8CodeUnitCount),
-            patterns: patterns,
+            arrangements: arrangements,
             fullNamePatterns: fullNamePatterns
         )
     }
@@ -71,7 +76,7 @@ package struct CLDRBlob: Sendable {
     /// Reads the tables through a reader over their bytes, for a test that builds a blob of its own.
     package init(
         reader: BlobReader,
-        patterns: [MoneyFormatPattern],
+        arrangements: [CurrencyArrangement],
         fullNamePatterns: [FullNameLayout]
     ) {
         locales = LocaleTable(
@@ -79,10 +84,15 @@ package struct CLDRBlob: Sendable {
             entriesOffset: reader.offsetField(at: Header.locales),
             localeCount: Int(reader.u32(at: Header.localeCount))
         )
+        currencyArrangementVariants = CurrencyArrangementVariantTable(
+            reader: reader,
+            sectionOffset: reader.offsetField(at: Header.currencyArrangementVariants)
+        )
         numberFormats = NumberFormatTable(
             reader: reader,
             recordsOffset: reader.offsetField(at: Header.numberFormats),
-            patterns: patterns,
+            arrangements: arrangements,
+            variants: currencyArrangementVariants,
             fullNamePatterns: fullNamePatterns
         )
         currencyDisplays = CurrencyDisplayTable(

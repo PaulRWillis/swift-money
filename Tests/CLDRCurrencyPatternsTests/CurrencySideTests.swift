@@ -30,4 +30,29 @@ struct CurrencySideTests {
     func incompletePatterns(_ pattern: String) {
         #expect(CurrencySide(pattern: pattern) == nil)
     }
+
+    // "US$" and "F CFA" trailing matches khq's real data: its standard pattern trails ("#,##0.00¤"),
+    // so the boundary is the symbol's *first* scalar — 'U' and 'F', both letters.
+    @Test("A letter touching the number classifies as letter-adjacent", arguments: [
+        ("US$", CurrencySide.trailing),
+        ("F CFA", .trailing),
+        ("kr", .leading),
+    ])
+    func letterAdjacentSymbols(_ symbol: String, _ side: CurrencySide) {
+        #expect(side.letterTouchesTheNumber(in: symbol))
+    }
+
+    @Test("A glyph beside the number is not letter-adjacent", arguments: [
+        ("€", CurrencySide.trailing),
+        ("£", .leading),
+        ("$", .leading),
+    ])
+    func glyphSymbols(_ symbol: String, _ side: CurrencySide) {
+        #expect(!side.letterTouchesTheNumber(in: symbol))
+    }
+
+    @Test("An empty symbol touches no letter")
+    func emptySymbolIsNotLetterAdjacent() {
+        #expect(!CurrencySide.leading.letterTouchesTheNumber(in: ""))
+    }
 }

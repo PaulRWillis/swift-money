@@ -12,13 +12,28 @@ struct NumberFormatTableTests {
         negative: MoneyFormatAffixes(prefix: [.sign, .currency, .currencySpacing], suffix: []),
         accountingNegative: MoneyFormatAffixes(prefix: [.literal("("), .currency], suffix: [.literal(")")])
     )
+    // A second, distinct arrangement, standing in for a locale's accounting arrangement moving the
+    // currency to the other side — as `no`'s CLDR data does, the case the variant table exists for.
+    static let leadingAccountingPattern = MoneyFormatPattern(
+        positive: MoneyFormatAffixes(prefix: [.sign, .currency, .currencySpacing], suffix: []),
+        negative: MoneyFormatAffixes(prefix: [.sign, .currency, .currencySpacing], suffix: []),
+        accountingNegative: MoneyFormatAffixes(prefix: [.literal("("), .currency], suffix: [.literal(")")])
+    )
     static let fullName = FullNameLayout(
         other: MoneyFormatAffixes(prefix: [.sign], suffix: [.currencySpacing, .currency])
     )
 
     // One locale (index 0): "." decimal, "," grouping of 3, "-", NBSP iso spacing, ascii full-name gap,
-    // pattern index 0, full-name pattern index 0, and the given digit glyphs (empty = ASCII).
-    static func makeBlob(digitGlyphs: String = "", minGrouping: UInt8 = 1, defaultSystem: UInt8 = 0) -> (bytes: [UInt8], recordsOffset: Int) {
+    // pattern index 0, full-name pattern index 0, and the given digit glyphs (empty = ASCII). When
+    // `accountingVariantIndex` is given, a variant row for locale 0 points its accounting cell at that
+    // arrangement index; the two alpha cells always point back at the standard index (no variant),
+    // matching a locale that only moves the currency for accounting.
+    static func makeBlob(
+        digitGlyphs: String = "",
+        minGrouping: UInt8 = 1,
+        defaultSystem: UInt8 = 0,
+        accountingVariantIndex: UInt16? = nil
+    ) -> (bytes: [UInt8], recordsOffset: Int, variantsOffset: Int) {
         var b = BlobTestBuilder()
         let decimal = b.pool(".")
         let grouping = b.pool(",")
@@ -31,8 +46,6 @@ struct NumberFormatTableTests {
         b.ref(minus)
         b.u8(Spacing.nonBreakingSpace.blobCode)
         b.u8(Spacing.narrowNonBreakingSpace.blobCode)
-        b.u8(3)
-        b.u8(3)
         b.u8(Spacing.asciiSpace.blobCode)
         b.u16(0)
         b.u16(0)
@@ -42,17 +55,42 @@ struct NumberFormatTableTests {
         b.ref(decimal)   // Latin decimal separator
         b.ref(grouping)  // Latin grouping separator
         b.ref(minus)     // Latin minus sign
-        return (b.bytes, recordsOffset)
+
+        let variantsOffset = b.count
+        if let accountingVariantIndex {
+            b.u32(1)
+            b.u16(0)   // localeIndex
+            b.u16(accountingVariantIndex)
+            b.u16(0)   // alphaArrangementIndex: no variant, same as standard (index 0)
+            b.u16(0)   // alphaAccountingArrangementIndex: no variant, same as standard
+        } else {
+            b.u32(0)
+        }
+
+        return (b.bytes, recordsOffset, variantsOffset)
     }
 
-    static func withTable(digitGlyphs: String = "", minGrouping: UInt8 = 1, defaultSystem: UInt8 = 0, _ body: (NumberFormatTable) -> Void) {
-        let (bytes, recordsOffset) = makeBlob(digitGlyphs: digitGlyphs, minGrouping: minGrouping, defaultSystem: defaultSystem)
+    static func withTable(
+        digitGlyphs: String = "",
+        minGrouping: UInt8 = 1,
+        defaultSystem: UInt8 = 0,
+        accountingVariantIndex: UInt16? = nil,
+        _ body: (NumberFormatTable) -> Void
+    ) {
+        let (bytes, recordsOffset, variantsOffset) = makeBlob(
+            digitGlyphs: digitGlyphs, minGrouping: minGrouping, defaultSystem: defaultSystem,
+            accountingVariantIndex: accountingVariantIndex
+        )
         bytes.withUnsafeBufferPointer { buffer in
             let reader = BlobReader(base: buffer.baseAddress!, count: buffer.count)
             body(NumberFormatTable(
                 reader: reader,
                 recordsOffset: recordsOffset,
-                patterns: [symbolPattern],
+                arrangements: [
+                    CurrencyArrangement(pattern: symbolPattern, primaryGroupingSize: 3, secondaryGroupingSize: 3),
+                    CurrencyArrangement(pattern: leadingAccountingPattern, primaryGroupingSize: 3, secondaryGroupingSize: 3),
+                ],
+                variants: CurrencyArrangementVariantTable(reader: reader, sectionOffset: variantsOffset),
                 fullNamePatterns: [fullName]
             ))
         }
@@ -67,12 +105,32 @@ struct NumberFormatTableTests {
             #expect(format.minusSign == "-")
             #expect(format.isoCodeSpacing == .nonBreakingSpace)
             #expect(format.symbolSpacing == .narrowNonBreakingSpace)
-            #expect(format.primaryGroupingSize == 3)
-            #expect(format.secondaryGroupingSize == 3)
+            #expect(format.standardArrangement.primaryGroupingSize == 3)
+            #expect(format.standardArrangement.secondaryGroupingSize == 3)
             #expect(format.fullNameSpacing == .asciiSpace)
-            #expect(format.pattern == Self.symbolPattern)
+            #expect(format.standardArrangement.pattern == Self.symbolPattern)
             #expect(format.fullNamePattern == Self.fullName)
             #expect(format.minGroupingDigits == 1)
+        }
+    }
+
+    @Test("A locale with no variant row decodes nil for all three variant arrangements")
+    func noVariantRowDecodesNil() {
+        Self.withTable { table in
+            let format = table.numberFormat(localeIndex: LocaleIndex(position: 0))
+            #expect(format.accountingArrangement == nil)
+            #expect(format.alphaArrangement == nil)
+            #expect(format.alphaAccountingArrangement == nil)
+        }
+    }
+
+    @Test("A locale with a variant row resolves its accounting arrangement, and nil for the untouched alpha cells")
+    func variantRowResolvesTheAccountingArrangement() {
+        Self.withTable(accountingVariantIndex: 1) { table in
+            let format = table.numberFormat(localeIndex: LocaleIndex(position: 0))
+            #expect(format.accountingArrangement?.pattern == Self.leadingAccountingPattern)
+            #expect(format.alphaArrangement == nil)
+            #expect(format.alphaAccountingArrangement == nil)
         }
     }
 

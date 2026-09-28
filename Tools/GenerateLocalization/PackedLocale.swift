@@ -20,10 +20,8 @@ struct PackedLocale {
         let isoCodeSpacing: Spacing
         // The gap the standard pattern bakes in beside every symbol, glyph included.
         let symbolSpacing: Spacing
-        let primaryGroupingSize: UInt8
-        let secondaryGroupingSize: UInt8
         let fullNameSpacing: Spacing
-        let patternIndex: UInt16
+        let standardArrangementIndex: UInt16
         let fullNamePatternIndex: UInt16
         // The locale's ten digit glyphs, or the empty string's ref when it writes the ASCII 0 to 9.
         let digits: StringRef
@@ -37,13 +35,16 @@ struct PackedLocale {
         let latnMinusSign: StringRef
     }
 
-    // One currency's symbols in this locale, each with the spacing CLDR resolves for it.
+    // One currency's symbols in this locale, each with the spacing CLDR resolves for it and whether a
+    // letter touches the number in each.
     struct Display {
         let code: CurrencyCode
         let standardSymbol: StringRef
         let standardSpacing: Spacing
+        let standardForm: SymbolForm
         let narrowSymbol: StringRef
         let narrowSpacing: Spacing
+        let narrowForm: SymbolForm
     }
 
     // What this locale calls one currency: the name it always publishes, and any category that names it
