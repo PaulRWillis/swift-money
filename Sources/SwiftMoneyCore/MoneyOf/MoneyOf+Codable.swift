@@ -135,7 +135,7 @@ extension MoneyOf: Codable {
     // An amount written on its own, in the currency this type names.
     private static func fromBareAmount(
         _ number: WireNumber,
-        units: MoneyCodingFormat.Units,
+        units: MoneyCodingUnits,
         in container: SingleValueDecodingContainer
     ) throws -> MoneyOf {
         guard let storage = impliedStorage else {
@@ -336,7 +336,7 @@ extension MoneyOf {
 
         func minorUnits(
             in currency: Currency,
-            units: MoneyCodingFormat.Units
+            units: MoneyCodingUnits
         ) throws(WireNumberError) -> MinorUnits {
             let text = try digits(in: currency, units: units)
 
@@ -358,7 +358,7 @@ extension MoneyOf {
         // whole number nor an expanded exponent carries one.
         private func digits(
             in currency: Currency,
-            units: MoneyCodingFormat.Units
+            units: MoneyCodingUnits
         ) throws(WireNumberError) -> String {
             switch self {
             case let .whole(value):

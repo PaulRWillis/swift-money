@@ -19,7 +19,7 @@ extension MoneyOf {
     // Inlined because both callers pass a literal, which lets the units test fold away entirely.
     // Without this it costs `description` nine instructions.
     @inline(__always)
-    func codedString(_ units: MoneyCodingFormat.Units) -> String {
+    func codedString(_ units: MoneyCodingUnits) -> String {
         // Held rather than read twice: reaching it goes through the currency representation.
         let currency = self.currency
         let scale = UInt64(Int64(currency.unitScale))
@@ -68,7 +68,7 @@ extension MoneyOf {
     // each cost `description` between 9 and 95 instructions, because what they share sits inside the
     // buffer closure where a constant does not reach. This costs one extra allocation on a path that
     // runs inside a coder costing twenty thousand instructions, and leaves `description` untouched.
-    func amountText(_ units: MoneyCodingFormat.Units) -> String {
+    func amountText(_ units: MoneyCodingUnits) -> String {
         String(codedString(units).dropFirst(currency.code.utf8Count + 1))
     }
 }

@@ -9,35 +9,17 @@
 /// GBP(minorUnits: 4_99)   // "GBP 4.99" rather than "GBP 499"
 /// ```
 public struct MoneyCodingFormat: Sendable, Equatable, Hashable {
-    /// Which units the digits count.
-    ///
-    /// ```swift
-    /// .minorUnits   // 499
-    /// .majorUnits   // 4.99
-    /// ```
-    ///
-    /// A string says which it is for itself, a `.` meaning major units, so this decides only what a
-    /// number means. A number cannot say: `400` and `400.00` are one JSON number, and reading the
-    /// fraction as a hint would make the same payload mean two amounts a hundredfold apart.
-    public enum Units: Sendable, Equatable, Hashable {
-        /// The currency's smallest units, so pence rather than pounds.
-        case minorUnits
-
-        /// Whole units and a fraction, so pounds and pence.
-        case majorUnits
-    }
-
     /// How the amount itself is written.
     public enum Amount: Sendable, Equatable, Hashable {
         /// `499` or `4.99`, a JSON number in the units named.
-        case number(Units)
+        case number(MoneyCodingUnits)
 
         /// `"499"` or `"4.99"`, a JSON string in the units named.
-        case string(Units)
+        case string(MoneyCodingUnits)
     }
 
     enum Shape: Sendable, Equatable, Hashable {
-        case codedString(Units)
+        case codedString(MoneyCodingUnits)
         case fields(currencyKey: CurrencyKey, amountKey: AmountKey, amount: Amount)
         case amountOnly(Amount)
     }
@@ -55,7 +37,7 @@ public struct MoneyCodingFormat: Sendable, Equatable, Hashable {
     /// ```
     ///
     /// - Parameter units: Which units the digits count.
-    public static func codedString(_ units: Units) -> MoneyCodingFormat {
+    public static func codedString(_ units: MoneyCodingUnits) -> MoneyCodingFormat {
         MoneyCodingFormat(shape: .codedString(units))
     }
 
@@ -131,7 +113,7 @@ public struct MoneyCodingFormat: Sendable, Equatable, Hashable {
 }
 
 extension MoneyCodingFormat.Amount {
-    var units: MoneyCodingFormat.Units {
+    var units: MoneyCodingUnits {
         switch self {
         case let .number(units): units
         case let .string(units): units
@@ -142,7 +124,7 @@ extension MoneyCodingFormat.Amount {
 extension MoneyCodingFormat {
     // Which units a number on the wire counts. Reading needs this whatever shape was set for
     // writing, a number being the one form that cannot say for itself.
-    var units: Units {
+    var units: MoneyCodingUnits {
         switch shape {
         case let .codedString(units): units
         case let .fields(_, _, amount): amount.units
