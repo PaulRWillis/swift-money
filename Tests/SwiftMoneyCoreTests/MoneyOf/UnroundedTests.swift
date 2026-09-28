@@ -68,6 +68,44 @@ struct UnroundedTests {
         #expect(quarter.rounded(.toNearestOrEven) == GBP(minorUnits: 2_50))
     }
 
+    @Test("A narrow integer operand gives the same result as an Int")
+    func narrowIntegerOperands() {
+        let typed = GBP(minorUnits: 10_00).unrounded
+        let runtime = Money(minorUnits: 10_00, currency: .gbp).unrounded
+
+        #expect(typed * Int32(31) == typed * 31)
+        #expect(UInt8(31) * typed == 31 * typed)
+        #expect(typed.divided(by: UInt16(365)) == typed.divided(by: 365))
+        #expect(typed.divided(byExactly: Int8(4)) == typed.divided(byExactly: 4))
+        #expect(typed.divided(byExactly: UInt8(0)) == nil)
+
+        #expect(runtime * Int32(31) == runtime * 31)
+        #expect(runtime.divided(by: UInt16(365)) == runtime.divided(by: 365))
+        #expect(runtime.divided(byExactly: Int8(4)) == runtime.divided(byExactly: 4))
+        #expect(runtime.divided(byExactly: UInt8(0)) == nil)
+    }
+
+    @Test("Typed and runtime-currency amounts settle to the same minor units")
+    func typedMatchesRuntimeCurrency() throws {
+        let third = try #require(Rate(string: "1/3"))
+        let typed = GBP(minorUnits: 10_00).unrounded * third
+        let runtime = Money(minorUnits: 10_00, currency: .gbp).unrounded * third
+        let settledTyped = GBP(minorUnits: 2_50)
+        let settledRuntime = Money(minorUnits: 2_50, currency: .gbp)
+
+        #expect((typed + settledTyped).rounded(.up).minorUnits == (try runtime + settledRuntime).rounded(.up).minorUnits)
+        #expect((settledTyped - typed).rounded(.down).minorUnits == (try settledRuntime - runtime).rounded(.down).minorUnits)
+        #expect([typed, typed, typed].total().rounded(.toNearestOrEven).minorUnits
+            == (try [runtime, runtime, runtime].total())?.rounded(.toNearestOrEven).minorUnits)
+    }
+
+    @Test("Scaling by an integer wider than Int128 traps")
+    func scalingByIntegerWiderThanInt128Traps() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(GBP(minorUnits: 1).unrounded * UInt128.max)
+        }
+    }
+
     @Test("Dividing by zero traps")
     func dividingByZeroTraps() async {
         await #expect(processExitsWith: .failure) {

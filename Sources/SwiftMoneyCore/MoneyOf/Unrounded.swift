@@ -53,7 +53,7 @@ public extension MoneyOf.Unrounded where C: CurrencyType {
     ///
     /// Traps on overflow.
     @inlinable static func * (lhs: Self, rhs: some BinaryInteger) -> Self {
-        guard let scaled = lhs.minorUnits.multipliedIfRepresentable(by: rhs) else {
+        guard let factor = Int128(exactly: rhs), let scaled = lhs.minorUnits.multipliedIfRepresentable(by: factor) else {
             preconditionFailure("Scaling by \(rhs) is not representable")  // coverage:ignore — exit-test trap
         }
 
@@ -95,16 +95,16 @@ public extension MoneyOf.Unrounded where C: CurrencyType {
     ///
     /// - Precondition: `n` is not zero.
     @inlinable func divided(by n: some BinaryInteger) -> Self {
-        Self(minorUnits.divided(by: n), storage: .implied)
+        Self(minorUnits.divided(by: Int128(n)), storage: .implied)
     }
 
     /// Returns this amount divided by a whole number, or `nil` if `n` is zero.
-    func divided(byExactly n: some BinaryInteger) -> Self? {
+    @inlinable func divided(byExactly n: some BinaryInteger) -> Self? {
         guard n != 0 else {
             return nil
         }
 
-        return Self(minorUnits.divided(by: n), storage: .implied)
+        return Self(minorUnits.divided(by: Int128(n)), storage: .implied)
     }
 
     /// Returns this amount settled to a whole number of the currency's smallest unit, within one of the
@@ -210,7 +210,7 @@ public extension MoneyOf.Unrounded where C == AnyCurrency {
     ///
     /// Traps on overflow.
     @inlinable static func * (lhs: Self, rhs: some BinaryInteger) -> Self {
-        guard let scaled = lhs.minorUnits.multipliedIfRepresentable(by: rhs) else {
+        guard let factor = Int128(exactly: rhs), let scaled = lhs.minorUnits.multipliedIfRepresentable(by: factor) else {
             preconditionFailure("Scaling by \(rhs) is not representable")  // coverage:ignore — exit-test trap
         }
 
@@ -249,16 +249,16 @@ public extension MoneyOf.Unrounded where C == AnyCurrency {
     ///
     /// - Precondition: `n` is not zero.
     @inlinable func divided(by n: some BinaryInteger) -> Self {
-        Self(minorUnits.divided(by: n), storage: storage)
+        Self(minorUnits.divided(by: Int128(n)), storage: storage)
     }
 
     /// Returns this amount divided by a whole number, or `nil` if `n` is zero.
-    func divided(byExactly n: some BinaryInteger) -> Self? {
+    @inlinable func divided(byExactly n: some BinaryInteger) -> Self? {
         guard n != 0 else {
             return nil
         }
 
-        return Self(minorUnits.divided(by: n), storage: storage)
+        return Self(minorUnits.divided(by: Int128(n)), storage: storage)
     }
 
     /// Returns the sum of two unrounded amounts, keeping both fractions.
@@ -351,8 +351,8 @@ public extension MoneyOf.Unrounded where C: CurrencyType {
     /// `GBP.Unrounded(majorUnits: "0.023")` is 2.3 pence, ready to scale and settle once.
     ///
     /// - Precondition: the amount is representable.
-    init(majorUnits: Rate) {
-        self.init(majorUnits.value.multiplied(by: Int64(C.currency.unitScale)), storage: .implied)
+    @inlinable init(majorUnits: Rate) {
+        self.init(majorUnits.value.multiplied(by: Int128(Int64(C.currency.unitScale))), storage: .implied)
     }
 
     /// Creates an amount from a fractional number of the currency's minor units.
@@ -369,7 +369,7 @@ public extension MoneyOf.Unrounded where C: CurrencyType {
     /// than at each hop.
     ///
     /// - Precondition: the converted amount is representable.
-    func converted<To>(using rate: ExchangeRate<C, To>) -> MoneyOf<To>.Unrounded {
+    @inlinable func converted<To>(using rate: ExchangeRate<C, To>) -> MoneyOf<To>.Unrounded {
         guard let converted = minorUnits.multipliedIfRepresentable(by: rate.minorPerMinorRate.value) else {
             preconditionFailure("Converting is not representable")  // coverage:ignore — exit-test trap
         }

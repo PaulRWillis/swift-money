@@ -12,7 +12,7 @@ public struct ExchangeRate<From: CurrencyType, To: CurrencyType>: Sendable, Equa
     // Stored as `To` minor units per one `From` minor unit — the form `converted` and `crossed` use
     // directly. The public quote is per major unit; the two differ only when the currencies' scales
     // differ, and the conversion between them lives solely in `init?(_:)`.
-    let minorPerMinorRate: Rate
+    @usableFromInline let minorPerMinorRate: Rate
 
     private init?(minorPerMinor rate: Rate) {
         guard rate.isPositive else {
@@ -34,8 +34,8 @@ public struct ExchangeRate<From: CurrencyType, To: CurrencyType>: Sendable, Equa
         // The multiply is checked because the two scales can differ widely enough to overflow; the
         // divide that follows only shrinks an already-representable value, so it cannot.
         guard let scaled = marketRate.value
-            .multipliedIfRepresentable(by: Int64(To.currency.unitScale))?
-            .divided(by: Int64(From.currency.unitScale)) else {
+            .multipliedIfRepresentable(by: Int128(Int64(To.currency.unitScale)))?
+            .divided(by: Int128(Int64(From.currency.unitScale))) else {
             return nil
         }
 

@@ -46,5 +46,5 @@ func proportion(
     // `Fixed(part) / Fixed(whole)` would widen both sides and divide through the 256-bit path. The result
     // is `part / whole`, which `Fixed(part).divided(by: whole)` reaches with one 128-bit divide —
     // `part × 10¹⁸` fits `Int128` for any `Int64` part — giving the same banker's-rounded value.
-    return Rate(Fixed(part).divided(by: whole))
+    return Rate(Fixed(part).divided(by: Int128(whole)))
 }
