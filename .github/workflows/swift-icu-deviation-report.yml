@@ -2,6 +2,19 @@ name: ICU deviation report
 
 on:
   workflow_dispatch:
+  # A push to main records main's own report, which pull requests then compare against rather than
+  # each running it again. The same paths as the pull request filter below.
+  push:
+    branches: [ main ]
+    paths:
+      - 'Sources/SwiftMoneyCore/**'
+      - 'Sources/SwiftMoneyLocalization/**'
+      - 'Sources/SwiftMoneyFoundation/**'
+      - 'Sources/SwiftMoneyFormatMatrix/**'
+      - 'Tools/CompareFormattingToICU/**'
+      - 'Package.swift'
+      - 'Package.resolved'
+      - '.github/workflows/swift-icu-deviation-report.yml'
   pull_request:
     branches: [ main ]
     # Scoped to what the CompareFormattingToICU tool exercises, so an unrelated future package does not
@@ -29,8 +42,15 @@ permissions:
   contents: read
   pull-requests: write
 
+env:
+  # Part of the cached report's key, since a report split another way cannot be read shard by shard.
+  ICU_SHARD_COUNT: "16"
+  # A run on main, pushed or started by hand, records main's report for pull requests to compare
+  # against. Every other run is a comparison.
+  RECORD: ${{ github.ref == 'refs/heads/main' }}
+
 jobs:
-  # Every shard runs the same two tools, so they are compiled once per platform here and handed to the
+  # Every shard runs the same tools, so they are compiled once per platform here and handed to the
   # shards, rather than compiled again on every shard. Release, since its report matched a debug
   # build's and took less than half the time.
   build:
@@ -44,10 +64,10 @@ jobs:
     steps:
     - uses: actions/checkout@v6
 
-    # The same tool also runs against the commit this pull request targets, on the same machine, and
-    # only the difference between the two runs is reported. Deviations the branch did not introduce
-    # stay quiet, and the platform's own ICU version cancels out because both runs share it.
+    # The same tool also runs against the commit this pull request targets, and only the difference
+    # between the two reports is shown. Deviations the branch did not introduce stay quiet.
     - name: Check out the target commit as well
+      if: env.RECORD != 'true'
       uses: actions/checkout@v6
       with:
         ref: ${{ github.event.pull_request.base.sha || 'main' }}
@@ -61,19 +81,39 @@ jobs:
     - name: Swift version
       run: swift --version
 
-    - name: Build the tool for both commits
+    # A recording run builds only its own tool, since its report is the one being recorded. A comparison
+    # always builds the target commit's tool too, for any shard that finds no recorded report to use.
+    - name: Build the tools
       run: |
         flags=(-c release --product CompareFormattingToICU)
 
+        commits=(head)
+        if [ "$RECORD" != true ]; then commits+=(base); fi
+
         mkdir tool
-        for commit in head base; do
+        for commit in "${commits[@]}"; do
           package="."
           if [ "$commit" = base ]; then package="base"; fi
           swift build --package-path "$package" "${flags[@]}"
           cp "$(swift build --package-path "$package" "${flags[@]}" --show-bin-path)/CompareFormattingToICU" "tool/$commit"
         done
 
-        # An artifact drops the executable bit, so the binaries travel as a tarball.
+    # The recorded report is keyed partly on what the target commit's report is made from: the files
+    # the tool reads (the `paths:` filter's), and this workflow as the pull request has it, since an
+    # edit here can change how the report is built or run.
+    - name: Hash the report's inputs
+      run: |
+        commit="base"
+        if [ "$RECORD" = true ]; then commit="."; fi
+
+        {
+          git -C "$commit" ls-tree HEAD -- \
+            Sources/SwiftMoneyCore Sources/SwiftMoneyLocalization Sources/SwiftMoneyFoundation \
+            Sources/SwiftMoneyFormatMatrix Tools/CompareFormattingToICU Package.swift Package.resolved
+          git ls-tree HEAD -- .github/workflows/swift-icu-deviation-report.yml
+        } | shasum -a 256 | cut -c 1-16 > tool/inputs
+
+        # An artifact drops the executable bit, so the tools travel as a tarball.
         tar -czf tool.tar.gz tool
 
     - name: Upload the tools
@@ -106,16 +146,51 @@ jobs:
     - name: Unpack the tools
       run: tar -xzf tool.tar.gz
 
+    # Selects the same Swift the build job used, so this runner's Swift version below reads the same.
+    - uses: maxim-lobanov/setup-xcode@v1
+      if: ${{ runner.os == 'macOS' }}
+      with:
+        xcode-version: '26.5'
+
+    # The key also names the ICU the report formats with, read from this runner: on Linux it comes with
+    # the Swift toolchain, on macOS with the operating system. A report recorded on another image, as
+    # during a runner image rollout, then never matches, and the shard runs the target commit itself.
+    - name: Work out the key for the target commit's recorded report
+      id: reference
+      run: |
+        platform="$(swift --version 2>&1)"
+        if [ "$RUNNER_OS" = macOS ]; then platform="$platform $(sw_vers -buildVersion)"; fi
+        platform="$(printf '%s' "$platform" | shasum -a 256 | cut -c 1-16)"
+
+        key="icu-reference-v1-$RUNNER_OS-$platform-$(cat tool/inputs)-${ICU_SHARD_COUNT}shards"
+        echo "$key" > reference-key.txt
+        echo "key=$key" >> "$GITHUB_OUTPUT"
+
+    - name: Restore the target commit's recorded report
+      id: restore
+      if: env.RECORD != 'true'
+      uses: actions/cache/restore@v6
+      with:
+        path: reference
+        key: ${{ steps.reference.outputs.key }}
+
     # Both runs read the same shard selection, so head and base cover the identical locales and their
     # outputs stay comparable. A base commit whose tool predates sharding ignores these and runs the
-    # whole set.
-    - name: Run the ICU deviation report on both commits
+    # whole set. A recording run stops after its own report, which is what gets recorded.
+    - name: Run the ICU deviation report
       env:
         ICU_SHARD_INDEX: ${{ matrix.shard }}
-        ICU_SHARD_COUNT: "16"
+        REFERENCE_RESTORED: ${{ steps.restore.outputs.cache-hit }}
       run: |
         tool/head > head-output.txt
-        tool/base > base-output.txt
+
+        if [ "$RECORD" = true ]; then exit 0; fi
+
+        if [ "$REFERENCE_RESTORED" = true ]; then
+          cp "reference/shard$ICU_SHARD_INDEX.txt" base-output.txt
+        else
+          tool/base > base-output.txt
+        fi
 
     # The tool prints one deviation per line and marks everything else with `#`, so dropping those
     # lines and sorting leaves two sets that `comm` can compare.
@@ -124,6 +199,7 @@ jobs:
     # platform, because a reader wants to know which platform disagrees, not which shard happened to
     # be carrying the locale.
     - name: Compare the two runs
+      if: env.RECORD != 'true'
       run: |
         head_format="$(sed -n 's/^# format: //p' head-output.txt)"
         base_format="$(sed -n 's/^# format: //p' base-output.txt)"
@@ -158,7 +234,63 @@ jobs:
           resolved.txt
           status.txt
           head-output.txt
+          reference-key.txt
         if-no-files-found: warn
+        # A recording run's shards matter only until the job below gathers them.
+        retention-days: ${{ env.RECORD == 'true' && 1 || 0 }}
+
+  # Gathers a recording run's shard reports into one cache entry per platform, so a pull request finds
+  # either every shard's report or none. On the platform it is for, since a cache saved on one runner OS
+  # is not promised to restore on another.
+  save-reference:
+    needs: report
+    # !cancelled(), so one platform's failed shard does not stop the other platform being recorded.
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-26]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/download-artifact@v7
+      with:
+        pattern: icu-deviations-${{ matrix.os }}-shard*
+        path: shards
+
+    # A shard uploads only after its report succeeded, so a missing upload is a failed shard. Shards on
+    # different runner images compute different keys. Either way nothing is recorded, rather than a
+    # partial or mixed report.
+    - name: Gather the shard reports
+      id: gather
+      env:
+        OS: ${{ matrix.os }}
+      run: |
+        mkdir reference
+        keys=()
+        for shard in $(seq 0 $((ICU_SHARD_COUNT - 1))); do
+          upload="shards/icu-deviations-$OS-shard$shard"
+          if [ ! -f "$upload/head-output.txt" ] || [ ! -f "$upload/reference-key.txt" ]; then
+            echo "::warning::Shard $shard did not finish, so nothing is recorded for $OS."
+            exit 0
+          fi
+          cp "$upload/head-output.txt" "reference/shard$shard.txt"
+          keys+=("$(cat "$upload/reference-key.txt")")
+        done
+
+        if [ "$(printf '%s\n' "${keys[@]}" | sort -u | wc -l)" -ne 1 ]; then
+          echo "::warning::The shards ran on different runner images, so nothing is recorded for $OS."
+          exit 0
+        fi
+
+        echo "key=${keys[0]}" >> "$GITHUB_OUTPUT"
+
+    - uses: actions/cache/save@v6
+      if: steps.gather.outputs.key != ''
+      with:
+        path: reference
+        key: ${{ steps.gather.outputs.key }}
 
   # One PR comment covering both platforms, so a Linux/macOS ICU divergence is visible side by side
   # rather than split across two separate comments.
