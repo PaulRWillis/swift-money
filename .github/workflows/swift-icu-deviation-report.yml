@@ -16,6 +16,13 @@ on:
       - 'Package.resolved'
       - '.github/workflows/swift-icu-deviation-report.yml'
 
+# A newer push to the same pull request supersedes this run, so the older one is cancelled rather
+# than holding runners the newer one is queued for. Every other run gets a group of its own, so a push
+# to main is never cancelled or queued behind another.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 # Stated rather than inherited from the repository default, since the comment step below needs
 # write access to pull requests and nothing here needs more than that.
 permissions:
@@ -117,9 +124,10 @@ jobs:
   # rather than split across two separate comments.
   comment:
     needs: report
-    # always(), so a failed or cancelled report still gets a comment (the incomplete verdict) rather
-    # than the whole comment job being skipped and the PR left with no status.
-    if: ${{ always() && github.event_name == 'pull_request' }}
+    # !cancelled(), so a failed or timed-out report still gets a comment (the incomplete verdict) rather
+    # than the whole comment job being skipped and the PR left with no status. A run a newer push
+    # cancelled posts nothing; the newer run owns the comment.
+    if: ${{ !cancelled() && github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
