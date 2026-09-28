@@ -28,7 +28,7 @@ extension MoneyOf: Comparable where C: CurrencyType {
     }
 }
 
-// Negation, magnitude and the sign query read one operand and pass its storage through unchanged,
+// Negation, magnitude and the sign queries read one operand and pass its storage through unchanged,
 // so no currency can mismatch. One unconditional extension therefore serves both seams, and
 // ``Money`` needs no throwing twins.
 public extension MoneyOf {
@@ -54,6 +54,14 @@ public extension MoneyOf {
     @inlinable
     var isNegative: Bool {
         minorUnits < 0
+    }
+
+    /// Whether this amount is greater than zero.
+    ///
+    /// Zero is neither positive nor negative.
+    @inlinable
+    var isPositive: Bool {
+        minorUnits > 0
     }
 
     /// Whether this amount is zero.

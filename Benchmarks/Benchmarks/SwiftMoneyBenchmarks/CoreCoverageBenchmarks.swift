@@ -75,6 +75,21 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         blackHole(negatives)
     }
 
+    Benchmark("MoneyOf is positive", configuration: configuration) { benchmark in
+        let amounts = pounds + pounds.map { -$0 }
+        var index = 0
+        var positives = 0
+
+        for _ in benchmark.scaledIterations {
+            if amounts[index % amounts.count].isPositive {
+                positives &+= 1
+            }
+            index &+= 1
+        }
+
+        blackHole(positives)
+    }
+
     Benchmark("MoneyOf is zero", configuration: configuration) { benchmark in
         let amounts = [GBP.zero] + pounds
         var index = 0

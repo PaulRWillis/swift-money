@@ -202,6 +202,13 @@ struct MoneyTests {
         #expect(!Money(minorUnits: 1, currency: .gbp).isNegative)
     }
 
+    @Test("Is positive reports the sign")
+    func isPositiveReportsSign() {
+        #expect(Money(minorUnits: 1, currency: .gbp).isPositive)
+        #expect(!Money(minorUnits: 0, currency: .gbp).isPositive)
+        #expect(!Money(minorUnits: -1, currency: .gbp).isPositive)
+    }
+
     @Test("Is zero in any currency")
     func isZeroInAnyCurrency() {
         #expect(Money(minorUnits: 0, currency: .gbp).isZero)
