@@ -44,6 +44,48 @@ struct RateParsingTests {
         #expect(decimal == Rate.basisPoints(1750))
     }
 
+    @Test("A literal whose digits past the grid are all zero builds the rate")
+    func trailingZerosPastTheGridStayExact() {
+        #expect(Rate(stringLiteral: "0.5" + String(repeating: "0", count: 22)) == Rate.percent(50))
+    }
+
+    @Test("A percent literal is exact to the grid's last digit")
+    func percentLiteralAtTheGridsLastDigit() throws {
+        let smallest: Rate = "0.0000000000000001%"
+
+        #expect(smallest == (try #require(Rate(string: "0.000000000000000001"))))
+    }
+
+    @Test("A percent literal one digit past the grid traps")
+    func percentLiteralPastTheGridTraps() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(Rate(stringLiteral: "0.00000000000000001%"))
+        }
+    }
+
+    @Test("A negative literal finer than the grid traps")
+    func negativeOverlyPreciseLiteralTraps() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(Rate(stringLiteral: "-0.1234567890123456789"))
+        }
+    }
+
+    // The nineteenth digit is exactly half a step, so each rule picks one of the two neighbors.
+    @Test(
+        "A string finer than the grid rounds by the caller's rule",
+        arguments: [
+            (RoundingRule.toNearestOrEven, "0.123456789012345678"),
+            (.toNearestOrAwayFromZero, "0.123456789012345679"),
+            (.towardZero, "0.123456789012345678"),
+            (.up, "0.123456789012345679"),
+        ]
+    )
+    func finerThanTheGridRounds(_ rule: RoundingRule, _ neighbor: String) throws {
+        let expected = try #require(Rate(string: neighbor))
+
+        #expect(Rate(string: "0.1234567890123456785", rounding: rule) == expected)
+    }
+
     @Test("An inexact fraction literal traps")
     func inexactFractionLiteralTraps() async {
         await #expect(processExitsWith: .failure) {

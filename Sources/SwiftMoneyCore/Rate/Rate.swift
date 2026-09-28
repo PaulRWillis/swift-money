@@ -56,10 +56,10 @@ public extension Rate {
     ///
     /// - Returns: `nil` if `text` is none of those forms, or names a value too large to represent.
     init?(string text: String, rounding: RoundingRule = .toNearestOrEven) {
-        guard let (value, _) = Rate.parse(text, rounding: rounding) else {
+        guard let parsed = Rate.parse(text, rounding: rounding) else {
             return nil
         }
-        self.init(value)
+        self.init(parsed.value)
     }
 
     /// The rate closest to `value`.
@@ -86,13 +86,14 @@ extension Rate: ExpressibleByStringLiteral {
     /// - Precondition: `value` is a valid rate the type can hold exactly. `"1/3"`, or anything finer
     ///   than the grid, traps — use ``init(string:rounding:)`` to round instead.
     public init(stringLiteral value: String) {
-        guard let (fixed, exact) = Rate.parse(value, rounding: .toNearestOrEven) else {
+        switch Rate.parse(value, rounding: .toNearestOrEven) {
+        case let .exact(fixed):
+            self.init(fixed)
+        case .rounded:
+            preconditionFailure("Rate literal \"\(value)\" is not exactly representable; use Rate(string:rounding:)")  // coverage:ignore — exit-test trap
+        case nil:
             preconditionFailure("Not a valid rate literal: \"\(value)\"")  // coverage:ignore — exit-test trap
         }
-        guard exact else {
-            preconditionFailure("Rate literal \"\(value)\" is not exactly representable; use Rate(string:rounding:)")  // coverage:ignore — exit-test trap
-        }
-        self.init(fixed)
     }
 }
 
@@ -124,7 +125,7 @@ public extension Rate {
 private extension Rate {
     // Parses the three written forms, reporting whether `text` named the value exactly (no rounding).
     // Returns nil for anything that is not a decimal, a percentage, or a fraction.
-    static func parse(_ text: String, rounding: RoundingRule) -> (value: Fixed, exact: Bool)? {
+    static func parse(_ text: String, rounding: RoundingRule) -> Fixed.Exactness? {
         let slash = UInt8(ascii: "/")
 
         if text.utf8.last == UInt8(ascii: "%") {
@@ -147,19 +148,19 @@ private extension Rate {
     }
 
     // "0.175" → the decimal itself.
-    static func parseDecimal(_ text: Substring, rounding: RoundingRule) -> (value: Fixed, exact: Bool)? {
+    static func parseDecimal(_ text: Substring, rounding: RoundingRule) -> Fixed.Exactness? {
         guard let (significand, fractionDigits) = scanDecimal(text) else { return nil }
-        return representable(significand: significand, exponent: -fractionDigits, rounding: rounding)
+        return Fixed.exactness(significand: significand, exponent: -fractionDigits, rounding: rounding)
     }
 
     // "17.5%" → the decimal divided by a hundred: two more places past the point.
-    static func parsePercent(_ text: Substring, rounding: RoundingRule) -> (value: Fixed, exact: Bool)? {
+    static func parsePercent(_ text: Substring, rounding: RoundingRule) -> Fixed.Exactness? {
         guard let (significand, fractionDigits) = scanDecimal(text) else { return nil }
-        return representable(significand: significand, exponent: -(fractionDigits + percentFractionDigits), rounding: rounding)
+        return Fixed.exactness(significand: significand, exponent: -(fractionDigits + percentFractionDigits), rounding: rounding)
     }
 
     // "1/3" → numerator over denominator, exact only when the division leaves nothing over.
-    static func parseFraction(_ text: Substring, rounding: RoundingRule) -> (value: Fixed, exact: Bool)? {
+    static func parseFraction(_ text: Substring, rounding: RoundingRule) -> Fixed.Exactness? {
         // Slice at the single slash rather than `split`, which would allocate an array for two parts.
         guard let slash = text.firstIndex(of: "/") else { return nil }
         let numeratorText = text[text.startIndex ..< slash]
@@ -171,15 +172,11 @@ private extension Rate {
             return nil
         }
         let value = whole.divided(by: denominator, rounding: rounding)
-        return (value, exact: value.multipliedIfRepresentable(by: denominator) == whole)
-    }
+        guard value.multipliedIfRepresentable(by: denominator) == whole else {
+            return .rounded(value)
+        }
 
-    // Builds `significand × 10^exponent`, reporting whether it lands on the grid without rounding.
-    static func representable(significand: Int128, exponent: Int, rounding: RoundingRule) -> (value: Fixed, exact: Bool)? {
-        guard let value = Fixed(significand: significand, exponent: exponent, rounding: rounding) else { return nil }
-        let truncated = Fixed(significand: significand, exponent: exponent, rounding: .towardZero)
-        let raised = Fixed(significand: significand, exponent: exponent, rounding: .awayFromZero)
-        return (value, exact: truncated == raised)
+        return .exact(value)
     }
 
     // Scans a signed decimal ("-0.175", ".5", "100") into a significand and its fraction-digit count.
