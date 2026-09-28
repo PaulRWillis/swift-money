@@ -8,6 +8,10 @@ benchmarks regressed and which improved:
 
     python3 Benchmarks/delta_comment.py shards --job-result success --run-url <url> > comment_body.md
 
+A pull request without the label that turns the comparison on gets a short note saying how to:
+
+    python3 Benchmarks/delta_comment.py --not-run run-benchmarks > comment_body.md
+
 Direction comes from the comparison file, not the status. The status is one word per shard, and a
 regression outranks an improvement in it, so a shard that did both reads as a plain regression. In the
 file, every group of deviation tables is followed by a verdict line saying whether that group is
@@ -447,6 +451,17 @@ def no_comparison(job, run_url):
     )
 
 
+def not_run(label):
+    """The comment when the pull request lacks the label that turns the comparison on."""
+    return Comment(
+        paragraphs(
+            [MARKER, "### ⏸️ Not run"],
+            [f"Add the `{label}` label to compare this pull request's speed with main."],
+        ),
+        Delivery.POST,
+    )
+
+
 def comment(shards, job, run_url):
     """The rolled-up comment for every shard's outcome and the benchmark job's overall result."""
     if not shards:
@@ -823,6 +838,12 @@ def selftest():
     assert nothing_ran.body.splitlines()[1] == "### ❓ Benchmarks did not complete"
     assert nothing_ran.delivery is Delivery.POST
 
+    # Posted, not only refreshed, so it also replaces the result of a push that had the label.
+    unlabelled = not_run("run-benchmarks")
+    assert unlabelled.body.splitlines()[:2] == [MARKER, "### ⏸️ Not run"], unlabelled.body
+    assert "`run-benchmarks`" in unlabelled.body
+    assert unlabelled.delivery is Delivery.POST
+
     with tempfile.TemporaryDirectory() as root:
         artifacts = Path(root)
         for name, status, text in [
@@ -849,15 +870,24 @@ def main(argv):
         return 0
 
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("shards", type=Path, help="the directory the shard artifacts were downloaded into")
-    parser.add_argument("--job-result", required=True, choices=[result.value for result in JobResult],
+    parser.add_argument("shards", type=Path, nargs="?",
+                        help="the directory the shard artifacts were downloaded into")
+    parser.add_argument("--not-run", metavar="LABEL",
+                        help="write the comment for a pull request without LABEL, instead of reading shards")
+    parser.add_argument("--job-result", choices=[result.value for result in JobResult],
                         help="the benchmark job's result, from needs.benchmark.result")
-    parser.add_argument("--run-url", required=True, help="the workflow run the comment links to")
+    parser.add_argument("--run-url", help="the workflow run the comment links to")
     parser.add_argument("--github-env", type=Path,
                         help="a file to append DELIVERY=post|refresh-only to, such as $GITHUB_ENV")
     args = parser.parse_args(argv[1:])
 
-    result = comment(read_shards(args.shards), JobResult(args.job_result), args.run_url)
+    comparison = (args.shards, args.job_result, args.run_url)
+    if args.not_run and not any(comparison):
+        result = not_run(args.not_run)
+    elif all(comparison) and not args.not_run:
+        result = comment(read_shards(args.shards), JobResult(args.job_result), args.run_url)
+    else:
+        parser.error("give either --not-run LABEL, or shards with --job-result and --run-url")
 
     sys.stdout.write(result.body)
     print(f"delivery: {result.delivery.value}", file=sys.stderr)
