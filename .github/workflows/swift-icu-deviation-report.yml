@@ -2,21 +2,10 @@ name: ICU deviation report
 
 on:
   workflow_dispatch:
-  # A push to main records main's own report, which pull requests then compare against rather than
-  # each running it again. The same paths as the pull request filter below.
-  push:
-    branches: [ main ]
-    paths:
-      - 'Sources/SwiftMoneyCore/**'
-      - 'Sources/SwiftMoneyLocalization/**'
-      - 'Sources/SwiftMoneyFoundation/**'
-      - 'Sources/SwiftMoneyFormatMatrix/**'
-      - 'Tools/CompareFormattingToICU/**'
-      - 'Package.swift'
-      - 'Package.resolved'
-      - '.github/workflows/swift-icu-deviation-report.yml'
   pull_request:
     branches: [ main ]
+    # The label events let adding or removing the run-icu label start or stop the report.
+    types: [ opened, synchronize, reopened, labeled, unlabeled ]
     # Scoped to what the CompareFormattingToICU tool exercises, so an unrelated future package does not
     # trigger this 32-shard matrix. A subset, so it also skips a future module added under Sources/.
     paths:
@@ -30,10 +19,17 @@ on:
       - '.github/workflows/swift-icu-deviation-report.yml'
 
 # A newer push to the same pull request supersedes this run, so the older one is cancelled rather
-# than holding runners the newer one is queued for. Every other run gets a group of its own, so a push
-# to main is never cancelled or queued behind another.
+# than holding runners the newer one is queued for. So does adding or removing the run-icu label. A run
+# started by hand gets a group of its own, and so does an event the gate job ignores (the pull request
+# is closed, or a different label changed), so that event never cancels a report in progress. Keep the
+# label name here in step with OPT_IN_LABEL below.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  group: >-
+    ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}${{
+      (github.event.pull_request.state == 'closed'
+        || ((github.event.action == 'labeled' || github.event.action == 'unlabeled')
+          && github.event.label.name != 'run-icu'))
+      && format('-{0}', github.run_id) || '' }}
   cancel-in-progress: true
 
 # Stated rather than inherited from the repository default, since the comment step below needs
@@ -45,15 +41,53 @@ permissions:
 env:
   # Part of the cached report's key, since a report split another way cannot be read shard by shard.
   ICU_SHARD_COUNT: "16"
-  # A run on main, pushed or started by hand, records main's report for pull requests to compare
-  # against. Every other run is a comparison.
+  # A run started by hand on main records main's report for every pull request to compare against.
+  # Every other run is a comparison.
   RECORD: ${{ github.ref == 'refs/heads/main' }}
+  # The report is off by default. A pull request runs it only while it carries this label.
+  OPT_IN_LABEL: run-icu
 
 jobs:
+  # Decides once what this run does, first match winning:
+  #   ignore  the pull request is closed, or a different label changed: nothing runs or comments.
+  #   run     started by hand, or the pull request carries the label.
+  #   skip    otherwise: nothing runs, and the comment says how to turn the report on.
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      decision: ${{ steps.decide.outputs.decision }}
+
+    steps:
+    - name: Decide whether the report runs
+      id: decide
+      env:
+        EVENT: ${{ github.event_name }}
+        ACTION: ${{ github.event.action }}
+        STATE: ${{ github.event.pull_request.state }}
+        CHANGED_LABEL: ${{ github.event.label.name }}
+        LABELLED: ${{ contains(github.event.pull_request.labels.*.name, env.OPT_IN_LABEL) }}
+      run: |
+        if [ "$EVENT" != pull_request ]; then
+          decision=run
+        elif [ "$STATE" != open ]; then
+          decision=ignore
+        elif { [ "$ACTION" = labeled ] || [ "$ACTION" = unlabeled ]; } && [ "$CHANGED_LABEL" != "$OPT_IN_LABEL" ]; then
+          decision=ignore
+        elif [ "$LABELLED" = true ]; then
+          decision=run
+        else
+          decision=skip
+        fi
+
+        echo "decision=$decision" >> "$GITHUB_OUTPUT"
+
   # Every shard runs the same tools, so they are compiled once per platform here and handed to the
   # shards, rather than compiled again on every shard. Release, since its report matched a debug
   # build's and took less than half the time.
   build:
+    needs: gate
+    if: needs.gate.outputs.decision == 'run'
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -177,6 +211,10 @@ jobs:
     # Both runs read the same shard selection, so head and base cover the identical locales and their
     # outputs stay comparable. A base commit whose tool predates sharding ignores these and runs the
     # whole set. A recording run stops after its own report, which is what gets recorded.
+    #
+    # Whenever this shard produced the target commit's report itself, it hands it on as
+    # reference-output.txt for the save-reference job. When it used a recorded report instead, it says
+    # so in restored.txt, and there is nothing new to save.
     - name: Run the ICU deviation report
       env:
         ICU_SHARD_INDEX: ${{ matrix.shard }}
@@ -184,12 +222,17 @@ jobs:
       run: |
         tool/head > head-output.txt
 
-        if [ "$RECORD" = true ]; then exit 0; fi
+        if [ "$RECORD" = true ]; then
+          cp head-output.txt reference-output.txt
+          exit 0
+        fi
 
         if [ "$REFERENCE_RESTORED" = true ]; then
           cp "reference/shard$ICU_SHARD_INDEX.txt" base-output.txt
+          echo true > restored.txt
         else
           tool/base > base-output.txt
+          cp base-output.txt reference-output.txt
         fi
 
     # The tool prints one deviation per line and marks everything else with `#`, so dropping those
@@ -235,17 +278,21 @@ jobs:
           status.txt
           head-output.txt
           reference-key.txt
+          reference-output.txt
+          restored.txt
         if-no-files-found: warn
         # A recording run's shards matter only until the job below gathers them.
         retention-days: ${{ env.RECORD == 'true' && 1 || 0 }}
 
-  # Gathers a recording run's shard reports into one cache entry per platform, so a pull request finds
-  # either every shard's report or none. On the platform it is for, since a cache saved on one runner OS
-  # is not promised to restore on another.
+  # Gathers every shard's report on the target commit into one cache entry per platform, so a later run
+  # finds either every shard's report or none. A run started by hand on main records it for every pull
+  # request. A pull request records it for its own later pushes, since that is as far as a pull
+  # request's cache reaches. On the platform it is for, since a cache saved on one runner OS is not
+  # promised to restore on another.
   save-reference:
-    needs: report
+    needs: [ gate, report ]
     # !cancelled(), so one platform's failed shard does not stop the other platform being recorded.
-    if: ${{ !cancelled() && github.ref == 'refs/heads/main' }}
+    if: ${{ !cancelled() && needs.gate.outputs.decision == 'run' }}
     timeout-minutes: 10
     strategy:
       fail-fast: false
@@ -261,7 +308,7 @@ jobs:
 
     # A shard uploads only after its report succeeded, so a missing upload is a failed shard. Shards on
     # different runner images compute different keys. Either way nothing is recorded, rather than a
-    # partial or mixed report.
+    # partial or mixed report. A shard that used an already recorded report has nothing new to add.
     - name: Gather the shard reports
       id: gather
       env:
@@ -269,18 +316,29 @@ jobs:
       run: |
         mkdir reference
         keys=()
+        restored=false
         for shard in $(seq 0 $((ICU_SHARD_COUNT - 1))); do
           upload="shards/icu-deviations-$OS-shard$shard"
-          if [ ! -f "$upload/head-output.txt" ] || [ ! -f "$upload/reference-key.txt" ]; then
+          if [ ! -f "$upload/reference-key.txt" ]; then
             echo "::warning::Shard $shard did not finish, so nothing is recorded for $OS."
             exit 0
           fi
-          cp "$upload/head-output.txt" "reference/shard$shard.txt"
           keys+=("$(cat "$upload/reference-key.txt")")
+
+          if [ -f "$upload/restored.txt" ]; then
+            restored=true
+          else
+            cp "$upload/reference-output.txt" "reference/shard$shard.txt"
+          fi
         done
 
         if [ "$(printf '%s\n' "${keys[@]}" | sort -u | wc -l)" -ne 1 ]; then
           echo "::warning::The shards ran on different runner images, so nothing is recorded for $OS."
+          exit 0
+        fi
+
+        if [ "$restored" = true ]; then
+          echo "This run used an already recorded report for $OS, so there is nothing new to record."
           exit 0
         fi
 
@@ -295,16 +353,20 @@ jobs:
   # One PR comment covering both platforms, so a Linux/macOS ICU divergence is visible side by side
   # rather than split across two separate comments.
   comment:
-    needs: report
+    needs: [ gate, report ]
     # !cancelled(), so a failed or timed-out report still gets a comment (the incomplete verdict) rather
-    # than the whole comment job being skipped and the PR left with no status. A run a newer push
-    # cancelled posts nothing; the newer run owns the comment.
-    if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+    # than the whole comment job being skipped and the PR left with no status. A run cancelled by a newer
+    # push or a label change posts nothing; the newer run owns the comment. An ignored event leaves the
+    # comment as it is.
+    if: >-
+      ${{ !cancelled() && github.event_name == 'pull_request'
+        && needs.gate.result == 'success' && needs.gate.outputs.decision != 'ignore' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
     steps:
     - uses: actions/download-artifact@v7
+      if: needs.gate.outputs.decision == 'run'
       with:
         pattern: icu-deviations-*
         path: deviations
@@ -315,6 +377,7 @@ jobs:
     - name: Build the combined comment body
       env:
         SAMPLE: 15
+        DECISION: ${{ needs.gate.outputs.decision }}
         REPORT_RESULT: ${{ needs.report.result }}
         RUN_URL: "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
       run: |
@@ -347,7 +410,9 @@ jobs:
         # One place decides the outcome, with a single precedence ladder; an unexpected value stops the
         # job loudly rather than posting a wrong verdict. A regression coinciding with a failed report
         # still reads as a regression: the caveat below marks the counts as a floor.
-        if grep -qx incomparable deviations/*/status.txt 2>/dev/null; then
+        if [ "$DECISION" = skip ]; then
+          OUTCOME=not-run
+        elif grep -qx incomparable deviations/*/status.txt 2>/dev/null; then
           OUTCOME=incomparable
         elif [ "$appeared" -gt 0 ] || [ "$resolved" -gt 0 ]; then
           OUTCOME=regression
@@ -358,6 +423,13 @@ jobs:
         fi
 
         case "$OUTCOME" in
+          not-run)
+            {
+              echo "### ⏸️ Not run"
+              echo
+              echo "Add the \`$OPT_IN_LABEL\` label to check this pull request against ICU."
+            } >> comment_body.md
+            ;;
           incomparable)
             {
               echo "### ❓ Nothing to compare"
@@ -406,8 +478,8 @@ jobs:
 
     # Mirrors swift-benchmark-delta.yml's marker/find-or-create technique: a hidden HTML comment
     # lets this workflow find and edit its own comment rather than posting a new one on every push.
-    # A distinct marker keeps it from colliding with that workflow's own comment. Every triggered run
-    # creates or edits the one marker comment, so a PR always carries the latest verdict.
+    # A distinct marker keeps it from colliding with that workflow's own comment. Every run the gate
+    # does not ignore creates or edits the one marker comment, so a PR always carries the latest verdict.
     - name: Comment on PR
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

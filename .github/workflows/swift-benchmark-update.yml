@@ -8,6 +8,13 @@ on:
       - 'Sources/**'
       - 'Benchmarks/**'
 
+# Two merges close together would otherwise race to publish, and the older run finishing last would
+# fail its rebase or mix its numbers into the newer ones. Only the newest commit's numbers matter, so
+# the older run is cancelled. Per branch, so a run started by hand elsewhere never cancels main's.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
