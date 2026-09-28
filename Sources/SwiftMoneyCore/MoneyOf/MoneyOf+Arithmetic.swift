@@ -98,6 +98,10 @@ public extension MoneyOf where C: CurrencyType {
             return Self(unchecked: 0, storage: .implied)
         }
 
+        if let narrow = Int64(exactly: rhs) {
+            return lhs * narrow
+        }
+
         guard let factor = Int128(exactly: rhs) else {
             preconditionFailure("Scaling by \(rhs) is not representable")
         }
@@ -221,6 +225,10 @@ public extension MoneyOf where C == AnyCurrency {
     static func * (lhs: Self, rhs: some BinaryInteger) -> Self {
         guard lhs.minorUnits != 0 else {
             return Self(unchecked: 0, storage: lhs.storage)
+        }
+
+        if let narrow = Int64(exactly: rhs) {
+            return lhs * narrow
         }
 
         guard let factor = Int128(exactly: rhs) else {

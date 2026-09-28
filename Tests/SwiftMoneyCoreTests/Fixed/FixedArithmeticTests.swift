@@ -121,7 +121,7 @@ struct FixedArithmeticTests {
     func dailyAccrualPrecision() throws {
         let balance = Fixed(1_000_000)                    // £10,000 = 1,000,000 minor units
         let rate = try #require(Fixed(decimal: "0.05"))   // 5%
-        let days = 1_826
+        let days: Int128 = 1_826
 
         let dailyInterest = (balance * rate).divided(by: 365)
         var accrued = Fixed.zero

@@ -26,10 +26,21 @@ struct RateTests {
         #expect(Set([Rate.percent(50), Rate.basisPoints(5000)]).count == 1)
     }
 
+    @Test("Any integer type builds the same rate as an Int")
+    func anyIntegerTypeBuildsTheSameRate() {
+        #expect(Rate.percent(Int8(50)) == Rate.percent(50))
+        #expect(Rate.percent(UInt16(50)) == Rate.percent(50))
+        #expect(Rate.basisPoints(Int8(-50)) == Rate.basisPoints(-50))
+        #expect(Rate.basisPoints(UInt16(5_000)) == Rate.basisPoints(5_000))
+    }
+
     @Test("A rate too large to represent traps")
     func oversizedRateTraps() async {
         await #expect(processExitsWith: .failure) {
             blackHole(Rate.basisPoints(Int128.max))
+        }
+        await #expect(processExitsWith: .failure) {
+            blackHole(Rate.percent(UInt128.max))   // wider than Int128
         }
     }
 

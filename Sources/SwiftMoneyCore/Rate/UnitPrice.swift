@@ -42,7 +42,7 @@ public extension UnitPrice {
     ///
     /// - Parameter quantity: How many units, as a rate for a fractional amount (`"350.5"`).
     /// - Precondition: the total is representable.
-    func total(for quantity: Rate) -> MoneyOf<C>.Unrounded {
+    @inlinable func total(for quantity: Rate) -> MoneyOf<C>.Unrounded {
         amountPerUnit * quantity
     }
 
@@ -50,7 +50,7 @@ public extension UnitPrice {
     ///
     /// - Parameter quantity: How many units.
     /// - Precondition: the total is representable.
-    func total(for quantity: some BinaryInteger) -> MoneyOf<C>.Unrounded {
+    @inlinable func total(for quantity: some BinaryInteger) -> MoneyOf<C>.Unrounded {
         amountPerUnit * quantity
     }
 }

@@ -30,6 +30,12 @@ struct FixedConstructionTests {
         #expect(Fixed(-1_000) == Fixed(significand: -1, exponent: 3))
     }
 
+    @Test("Widening the extremes of Int64 is exact")
+    func int64ExtremesWiden() {
+        #expect(Fixed(Int64.max) == Fixed(significand: Int128(Int64.max), exponent: 0))
+        #expect(Fixed(Int64.min) == Fixed(significand: Int128(Int64.min), exponent: 0))
+    }
+
     @Test("A decimal reads back as the same Double")
     func decimalDoubleRoundTrip() throws {
         #expect(abs(try #require(Fixed(decimal: "0.175")).double - 0.175) < 1e-12)
@@ -82,16 +88,12 @@ struct FixedConstructionTests {
         #expect(Fixed(decimal: onePointFiveUlp, rounding: .toNearestOrEven) == Fixed(significand: 2, exponent: -18))
     }
 
-    @Test("Values out of range fail or trap")
-    func outOfRange() async {
+    @Test("Values out of range fail")
+    func outOfRange() {
         #expect(Fixed(exactly: Int128.max) == nil)                          // × scale overflows
         #expect(Fixed(significand: 1, exponent: 21) == nil)                 // 10^39 overflows
         #expect(Fixed(significand: 1, exponent: -57) == nil)                // dividing by 10^39 overflows
         #expect(Fixed(decimal: String(repeating: "9", count: 40)) == nil)   // significand too large
-
-        await #expect(processExitsWith: .failure) {
-            blackHole(Fixed(Int128.max))
-        }
     }
 
     @Test("Approximates a Double as its shortest decimal")

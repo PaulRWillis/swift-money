@@ -38,6 +38,14 @@ struct UnitPriceTests {
         #expect(price.total(for: 3) == price.total(for: three))
     }
 
+    @Test("A whole quantity of any integer type totals the same")
+    func wholeQuantityOfAnyIntegerType() {
+        let price = UnitPrice<Currencies.GBP, String>(GBP.Unrounded(majorUnits: "0.023"), per: "kWh")
+
+        #expect(price.total(for: Int32(1_000)) == price.total(for: 1_000))
+        #expect(price.total(for: UInt16(1_000)) == price.total(for: 1_000))
+    }
+
     @Test("The price reads back its amount and unit")
     func readsBackItsFields() {
         let perUnit = GBP.Unrounded(majorUnits: "0.023")
