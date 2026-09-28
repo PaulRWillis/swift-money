@@ -20,6 +20,30 @@ struct MoneyOfArithmeticWidenedMultiplicationTests {
         #expect(zero * biggerThanInt128Max == zero)
     }
 
+    @Test("A narrow multiplier gives the same result as an Int")
+    func narrowMultiplierMatchesInt() {
+        let price = GBP(minorUnits: 4_99)
+        let runtime = Money(minorUnits: 4_99, currency: .gbp)
+        var inPlace = price
+        inPlace *= UInt8(3)
+
+        #expect(price * Int32(3) == price * 3)
+        #expect(price * Int16(-3) == price * -3)
+        #expect(UInt8(3) * price == 3 * price)
+        #expect(inPlace == price * 3)
+        #expect(runtime * Int32(3) == runtime * 3)
+        #expect(UInt8(3) * runtime == 3 * runtime)
+    }
+
+    // 2^63 does not fit Int64, but -1 × 2^63 is exactly Int64.min, the smallest amount.
+    @Test("A multiplier wider than Int64 still gives a representable product")
+    func multiplierWiderThanInt64GivesRepresentableProduct() {
+        let twoToThe63 = UInt64(Int64.max) + 1
+
+        #expect(GBP(minorUnits: -1) * twoToThe63 == GBP.min)
+        #expect(Money(minorUnits: -1, currency: .gbp) * twoToThe63 == Money(minorUnits: Int64.min, currency: .gbp))
+    }
+
     @Test("A plain Int multiplier that truly overflows still traps")
     func intMultiplierStillTrapsOnRealOverflow() async {
         await #expect(processExitsWith: .failure) {
