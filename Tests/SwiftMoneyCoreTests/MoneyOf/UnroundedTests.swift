@@ -68,6 +68,30 @@ struct UnroundedTests {
         #expect(quarter.rounded(.toNearestOrEven) == GBP(minorUnits: 2_50))
     }
 
+    @Test("A narrow integer operand gives the same result as an Int")
+    func narrowIntegerOperands() {
+        let typed = GBP(minorUnits: 10_00).unrounded
+        let runtime = Money(minorUnits: 10_00, currency: .gbp).unrounded
+
+        #expect(typed * Int32(31) == typed * 31)
+        #expect(UInt8(31) * typed == 31 * typed)
+        #expect(typed.divided(by: UInt16(365)) == typed.divided(by: 365))
+        #expect(typed.divided(byExactly: Int8(4)) == typed.divided(byExactly: 4))
+        #expect(typed.divided(byExactly: UInt8(0)) == nil)
+
+        #expect(runtime * Int32(31) == runtime * 31)
+        #expect(runtime.divided(by: UInt16(365)) == runtime.divided(by: 365))
+        #expect(runtime.divided(byExactly: Int8(4)) == runtime.divided(byExactly: 4))
+        #expect(runtime.divided(byExactly: UInt8(0)) == nil)
+    }
+
+    @Test("Scaling by an integer wider than Int128 traps")
+    func scalingByIntegerWiderThanInt128Traps() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(GBP(minorUnits: 1).unrounded * UInt128.max)
+        }
+    }
+
     @Test("Dividing by zero traps")
     func dividingByZeroTraps() async {
         await #expect(processExitsWith: .failure) {

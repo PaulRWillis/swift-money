@@ -34,8 +34,8 @@ public struct ExchangeRate<From: CurrencyType, To: CurrencyType>: Sendable, Equa
         // The multiply is checked because the two scales can differ widely enough to overflow; the
         // divide that follows only shrinks an already-representable value, so it cannot.
         guard let scaled = marketRate.value
-            .multipliedIfRepresentable(by: Int64(To.currency.unitScale))?
-            .divided(by: Int64(From.currency.unitScale)) else {
+            .multipliedIfRepresentable(by: Int128(Int64(To.currency.unitScale)))?
+            .divided(by: Int128(Int64(From.currency.unitScale))) else {
             return nil
         }
 

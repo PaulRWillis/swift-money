@@ -204,5 +204,5 @@ private extension Rate {
 private extension Rate {
     static let percentFractionDigits = 2       // percent = value / 10²
     static let basisPointFractionDigits = 4    // basis points = value / 10⁴
-    static let basisPointsPerWhole = 10_000    // basis points in 1 = 10⁴
+    static let basisPointsPerWhole: Int128 = 10_000    // basis points in 1 = 10⁴
 }
