@@ -26,10 +26,8 @@ extension MoneyOf {
         let magnitude = minorUnits.magnitude
         let places = units == .majorUnits && scale > 1 ? currency.unitScale.decimalPlaces : 0
 
-        // Dividing before multiplying is what keeps this inside a `UInt64`: the scale divides
-        // `10 ^ places` exactly, so the multiplier is whole and the product stays under `10 ^ places`.
         let whole = places == 0 ? magnitude : magnitude / scale
-        let fraction = places == 0 ? 0 : magnitude % scale * (UInt64.powerOfTen(places) / scale)
+        let fraction = places == 0 ? 0 : magnitude % scale
 
         let sign = minorUnits < 0 ? 1 : 0
         let point = places == 0 ? 0 : 1 + places
