@@ -55,6 +55,14 @@ public extension MoneyOf {
     var isNegative: Bool {
         minorUnits < 0
     }
+
+    /// Whether this amount is zero.
+    ///
+    /// Holds in any currency, so it answers for a ``Money`` without naming one.
+    @inlinable
+    var isZero: Bool {
+        minorUnits == 0
+    }
 }
 
 public extension MoneyOf where C: CurrencyType {

@@ -202,6 +202,14 @@ struct MoneyTests {
         #expect(!Money(minorUnits: 1, currency: .gbp).isNegative)
     }
 
+    @Test("Is zero in any currency")
+    func isZeroInAnyCurrency() {
+        #expect(Money(minorUnits: 0, currency: .gbp).isZero)
+        #expect(Money(minorUnits: 0, currency: .jpy).isZero)
+        #expect(!Money(minorUnits: 1, currency: .gbp).isZero)
+        #expect(!Money(minorUnits: -1, currency: .gbp).isZero)
+    }
+
     @Test("Integral multiplication succeeds")
     func integralMultiplication() throws {
         let a = Money(minorUnits: 6, currency: .gbp)
