@@ -81,3 +81,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx semantic-release
+
+      # semantic-release pushes the tag before it publishes the release, so a failure in between
+      # leaves a tag with no release that a re-run cannot fix. Publish that release here. The job
+      # stays failed, with an annotation saying so. See Release/recover.mjs.
+      - name: Recover a tagged but unpublished release
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          node Release/recover.mjs --selftest
+          node Release/recover.mjs
