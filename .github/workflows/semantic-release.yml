@@ -5,6 +5,19 @@ on:
   push:
     branches: [ main ]
 
+# Two pushes to main close together would otherwise release in parallel and race on the same tags
+# and notes refs. Queue them instead, and never cancel a release part-way through: a cancelled run
+# can leave a tag with no GitHub Release. GitHub keeps only the newest pending run, which is safe
+# because it releases every commit up to its own HEAD.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+# Pushing tags and notes refs and publishing releases need contents: write. Nothing else is needed:
+# the config turns off the GitHub plugin's issue and pull request comments.
+permissions:
+  contents: write
+
 jobs:
   semantic-release:
     runs-on: ubuntu-24.04
@@ -68,3 +81,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx semantic-release
+
+      # semantic-release pushes the tag before it publishes the release, so a failure in between
+      # leaves a tag with no release that a re-run cannot fix. Publish that release here. The job
+      # stays failed, with an annotation saying so. See Release/recover.mjs.
+      - name: Recover a tagged but unpublished release
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          node Release/recover.mjs --selftest
+          node Release/recover.mjs
