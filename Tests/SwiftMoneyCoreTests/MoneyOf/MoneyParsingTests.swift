@@ -30,6 +30,44 @@ struct MoneyParsingTests {
         #expect(try #require(GBP(string: text)) == GBP(minorUnits: expected))
     }
 
+    @Test(
+        "Digits without a dot count the units named, and a dot always means major units",
+        arguments: [
+            ("15", MoneyCodingUnits.majorUnits, 15_00),
+            ("15", .minorUnits, 15),
+            ("15.00", .majorUnits, 15_00),
+            ("4.99", .minorUnits, 4_99),
+            ("-15", .majorUnits, -15_00),
+            ("GBP 15", .majorUnits, 15_00),
+            ("0", .majorUnits, 0),
+        ] as [(String, MoneyCodingUnits, Int64)]
+    )
+    func digitsCountTheUnitsNamed(_ text: String, _ units: MoneyCodingUnits, _ expected: Int64) throws {
+        #expect(try #require(GBP(string: text, units: units)) == GBP(minorUnits: expected))
+    }
+
+    @Test("Major units scale by each currency's own division")
+    func majorUnitsAtEachScale() throws {
+        #expect(try #require(JPY(string: "499", units: .majorUnits)) == JPY(minorUnits: 499))
+        #expect(try #require(Money(string: "KWD 15", units: .majorUnits)) == Money(minorUnits: 15_000, currency: .kwd))
+        #expect(try #require(Money(string: "GBP 15", units: .majorUnits)) == Money(minorUnits: 15_00, currency: .gbp))
+        #expect(try #require(Money(string: "GBP 15")) == Money(minorUnits: 15, currency: .gbp))
+        #expect(
+            try #require(Money(string: "15", currency: .kwd, units: .majorUnits))
+                == Money(minorUnits: 15_000, currency: .kwd)
+        )
+    }
+
+    @Test("Whole major units too large for the range once scaled are refused rather than wrapped")
+    func refusesMajorUnitsPastTheRange() throws {
+        #expect(try #require(GBP(string: "92233720368547758", units: .majorUnits)) == GBP(minorUnits: 9_223_372_036_854_775_800))
+        #expect(try #require(GBP(string: "-92233720368547758", units: .majorUnits)) == GBP(minorUnits: -9_223_372_036_854_775_800))
+        #expect(GBP(string: "92233720368547759", units: .majorUnits) == nil)
+        #expect(GBP(string: "184467440737095517", units: .majorUnits) == nil)
+        #expect(try #require(MoneyOf<Seventeen>(string: "92", units: .majorUnits)) == MoneyOf<Seventeen>(minorUnits: 9_200_000_000_000_000_000))
+        #expect(MoneyOf<Seventeen>(string: "93", units: .majorUnits) == nil)
+    }
+
     @Test("Fewer decimals than the currency divides into are filled out")
     func shortDecimal() throws {
         #expect(try #require(GBP(string: "4.9")) == GBP(minorUnits: 4_90))

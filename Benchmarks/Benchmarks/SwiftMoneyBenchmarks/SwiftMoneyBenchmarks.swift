@@ -803,6 +803,27 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    // Whole major units without a point, the one branch that scales digits with no point in them.
+    let codedMinorUnitStrings = minorUnitStrings.map { "GBP \($0)" }
+
+    Benchmark("Money parsing, whole major units", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Money(string: codedMinorUnitStrings[index % codedMinorUnitStrings.count], units: .majorUnits) != nil)
+            index &+= 1
+        }
+    }
+
+    Benchmark("MoneyOf parsing, whole major units", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(GBP(string: minorUnitStrings[index % minorUnitStrings.count], units: .majorUnits) != nil)
+            index &+= 1
+        }
+    }
+
     Benchmark("Int parsing", configuration: defaultConfiguration) { benchmark in
         var index = 0
 

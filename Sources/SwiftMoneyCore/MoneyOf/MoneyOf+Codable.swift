@@ -123,7 +123,7 @@ extension MoneyOf: Codable {
         in container: SingleValueDecodingContainer
     ) throws -> MoneyOf {
         do {
-            return try MoneyOf(codedString: text)
+            return try MoneyOf(codedString: text, units: .minorUnits)
         } catch {
             throw DecodingError.dataCorruptedError(
                 in: container,
@@ -175,7 +175,7 @@ extension MoneyOf: Codable {
         let currency = C.currency(for: storage)
 
         if let text = try? container.decode(String.self, forKey: keys.amount) {
-            guard let minorUnits = parsedMinorUnits(text, in: currency) else {
+            guard let minorUnits = parsedMinorUnits(text, in: currency, units: .minorUnits) else {
                 throw DecodingError.dataCorruptedError(
                     forKey: keys.amount,
                     in: container,
@@ -340,7 +340,7 @@ extension MoneyOf {
         ) throws(WireNumberError) -> MinorUnits {
             let text = try digits(in: currency, units: units)
 
-            guard let amount = parsedMinorUnits(text, in: currency) else {
+            guard let amount = parsedMinorUnits(text, in: currency, units: .minorUnits) else {
                 throw .inexactAmount(currency, text: text)
             }
 
