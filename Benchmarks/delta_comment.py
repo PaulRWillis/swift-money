@@ -48,6 +48,21 @@ VERDICT = re.compile(r"^New baseline '[^'\n]+' is (BETTER|WORSE) than the '[^'\n
 # The whole of a shard's file when nothing crossed a threshold.
 WITHIN_VERDICT = re.compile(r"^New baseline '[^'\n]+' is WITHIN the '[^'\n]+' baseline thresholds\.$", re.M)
 
+# The header of one metric's table under a heading. The metric is followed by its unit and by `%` for a
+# relative threshold or `Δ` for an absolute one, and its own name can hold parentheses:
+#
+#     | Malloc (total) (K, Δ)                    |            main |    pull_request |    Difference Δ |     Threshold Δ |
+TABLE_HEADER = re.compile(r"^\| (?P<metric>[^|\n]+?) \([^,()|\n]*, (?:%|Δ)\) *\|[^\n]*\|$", re.M)
+
+# The markdown line between a table's header and its rows.
+TABLE_RULE = re.compile(r"^\|:?-+\|")
+
+# One percentile's row: main's value, the pull request's, the difference and the threshold it crossed.
+TABLE_ROW = re.compile(
+    r"^\| (?P<percentile>\S+) *"
+    r"\| *(?P<main>-?\d+) *\| *(?P<pull_request>-?\d+) *\| *(?P<difference>-?\d+) *\| *(?P<threshold>-?\d+) *\|$"
+)
+
 
 class Direction(Enum):
     """Which way a benchmark moved past its threshold, keyed on the word in the tool's verdict line."""
@@ -56,13 +71,62 @@ class Direction(Enum):
     IMPROVED = "BETTER"
 
 
+class Percentile(Enum):
+    """A percentile the tool can judge a threshold at, as it labels the row."""
+
+    P0 = "p0"
+    P25 = "p25"
+    P50 = "p50"
+    P75 = "p75"
+    P90 = "p90"
+    P99 = "p99"
+    P100 = "p100"
+
+
+class Metric(Enum):
+    """A metric whose threshold deviations this script knows how to judge, keyed on the tool's table title.
+
+    These are the metrics the benchmarks measure: wall clock and allocations carry thresholds, and
+    instructions falls back to the tool's default ones. Any other title is a format error, so that a new
+    metric is judged on purpose rather than by accident.
+    """
+
+    WALL_CLOCK = "Time (wall clock)"
+    MALLOC_TOTAL = "Malloc (total)"
+    INSTRUCTIONS = "Instructions"
+
+
+@dataclass(frozen=True)
+class Row:
+    """One percentile of one metric that crossed its threshold, with the numbers as the tool printed them.
+
+    The difference is signed so that positive is worse, whatever the metric's polarity, and is a
+    percentage for a relative threshold and a count in the table's unit for an absolute one.
+    """
+
+    percentile: Percentile
+    main: int
+    pull_request: int
+    difference: int
+    threshold: int
+
+
+@dataclass(frozen=True)
+class Table:
+    """One metric's rows under a benchmark's heading."""
+
+    metric: Metric
+    rows: tuple
+
+
 @dataclass(frozen=True)
 class Deviation:
-    """One benchmark that crossed a threshold, with its heading and tables as the tool printed them."""
+    """One benchmark that crossed a threshold: its tables parsed, and its heading and tables as printed."""
 
     benchmark: str
     direction: Direction
-    tables: str
+    tables: tuple
+    printed: str
 
 
 class ShardStatus(Enum):
@@ -119,7 +183,8 @@ def parse_comparison(text):
     """Every deviation in a shard's comparison file, in the order printed, each with its direction.
 
     A file within thresholds holds no deviations. Raises `ComparisonFormatError` for a file with no
-    verdict at all, or with tables after the last verdict, since neither can be filed by direction.
+    verdict at all, or with tables after the last verdict, since neither can be filed by direction, and
+    for any table that does not parse.
     """
     # Splitting on a pattern with one group alternates [tables, word, tables, word, ..., trailing].
     pieces = VERDICT.split(text)
@@ -143,9 +208,71 @@ def deviations(group, direction):
     ends = [heading.start() for heading in headings[1:]] + [len(group)]
 
     return [
-        Deviation(heading["benchmark"], direction, group[heading.start():end].strip())
+        deviation(heading["benchmark"], direction, group[heading.start():end].strip())
         for heading, end in zip(headings, ends)
     ]
+
+
+def deviation(benchmark, direction, printed):
+    """One benchmark's deviation from its heading and tables as printed, each table parsed."""
+    headers = list(TABLE_HEADER.finditer(printed))
+    if not headers:
+        raise ComparisonFormatError(f"{benchmark!r} has no table under its heading")
+    ends = [header.start() for header in headers[1:]] + [len(printed)]
+
+    tables = tuple(
+        table(benchmark, header["metric"], printed[header.end():end], direction)
+        for header, end in zip(headers, ends)
+    )
+    return Deviation(benchmark, direction, tables, printed)
+
+
+def table(benchmark, title, body, direction):
+    """One metric's table from its title and the lines under its header."""
+    try:
+        metric = Metric(title)
+    except ValueError:
+        raise ComparisonFormatError(f"{benchmark!r} has a {title!r} table, a metric this script does not judge")
+
+    lines = [line for line in body.splitlines() if line.startswith("|") and not TABLE_RULE.match(line)]
+    if not lines:
+        raise ComparisonFormatError(f"{benchmark!r} has a {title!r} table with no rows")
+
+    return Table(metric, tuple(row(benchmark, line, direction) for line in lines))
+
+
+def row(benchmark, line, direction):
+    """One percentile's row, which has to move the way its verdict says."""
+    match = TABLE_ROW.match(line)
+    if not match:
+        raise ComparisonFormatError(f"{benchmark!r} has a row that does not parse: {line!r}")
+    try:
+        percentile = Percentile(match["percentile"])
+    except ValueError:
+        raise ComparisonFormatError(f"{benchmark!r} has a row for an unknown percentile {match['percentile']!r}")
+
+    parsed = Row(
+        percentile,
+        int(match["main"]),
+        int(match["pull_request"]),
+        int(match["difference"]),
+        int(match["threshold"]),
+    )
+    if not moves(parsed, direction):
+        raise ComparisonFormatError(
+            f"{benchmark!r} is filed as {direction.name.lower()} but its {percentile.value} moved the other way"
+        )
+    return parsed
+
+
+def moves(row, direction):
+    """Whether a row's signed difference points the way its verdict says. A difference printed as zero,
+    an absolute one too small for the table's unit, points either way."""
+    match direction:
+        case Direction.REGRESSED:
+            return row.difference >= 0
+        case Direction.IMPROVED:
+            return row.difference <= 0
 
 
 def agrees(status, found):
@@ -220,7 +347,7 @@ def folded(summary, found):
     return [
         f"<details><summary>{summary}</summary>",
         "",
-        "\n\n".join(deviation.tables for deviation in found),
+        "\n\n".join(flagged.printed for flagged in found),
         "",
         "</details>",
     ]
@@ -287,18 +414,42 @@ def comment(shards, job, run_url):
 
 RUN_URL = "https://github.com/owner/repo/actions/runs/1"
 
+# The three percentiles the thresholds are set on, in the order the tool prints them.
+EVERY_THRESHOLD = ("p25", "p50", "p75")
 
-def fixture_block(benchmark, main, pull_request, difference):
+
+def fixture_rows(percentiles, main, pull_request, difference, threshold=20):
+    return [(percentile, main, pull_request, difference, threshold) for percentile in percentiles]
+
+
+def fixture_table(title, symbol, rows):
+    return (
+        f"| {title:<40} |            main |    pull_request | {'Difference ' + symbol:>15} | {'Threshold ' + symbol:>15} |\n"
+        "|:-----------------------------------------|----------------:|----------------:|----------------:|----------------:|\n"
+        + "".join(
+            f"| {percentile:<40} | {main:>15} | {pull_request:>15} | {difference:>15} | {threshold:>15} |\n"
+            for percentile, main, pull_request, difference, threshold in rows
+        )
+        + "\n"
+    )
+
+
+def wall_clock(rows):
+    return fixture_table("Time (wall clock) (μs, %)", "%", rows)
+
+
+def mallocs(rows):
+    return fixture_table("Malloc (total) (K, Δ)", "Δ", rows)
+
+
+def fixture_block(benchmark, *tables):
     return (
         "```\n"
         f"{'=' * 20}\n"
         f"Threshold deviations for SwiftMoneyBenchmarks:{benchmark}\n"
         f"{'=' * 20}\n"
         "```\n"
-        "| Time (wall clock) (μs, %)                |            main |    pull_request |    Difference % |     Threshold % |\n"
-        "|:-----------------------------------------|----------------:|----------------:|----------------:|----------------:|\n"
-        f"| p25                                      | {main:>15} | {pull_request:>15} | {difference:>15} |              20 |\n"
-        "\n"
+        + "".join(tables)
     )
 
 
@@ -307,16 +458,21 @@ def fixture_verdict(word):
 
 
 BETTER_ONLY = (
-    fixture_block("MoneyOf unrounded converted", 48, 25, -47)
-    + fixture_block("Rate from percent", 75, 44, -42)
+    fixture_block("MoneyOf unrounded converted", wall_clock(fixture_rows(EVERY_THRESHOLD, 48, 25, -47)))
+    + fixture_block("Rate from percent", wall_clock(fixture_rows(EVERY_THRESHOLD, 75, 44, -42)))
     + fixture_verdict("BETTER")
 )
 
-WORSE_ONLY = fixture_block("FractionLength construction", 1591, 2234, 40) + fixture_verdict("WORSE")
+WORSE_ONLY = (
+    fixture_block("Int from MoneyOf minor units", wall_clock(fixture_rows(EVERY_THRESHOLD, 1678, 2513, 49)))
+    + fixture_verdict("WORSE")
+)
 
 BOTH_GROUPS = BETTER_ONLY + WORSE_ONLY
 
 WITHIN = "\nNew baseline 'pull_request' is WITHIN the 'main' baseline thresholds.\n"
+
+ORPHAN = fixture_block("Orphan", wall_clock(fixture_rows(["p25"], 1, 2, 100)))
 
 
 def selftest():
@@ -328,27 +484,85 @@ def selftest():
 
     regressed = parse_comparison(WORSE_ONLY)
     assert [(d.benchmark, d.direction) for d in regressed] == [
-        ("FractionLength construction", Direction.REGRESSED),
+        ("Int from MoneyOf minor units", Direction.REGRESSED),
     ], regressed
 
     both = parse_comparison(BOTH_GROUPS)
     assert [(d.benchmark, d.direction) for d in both] == [
         ("MoneyOf unrounded converted", Direction.IMPROVED),
         ("Rate from percent", Direction.IMPROVED),
-        ("FractionLength construction", Direction.REGRESSED),
+        ("Int from MoneyOf minor units", Direction.REGRESSED),
     ], both
     # Each deviation keeps its own heading and table, and none of the verdict lines around it.
-    assert both[2].tables.startswith("```\n"), both[2].tables
-    assert "FractionLength construction" in both[2].tables and "| p25" in both[2].tables
-    assert all("New baseline" not in d.tables for d in both)
-    assert "Rate from percent" not in both[0].tables
+    assert both[2].printed.startswith("```\n"), both[2].printed
+    assert "Int from MoneyOf minor units" in both[2].printed and "| p25" in both[2].printed
+    assert all("New baseline" not in d.printed for d in both)
+    assert "Rate from percent" not in both[0].printed
+
+    # Each table is parsed once into its metric and its rows, the numbers as the tool printed them.
+    assert both[2].tables == (
+        Table(Metric.WALL_CLOCK, (
+            Row(Percentile.P25, 1678, 2513, 49, 20),
+            Row(Percentile.P50, 1678, 2513, 49, 20),
+            Row(Percentile.P75, 1678, 2513, 49, 20),
+        )),
+    ), both[2].tables
+
+    # One benchmark can print a table per metric; the malloc table's title itself holds parentheses.
+    split = parse_comparison(
+        fixture_block(
+            "MoneyOf split by weights",
+            wall_clock(fixture_rows(EVERY_THRESHOLD, 144, 187, 30)),
+            mallocs(fixture_rows(EVERY_THRESHOLD, 3000, 3900, 900, 0)),
+        )
+        + fixture_verdict("WORSE")
+    )
+    assert [table.metric for table in split[0].tables] == [Metric.WALL_CLOCK, Metric.MALLOC_TOTAL], split
+    assert split[0].tables[1].rows[0] == Row(Percentile.P25, 3000, 3900, 900, 0), split
+
+    instructions = parse_comparison(
+        fixture_block("Counted", fixture_table("Instructions (M, %)", "%", fixture_rows(["p50"], 10, 12, 20, 5)))
+        + fixture_verdict("WORSE")
+    )
+    assert instructions[0].tables[0].metric is Metric.INSTRUCTIONS, instructions
+
+    # A warning the tool prints above the tables belongs to no benchmark.
+    warned = parse_comparison(
+        "One or more benchmarks, including `SwiftMoneyBenchmarks:New` was not found in one of the baselines.\n\n"
+        + WORSE_ONLY
+    )
+    assert warned == parse_comparison(WORSE_ONLY), warned
 
     assert parse_comparison(WITHIN) == ()
 
     for broken, why in [
         ("", "an empty file has no verdict"),
-        (fixture_block("Orphan", 1, 2, 100), "a table with no verdict after it"),
-        (BETTER_ONLY + fixture_block("Orphan", 1, 2, 100), "a table after the last verdict"),
+        (ORPHAN, "a table with no verdict after it"),
+        (BETTER_ONLY + ORPHAN, "a table after the last verdict"),
+        (
+            fixture_block("Unknown", fixture_table("Syscalls (total) (#, %)", "%", fixture_rows(["p25"], 1, 2, 100)))
+            + fixture_verdict("WORSE"),
+            "a metric this script does not know how to judge",
+        ),
+        (
+            fixture_block("Odd", wall_clock(fixture_rows(["p42"], 1, 2, 100))) + fixture_verdict("WORSE"),
+            "a percentile the tool never prints",
+        ),
+        (fixture_block("Empty") + fixture_verdict("WORSE"), "a heading with no table under it"),
+        (
+            fixture_block("Headless", wall_clock([])) + fixture_verdict("WORSE"),
+            "a table with no rows",
+        ),
+        (
+            fixture_block("Garbled", wall_clock(fixture_rows(["p25"], 1, 2, 100)) + "| p50 | 1 | two | 100 | 20 |\n")
+            + fixture_verdict("WORSE"),
+            "a row that does not parse",
+        ),
+        (
+            fixture_block("Backwards", wall_clock(fixture_rows(EVERY_THRESHOLD, 48, 25, -47)))
+            + fixture_verdict("WORSE"),
+            "a row moving against its verdict",
+        ),
     ]:
         try:
             parse_comparison(broken)
@@ -380,11 +594,11 @@ def selftest():
     assert RUN_URL in mixed_comment.body
     regressed_at, improved_at = lines.index("**Regressed:**"), lines.index("**Improved:**")
     assert regressed_at < improved_at
-    assert lines[regressed_at + 1:regressed_at + 2] == ["- FractionLength construction"]
+    assert lines[regressed_at + 1:regressed_at + 2] == ["- Int from MoneyOf minor units"]
     assert lines[improved_at + 1:improved_at + 3] == ["- MoneyOf unrounded converted", "- Rate from percent"]
     # Regressions need attention, so their tables fold away first.
     body = mixed_comment.body
-    assert body.index("FractionLength construction\n=") < body.index("Rate from percent\n=")
+    assert body.index("Int from MoneyOf minor units\n=") < body.index("Rate from percent\n=")
     assert body.count("<details>") == 2
     assert "incomplete" not in body
 
