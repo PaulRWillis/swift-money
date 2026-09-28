@@ -86,6 +86,12 @@ jobs:
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
         git add BENCHMARKS.md
         git commit -m "docs(benchmarks): update benchmark results"
-        # The coverage workflow pushes to the same branch, so pick up its commit first.
-        git pull --rebase
-        git push
+        # The coverage workflow pushes to the same branch, so pick up its commit first. Its push can
+        # still land between this pull and push. It never touches BENCHMARKS.md, so fetching again and
+        # retrying is enough.
+        for attempt in 1 2 3; do
+          git pull --rebase && git push && exit 0
+          sleep $((attempt * 5))
+        done
+        echo "::error::Could not push the benchmark results after three attempts."
+        exit 1

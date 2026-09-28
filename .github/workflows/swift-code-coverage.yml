@@ -119,6 +119,12 @@ jobs:
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
         git add coverage.svg
         git commit -m "docs(coverage): update coverage badge"
-        # The benchmark workflow pushes to the same branch, so pick up its commit first.
-        git pull --rebase
-        git push
+        # The benchmark workflow pushes to the same branch, so pick up its commit first. Its push can
+        # still land between this pull and push. It never touches the badge, so fetching again and
+        # retrying is enough.
+        for attempt in 1 2 3; do
+          git pull --rebase && git push && exit 0
+          sleep $((attempt * 5))
+        done
+        echo "::error::Could not push the badge after three attempts."
+        exit 1
