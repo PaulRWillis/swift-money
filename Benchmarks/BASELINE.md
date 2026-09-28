@@ -48,6 +48,8 @@ ahead of `Decimal`. The fractional operations are measured against the closest p
 | MoneyOf init exactly | 25 | 0 | 1 |
 | MoneyOf is multiple | 16 | 0 | 1 |
 | MoneyOf is negative | 10 | 0 | 1 |
+| MoneyOf is positive | 7 | 0 | 0 |
+| MoneyOf is zero | 7 | 0 | 0 |
 | MoneyOf magnitude | 30 | 0 | 1 |
 | MoneyOf negation | 29 | 0 | 1 |
 | MoneyOf parsing | 234 | 0 | 6 |
