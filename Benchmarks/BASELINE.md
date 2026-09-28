@@ -42,7 +42,7 @@ ahead of `Decimal`. The fractional operations are measured against the closest p
 | MoneyOf comparison | 15 | 0 | 1 |
 | MoneyOf currency | 10 | 0 | 0 |
 | MoneyOf description | 403 | 0 | 12 |
-| MoneyOf description, large negative | 1592 | 1 | 68 |
+| MoneyOf description, large negative | 1,592 | 1 | 70 |
 | MoneyOf equality | 7 | 0 | 1 |
 | MoneyOf hashing | 152 | 0 | 7 |
 | MoneyOf init exactly | 25 | 0 | 1 |
@@ -54,17 +54,17 @@ ahead of `Decimal`. The fractional operations are measured against the closest p
 | MoneyOf negation | 29 | 0 | 1 |
 | MoneyOf parsing | 227 | 0 | 6 |
 | MoneyOf parsing a large amount | 661 | 0 | 17 |
-| MoneyOf parsing a negative amount | 204 | 0 | 6 |
+| MoneyOf parsing a negative amount | 204 | 0 | 5 |
 | MoneyOf parsing, whole major units | 263 | 0 | 7 |
 | MoneyOf proportion | 229 | 0 | 7 |
-| MoneyOf proportion of large amounts | 280 | 0 | 11 |
+| MoneyOf proportion of large amounts | 280 | 0 | 12 |
 | MoneyOf scalar multiplication | 14 | 0 | 1 |
 | MoneyOf scalar multiplication in place | 33 | 0 | 1 |
 | MoneyOf scalar multiplication near the maximum | 32 | 0 | 1 |
 | MoneyOf scalar multiplication, Int32 operand | 41 | 0 | 1 |
 | MoneyOf scalar multiplication, Int64 operand | 14 | 0 | 1 |
-| MoneyOf scaled and rounded | 238 | 0 | 10 |
-| MoneyOf scaled and rounded, large amount | 258 | 0 | 9 |
+| MoneyOf scaled and rounded | 238 | 0 | 9 |
+| MoneyOf scaled and rounded, large amount | 258 | 0 | 10 |
 | MoneyOf subtraction | 9 | 0 | 1 |
 
 ### Money (runtime currency)
@@ -75,16 +75,16 @@ ahead of `Decimal`. The fractional operations are measured against the closest p
 | Money addition, separately built currencies | 25 | 0 | 1 |
 | Money addition, throwing | 25 | 0 | 1 |
 | Money applying a rate | 61 | 0 | 2 |
-| Money description | 393 | 0 | 12 |
+| Money description | 393 | 0 | 13 |
 | Money equality | 20 | 0 | 1 |
 | Money hashing | 215 | 0 | 11 |
 | Money init exactly | 28 | 0 | 1 |
 | Money is less than, throwing | 20 | 0 | 1 |
 | Money is multiple, throwing | 24 | 0 | 1 |
 | Money parsing | 354 | 0 | 9 |
-| Money parsing, caller's currency | 307 | 0 | 8 |
+| Money parsing, caller's currency | 307 | 0 | 9 |
 | Money parsing, whole major units | 351 | 0 | 9 |
-| Money proportion, throwing | 248 | 0 | 7 |
+| Money proportion, throwing | 248 | 0 | 8 |
 | Money scalar multiplication, amount times integer | 32 | 0 | 1 |
 | Money scalar multiplication, integer times amount | 32 | 0 | 1 |
 | Money subtraction in place, throwing | 14 | 0 | 1 |
@@ -99,11 +99,11 @@ A typed row should cost no more than its `Money.Unrounded` twin, which also comp
 | MoneyOf chain, rounding each step | 719 | 0 | 36 |
 | MoneyOf unrounded | 26 | 0 | 1 |
 | MoneyOf unrounded addition | 37 | 0 | 1 |
-| MoneyOf unrounded chain | 1167 | 0 | 66 |
-| MoneyOf unrounded converted | 345 | 0 | 15 |
+| MoneyOf unrounded chain | 1,167 | 0 | 65 |
+| MoneyOf unrounded converted | 345 | 0 | 14 |
 | MoneyOf unrounded divided | 269 | 0 | 10 |
 | MoneyOf unrounded divided exactly | 225 | 0 | 7 |
-| MoneyOf unrounded from major units | 878 | 0 | 25 |
+| MoneyOf unrounded from major units | 878 | 0 | 26 |
 | MoneyOf unrounded from minor units | 29 | 0 | 1 |
 | MoneyOf unrounded minus settled | 39 | 0 | 1 |
 | MoneyOf unrounded plus settled | 39 | 0 | 1 |
@@ -120,14 +120,14 @@ A typed row should cost no more than its `Money.Unrounded` twin, which also comp
 | Money unrounded addition, throwing | 46 | 0 | 1 |
 | Money unrounded applying a rate | 386 | 0 | 13 |
 | Money unrounded divided by an integer | 276 | 0 | 10 |
-| Money unrounded divided exactly | 229 | 0 | 8 |
+| Money unrounded divided exactly | 229 | 0 | 7 |
 | Money unrounded minus settled, throwing | 77 | 0 | 2 |
 | Money unrounded plus settled, throwing | 72 | 0 | 2 |
 | Money unrounded rounded | 238 | 0 | 9 |
 | Money unrounded scaling by a rate | 386 | 0 | 13 |
 | Money unrounded scaling by an integer | 69 | 0 | 2 |
 | Money unrounded subtraction, throwing | 46 | 0 | 1 |
-| Money unrounded total of 10, throwing | 171 | 0 | 5 |
+| Money unrounded total of 10, throwing | 171 | 0 | 6 |
 
 ### Rate
 
@@ -135,13 +135,13 @@ A typed row should cost no more than its `Money.Unrounded` twin, which also comp
 |---|--:|--:|--:|
 | Rate equality | 19 | 0 | 1 |
 | Rate from a decimal string | 754 | 0 | 24 |
-| Rate from a Double | 2220 | 0 | 73 |
-| Rate from a fraction string | 1724 | 0 | 55 |
-| Rate from a large decimal string | 1861 | 0 | 61 |
+| Rate from a Double | 2,220 | 0 | 72 |
+| Rate from a fraction string | 1,725 | 0 | 67 |
+| Rate from a large decimal string | 1,862 | 0 | 60 |
 | Rate from a negative decimal string | 818 | 0 | 26 |
-| Rate from a negative fraction string | 2019 | 0 | 65 |
-| Rate from a percent string | 1231 | 0 | 38 |
-| Rate from a string literal | 698 | 0 | 22 |
+| Rate from a negative fraction string | 2,020 | 0 | 65 |
+| Rate from a percent string | 1,231 | 0 | 40 |
+| Rate from a string literal | 698 | 0 | 21 |
 | Rate from basis points | 39 | 0 | 1 |
 | Rate from percent | 40 | 0 | 1 |
 | Rate to basis points, rounded | 250 | 0 | 8 |
@@ -162,7 +162,7 @@ A typed row should cost no more than its `Money.Unrounded` twin, which also comp
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
-| UnitPrice total for a fractional quantity | 334 | 0 | 10 |
+| UnitPrice total for a fractional quantity | 334 | 0 | 11 |
 | UnitPrice total for a whole quantity | 62 | 0 | 2 |
 
 ### Currency, CurrencyCode, UnitScale, AnyCurrency
@@ -170,14 +170,14 @@ A typed row should cost no more than its `Money.Unrounded` twin, which also comp
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
 | AnyCurrency storage for a custom field | 107 | 0 | 4 |
-| Currency construction, custom | 109 | 0 | 5 |
+| Currency construction, custom | 109 | 0 | 4 |
 | Currency description | 155 | 0 | 6 |
 | Currency equality | 26 | 0 | 1 |
 | CurrencyCode description | 177 | 0 | 7 |
 | CurrencyCode equality | 21 | 0 | 1 |
-| CurrencyCode validation | 268 | 0 | 10 |
-| CurrencyCode validation, eight characters | 489 | 0 | 18 |
-| CurrencyCode validation, lowercase | 266 | 0 | 10 |
+| CurrencyCode validation | 268 | 0 | 9 |
+| CurrencyCode validation, eight characters | 489 | 0 | 15 |
+| CurrencyCode validation, lowercase | 266 | 0 | 8 |
 | ISO currency lookup | 87 | 0 | 3 |
 | UnitScale construction | 68 | 0 | 3 |
 | UnitScale from decimal places | 27 | 0 | 1 |
@@ -186,21 +186,21 @@ A typed row should cost no more than its `Money.Unrounded` twin, which also comp
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
-| Money split by weights | 4019 | 4 | 132 |
+| Money split by weights | 4,020 | 4 | 137 |
 | Money split into 3 | 62 | 0 | 2 |
-| MoneyOf split by 10 weights | 5682 | 4 | 190 |
-| MoneyOf split by weights | 4007 | 4 | 130 |
-| MoneyOf split by weights that divide exactly | 3036 | 3 | 100 |
-| MoneyOf split into 1000, materialized | 3983 | 1 | 164 |
+| MoneyOf split by 10 weights | 5,683 | 4 | 191 |
+| MoneyOf split by weights | 4,007 | 4 | 133 |
+| MoneyOf split by weights that divide exactly | 3,036 | 3 | 92 |
+| MoneyOf split into 1000, materialized | 3,984 | 1 | 156 |
 | MoneyOf split into 3 | 58 | 0 | 2 |
-| MoneyOf split, iterating the parts | 88 | 0 | 4 |
+| MoneyOf split, iterating the parts | 88 | 0 | 3 |
 | PartCount construction | 25 | 0 | 1 |
 | Split counting the parts | 13 | 0 | 1 |
 | Weight construction | 25 | 0 | 1 |
-| WeightedSplit amounts | 946 | 1 | 29 |
+| WeightedSplit amounts | 946 | 1 | 30 |
 | WeightedSplit count | 15 | 0 | 1 |
-| WeightedSplit weights | 946 | 1 | 29 |
-| Weights construction | 777 | 1 | 22 |
+| WeightedSplit weights | 946 | 1 | 30 |
+| Weights construction | 777 | 1 | 23 |
 
 ### Sequence.total
 
@@ -208,7 +208,7 @@ A typed row should cost no more than its `Money.Unrounded` twin, which also comp
 |---|--:|--:|--:|
 | Money total of 10, throwing | 149 | 0 | 4 |
 | MoneyOf total of 10 | 86 | 0 | 3 |
-| MoneyOf total of 1000 | 6027 | 0 | 235 |
+| MoneyOf total of 1000 | 6,027 | 0 | 236 |
 
 ### Serialization: bytes, Codable, MoneyCodingFormat
 
@@ -216,23 +216,23 @@ The JSON rows are mostly Foundation's coder; the `Control` peer (a plain `Int64`
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
-| Money bytes decode | 212 | 0 | 5 |
+| Money bytes decode | 212 | 0 | 6 |
 | Money bytes encode | 255 | 0 | 10 |
-| Money encode, no coder | 795 | 0 | 29 |
-| Money encode, no coder, two fields | 4693 | 1 | 156 |
-| Money JSON decode | 14K | 6 | 462 |
-| Money JSON decode, two fields | 54K | 29 | 1900 |
-| Money JSON decode, whole major units | 17K | 7 | 568 |
-| Money JSON encode | 6710 | 2 | 241 |
-| Money JSON encode, major units | 9571 | 3 | 345 |
-| Money JSON encode, two fields | 28K | 11 | 988 |
+| Money encode, no coder | 795 | 0 | 32 |
+| Money encode, no coder, two fields | 4,693 | 1 | 159 |
+| Money JSON decode | 13,559 | 6 | 447 |
+| Money JSON decode, two fields | 54,020 | 29 | 1931 |
+| Money JSON decode, whole major units | 16,870 | 7 | 603 |
+| Money JSON encode | 6,710 | 2 | 261 |
+| Money JSON encode, major units | 9,570 | 3 | 367 |
+| Money JSON encode, two fields | 28,136 | 11 | 1055 |
 | Money Unrounded bytes decode | 228 | 0 | 6 |
-| MoneyCodingFormat custom fields | 4405 | 2 | 164 |
-| MoneyOf bytes decode | 174 | 0 | 4 |
+| MoneyCodingFormat custom fields | 4,454 | 2 | 165 |
+| MoneyOf bytes decode | 174 | 0 | 5 |
 | MoneyOf bytes encode | 266 | 0 | 10 |
 | MoneyOf bytes encode, extremes | 266 | 0 | 9 |
-| MoneyOf JSON decode, amount only | 19K | 12 | 699 |
-| MoneyOf JSON encode, amount only | 10K | 3 | 343 |
+| MoneyOf JSON decode, amount only | 19,295 | 12 | 692 |
+| MoneyOf JSON encode, amount only | 10,050 | 3 | 348 |
 | MoneyOf Unrounded bytes decode | 190 | 0 | 5 |
 | MoneyOf Unrounded bytes encode | 511 | 0 | 16 |
 | MoneyOf unroundedBytes | 514 | 0 | 17 |
@@ -243,10 +243,10 @@ The engine alone, rendering with a prebuilt descriptor. The `MoneyOf format` row
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
-| Engine format, accounting, en_GB [engine] | 2299 | 0 | 79 |
-| Engine format, default, en_GB [engine] | 2230 | 0 | 76 |
-| Engine format, grouped, en_GB [engine] | 2674 | 0 | 93 |
-| Engine format, precision 1dp, en_GB [engine] | 2146 | 0 | 74 |
+| Engine format, accounting, en_GB [engine] | 2,299 | 0 | 77 |
+| Engine format, default, en_GB [engine] | 2,229 | 0 | 78 |
+| Engine format, grouped, en_GB [engine] | 2,673 | 0 | 93 |
+| Engine format, precision 1dp, en_GB [engine] | 2,146 | 0 | 75 |
 | FractionLength construction | 27 | 0 | 1 |
 
 ### Peer baselines
@@ -255,34 +255,34 @@ The engine alone, rendering with a prebuilt descriptor. The `MoneyOf format` row
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
-| Control JSON decode | 8401 | 6 | 334 |
-| Control JSON encode | 5956 | 2 | 279 |
-| Decimal addition | 7128 | 6 | 227 |
-| Decimal chained scaling | 55K | 41 | 2238 |
-| Decimal comparison | 3936 | 4 | 133 |
-| Decimal description | 6661 | 3 | 230 |
-| Decimal divided by 3 | 50K | 37 | 1675 |
-| Decimal from a decimal string | 4667 | 2 | 176 |
-| Decimal JSON decode | 12K | 8 | 417 |
-| Decimal JSON encode | 11K | 5 | 404 |
-| Decimal multiplied by a rate | 13K | 10 | 416 |
-| Decimal parsing | 4741 | 2 | 179 |
-| Decimal scalar multiplication | 6240 | 5 | 189 |
-| Decimal scaled and rounded | 107K | 83 | 3469 |
-| Decimal subtraction | 7825 | 7 | 238 |
-| Double addition | 6 | 0 | 1 |
+| Control JSON decode | 8,391 | 6 | 285 |
+| Control JSON encode | 5,946 | 2 | 207 |
+| Decimal addition | 7,126 | 6 | 214 |
+| Decimal chained scaling | 54,519 | 41 | 1688 |
+| Decimal comparison | 3,933 | 4 | 122 |
+| Decimal description | 6,655 | 3 | 211 |
+| Decimal divided by 3 | 50,220 | 37 | 1558 |
+| Decimal from a decimal string | 4,667 | 2 | 170 |
+| Decimal JSON decode | 11,553 | 8 | 394 |
+| Decimal JSON encode | 10,930 | 5 | 362 |
+| Decimal multiplied by a rate | 13,109 | 10 | 403 |
+| Decimal parsing | 4,740 | 2 | 170 |
+| Decimal scalar multiplication | 6,240 | 5 | 183 |
+| Decimal scaled and rounded | 107,388 | 83 | 3343 |
+| Decimal subtraction | 7,825 | 7 | 234 |
+| Double addition | 6 | 0 | 0 |
 | Double chained scaling | 12 | 0 | 1 |
 | Double comparison | 15 | 0 | 1 |
 | Double description | 526 | 0 | 16 |
 | Double divided by 3 | 9 | 0 | 0 |
-| Double from a decimal string | 292 | 0 | 10 |
+| Double from a decimal string | 292 | 0 | 9 |
 | Double multiplied by a rate | 9 | 0 | 1 |
-| Double parsing | 270 | 0 | 8 |
-| Double scalar multiplication | 7 | 0 | 1 |
+| Double parsing | 270 | 0 | 7 |
+| Double scalar multiplication | 7 | 0 | 0 |
 | Double scaled and rounded | 7 | 0 | 1 |
 | Double subtraction | 8 | 0 | 1 |
 | FixedPoint addition | 13 | 0 | 1 |
-| FixedPoint chained scaling | 473 | 0 | 32 |
+| FixedPoint chained scaling | 473 | 0 | 31 |
 | FixedPoint comparison | 15 | 0 | 1 |
 | FixedPoint scalar multiplication | 150 | 0 | 5 |
 | FixedPoint scaled and rounded | 179 | 0 | 8 |
@@ -310,45 +310,45 @@ Not `SwiftMoneyCore`, kept so the whole run is in one place. `[engine]` renders 
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
-| Decimal attributed, default, en_GB [ICU] | 146K | 39 | 6466 |
-| Decimal format, default, en_GB [ICU] | 23K | 10 | 820 |
-| Decimal format, every option, en_GB [ICU] | 21K | 10 | 751 |
-| Decimal format, full name, en_GB [ICU] | 25K | 11 | 892 |
-| Decimal format, grouping never, en_GB [ICU] | 41K | 21 | 1419 |
-| Decimal format, ISO code, en_GB [ICU] | 23K | 10 | 832 |
-| Decimal format, narrow, en_GB [ICU] | 23K | 10 | 828 |
-| Decimal format, precision 1dp and accounting, en_GB [ICU] | 25K | 12 | 916 |
-| Decimal format, precision 1dp, en_GB [ICU] | 22K | 10 | 830 |
-| Decimal format, precision 2dp, en_GB [ICU] | 22K | 10 | 838 |
-| Decimal format, separator always, en_GB [ICU] | 24K | 11 | 869 |
-| Decimal format, sign accounting, en_GB [ICU] | 26K | 12 | 940 |
-| Decimal format, sign always, en_GB [ICU] | 25K | 11 | 916 |
-| Decimal format, sign never, en_GB [ICU] | 25K | 11 | 883 |
+| Decimal attributed, default, en_GB [ICU] | 146,239 | 39 | 5688 |
+| Decimal format, default, en_GB [ICU] | 22,505 | 10 | 793 |
+| Decimal format, every option, en_GB [ICU] | 20,975 | 10 | 738 |
+| Decimal format, full name, en_GB [ICU] | 24,670 | 11 | 847 |
+| Decimal format, grouping never, en_GB [ICU] | 41,228 | 21 | 1363 |
+| Decimal format, ISO code, en_GB [ICU] | 22,817 | 10 | 783 |
+| Decimal format, narrow, en_GB [ICU] | 22,526 | 10 | 793 |
+| Decimal format, precision 1dp and accounting, en_GB [ICU] | 25,492 | 12 | 878 |
+| Decimal format, precision 1dp, en_GB [ICU] | 22,327 | 10 | 819 |
+| Decimal format, precision 2dp, en_GB [ICU] | 22,501 | 10 | 787 |
+| Decimal format, separator always, en_GB [ICU] | 23,846 | 11 | 850 |
+| Decimal format, sign accounting, en_GB [ICU] | 25,648 | 12 | 903 |
+| Decimal format, sign always, en_GB [ICU] | 24,590 | 11 | 864 |
+| Decimal format, sign never, en_GB [ICU] | 24,560 | 11 | 857 |
 | Decimal from MoneyOf | 257 | 0 | 9 |
-| Decimal parse, en_GB [ICU] | 25K | 8 | 890 |
-| Money format, default, en_GB [engine] | 15K | 0 | 583 |
-| Money from Decimal | 18K | 11 | 632 |
-| Money parse, en_GB [ICU] | 45K | 19 | 1605 |
-| MoneyLocalization moneyFormat, en_GB | 8087 | 0 | 325 |
-| MoneyLocalization moneyFormat, ISO code, en_GB | 8355 | 0 | 319 |
-| MoneyOf attributed, default, en_GB [engine] | 214K | 59 | 9053 |
-| MoneyOf format, default, en_GB [engine] | 16K | 0 | 592 |
-| MoneyOf format, every option, en_GB [engine] | 16K | 0 | 610 |
-| MoneyOf format, full name, en_GB [engine] | 19K | 1 | 674 |
-| MoneyOf format, grouping never, en_GB [engine] | 15K | 0 | 562 |
-| MoneyOf format, increment, en_GB [ICU fallback] | 30K | 13 | 1049 |
-| MoneyOf format, ISO code, en_GB [engine] | 16K | 0 | 581 |
-| MoneyOf format, narrow, en_GB [engine] | 15K | 0 | 557 |
-| MoneyOf format, precision 1dp and accounting, en_GB [engine] | 16K | 0 | 579 |
-| MoneyOf format, precision 1dp, en_GB [engine] | 15K | 0 | 578 |
-| MoneyOf format, precision 2dp, en_GB [engine] | 16K | 0 | 590 |
-| MoneyOf format, separator always, en_GB [engine] | 15K | 0 | 560 |
-| MoneyOf format, sign accounting, en_GB [engine] | 16K | 0 | 590 |
-| MoneyOf format, sign always, en_GB [engine] | 15K | 0 | 559 |
-| MoneyOf format, sign never, en_GB [engine] | 15K | 0 | 559 |
-| MoneyOf from a negative Decimal | 18K | 11 | 575 |
-| MoneyOf from Decimal | 18K | 11 | 548 |
-| MoneyOf parse, en_GB [ICU] | 46K | 19 | 1645 |
+| Decimal parse, en_GB [ICU] | 24,875 | 8 | 873 |
+| Money format, default, en_GB [engine] | 15,166 | 0 | 581 |
+| Money from Decimal | 17,851 | 11 | 634 |
+| Money parse, en_GB [ICU] | 44,883 | 19 | 1671 |
+| MoneyLocalization moneyFormat, en_GB | 8,091 | 0 | 326 |
+| MoneyLocalization moneyFormat, ISO code, en_GB | 8,356 | 0 | 355 |
+| MoneyOf attributed, default, en_GB [engine] | 213,318 | 59 | 9269 |
+| MoneyOf format, default, en_GB [engine] | 15,293 | 0 | 573 |
+| MoneyOf format, every option, en_GB [engine] | 16,228 | 0 | 631 |
+| MoneyOf format, full name, en_GB [engine] | 18,807 | 1 | 674 |
+| MoneyOf format, grouping never, en_GB [engine] | 15,443 | 0 | 582 |
+| MoneyOf format, increment, en_GB [ICU fallback] | 29,798 | 13 | 1080 |
+| MoneyOf format, ISO code, en_GB [engine] | 15,725 | 0 | 603 |
+| MoneyOf format, narrow, en_GB [engine] | 15,332 | 0 | 582 |
+| MoneyOf format, precision 1dp and accounting, en_GB [engine] | 15,955 | 0 | 603 |
+| MoneyOf format, precision 1dp, en_GB [engine] | 15,535 | 0 | 577 |
+| MoneyOf format, precision 2dp, en_GB [engine] | 15,501 | 0 | 578 |
+| MoneyOf format, separator always, en_GB [engine] | 15,266 | 0 | 560 |
+| MoneyOf format, sign accounting, en_GB [engine] | 15,516 | 0 | 558 |
+| MoneyOf format, sign always, en_GB [engine] | 15,434 | 0 | 556 |
+| MoneyOf format, sign never, en_GB [engine] | 15,218 | 0 | 560 |
+| MoneyOf from a negative Decimal | 18,498 | 11 | 578 |
+| MoneyOf from Decimal | 17,836 | 11 | 565 |
+| MoneyOf parse, en_GB [ICU] | 45,959 | 19 | 1619 |
 
 ### Harness floor
 
