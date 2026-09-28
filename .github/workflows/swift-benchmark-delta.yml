@@ -159,8 +159,8 @@ jobs:
           shard_status.txt
         if-no-files-found: warn
 
-  # One rolled-up PR comment across all shards, written to be skimmed: the verdict and the flagged
-  # benchmark names sit at the top in plain words; the per-metric numbers are folded away.
+  # One rolled-up PR comment across all shards, written to be skimmed: the verdict and the regressed and
+  # improved benchmark names sit at the top in plain words; the per-metric numbers are folded away.
   comment:
     needs: benchmark
     # always(), so a failed or cancelled shard still gets a comment (the ❓ verdict) rather than the
@@ -170,98 +170,30 @@ jobs:
     timeout-minutes: 10
 
     steps:
+    # Only the script is needed, not the package. Checked out before the download, since checkout
+    # cleans the workspace.
+    - uses: actions/checkout@v6
+      with:
+        sparse-checkout: Benchmarks
+
     - uses: actions/download-artifact@v7
       with:
         pattern: benchmark-delta-shard*
         path: shards
+
+    # Runs here because this is the only job that uses the script, and any change to it triggers this
+    # workflow through the Benchmarks/** path filter.
+    - name: Test the comment builder
+      run: python3 Benchmarks/delta_comment.py --selftest
 
     - name: Build the combined comment body
       env:
         RUN_URL: "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
         BENCHMARK_RESULT: ${{ needs.benchmark.result }}
       run: |
-        shopt -s nullglob
-        statuses=(shards/*/shard_status.txt)
-        tables=(shards/*/shard_comparison.md)
-        shardCount=${#statuses[@]}
-
-        # A shard that failed before uploading leaves no artifact, so the job's own result is a failure
-        # signal in its own right, on top of any uploaded "failed" status.
-        jobFailed=0
-        [ "$BENCHMARK_RESULT" = "success" ] || jobFailed=1
-
-        # No shard produced a comparison: either main has no baseline yet, or every shard failed.
-        if [ "$shardCount" -eq 0 ]; then
-          {
-            echo "<!-- benchmark-delta -->"
-            if [ "$jobFailed" = 1 ]; then
-              echo "### ❓ Benchmarks did not complete"
-              echo ""
-              echo "No shard produced a comparison. [Run details]($RUN_URL)"
-            else
-              echo "### Benchmarks ran; no comparison yet"
-              echo ""
-              echo "No baseline was available to compare against. [Run details]($RUN_URL)"
-            fi
-          } > comment_body.md
-          echo "CHANGED=$([ "$jobFailed" = 1 ] && echo true || echo false)" >> "$GITHUB_ENV"
-          exit 0
-        fi
-
-        hasReg=0; hasImp=0; hasFail=$jobFailed
-        for status in "${statuses[@]}"; do
-          case "$(cat "$status")" in
-            2) hasReg=1 ;;
-            4) hasImp=1 ;;
-            0) ;;
-            *) hasFail=1 ;;
-          esac
-        done
-
-        flagged="$(grep -h '^Threshold deviations for SwiftMoneyBenchmarks:' "${tables[@]}" 2>/dev/null \
-          | sed 's/^Threshold deviations for SwiftMoneyBenchmarks://' | sort -u)"
-        flaggedCount=$(printf '%s' "$flagged" | grep -c . || true)
-
-        # A within-threshold shard's comparison file is just a one-line "WITHIN thresholds" notice, so
-        # concatenating every shard repeats that line once per clean shard around the one real table.
-        # Keep only the files that actually carry a deviations table.
-        mapfile -t flaggedTables < <(grep -l '^Threshold deviations for SwiftMoneyBenchmarks:' "${tables[@]}" 2>/dev/null || true)
-
-        if [ "$hasReg" = 1 ]; then
-          headline="### ⚠️ Benchmarks regressed vs main"
-          echo "CHANGED=true" >> "$GITHUB_ENV"
-        elif [ "$hasFail" = 1 ]; then
-          headline="### ❓ Benchmark comparison incomplete"
-          echo "CHANGED=true" >> "$GITHUB_ENV"
-        elif [ "$hasImp" = 1 ]; then
-          headline="### ✅ Benchmarks improved (none regressed)"
-          echo "CHANGED=true" >> "$GITHUB_ENV"
-        else
-          headline="### ✅ No significant benchmark changes"
-          echo "CHANGED=false" >> "$GITHUB_ENV"
-        fi
-
-        {
-          echo "<!-- benchmark-delta -->"
-          echo "$headline"
-          echo ""
-          echo "${flaggedCount} benchmark(s) flagged across ${shardCount} shards. [Run details]($RUN_URL)"
-          if [ "$hasFail" = 1 ]; then
-            echo ""
-            echo "> A shard failed to build or compare, so the picture may be incomplete."
-          fi
-          if [ "$flaggedCount" -gt 0 ]; then
-            echo ""
-            echo "**Flagged:**"
-            printf '%s\n' "$flagged" | sed 's/^/- /'
-            echo ""
-            echo "<details><summary>Comparison tables (numbers)</summary>"
-            echo ""
-            cat "${flaggedTables[@]}"
-            echo ""
-            echo "</details>"
-          fi
-        } > comment_body.md
+        python3 Benchmarks/delta_comment.py shards \
+          --job-result "$BENCHMARK_RESULT" --run-url "$RUN_URL" --github-env "$GITHUB_ENV" \
+          > comment_body.md
 
     # Mirrors swift-benchmark-delta's own long-standing technique: a hidden marker lets this workflow
     # find and edit its single comment rather than posting a new one on every push. A run that changes
@@ -276,7 +208,7 @@ jobs:
           | jq -r --arg marker "$MARKER" \
               '[.[] | select(.body | contains($marker))] | last | .id // empty')"
 
-        if [ "$CHANGED" != "true" ] && [ -z "$existing" ]; then
+        if [ "$DELIVERY" != "post" ] && [ -z "$existing" ]; then
           echo "Nothing changed and there is no comment to update."
           exit 0
         fi
