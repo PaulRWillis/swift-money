@@ -251,10 +251,8 @@ def speedup(ours, theirs):
 
 
 def count(instructions):
-    """An instruction count, in thousands once it runs past four figures."""
-    if instructions >= 10_000:
-        return f"{instructions / 1_000:.0f}K"
-    return f"{instructions}"
+    """An instruction count, exact, with thousands separators: `107,388`."""
+    return f"{instructions:,}"
 
 
 def cell(measurement):
