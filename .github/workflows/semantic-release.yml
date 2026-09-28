@@ -13,6 +13,11 @@ concurrency:
   group: ${{ github.workflow }}
   cancel-in-progress: false
 
+# Pushing tags and notes refs and publishing releases need contents: write. Nothing else is needed:
+# the config turns off the GitHub plugin's issue and pull request comments.
+permissions:
+  contents: write
+
 jobs:
   semantic-release:
     runs-on: ubuntu-24.04
