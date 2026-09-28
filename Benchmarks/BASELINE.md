@@ -52,7 +52,8 @@ ahead of `Decimal`. The fractional operations are measured against the closest p
 | MoneyOf is zero | 7 | 0 | 0 |
 | MoneyOf magnitude | 30 | 0 | 1 |
 | MoneyOf negation | 29 | 0 | 1 |
-| MoneyOf parsing | 234 | 0 | 6 |
+| MoneyOf parsing | 232 | 0 | 6 |
+| MoneyOf parsing, whole major units | 268 | 0 | 7 |
 | MoneyOf parsing a large amount | 661 | 0 | 17 |
 | MoneyOf parsing a negative amount | 211 | 0 | 5 |
 | MoneyOf proportion | 229 | 0 | 7 |
@@ -80,7 +81,8 @@ ahead of `Decimal`. The fractional operations are measured against the closest p
 | Money init exactly | 28 | 0 | 1 |
 | Money is less than, throwing | 20 | 0 | 1 |
 | Money is multiple, throwing | 24 | 0 | 1 |
-| Money parsing | 352 | 0 | 9 |
+| Money parsing | 361 | 0 | 9 |
+| Money parsing, whole major units | 363 | 0 | 9 |
 | Money parsing, caller's currency | 308 | 0 | 8 |
 | Money proportion, throwing | 248 | 0 | 7 |
 | Money scalar multiplication, amount times integer | 32 | 0 | 1 |
@@ -220,6 +222,7 @@ The JSON rows are mostly Foundation's coder; the `Control` peer (a plain `Int64`
 | Money encode, no coder, two fields | 4692 | 1 | 150 |
 | Money JSON decode | 14K | 6 | 466 |
 | Money JSON decode, two fields | 54K | 29 | 1858 |
+| Money JSON decode, whole major units | 17K | 7 | 541 |
 | Money JSON encode | 6712 | 2 | 242 |
 | Money JSON encode, major units | 9595 | 3 | 342 |
 | Money JSON encode, two fields | 28K | 11 | 985 |
