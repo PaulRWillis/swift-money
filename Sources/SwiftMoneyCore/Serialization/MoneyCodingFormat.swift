@@ -122,8 +122,8 @@ extension MoneyCodingFormat.Amount {
 }
 
 extension MoneyCodingFormat {
-    // Which units a number on the wire counts. Reading needs this whatever shape was set for
-    // writing, a number being the one form that cannot say for itself.
+    // Which units a number, or a string's digits without a point, count on the wire. Reading needs
+    // this whatever shape was set for writing, since neither can say for itself.
     var units: MoneyCodingUnits {
         switch shape {
         case let .codedString(units): units

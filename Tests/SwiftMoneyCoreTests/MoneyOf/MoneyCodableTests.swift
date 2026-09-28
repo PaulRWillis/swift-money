@@ -135,12 +135,85 @@ struct MoneyCodableTests {
         #expect(throws: DecodingError.self) { try decoded(GBP.self, from: text) }
     }
 
-    @Test("What the encoder was told to write does not narrow what the decoder reads")
-    func readsEitherSpellingWhateverIsConfigured() throws {
-        let major = MoneyCodingFormat.codedString(.majorUnits)
+    @Test(
+        "A coded string's digits without a point count the format's units, and a point always means major",
+        arguments: [
+            // Go's decimal library pads every amount, the legacy client drops the point from a whole
+            // one, and this library writes smallest units unless told otherwise.
+            ("\"GBP 4.99\"", nil, 4_99),
+            ("\"GBP 15\"", nil, 15),
+            ("\"GBP 499\"", nil, 4_99),
+            ("\"GBP 4.99\"", .codedString, 4_99),
+            ("\"GBP 15\"", .codedString, 15),
+            ("\"GBP 499\"", .codedString, 4_99),
+            ("\"GBP 4.99\"", .codedString(.majorUnits), 4_99),
+            ("\"GBP 15\"", .codedString(.majorUnits), 15_00),
+            ("\"GBP 15.00\"", .codedString(.majorUnits), 15_00),
+            // Data an app wrote before it switched to major units. Nothing in "GBP 499" says which
+            // units it counts, so it reads as the format now says.
+            ("\"GBP 499\"", .codedString(.majorUnits), 499_00),
+        ] as [(String, MoneyCodingFormat?, Int64)]
+    )
+    func readsACodedStringInTheUnitsConfigured(
+        _ text: String,
+        _ format: MoneyCodingFormat?,
+        _ expected: Int64
+    ) throws {
+        #expect(try decoded(GBP.self, from: text, format) == GBP(minorUnits: expected))
+        #expect(try decoded(Money.self, from: text, format) == Money(minorUnits: expected, currency: .gbp))
+    }
 
-        #expect(try decoded(GBP.self, from: "\"GBP 499\"", major) == GBP(minorUnits: 4_99))
-        #expect(try decoded(GBP.self, from: "\"GBP 4.99\"", .codedString) == GBP(minorUnits: 4_99))
+    @Test(
+        "A string amount counts the format's units where it has no point",
+        arguments: [
+            (#"{"currency":"GBP","amount":"15"}"#, .fields(amount: .string(.majorUnits)), 15_00),
+            (#"{"currency":"GBP","amount":"15.00"}"#, .fields(amount: .string(.majorUnits)), 15_00),
+            (#"{"currency":"GBP","amount":"1500"}"#, .fields(amount: .string(.minorUnits)), 15_00),
+            (#"{"currency":"GBP","amount":"4.99"}"#, .fields(amount: .string(.minorUnits)), 4_99),
+            // A point means major units whatever the format names, so a producer writing smallest
+            // units with a fraction is read a hundredfold high. No known producer does.
+            (#"{"currency":"GBP","amount":"400.00"}"#, .fields(amount: .string(.minorUnits)), 400_00),
+            ("\"15\"", .amountOnly(.string(.majorUnits)), 15_00),
+            ("\"15\"", .amountOnly(.string(.minorUnits)), 15),
+        ] as [(String, MoneyCodingFormat, Int64)]
+    )
+    func readsAStringAmountInTheUnitsConfigured(
+        _ text: String,
+        _ format: MoneyCodingFormat,
+        _ expected: Int64
+    ) throws {
+        #expect(try decoded(GBP.self, from: text, format) == GBP(minorUnits: expected))
+    }
+
+    @Test("A string amount finer than the currency divides is refused, whichever units are named")
+    func refusesAStringAmountTooPrecise() {
+        let major = MoneyCodingFormat.fields(amount: .string(.majorUnits))
+
+        #expect(throws: DecodingError.self) {
+            try decoded(GBP.self, from: #"{"currency":"GBP","amount":"15.001"}"#, major)
+        }
+    }
+
+    @Test("Whole major units too large for the range once scaled are refused rather than wrapped")
+    func refusesMajorUnitsPastTheRange() {
+        #expect(throws: DecodingError.self) {
+            try decoded(GBP.self, from: "\"GBP 92233720368547759\"", .codedString(.majorUnits))
+        }
+    }
+
+    @Test("One decoder reads every amount in a model in the units it names")
+    func readsAModelInTheUnitsConfigured() throws {
+        struct Invoice: Decodable, Equatable {
+            let price: GBP
+            let total: Money
+            let fee: Money
+        }
+
+        let payload = #"{"price":"15","total":"GBP 15","fee":{"currency":"GBP","amount":"15"}}"#
+        let invoice = try decoded(Invoice.self, from: payload, .fields(amount: .string(.majorUnits)))
+        let fifteenPounds = Money(minorUnits: 15_00, currency: .gbp)
+
+        #expect(invoice == Invoice(price: GBP(minorUnits: 15_00), total: fifteenPounds, fee: fifteenPounds))
     }
 
     @Test("Two fields are written under the keys the format names")
@@ -339,12 +412,12 @@ struct MoneyCodableTests {
         #expect(try decoded(GBP.self, from: "400.00", major) == GBP(minorUnits: 400_00))
     }
 
-    @Test("A string says its own units, whatever the format names")
-    func readsAStringInItsOwnUnits() throws {
+    @Test("A string counts the format's units whichever form the format names for writing")
+    func readsAStringInTheFormatsUnits() throws {
         let major = MoneyCodingFormat.amountOnly(.number(.majorUnits))
 
         #expect(try decoded(GBP.self, from: "\"4.00\"", major) == GBP(minorUnits: 4_00))
-        #expect(try decoded(GBP.self, from: "\"400\"", major) == GBP(minorUnits: 400))
+        #expect(try decoded(GBP.self, from: "\"400\"", major) == GBP(minorUnits: 400_00))
     }
 
     @Test("A fraction is refused where the number counts smallest units, and taken where it counts major")

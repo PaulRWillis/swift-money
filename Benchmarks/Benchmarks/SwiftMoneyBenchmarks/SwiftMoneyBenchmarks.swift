@@ -1706,6 +1706,22 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    // The same payloads, read as whole pounds: the one branch that scales digits with no point. It
+    // runs about 3K above `Money JSON decode` because any format set at all costs that, read back out
+    // of `userInfo`; setting plain `.codedString` costs the same.
+    let majorUnitsDecoder = JSONDecoder()
+
+    majorUnitsDecoder.userInfo[.moneyCodingFormat] = MoneyCodingFormat.codedString(.majorUnits)
+
+    Benchmark("Money JSON decode, whole major units", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(try majorUnitsDecoder.decode(GBP.self, from: codedStringPayloads[index % codedStringPayloads.count]))
+            index &+= 1
+        }
+    }
+
     Benchmark("Money JSON encode, two fields", configuration: defaultConfiguration) { benchmark in
         var index = 0
 

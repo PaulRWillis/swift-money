@@ -5,9 +5,13 @@
 /// .majorUnits   // 4.99
 /// ```
 ///
-/// A string says which it is for itself, a `.` meaning major units, so this decides only what a
-/// number means. A number cannot say: `400` and `400.00` are one JSON number, and reading the
-/// fraction as a hint would make the same payload mean two amounts a hundredfold apart.
+/// Reading, a `.` in a string always means major units, so this decides what digits without one
+/// count: `"15"` is £15 in major units and 15p in minor. A number can never say, `400` and `400.00`
+/// being one JSON number, so this decides what every number counts, and one with a fraction is
+/// refused in minor units.
+///
+/// Name the units the sender writes. Nothing in `"GBP 499"` says which it meant, so an amount
+/// written in one and read in the other is a hundredfold out.
 public enum MoneyCodingUnits: Sendable, Equatable, Hashable {
     /// The currency's smallest units, so pence rather than pounds.
     case minorUnits
