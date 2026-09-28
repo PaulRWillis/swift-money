@@ -13,6 +13,13 @@ on:
     # on the same globs. A pull request that touches nothing here still runs the job to a clean finish
     # with those steps skipped, which reports the required check as passed with nothing to test.
 
+# A newer push to the same pull request supersedes this run, so the older one is cancelled rather
+# than holding runners the newer one is queued for. Every other run gets a group of its own, so a push
+# to main is never cancelled or queued behind another.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 # Stated rather than inherited: checkout needs to read the code, and the relevance filter below reads
 # the pull request's changed files. Nothing here needs more.
 permissions:

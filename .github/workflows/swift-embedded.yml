@@ -15,6 +15,13 @@ on:
       - 'Package.swift'
       - '.github/workflows/swift-embedded.yml'
 
+# A newer push to the same pull request supersedes this run, so the older one is cancelled rather
+# than holding runners the newer one is queued for. Every other run gets a group of its own, so a push
+# to main is never cancelled or queued behind another.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 # The core is meant to compile under Embedded Swift. Apple's Xcode toolchain ships no Embedded standard
 # library, so this job installs a swift.org toolchain (via swiftly) that does, then runs the same script
 # a developer runs locally.
