@@ -57,4 +57,25 @@ public extension ClosedRange {
         // Not empty, so the upper bound is above the lower and one minor unit less cannot underflow.
         self = range.lowerBound ... MoneyOf<C>(unchecked: range.upperBound.minorUnits - 1, storage: .implied)
     }
+
+    /// Returns every amount in the range, one stride apart, ending exactly on the far bound.
+    ///
+    /// The stops of a slider. Unlike `stride(from:through:by:)`, the far bound is always a step, even
+    /// when no stride lands on it:
+    ///
+    /// ```swift
+    /// try (GBP(minorUnits: 10_00)...GBP(minorUnits: 250_00)).steps(by: .majorUnits(100))
+    /// // £10, £110, £210, £250
+    /// ```
+    ///
+    /// A negative stride starts on the upper bound and counts down to the lower.
+    ///
+    /// - Parameter stride: The gap between neighboring steps. The last gap may be shorter.
+    /// - Throws: ``TooManyStepsError`` if there would be more steps than `Int` can count.
+    @inlinable
+    func steps<C: CurrencyType>(
+        by stride: MoneyOf<C>.Stride
+    ) throws(TooManyStepsError) -> MoneyOf<C>.Steps where Bound == MoneyOf<C> {
+        try MoneyOf<C>.Steps(checking: lowerBound.minorUnits ... upperBound.minorUnits, by: stride)
+    }
 }

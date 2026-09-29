@@ -236,6 +236,7 @@ A typed row should cost no more than its runtime twin, which also compares curre
 | ClosedMoneyRange from checked bounds, throwing | 57 | 0 | 2 |
 | ClosedMoneyRange overlaps a half-open range, throwing | 51 | 0 | 2 |
 | ClosedMoneyRange overlaps, throwing | 23 | 0 | 1 |
+| ClosedMoneyRange steps, throwing | 103 | 0 | 4 |
 | ClosedRange from a half-open range | 38 | 0 | 1 |
 | ClosedRange from checked bounds, throwing | 33 | 0 | 1 |
 | ClosedRange from ClosedMoneyRange, throwing | 38 | 0 | 1 |
@@ -244,9 +245,17 @@ A typed row should cost no more than its runtime twin, which also compares curre
 | ClosedRange of MoneyOf contains | 16 | 0 | 1 |
 | ClosedRange of MoneyOf contains a closed range | 16 | 0 | 1 |
 | ClosedRange of MoneyOf overlaps | 16 | 0 | 1 |
+| ClosedRange of MoneyOf steps, throwing | 56 | 0 | 2 |
 | Money clamped to a closed range, throwing | 41 | 0 | 1 |
 | Money clamped to a lower bound, throwing | 37 | 0 | 1 |
 | Money clamped to an upper bound, throwing | 37 | 0 | 1 |
+| Money.Steps contains | 44 | 0 | 2 |
+| Money.Steps firstIndex of | 172 | 0 | 8 |
+| Money.Steps from typed steps | 35 | 0 | 1 |
+| Money.Steps index offset by, limited by | 39 | 0 | 1 |
+| Money.Steps lastIndex of | 63 | 0 | 2 |
+| Money.Steps subscript | 49 | 0 | 1 |
+| Money.Steps walk, £250 by £25 | 71 | 0 | 2 |
 | Money.Stride from a typed stride | 31 | 0 | 1 |
 | Money.Stride init exactly | 36 | 0 | 1 |
 | Money.Stride major unit of a currency | 42 | 0 | 1 |
@@ -260,6 +269,13 @@ A typed row should cost no more than its runtime twin, which also compares curre
 | MoneyOf clamped to a closed range | 32 | 0 | 1 |
 | MoneyOf clamped to a lower bound | 30 | 0 | 1 |
 | MoneyOf clamped to an upper bound | 30 | 0 | 1 |
+| MoneyOf.Steps contains | 36 | 0 | 1 |
+| MoneyOf.Steps firstIndex of | 156 | 0 | 7 |
+| MoneyOf.Steps from runtime steps, throwing | 38 | 0 | 1 |
+| MoneyOf.Steps index offset by, limited by | 39 | 0 | 1 |
+| MoneyOf.Steps lastIndex of | 53 | 0 | 2 |
+| MoneyOf.Steps subscript | 47 | 0 | 1 |
+| MoneyOf.Steps walk, £250 by £25 | 65 | 0 | 2 |
 | MoneyOf.Stride from a runtime stride, throwing | 35 | 0 | 1 |
 | MoneyOf.Stride init exactly | 31 | 0 | 1 |
 | MoneyOf.Stride major unit | 33 | 0 | 1 |
