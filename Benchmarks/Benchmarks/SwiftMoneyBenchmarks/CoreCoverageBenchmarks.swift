@@ -1338,6 +1338,149 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         }
     }
 
+    // Some operands are negative, so both signs of stride occur; none is zero.
+    let strideAmounts = operands.map { GBP(minorUnits: $0 % 2 == 0 ? $0 * 100 : -$0 * 100) }
+    let runtimeStrideAmounts = strideAmounts.map { Money($0) }
+    let typedStrides = strideAmounts.compactMap { GBP.Stride(exactly: $0) }
+    let runtimeStrides = typedStrides.map { Money.Stride($0) }
+    let strideCurrencies: [Currency] = [.gbp, .jpy, .eur, .bhd, .usd]
+
+    Benchmark("MoneyOf.Stride init exactly", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(GBP.Stride(exactly: strideAmounts[index % strideAmounts.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money.Stride init exactly", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Money.Stride(exactly: runtimeStrideAmounts[index % runtimeStrideAmounts.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("MoneyOf.Stride major unit", configuration: configuration) { benchmark in
+        for _ in benchmark.scaledIterations {
+            blackHole(GBP.Stride.majorUnit)
+        }
+    }
+
+    Benchmark("Money.Stride major unit of a currency", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Money.Stride.majorUnit(of: strideCurrencies[index % strideCurrencies.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money.Stride major unit of an amount", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Money.Stride.majorUnit(of: runtimeStrideAmounts[index % runtimeStrideAmounts.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("MoneyOf.Stride minor unit", configuration: configuration) { benchmark in
+        for _ in benchmark.scaledIterations {
+            blackHole(GBP.Stride.minorUnit)
+        }
+    }
+
+    Benchmark("Money.Stride minor unit of a currency", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Money.Stride.minorUnit(of: strideCurrencies[index % strideCurrencies.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money.Stride minor unit of an amount", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Money.Stride.minorUnit(of: runtimeStrideAmounts[index % runtimeStrideAmounts.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("MoneyOf.Stride major units", configuration: configuration) { benchmark in
+        for _ in benchmark.scaledIterations {
+            blackHole(GBP.Stride.majorUnits(5))
+        }
+    }
+
+    Benchmark("Money.Stride major units of a currency", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Money.Stride.majorUnits(5, of: strideCurrencies[index % strideCurrencies.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("MoneyOf.Stride minor units", configuration: configuration) { benchmark in
+        for _ in benchmark.scaledIterations {
+            blackHole(GBP.Stride.minorUnits(50))
+        }
+    }
+
+    Benchmark("Money.Stride minor units of a currency", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Money.Stride.minorUnits(50, of: strideCurrencies[index % strideCurrencies.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money.Stride minor units of an amount", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Money.Stride.minorUnits(50, of: runtimeStrideAmounts[index % runtimeStrideAmounts.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money.Stride major units of an amount", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Money.Stride.majorUnits(5, of: runtimeStrideAmounts[index % runtimeStrideAmounts.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money.Stride from a typed stride", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Money.Stride(typedStrides[index % typedStrides.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("MoneyOf.Stride from a runtime stride, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try GBP.Stride(runtimeStrides[index % runtimeStrides.count]))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these strides are in pounds, so this cannot happen: \(error)")
+        }
+    }
+
     // MARK: Serialization configuration
 
     Benchmark("MoneyCodingFormat custom fields", configuration: configuration) { benchmark in
