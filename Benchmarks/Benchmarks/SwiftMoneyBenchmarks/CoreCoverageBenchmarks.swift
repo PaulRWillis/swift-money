@@ -874,6 +874,68 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         }
     }
 
+    Benchmark("ClosedRange from ClosedMoneyRange, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try ClosedRange<GBP>(runtimeClosedPounds[index % runtimeClosedPounds.count]))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these ranges are all in pounds, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("Range from MoneyRange, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try Range<GBP>(runtimeHalfOpenPounds[index % runtimeHalfOpenPounds.count]))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these ranges are all in pounds, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("ClosedRange from a half-open range", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(ClosedRange(halfOpenPounds[index % halfOpenPounds.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("ClosedMoneyRange from a half-open range", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(ClosedMoneyRange(runtimeHalfOpenPounds[index % runtimeHalfOpenPounds.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Range from a closed range", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Range(closedPounds[index % closedPounds.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("MoneyRange from a closed range", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(MoneyRange(runtimeClosedPounds[index % runtimeClosedPounds.count]))
+            index &+= 1
+        }
+    }
+
     // MARK: Serialization configuration
 
     Benchmark("MoneyCodingFormat custom fields", configuration: configuration) { benchmark in

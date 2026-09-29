@@ -50,6 +50,25 @@ public struct ClosedMoneyRange: Equatable, Hashable, Sendable {
         self.init(unchecked: C.currency, minorUnits: typed.lowerBound.minorUnits ... typed.upperBound.minorUnits)
     }
 
+    /// Creates a closed range holding the same amounts as a half-open one, if it holds any.
+    ///
+    /// The upper bound moves down by one minor unit, the gap between neighboring amounts. Where the
+    /// standard library traps on an empty range, this is `nil`.
+    ///
+    /// - Parameter range: The half-open range to convert.
+    /// - Returns: `nil` if `range` is empty, since a closed range always holds its bounds.
+    public init?(_ range: MoneyRange) {
+        guard !range.isEmpty else {
+            return nil
+        }
+
+        // Not empty, so the upper bound is above the lower and one minor unit less cannot underflow.
+        self.init(
+            unchecked: range.currency,
+            minorUnits: range.lowerBound.minorUnits ... range.upperBound.minorUnits - 1
+        )
+    }
+
     // No check: for call sites that already hold ordered bounds in one currency.
     @usableFromInline
     init(

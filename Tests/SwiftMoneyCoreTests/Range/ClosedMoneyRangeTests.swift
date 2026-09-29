@@ -88,6 +88,19 @@ struct ClosedMoneyRangeTests {
         #expect(ClosedMoneyRange(JPY(minorUnits: 1) ... JPY(minorUnits: 9)).currency == .jpy)
     }
 
+    @Test("A half-open range becomes the closed range ending one minor unit lower")
+    func fromHalfOpen() throws {
+        let halfOpen = try pounds(1_00)..<pounds(2_00)
+
+        #expect(try ClosedMoneyRange(halfOpen) == pounds(1_00)...pounds(1_99))
+        #expect(ClosedMoneyRange(halfOpen)?.currency == .gbp)
+    }
+
+    @Test("An empty half-open range has no closed equivalent")
+    func fromEmptyHalfOpen() throws {
+        #expect(ClosedMoneyRange(try pounds(1_00)..<pounds(1_00)) == nil)
+    }
+
     @Test("Contains both bounds and what lies between them")
     func containsBothEnds() throws {
         let range = try pounds(10_00)...pounds(250_00)

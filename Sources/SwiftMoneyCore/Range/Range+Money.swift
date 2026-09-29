@@ -23,4 +23,40 @@ public extension Range {
 
         self = bounds.lower ..< bounds.upper
     }
+
+    /// Creates a half-open range of typed amounts from a runtime range, if it is in the bounds'
+    /// currency.
+    ///
+    /// ```swift
+    /// let band = try Range<GBP>(runtimeBand)
+    /// ```
+    ///
+    /// - Parameter range: The range whose currency is only known at runtime.
+    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if `range` is in another currency, with
+    ///   the bounds' currency as `lhs`.
+    @inlinable
+    init<C: CurrencyType>(_ range: MoneyRange) throws(MoneyError) where Bound == MoneyOf<C> {
+        try AnyCurrency.requireMatch(C.currency, range.currency)
+
+        self = MoneyOf<C>(unchecked: range.lowerBound.minorUnits, storage: .implied)
+            ..< MoneyOf<C>(unchecked: range.upperBound.minorUnits, storage: .implied)
+    }
+
+    /// Creates a half-open range holding the same amounts as a closed one, if its upper bound has room
+    /// above it.
+    ///
+    /// The upper bound moves up by one minor unit, the gap between neighboring amounts. Where the
+    /// standard library traps when that step overflows, this is `nil`.
+    ///
+    /// - Parameter range: The closed range to convert.
+    /// - Returns: `nil` if `range`'s upper bound is the largest representable amount.
+    @inlinable
+    init?<C: CurrencyType>(_ range: ClosedRange<MoneyOf<C>>) where Bound == MoneyOf<C> {
+        let (upper, overflow) = range.upperBound.minorUnits.addingReportingOverflow(1)
+        guard !overflow else {
+            return nil
+        }
+
+        self = range.lowerBound ..< MoneyOf<C>(unchecked: upper, storage: .implied)
+    }
 }

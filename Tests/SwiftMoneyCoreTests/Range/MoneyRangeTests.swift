@@ -83,6 +83,21 @@ struct MoneyRangeTests {
         #expect(MoneyRange(JPY(minorUnits: 1) ..< JPY(minorUnits: 9)).currency == .jpy)
     }
 
+    @Test("A closed range becomes the half-open range ending one minor unit higher")
+    func fromClosed() throws {
+        let closed = try pounds(1_00)...pounds(1_99)
+
+        #expect(try MoneyRange(closed) == pounds(1_00)..<pounds(2_00))
+        #expect(MoneyRange(closed)?.currency == .gbp)
+    }
+
+    @Test("A closed range ending at the largest amount has no half-open equivalent")
+    func fromClosedAtMaximum() throws {
+        let closed = try pounds(0)...pounds(Int64.max)
+
+        #expect(MoneyRange(closed) == nil)
+    }
+
     @Test("Contains its lower bound but not its upper")
     func containsLowerNotUpper() throws {
         let range = try pounds(10_00)..<pounds(250_00)

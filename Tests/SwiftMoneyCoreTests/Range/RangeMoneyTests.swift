@@ -29,6 +29,40 @@ struct RangeMoneyTests {
         }
     }
 
+    @Test("A runtime range in the bounds' currency becomes a typed range")
+    func fromRuntime() throws {
+        let runtime = try Money(minorUnits: 10_00, currency: .gbp)..<Money(minorUnits: 250_00, currency: .gbp)
+
+        #expect(try Range<GBP>(runtime) == GBP(minorUnits: 10_00) ..< GBP(minorUnits: 250_00))
+    }
+
+    @Test("A runtime range in another currency throws a mismatch, the bounds' currency first")
+    func fromRuntimeMismatch() throws {
+        let euros = try Money(minorUnits: 10_00, currency: .eur)..<Money(minorUnits: 250_00, currency: .eur)
+
+        #expect(throws: MoneyError.currencyMismatch(lhs: .gbp, rhs: .eur)) {
+            try Range<GBP>(euros)
+        }
+    }
+
+    @Test("A typed range survives a round trip through a runtime one")
+    func runtimeRoundTrip() throws {
+        let typed = JPY(minorUnits: -5) ..< JPY(minorUnits: 5)
+
+        #expect(try Range<JPY>(MoneyRange(typed)) == typed)
+    }
+
+    @Test("A closed range becomes the half-open range ending one minor unit higher")
+    func fromClosed() {
+        #expect(Range(GBP(minorUnits: 1_00) ... GBP(minorUnits: 1_99)) == GBP(minorUnits: 1_00) ..< GBP(minorUnits: 2_00))
+        #expect(Range(JPY.min ... JPY(minorUnits: Int64.max - 1)) == JPY.min ..< JPY.max)
+    }
+
+    @Test("A closed range ending at the largest amount has no half-open equivalent")
+    func fromClosedAtMaximum() {
+        #expect(Range(GBP.zero ... GBP.max) == nil)
+    }
+
     @Test("Inverted bounds in yen report both bounds")
     func invertedYen() {
         #expect(throws: InvertedBoundsError<Currencies.JPY>.self) {

@@ -50,6 +50,23 @@ public struct MoneyRange: Equatable, Hashable, Sendable {
         self.init(unchecked: C.currency, minorUnits: typed.lowerBound.minorUnits ..< typed.upperBound.minorUnits)
     }
 
+    /// Creates a half-open range holding the same amounts as a closed one, if its upper bound has room
+    /// above it.
+    ///
+    /// The upper bound moves up by one minor unit, the gap between neighboring amounts. Where the
+    /// standard library traps when that step overflows, this is `nil`.
+    ///
+    /// - Parameter range: The closed range to convert.
+    /// - Returns: `nil` if `range`'s upper bound is the largest representable amount.
+    public init?(_ range: ClosedMoneyRange) {
+        let (upper, overflow) = range.upperBound.minorUnits.addingReportingOverflow(1)
+        guard !overflow else {
+            return nil
+        }
+
+        self.init(unchecked: range.currency, minorUnits: range.lowerBound.minorUnits ..< upper)
+    }
+
     // No check: for call sites that already hold ordered bounds in one currency.
     @usableFromInline
     init(
