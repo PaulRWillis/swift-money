@@ -38,8 +38,8 @@ extension MoneyOf.FormatStyle {
     }
 
     // Foundation's precision as the engine's, or nil to fall back. The default is the currency scale;
-    // a fixed fraction length passes through with the style's rounding rule (both rounding types are
-    // `FloatingPointRoundingRule`). Significant-digit and range forms are unrecognised and fall back.
+    // a fixed fraction length passes through with the style's rounding rule, parsed into the engine's.
+    // Significant-digit and range forms, and a rule the engine doesn't have, fall back.
     var enginePrecision: MoneyFormatOptions.Precision? {
         guard let precision else {
             return .currencyScale
@@ -47,7 +47,7 @@ extension MoneyOf.FormatStyle {
         guard let length = Self.fractionLength(of: precision) else {
             return nil
         }
-        return .fixed(length, rounding: roundingRule)
+        return RoundingRule(roundingRule).map { .fixed(length, rounding: $0) }
     }
 
     // The fixed fraction length a precision asks for, or nil for any other form. `Precision` is opaque

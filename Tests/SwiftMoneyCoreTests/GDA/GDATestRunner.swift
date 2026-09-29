@@ -100,7 +100,7 @@ enum GDATestRunner {
         // Round-to-integral is where the rounding mode is the subject, so its rounding conditions are the
         // point, not a reason to skip; only trap conditions rule it out.
         if vector.operation == "tointegral" || vector.operation == "tointegralx" {
-            return roundToIntegral(vector) { fixed, rule in Fixed(exactly: Int128(fixed, rounding: rule)) }
+            return roundToIntegral(vector) { fixed, rule in Int64(fixed, rounding: rule).map(Fixed.init) }
         }
 
         if let reason = skipReason(for: vector.conditions) { return .skipped(reason) }
@@ -303,8 +303,7 @@ enum GDATestRunner {
 
     private static func int64Value(_ token: String) -> Int64? {
         guard case let .value(fixed) = parseNumber(token),
-              let wide = Int128(exactly: fixed),
-              let value = Int64(exactly: wide) else {
+              let value = Int64(exactly: fixed) else {
             return nil
         }
         return value

@@ -13,33 +13,30 @@ func bankersDivide256(
         return nil
     }
 
-    return bankersRounded(quotient: quotient, remainder: remainder, divisor: divisor, sign: sign)
+    return bankersRounded(quotient: quotient, dropped: DroppedFraction(remainder: remainder, divisor: divisor), sign: sign)
 }
 
-// The same, for a divisor that fits one 64-bit word, which divides in two cheaper steps.
-func bankersDivide256(
+// The same, dividing by `Fixed`'s scale.
+@inline(__always)
+func bankersDivideByScale(
     _ dividend: Wide256Magnitude,
-    by divisor: UInt64,
     sign: Sign
 ) -> Int128? {
-    guard let (quotient, remainder) = dividend.quotientAndRemainder(dividingBy: divisor) else {
+    guard let (quotient, remainder) = dividend.quotientAndRemainderDividingByScale() else {
         return nil
     }
 
-    return bankersRounded(quotient: quotient, remainder: UInt128(remainder), divisor: UInt128(divisor), sign: sign)
+    let dropped = DroppedFraction(remainder: remainder, divisor: Fixed.Scale.divisor)
+    return bankersRounded(quotient: quotient, dropped: dropped, sign: sign)
 }
 
+// With the rounding decision inlined into it, this stopped inlining into the rate product (+10, measured).
+@inline(__always)
 private func bankersRounded(
     quotient: UInt128,
-    remainder: UInt128,
-    divisor: UInt128,
+    dropped: DroppedFraction,
     sign: Sign
 ) -> Int128? {
-    let roundsAway = switch comparedToHalf(remainder: remainder, divisor: divisor) {
-    case .lessThanHalf: false
-    case .moreThanHalf: true
-    case .equalToHalf: !quotient.isMultiple(of: 2)   // ties to even
-    }
-
-    return signedRounded(quotient: quotient, roundsAway: roundsAway, sign: sign)
+    let step = RoundingRule.toNearestOrEven.step(dropping: dropped, sign: sign, truncated: Parity(of: quotient))
+    return signedRounded(quotient: quotient, step: step, sign: sign)
 }

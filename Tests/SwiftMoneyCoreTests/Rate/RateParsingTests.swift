@@ -106,4 +106,15 @@ struct RateParsingTests {
             blackHole(Rate(stringLiteral: "not a rate"))
         }
     }
+
+    @Test(
+        "Every rule parses an exact fraction exactly",
+        arguments: [
+            RoundingRule.towardZero, .awayFromZero, .down, .up, .toNearestOrEven, .toNearestOrAwayFromZero,
+        ]
+    )
+    func everyRuleParsesAnExactFractionExactly(_ rule: RoundingRule) {
+        #expect(Rate(string: "1/2", rounding: rule) == Rate(string: "0.5"))
+        #expect(Rate(string: "-3/4", rounding: rule) == Rate(string: "-0.75"))
+    }
 }

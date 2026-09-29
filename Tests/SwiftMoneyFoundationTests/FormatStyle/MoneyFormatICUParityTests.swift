@@ -56,7 +56,7 @@ struct MoneyFormatICUParityTests {
         case .accounting: style = style.sign(strategy: .accounting)
         }
         if rule != .toNearestOrEven {
-            style = style.rounded(rule: rule)
+            style = style.rounded(rule: FloatingPointRoundingRule(rule))
         }
 
         return style.format(Decimal(minorUnits) / Decimal(100))

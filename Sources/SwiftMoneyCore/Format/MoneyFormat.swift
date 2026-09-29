@@ -453,8 +453,6 @@ public extension MoneyFormat {
         case .toNearestOrEven:
             awayFromZero = magnitude > toNextWhole
                 || (magnitude == toNextWhole && !quotient.isMultiple(of: 2))
-        @unknown default:
-            awayFromZero = magnitude >= toNextWhole  // coverage:ignore — only a future RoundingRule case
         }
 
         guard awayFromZero else {
