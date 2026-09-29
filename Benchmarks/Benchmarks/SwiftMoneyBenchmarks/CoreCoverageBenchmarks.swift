@@ -612,6 +612,118 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         }
     }
 
+    // MARK: Ranges and steps
+
+    // Typed rows sit beside their runtime twins; a typed row should cost no more than its twin, which
+    // also compares currencies. The typed rows that exercise only the standard library (`...`,
+    // `contains`) are the floor the runtime ranges are measured against.
+    let lowerPounds = operands.map { GBP(minorUnits: $0 * 100) }
+    let upperPounds = operands.map { GBP(minorUnits: $0 * 100 + 250_00) }
+    let runtimeLowerPounds = lowerPounds.map { Money($0) }
+    let runtimeUpperPounds = upperPounds.map { Money($0) }
+    let closedPounds = operands.map { GBP(minorUnits: $0 * 100) ... GBP(minorUnits: $0 * 100 + 250_00) }
+    let runtimeClosedPounds = closedPounds.map { ClosedMoneyRange($0) }
+    let probePounds = operands.map { GBP(minorUnits: $0 * 1_000) }
+    let runtimeProbePounds = probePounds.map { Money($0) }
+
+    Benchmark("ClosedRange of MoneyOf construction", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(lowerPounds[index % lowerPounds.count] ... upperPounds[index % upperPounds.count])
+            index &+= 1
+        }
+    }
+
+    Benchmark("ClosedMoneyRange construction, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try runtimeLowerPounds[index % runtimeLowerPounds.count] ... runtimeUpperPounds[index % runtimeUpperPounds.count])
+                index &+= 1
+            }
+        } catch {
+            fatalError("these bounds share a currency and are ordered, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("ClosedMoneyRange from checked bounds, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try ClosedMoneyRange(checkedBounds: (
+                    lower: runtimeLowerPounds[index % runtimeLowerPounds.count],
+                    upper: runtimeUpperPounds[index % runtimeUpperPounds.count]
+                )))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these bounds share a currency and are ordered, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("ClosedMoneyRange from a typed range", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(ClosedMoneyRange(closedPounds[index % closedPounds.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("ClosedRange of MoneyOf contains", configuration: configuration) { benchmark in
+        var index = 0
+        var hits = 0
+
+        for _ in benchmark.scaledIterations {
+            if closedPounds[index % closedPounds.count].contains(probePounds[(index / 10) % probePounds.count]) {
+                hits &+= 1
+            }
+            index &+= 1
+        }
+
+        blackHole(hits)
+    }
+
+    Benchmark("ClosedMoneyRange contains, throwing", configuration: configuration) { benchmark in
+        var index = 0
+        var hits = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                if try runtimeClosedPounds[index % runtimeClosedPounds.count]
+                    .contains(runtimeProbePounds[(index / 10) % runtimeProbePounds.count]) {
+                    hits &+= 1
+                }
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts share the ranges' currency, so this cannot happen: \(error)")
+        }
+
+        blackHole(hits)
+    }
+
+    Benchmark("ClosedMoneyRange description", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(runtimeClosedPounds[index % runtimeClosedPounds.count].description)
+            index &+= 1
+        }
+    }
+
+    Benchmark("ClosedMoneyRange debug description", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(runtimeClosedPounds[index % runtimeClosedPounds.count].debugDescription)
+            index &+= 1
+        }
+    }
+
     // MARK: Serialization configuration
 
     Benchmark("MoneyCodingFormat custom fields", configuration: configuration) { benchmark in

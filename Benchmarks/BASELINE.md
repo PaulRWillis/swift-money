@@ -218,6 +218,21 @@ A typed row should cost no more than its `Money.Unrounded` twin, which also comp
 | MoneyOf total of 10 | 86 | 0 | 4 |
 | MoneyOf total of 1000 | 6,029 | 0 | 245 |
 
+### Ranges and steps
+
+A typed row should cost no more than its runtime twin, which also compares currencies. The `ClosedRange of MoneyOf` rows exercise only the standard library, the floor the runtime ranges are measured against.
+
+| Operation | Instructions | Malloc | Wall (ns) |
+|---|--:|--:|--:|
+| ClosedMoneyRange construction, throwing | 57 | 0 | 2 |
+| ClosedMoneyRange contains, throwing | 24 | 0 | 1 |
+| ClosedMoneyRange debug description | 4,102 | 3 | 154 |
+| ClosedMoneyRange description | 2,026 | 1 | 73 |
+| ClosedMoneyRange from a typed range | 20 | 0 | 1 |
+| ClosedMoneyRange from checked bounds, throwing | 57 | 0 | 2 |
+| ClosedRange of MoneyOf construction | 33 | 0 | 2 |
+| ClosedRange of MoneyOf contains | 16 | 0 | 1 |
+
 ### Serialization: bytes, Codable, MoneyCodingFormat
 
 The JSON rows are mostly Foundation's coder; the `Control` peer (a plain `Int64` in the same coder) is the floor. The byte serializer is fifteen bytes, allocation-free.
