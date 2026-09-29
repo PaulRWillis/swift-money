@@ -1,38 +1,38 @@
 extension RoundingRule {
-    // Whether settling steps the truncated magnitude one away from zero. `sign` gives the direction for
-    // the directed rules; `truncatedIsEven` breaks a tie for half-to-even.
-    func stepsAwayFromZero(dropping dropped: DroppedFraction, sign: Sign, truncatedIsEven: Bool) -> Bool {
+    // The step settling takes from the truncated magnitude. `sign` gives the direction for the directed
+    // rules; the truncated magnitude's parity breaks a tie for half-to-even.
+    // Returning an enum left this out of line in its callers, costing every settle about 30 instructions.
+    @inline(__always)
+    func step(dropping dropped: DroppedFraction, sign: Sign, truncated parity: Parity) -> RoundingStep {
         if dropped == .zero {
-            return false
+            return .keep
         }
 
         switch self {
         case .towardZero:
-            return false
+            return .keep
         case .awayFromZero:
-            return true
+            return .awayFromZero
         case .down:
-            return sign == .negative
+            return sign == .negative ? .awayFromZero : .keep
         case .up:
-            return sign == .positive
+            return sign == .positive ? .awayFromZero : .keep
         case .toNearestOrAwayFromZero:
-            return dropped != .lessThanHalf
+            return dropped == .lessThanHalf ? .keep : .awayFromZero
         case .toNearestOrEven:
             switch dropped {
-            case .zero, .lessThanHalf: return false
-            case .half: return !truncatedIsEven
-            case .moreThanHalf: return true
+            case .zero, .lessThanHalf: return .keep
+            case .half: return parity == .even ? .keep : .awayFromZero
+            case .moreThanHalf: return .awayFromZero
             }
         }
     }
 }
 
 // Applies the rounding step and the sign, or `nil` when the true value doesn't fit `Int128`.
-//
-// Centralised so the increment-overflow check and the `Int128.min` handling live in one place, shared by
-// the divides and by construction.
-func signedRounded(quotient: UInt128, roundsAway: Bool, sign: Sign) -> Int128? {
-    guard roundsAway else {
+// One function for the divides and construction, so the overflow and `Int128.min` handling live once.
+func signedRounded(quotient: UInt128, step: RoundingStep, sign: Sign) -> Int128? {
+    guard step == .awayFromZero else {
         return Int128(magnitude: quotient, sign: sign)
     }
 

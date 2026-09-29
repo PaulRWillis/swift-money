@@ -59,6 +59,14 @@ struct FixedSettlingTests {
         #expect(Int64(Fixed(storageBits: largestOneStep), rounding: .towardZero) == nil)
     }
 
+    // Whole part UInt64.max and one part over: stepping away from zero would wrap to zero.
+    @Test("A step past the largest one-word whole part does not settle")
+    func stepPastTheLargestWholePart() {
+        let largestWholeAndAPart = Fixed(storageBits: 18_446_744_073_709_551_615_000_000_000_000_000_001)
+
+        #expect(Int64(largestWholeAndAPart, rounding: .awayFromZero) == nil)
+    }
+
     @Test("A fraction just under a whole unit settles by the rule")
     func justUnderAUnit() {
         #expect(Int64(Fixed(storageBits: 999_999_999_999_999_999), rounding: .towardZero) == 0)

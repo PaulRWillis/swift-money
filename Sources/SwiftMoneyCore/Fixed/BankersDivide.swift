@@ -30,13 +30,13 @@ func bankersDivideByScale(
     return bankersRounded(quotient: quotient, dropped: dropped, sign: sign)
 }
 
+// With the rounding decision inlined into it, this stopped inlining into the rate product (+10, measured).
+@inline(__always)
 private func bankersRounded(
     quotient: UInt128,
     dropped: DroppedFraction,
     sign: Sign
 ) -> Int128? {
-    let roundsAway = RoundingRule.toNearestOrEven.stepsAwayFromZero(
-        dropping: dropped, sign: sign, truncatedIsEven: quotient.isMultiple(of: 2)
-    )
-    return signedRounded(quotient: quotient, roundsAway: roundsAway, sign: sign)
+    let step = RoundingRule.toNearestOrEven.step(dropping: dropped, sign: sign, truncated: Parity(of: quotient))
+    return signedRounded(quotient: quotient, step: step, sign: sign)
 }

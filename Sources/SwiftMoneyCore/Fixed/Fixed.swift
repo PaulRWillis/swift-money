@@ -156,10 +156,9 @@ extension Fixed {
         let sign = Sign(of: _storage) * Sign(of: divisor)
         let (quotient, remainder) = _storage.magnitude.quotientAndRemainder(dividingBy: divisor.magnitude)
         let dropped = DroppedFraction(remainder: remainder, divisor: divisor.magnitude)
+        let step = rounding.step(dropping: dropped, sign: sign, truncated: Parity(of: quotient))
 
-        let roundsAway = rounding.stepsAwayFromZero(dropping: dropped, sign: sign, truncatedIsEven: quotient.isMultiple(of: 2))
-
-        guard let storage = signedRounded(quotient: quotient, roundsAway: roundsAway, sign: sign) else {
+        guard let storage = signedRounded(quotient: quotient, step: step, sign: sign) else {
             preconditionFailure("Fixed integer division overflowed")  // coverage:ignore — exit-test trap
         }
 
@@ -283,12 +282,9 @@ extension Fixed {
             return Int128(magnitude: quotient, sign: sign).map { .exact(Fixed(_storage: $0)) }
         }
 
-        let roundsAway = rounding.stepsAwayFromZero(
-            dropping: DroppedFraction(remainder: remainder, divisor: divisor.magnitude),
-            sign: sign,
-            truncatedIsEven: quotient.isMultiple(of: 2)
-        )
-        return signedRounded(quotient: quotient, roundsAway: roundsAway, sign: sign)
+        let dropped = DroppedFraction(remainder: remainder, divisor: divisor.magnitude)
+        let step = rounding.step(dropping: dropped, sign: sign, truncated: Parity(of: quotient))
+        return signedRounded(quotient: quotient, step: step, sign: sign)
             .map { .rounded(Fixed(_storage: $0)) }
     }
 
@@ -488,7 +484,7 @@ extension Int64 {
         }
         let sign = Sign(of: fixed._storage)
         let dropped = DroppedFraction(remainder: fraction, divisor: Fixed.Scale.divisor)
-        guard rounding.stepsAwayFromZero(dropping: dropped, sign: sign, truncatedIsEven: whole.isMultiple(of: 2)) else {
+        guard rounding.step(dropping: dropped, sign: sign, truncated: Parity(of: whole)) == .awayFromZero else {
             self.init(magnitude: whole, sign: sign)
             return
         }
