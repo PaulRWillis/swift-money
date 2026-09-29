@@ -183,7 +183,7 @@ extension MoneyRange: CustomStringConvertible {
     /// String(describing: try floor..<ceiling)   // "GBP 10.00..<GBP 250.00"
     /// ```
     public var description: String {
-        lowerBound.description + "..<" + upperBound.description
+        rangeDescription(lowerBound, "..<", upperBound)
     }
 }
 

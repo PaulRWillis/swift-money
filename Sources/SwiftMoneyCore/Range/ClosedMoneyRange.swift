@@ -219,7 +219,7 @@ extension ClosedMoneyRange: CustomStringConvertible {
     /// String(describing: try minimum...maximum)   // "GBP 10.00...GBP 250.00"
     /// ```
     public var description: String {
-        lowerBound.description + "..." + upperBound.description
+        rangeDescription(lowerBound, "...", upperBound)
     }
 }
 

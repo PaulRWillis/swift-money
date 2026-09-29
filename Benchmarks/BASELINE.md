@@ -230,7 +230,7 @@ A typed row should cost no more than its runtime twin, which also compares curre
 | ClosedMoneyRange contains a half-open range, throwing | 31 | 0 | 1 |
 | ClosedMoneyRange contains, throwing | 24 | 0 | 1 |
 | ClosedMoneyRange debug description | 4,102 | 3 | 154 |
-| ClosedMoneyRange description | 2,026 | 1 | 73 |
+| ClosedMoneyRange description | 1,881 | 1 | 69 |
 | ClosedMoneyRange from a half-open range | 41 | 0 | 1 |
 | ClosedMoneyRange from a typed range | 20 | 0 | 1 |
 | ClosedMoneyRange from checked bounds, throwing | 31 | 0 | 1 |
@@ -304,7 +304,7 @@ A typed row should cost no more than its runtime twin, which also compares curre
 | MoneyRange contains a half-open range, throwing | 27 | 0 | 1 |
 | MoneyRange contains, throwing | 24 | 0 | 1 |
 | MoneyRange debug description | 4,058 | 3 | 150 |
-| MoneyRange description | 2,026 | 1 | 72 |
+| MoneyRange description | 1,882 | 1 | 75 |
 | MoneyRange from a closed range | 40 | 0 | 1 |
 | MoneyRange from a typed range | 20 | 0 | 1 |
 | MoneyRange from checked bounds, throwing | 31 | 0 | 1 |
