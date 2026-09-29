@@ -225,7 +225,7 @@ A typed row should cost no more than its runtime twin, which also compares curre
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
 | ClosedMoneyRange clamped, throwing | 35 | 0 | 1 |
-| ClosedMoneyRange construction, throwing | 57 | 0 | 2 |
+| ClosedMoneyRange construction, throwing | 31 | 0 | 1 |
 | ClosedMoneyRange contains a closed range, throwing | 23 | 0 | 1 |
 | ClosedMoneyRange contains a half-open range, throwing | 31 | 0 | 1 |
 | ClosedMoneyRange contains, throwing | 24 | 0 | 1 |
@@ -233,10 +233,10 @@ A typed row should cost no more than its runtime twin, which also compares curre
 | ClosedMoneyRange description | 2,026 | 1 | 73 |
 | ClosedMoneyRange from a half-open range | 41 | 0 | 1 |
 | ClosedMoneyRange from a typed range | 20 | 0 | 1 |
-| ClosedMoneyRange from checked bounds, throwing | 57 | 0 | 2 |
+| ClosedMoneyRange from checked bounds, throwing | 31 | 0 | 1 |
 | ClosedMoneyRange overlaps a half-open range, throwing | 27 | 0 | 1 |
 | ClosedMoneyRange overlaps, throwing | 23 | 0 | 1 |
-| ClosedMoneyRange steps, throwing | 103 | 0 | 4 |
+| ClosedMoneyRange steps, throwing | 52 | 0 | 2 |
 | ClosedRange from a half-open range | 38 | 0 | 1 |
 | ClosedRange from checked bounds, throwing | 33 | 0 | 1 |
 | ClosedRange from ClosedMoneyRange, throwing | 38 | 0 | 1 |
@@ -299,7 +299,7 @@ A typed row should cost no more than its runtime twin, which also compares curre
 | MoneyOf.Stride minor unit | 22 | 0 | 1 |
 | MoneyOf.Stride minor units | 22 | 0 | 1 |
 | MoneyRange clamped, throwing | 35 | 0 | 1 |
-| MoneyRange construction, throwing | 62 | 0 | 2 |
+| MoneyRange construction, throwing | 31 | 0 | 1 |
 | MoneyRange contains a closed range, throwing | 26 | 0 | 1 |
 | MoneyRange contains a half-open range, throwing | 27 | 0 | 1 |
 | MoneyRange contains, throwing | 24 | 0 | 1 |
@@ -307,7 +307,7 @@ A typed row should cost no more than its runtime twin, which also compares curre
 | MoneyRange description | 2,026 | 1 | 72 |
 | MoneyRange from a closed range | 40 | 0 | 1 |
 | MoneyRange from a typed range | 20 | 0 | 1 |
-| MoneyRange from checked bounds, throwing | 62 | 0 | 2 |
+| MoneyRange from checked bounds, throwing | 31 | 0 | 1 |
 | MoneyRange is empty | 8 | 0 | 0 |
 | MoneyRange overlaps a closed range, throwing | 27 | 0 | 1 |
 | MoneyRange overlaps, throwing | 25 | 0 | 1 |

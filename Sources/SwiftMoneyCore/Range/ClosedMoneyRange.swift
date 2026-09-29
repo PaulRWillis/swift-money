@@ -12,8 +12,11 @@
 ///
 /// Its bounds are never inverted and always share a currency, so neither can be represented wrongly.
 public struct ClosedMoneyRange: Equatable, Hashable, Sendable {
-    private let _currency: Currency
-    private let _minorUnits: ClosedRange<Money.MinorUnits>
+    @usableFromInline
+    let _currency: Currency
+
+    @usableFromInline
+    let _minorUnits: ClosedRange<Money.MinorUnits>
 
     /// Creates a range from two bounds that may not be in order or in one currency.
     ///
@@ -28,6 +31,7 @@ public struct ClosedMoneyRange: Equatable, Hashable, Sendable {
     /// - Throws: ``CurrencyCheckedError/currencyMismatch(lhs:rhs:)`` if the bounds are in different
     ///   currencies, with the lower bound's as `lhs`; otherwise ``CurrencyCheckedError/failure(_:)``
     ///   with both bounds if the lower is above the upper.
+    @inlinable
     public init(
         checkedBounds bounds: (lower: Money, upper: Money)
     ) throws(CurrencyCheckedError<InvertedBoundsError<AnyCurrency>>) {
@@ -194,6 +198,7 @@ public struct ClosedMoneyRange: Equatable, Hashable, Sendable {
     /// - Throws: ``CurrencyCheckedError/currencyMismatch(lhs:rhs:)`` if `stride` is in another
     ///   currency, with the range's as `lhs`; otherwise ``CurrencyCheckedError/failure(_:)`` if there
     ///   would be more steps than `Int` can count.
+    @inlinable
     public func steps(by stride: Money.Stride) throws(CurrencyCheckedError<TooManyStepsError>) -> Money.Steps {
         guard _currency == stride.amount.storage else {
             throw .currencyMismatch(lhs: _currency, rhs: stride.amount.storage)
