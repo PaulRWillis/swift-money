@@ -44,6 +44,7 @@ ahead of `Decimal`. The fractional operations are measured against the closest p
 | MoneyOf description | 403 | 0 | 13 |
 | MoneyOf description, large negative | 1,593 | 1 | 72 |
 | MoneyOf equality | 7 | 0 | 1 |
+| MoneyOf from Money, throwing | 35 | 0 | 1 |
 | MoneyOf hashing | 152 | 0 | 7 |
 | MoneyOf init exactly | 25 | 0 | 1 |
 | MoneyOf init major units | 41 | 0 | 1 |
@@ -80,6 +81,7 @@ ahead of `Decimal`. The fractional operations are measured against the closest p
 | Money applying a rate | 61 | 0 | 2 |
 | Money description | 393 | 0 | 12 |
 | Money equality | 20 | 0 | 1 |
+| Money from MoneyOf | 31 | 0 | 1 |
 | Money hashing | 215 | 0 | 11 |
 | Money init exactly | 28 | 0 | 1 |
 | Money init major units | 46 | 0 | 1 |
