@@ -117,7 +117,7 @@ public extension MoneyOf.Unrounded where C: CurrencyType {
     /// - Parameter rule: How to settle any fraction of a unit.
     /// - Precondition: the settled amount is representable.
     @inlinable func rounded(_ rule: RoundingRule) -> MoneyOf<C> {
-        guard let settled = Int64(exactly: Int128(minorUnits, rounding: rule)) else {
+        guard let settled = Int64(minorUnits, rounding: rule) else {
             preconditionFailure("Settled amount is out of range")  // coverage:ignore — exit-test trap
         }
 
@@ -337,7 +337,7 @@ public extension MoneyOf.Unrounded where C == AnyCurrency {
     /// - Parameter rule: How to settle any fraction of a unit.
     /// - Precondition: the settled amount is representable.
     @inlinable func rounded(_ rule: RoundingRule) -> Money {
-        guard let settled = Int64(exactly: Int128(minorUnits, rounding: rule)) else {
+        guard let settled = Int64(minorUnits, rounding: rule) else {
             preconditionFailure("Settled amount is out of range")  // coverage:ignore — exit-test trap
         }
 

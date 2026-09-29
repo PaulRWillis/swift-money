@@ -104,7 +104,7 @@ public extension Rate {
     /// points — half a basis point, say — so a lossy read is never silent.
     var wholeBasisPoints: Int? {
         guard let scaled = value.multipliedIfRepresentable(by: Self.basisPointsPerWhole),
-              let whole = Int128(exactly: scaled) else {
+              let whole = Int64(exactly: scaled) else {
             return nil
         }
         return Int(exactly: whole)
@@ -115,7 +115,7 @@ public extension Rate {
     /// - Precondition: the rate is small enough to count in `Int` basis points; any real rate is.
     func basisPoints(rounding: RoundingRule) -> Int {
         let scaled = value.multiplied(by: Self.basisPointsPerWhole)
-        guard let result = Int(exactly: Int128(scaled, rounding: rounding)) else {
+        guard let whole = Int64(scaled, rounding: rounding), let result = Int(exactly: whole) else {
             preconditionFailure("Rate is too large to express as Int basis points")  // coverage:ignore — exit-test trap
         }
         return result

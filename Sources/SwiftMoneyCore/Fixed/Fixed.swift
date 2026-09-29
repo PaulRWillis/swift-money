@@ -13,12 +13,12 @@
 // entry points the wrappers call are visible for calling, while their bodies are not emitted for inlining.
 @usableFromInline
 package struct Fixed: Equatable, Hashable, Sendable, BitwiseCopyable {
-    // `fileprivate`, not `private`, so the same-file `Int128(exactly:)` / `Int128(_:rounding:)` can read it.
+    // `fileprivate`, not `private`, so the same-file `Int64(exactly:)` / `Int64(_:rounding:)` can read it.
     fileprivate var _storage: Int128
 
     // The number of fractional digits a value is held to; `Scale` holds ten raised to that power.
     private static let fractionalDigits = 18
-    fileprivate static var scale: Int128 { Scale.value }
+    private static var scale: Int128 { Scale.value }
 
     private init(_storage: Int128) {
         self._storage = _storage
@@ -463,26 +463,48 @@ private extension String {
     }
 }
 
-extension Int128 {
-    /// The whole-number value of `fixed`, or `nil` if it has a fractional part.
-    package init?(exactly fixed: Fixed) {
-        let (quotient, remainder) = fixed._storage.quotientAndRemainder(dividingBy: Fixed.scale)
-        guard remainder == 0 else {
+extension Fixed {
+    // The magnitude's whole part and dropped fraction; nil when the whole part needs more than one word.
+    fileprivate var wholeAndFraction: (whole: UInt64, fraction: UInt64)? {
+        let magnitude = _storage.magnitude
+        let high = UInt64(truncatingIfNeeded: magnitude >> 64)
+        guard high < Scale.divisor else {
             return nil
         }
-        self = quotient
+        let (whole, fraction) = Scale.divide(high: high, low: UInt64(truncatingIfNeeded: magnitude))
+        return (whole, fraction)
+    }
+}
+
+extension Int64 {
+    /// The whole-number value of `fixed`, or `nil` if it has a fractional part or is outside `Int64`.
+    package init?(exactly fixed: Fixed) {
+        guard let (whole, fraction) = fixed.wholeAndFraction, fraction == 0 else {
+            return nil
+        }
+        self.init(magnitude: whole, sign: Sign(of: fixed._storage))
     }
 
-    /// `fixed` rounded to a whole number by `rounding`.
-    @usableFromInline package init(_ fixed: Fixed, rounding: RoundingRule) {
-        let (quotient, remainder) = fixed._storage.quotientAndRemainder(dividingBy: Fixed.scale)
+    /// `fixed` rounded to a whole number by `rounding`, or `nil` if that is outside `Int64`.
+    @usableFromInline package init?(_ fixed: Fixed, rounding: RoundingRule) {
+        guard let (whole, fraction) = fixed.wholeAndFraction else {
+            return nil
+        }
         let sign = Sign(of: fixed._storage)
-        let roundsAway = remainder != 0 && roundsAwayFromZero(
+        let roundsAway = fraction != 0 && roundsAwayFromZero(
             rule: rounding,
             sign: sign,
-            quotientIsEven: quotient.isMultiple(of: 2),
-            comparedToHalf: comparedToHalf(remainder: remainder.magnitude, divisor: Fixed.scale.magnitude)
+            quotientIsEven: whole.isMultiple(of: 2),
+            comparedToHalf: comparedToHalf(remainder: UInt128(fraction), divisor: UInt128(Fixed.Scale.divisor))
         )
-        self = roundsAway ? quotient + (sign == .negative ? -1 : 1) : quotient
+        guard roundsAway else {
+            self.init(magnitude: whole, sign: sign)
+            return
+        }
+        let (stepped, overflow) = whole.addingReportingOverflow(1)
+        guard !overflow else {
+            return nil
+        }
+        self.init(magnitude: stepped, sign: sign)
     }
 }
