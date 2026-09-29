@@ -163,15 +163,16 @@ public extension MoneyOf {
 }
 
 extension MoneyOf.Steps {
-    // Counts the steps and settles the stride that a range and a stride give. Offsets from a bound
-    // reach 2⁶⁴ − 1 minor units, which `Int64` cannot hold, so the span is measured in `Int128`.
+    // Counts the steps and settles the stride that a range and a stride give. The span reaches
+    // 2⁶⁴ − 1 minor units, which `Int64` cannot hold but `UInt64` can, and an `Int128` divide is a
+    // library call.
     @inlinable
     init(
         checking bounds: ClosedRange<MoneyOf<C>.MinorUnits>,
         by stride: MoneyOf<C>.Stride
     ) throws(TooManyStepsError) {
         let requested = stride.amount.minorUnits
-        let span = Int128(bounds.upperBound) - Int128(bounds.lowerBound)
+        let span = UInt64(bitPattern: bounds.upperBound &- bounds.lowerBound)
 
         // One step has no direction, so every stride gives the same steps. Storing one minor unit
         // upward for all of them keeps equal steps equal, hash included.
@@ -181,16 +182,17 @@ extension MoneyOf.Steps {
             return
         }
 
-        let magnitude = Int128(requested.magnitude)
-        guard let count = Int(exactly: (span - 1) / magnitude + 2) else {
+        let magnitude = requested.magnitude
+        let (steps, overflow) = ((span &- 1) / magnitude).addingReportingOverflow(2)
+        guard !overflow, let count = Int(exactly: steps) else {
             throw TooManyStepsError()
         }
 
         // A stride longer than the span gives the same two steps as the span itself, so it is
         // shortened to it: equal steps then compare and hash equal. The shortened stride is at most
-        // the requested one, so it fits `Int64`.
+        // the requested one, so its bit pattern, negated for a downward stride, fits `Int64`.
         let shortened = Swift.min(magnitude, span)
-        let settled = Int64(truncatingIfNeeded: requested < 0 ? -shortened : shortened)
+        let settled = Int64(bitPattern: requested < 0 ? 0 &- shortened : shortened)
         let amount = MoneyOf(unchecked: settled, storage: stride.amount.storage)
         self.init(unchecked: bounds, stride: MoneyOf.Stride(unchecked: amount), count: count)
     }
@@ -206,33 +208,35 @@ extension MoneyOf.Steps {
         stride.amount.minorUnits > 0 ? bounds.upperBound : bounds.lowerBound
     }
 
-    // Every offset before the last is strictly between the bounds, so the sum fits `Int64`.
+    // Every offset before the last is strictly between the bounds, so the step fits `Int64` even when
+    // the product alone does not: wrapping arithmetic works modulo 2⁶⁴ and lands on it exactly.
     @inlinable
     func minorUnits(at offset: Int) -> MoneyOf<C>.MinorUnits {
-        guard offset != count - 1 else {
+        guard offset != count &- 1 else {
             return farBound
         }
 
-        return Int64(truncatingIfNeeded: Int128(nearBound) + Int128(offset) * Int128(stride.amount.minorUnits))
+        return nearBound &+ Int64(truncatingIfNeeded: offset) &* stride.amount.minorUnits
     }
 
     // The offset of the step equal to `element`, or `nil` if it is in another currency or not a step.
+    // Short of the far bound, the distance from the near one is below the span, so `UInt64` holds it
+    // and a whole number of strides is a step before the last, which `Int` counts.
     @inlinable
     func offset(of element: MoneyOf<C>) -> Int? {
-        guard element.storage == stride.amount.storage else {
+        let minorUnits = element.minorUnits
+        guard element.storage == stride.amount.storage, bounds.contains(minorUnits) else {
             return nil
         }
-        guard element.minorUnits != farBound else {
-            return count - 1
+        guard minorUnits != farBound else {
+            return count &- 1
         }
 
-        let distance = Int128(element.minorUnits) - Int128(nearBound)
-        let (steps, remainder) = distance.quotientAndRemainder(dividingBy: Int128(stride.amount.minorUnits))
-        guard remainder == 0, steps >= 0, steps < Int128(count - 1) else {
-            return nil
-        }
+        let ascending = stride.amount.minorUnits > 0
+        let travelled = UInt64(bitPattern: ascending ? minorUnits &- bounds.lowerBound : bounds.upperBound &- minorUnits)
+        let (steps, remainder) = travelled.quotientAndRemainder(dividingBy: stride.amount.minorUnits.magnitude)
 
-        return Int(truncatingIfNeeded: steps)
+        return remainder == 0 ? Int(truncatingIfNeeded: steps) : nil
     }
 
     // The offset of the step that an amount in the steps' currency rounds to. Distances are measured

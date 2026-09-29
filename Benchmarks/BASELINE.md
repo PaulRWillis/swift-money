@@ -245,25 +245,25 @@ A typed row should cost no more than its runtime twin, which also compares curre
 | ClosedRange of MoneyOf contains | 16 | 0 | 1 |
 | ClosedRange of MoneyOf contains a closed range | 16 | 0 | 1 |
 | ClosedRange of MoneyOf overlaps | 16 | 0 | 1 |
-| ClosedRange of MoneyOf steps, throwing | 56 | 0 | 2 |
+| ClosedRange of MoneyOf steps, throwing | 45 | 0 | 1 |
 | Money clamped to a closed range, throwing | 41 | 0 | 1 |
 | Money clamped to a lower bound, throwing | 37 | 0 | 1 |
 | Money clamped to an upper bound, throwing | 37 | 0 | 1 |
 | Money.Steps contains | 44 | 0 | 2 |
-| Money.Steps firstIndex of | 172 | 0 | 8 |
-| Money.Steps from bounds and step, throwing | 93 | 0 | 2 |
+| Money.Steps firstIndex of | 63 | 0 | 2 |
+| Money.Steps from bounds and step, throwing | 74 | 0 | 2 |
 | Money.Steps from typed steps | 35 | 0 | 1 |
 | Money.Steps index for an amount, rounding down, throwing | 93 | 0 | 3 |
 | Money.Steps index for an amount, throwing | 102 | 0 | 4 |
 | Money.Steps index offset by, limited by | 39 | 0 | 1 |
 | Money.Steps lastIndex of | 63 | 0 | 2 |
-| Money.Steps subscript | 49 | 0 | 1 |
-| Money.Steps.Selection amount | 50 | 0 | 2 |
+| Money.Steps subscript | 44 | 0 | 1 |
+| Money.Steps.Selection amount | 40 | 0 | 1 |
 | Money.Steps.Selection from a typed selection | 36 | 0 | 1 |
 | Money.Steps.Selection from an amount, throwing | 106 | 0 | 4 |
 | Money.Steps.Selection selecting an amount, throwing | 98 | 0 | 4 |
 | Money.Steps.Selection selecting an index | 40 | 0 | 1 |
-| Money.Steps walk, £250 by £25 | 71 | 0 | 2 |
+| Money.Steps walk, £250 by £25 | 116 | 0 | 4 |
 | Money.Stride from a typed stride | 31 | 0 | 1 |
 | Money.Stride init exactly | 36 | 0 | 1 |
 | Money.Stride major unit of a currency | 42 | 0 | 1 |
@@ -278,20 +278,20 @@ A typed row should cost no more than its runtime twin, which also compares curre
 | MoneyOf clamped to a lower bound | 30 | 0 | 1 |
 | MoneyOf clamped to an upper bound | 30 | 0 | 1 |
 | MoneyOf.Steps contains | 36 | 0 | 1 |
-| MoneyOf.Steps firstIndex of | 156 | 0 | 7 |
-| MoneyOf.Steps from bounds and step, throwing | 63 | 0 | 2 |
+| MoneyOf.Steps firstIndex of | 53 | 0 | 2 |
+| MoneyOf.Steps from bounds and step, throwing | 52 | 0 | 1 |
 | MoneyOf.Steps from runtime steps, throwing | 38 | 0 | 1 |
 | MoneyOf.Steps index for an amount | 82 | 0 | 3 |
 | MoneyOf.Steps index for an amount, rounding down | 74 | 0 | 3 |
 | MoneyOf.Steps index offset by, limited by | 39 | 0 | 1 |
 | MoneyOf.Steps lastIndex of | 53 | 0 | 2 |
-| MoneyOf.Steps subscript | 47 | 0 | 1 |
-| MoneyOf.Steps.Selection amount | 48 | 0 | 1 |
+| MoneyOf.Steps subscript | 42 | 0 | 1 |
+| MoneyOf.Steps.Selection amount | 38 | 0 | 1 |
 | MoneyOf.Steps.Selection from a runtime selection, throwing | 39 | 0 | 1 |
 | MoneyOf.Steps.Selection from an amount | 86 | 0 | 4 |
 | MoneyOf.Steps.Selection selecting an amount | 86 | 0 | 3 |
 | MoneyOf.Steps.Selection selecting an index | 38 | 0 | 1 |
-| MoneyOf.Steps walk, £250 by £25 | 65 | 0 | 2 |
+| MoneyOf.Steps walk, £250 by £25 | 116 | 0 | 4 |
 | MoneyOf.Stride from a runtime stride, throwing | 35 | 0 | 1 |
 | MoneyOf.Stride init exactly | 31 | 0 | 1 |
 | MoneyOf.Stride major unit | 33 | 0 | 1 |
