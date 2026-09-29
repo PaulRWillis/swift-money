@@ -13,7 +13,7 @@ func bankersDivide256(
         return nil
     }
 
-    return bankersRounded(quotient: quotient, remainder: remainder, divisor: divisor, sign: sign)
+    return bankersRounded(quotient: quotient, dropped: DroppedFraction(remainder: remainder, divisor: divisor), sign: sign)
 }
 
 // The same, dividing by `Fixed`'s scale.
@@ -26,25 +26,17 @@ func bankersDivideByScale(
         return nil
     }
 
-    return bankersRounded(
-        quotient: quotient,
-        remainder: UInt128(remainder),
-        divisor: UInt128(Fixed.Scale.divisor),
-        sign: sign
-    )
+    let dropped = DroppedFraction(remainder: remainder, divisor: Fixed.Scale.divisor)
+    return bankersRounded(quotient: quotient, dropped: dropped, sign: sign)
 }
 
 private func bankersRounded(
     quotient: UInt128,
-    remainder: UInt128,
-    divisor: UInt128,
+    dropped: DroppedFraction,
     sign: Sign
 ) -> Int128? {
-    let roundsAway = switch comparedToHalf(remainder: remainder, divisor: divisor) {
-    case .lessThanHalf: false
-    case .moreThanHalf: true
-    case .equalToHalf: !quotient.isMultiple(of: 2)   // ties to even
-    }
-
+    let roundsAway = RoundingRule.toNearestOrEven.stepsAwayFromZero(
+        dropping: dropped, sign: sign, truncatedIsEven: quotient.isMultiple(of: 2)
+    )
     return signedRounded(quotient: quotient, roundsAway: roundsAway, sign: sign)
 }

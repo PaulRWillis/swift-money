@@ -155,12 +155,9 @@ extension Fixed {
 
         let sign = Sign(of: _storage) * Sign(of: divisor)
         let (quotient, remainder) = _storage.magnitude.quotientAndRemainder(dividingBy: divisor.magnitude)
-        let roundsAway = remainder != 0 && roundsAwayFromZero(
-            rule: rounding,
-            sign: sign,
-            quotientIsEven: quotient.isMultiple(of: 2),
-            comparedToHalf: comparedToHalf(remainder: remainder, divisor: divisor.magnitude)
-        )
+        let dropped = DroppedFraction(remainder: remainder, divisor: divisor.magnitude)
+
+        let roundsAway = rounding.stepsAwayFromZero(dropping: dropped, sign: sign, truncatedIsEven: quotient.isMultiple(of: 2))
 
         guard let storage = signedRounded(quotient: quotient, roundsAway: roundsAway, sign: sign) else {
             preconditionFailure("Fixed integer division overflowed")  // coverage:ignore — exit-test trap
@@ -286,11 +283,10 @@ extension Fixed {
             return Int128(magnitude: quotient, sign: sign).map { .exact(Fixed(_storage: $0)) }
         }
 
-        let roundsAway = roundsAwayFromZero(
-            rule: rounding,
+        let roundsAway = rounding.stepsAwayFromZero(
+            dropping: DroppedFraction(remainder: remainder, divisor: divisor.magnitude),
             sign: sign,
-            quotientIsEven: quotient.isMultiple(of: 2),
-            comparedToHalf: comparedToHalf(remainder: remainder, divisor: divisor.magnitude)
+            truncatedIsEven: quotient.isMultiple(of: 2)
         )
         return signedRounded(quotient: quotient, roundsAway: roundsAway, sign: sign)
             .map { .rounded(Fixed(_storage: $0)) }
@@ -491,13 +487,8 @@ extension Int64 {
             return nil
         }
         let sign = Sign(of: fixed._storage)
-        let roundsAway = fraction != 0 && roundsAwayFromZero(
-            rule: rounding,
-            sign: sign,
-            quotientIsEven: whole.isMultiple(of: 2),
-            comparedToHalf: comparedToHalf(remainder: UInt128(fraction), divisor: UInt128(Fixed.Scale.divisor))
-        )
-        guard roundsAway else {
+        let dropped = DroppedFraction(remainder: fraction, divisor: Fixed.Scale.divisor)
+        guard rounding.stepsAwayFromZero(dropping: dropped, sign: sign, truncatedIsEven: whole.isMultiple(of: 2)) else {
             self.init(magnitude: whole, sign: sign)
             return
         }

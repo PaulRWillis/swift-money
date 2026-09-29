@@ -11,6 +11,10 @@ private struct PowerOfTenProduct: Sendable, CustomTestStringConvertible {
     }
 }
 
+private let everyRule: [RoundingRule] = [
+    .towardZero, .awayFromZero, .down, .up, .toNearestOrEven, .toNearestOrAwayFromZero,
+]
+
 private let largestStoredPowerOfTenLessOne: Int128 = 99_999_999_999_999_999_999_999_999_999_999_999_999
 
 private let powerOfTenProducts: [PowerOfTenProduct] = samples(
@@ -135,6 +139,12 @@ struct FixedArithmeticTests {
             == Fixed(storageBits: 17_068_515_517_480_262_036))
         #expect(Fixed(storageBits: 15_634_048_796_563_106_562_155_515_374_148_585_873) * Fixed(storageBits: 1)
             == Fixed(storageBits: 15_634_048_796_563_106_562))
+    }
+
+    @Test("Every rule divides a whole quotient without a step", arguments: everyRule)
+    func everyRuleDividesAWholeQuotientExactly(rule: RoundingRule) {
+        #expect(Fixed(6).divided(by: 3, rounding: rule) == Fixed(2))
+        #expect(Fixed(-6).divided(by: 3, rounding: rule) == Fixed(-2))
     }
 
     @Test("A large product within range does not trap")
