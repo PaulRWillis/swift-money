@@ -1774,6 +1774,55 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         }
     }
 
+    // Amounts inside every set of steps but off their steps, so every lookup rounds, each by a
+    // different remainder.
+    let offStepProbes = operands.map { GBP(minorUnits: $0 * 100 + 132_00) }
+    let runtimeOffStepProbes = offStepProbes.map { Money($0) }
+
+    Benchmark("MoneyOf.Steps index for an amount", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(typedSteps[index % typedSteps.count].index(for: offStepProbes[(index / 10) % offStepProbes.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money.Steps index for an amount, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try runtimeSteps[index % runtimeSteps.count].index(for: runtimeOffStepProbes[(index / 10) % runtimeOffStepProbes.count]))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts are in the steps' currency, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("MoneyOf.Steps index for an amount, rounding down", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(typedSteps[index % typedSteps.count].index(for: offStepProbes[(index / 10) % offStepProbes.count], rounding: .down))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money.Steps index for an amount, rounding down, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try runtimeSteps[index % runtimeSteps.count].index(for: runtimeOffStepProbes[(index / 10) % runtimeOffStepProbes.count], rounding: .down))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts are in the steps' currency, so this cannot happen: \(error)")
+        }
+    }
+
     // MARK: Serialization configuration
 
     Benchmark("MoneyCodingFormat custom fields", configuration: configuration) { benchmark in
