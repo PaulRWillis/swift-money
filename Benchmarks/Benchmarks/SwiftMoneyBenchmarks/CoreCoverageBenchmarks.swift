@@ -1481,6 +1481,86 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         }
     }
 
+    // Each row walks the whole sequence: £250 by £25 from a moving start, eleven amounts through the end
+    // and ten up to it. The `Int64` row is the standard library's own stride, the floor for the rest.
+    let strideByMajorUnits = GBP.Stride.majorUnits(25)
+    let runtimeStrideByMajorUnits = Money.Stride(strideByMajorUnits)
+    let rawLowerBounds = operands.map { $0 * 100 }
+
+    Benchmark("stride through Int64, £250 by £25", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            let lower = rawLowerBounds[index % rawLowerBounds.count]
+            var last: Int64 = 0
+            for minorUnits in stride(from: lower, through: lower + 250_00, by: 25_00) {
+                last = minorUnits
+            }
+            blackHole(last)
+            index &+= 1
+        }
+    }
+
+    Benchmark("stride through MoneyOf, £250 by £25", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            var last = GBP.zero
+            for amount in stride(from: lowerPounds[index % lowerPounds.count], through: upperPounds[index % upperPounds.count], by: strideByMajorUnits) {
+                last = amount
+            }
+            blackHole(last)
+            index &+= 1
+        }
+    }
+
+    Benchmark("stride through Money, £250 by £25, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                var last = runtimeLowerPounds[0]
+                for amount in try stride(from: runtimeLowerPounds[index % runtimeLowerPounds.count], through: runtimeUpperPounds[index % runtimeUpperPounds.count], by: runtimeStrideByMajorUnits) {
+                    last = amount
+                }
+                blackHole(last)
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts and the stride share a currency, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("stride to MoneyOf, £250 by £25", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            var last = GBP.zero
+            for amount in stride(from: lowerPounds[index % lowerPounds.count], to: upperPounds[index % upperPounds.count], by: strideByMajorUnits) {
+                last = amount
+            }
+            blackHole(last)
+            index &+= 1
+        }
+    }
+
+    Benchmark("stride to Money, £250 by £25, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                var last = runtimeLowerPounds[0]
+                for amount in try stride(from: runtimeLowerPounds[index % runtimeLowerPounds.count], to: runtimeUpperPounds[index % runtimeUpperPounds.count], by: runtimeStrideByMajorUnits) {
+                    last = amount
+                }
+                blackHole(last)
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts and the stride share a currency, so this cannot happen: \(error)")
+        }
+    }
+
     // MARK: Serialization configuration
 
     Benchmark("MoneyCodingFormat custom fields", configuration: configuration) { benchmark in
