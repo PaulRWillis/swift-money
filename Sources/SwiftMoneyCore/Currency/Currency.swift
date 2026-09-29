@@ -7,11 +7,33 @@
 /// let points = Currency(code: "LTY", unitScale: 1)   // Currency?, nil only for a shipped code at a wrong scale
 /// ```
 public struct Currency: Equatable, Hashable, Sendable {
+    // Representation invariant: bits 8...55 are a valid `CurrencyCode`'s compact value, bits 0...7 a
+    // `UnitScale`'s decimal places (0...18), and bits 56...63 zero. Only `init(unchecked:unitScale:)`
+    // writes it, from a code and a scale that were each built by their own validating initializer or
+    // by this type's projections, so no path writes any other word. Two internal unchecked
+    // initializers, `CurrencyCode.init(unchecked:)` and `UnitScale.init(unchecked:)`, rebuild the parts
+    // from it and must be called only with bits this word holds. Read `packed` only in this file.
+    // Abstraction function: the currency whose code is `packed >> codeShift` and whose unit scale is
+    // the low byte. Each code has one compact value and each scale one byte, and the two don't overlap,
+    // so the synthesized `==` and `hash(into:)` are exact.
+    @usableFromInline
+    let packed: UInt64
+
+    // The scale fills the low byte, so the code sits one byte up.
+    @usableFromInline
+    static let codeShift = UInt64(UInt8.bitWidth)
+
     /// The code identifying the currency, such as `GBP`.
-    public let code: CurrencyCode
+    @inlinable
+    public var code: CurrencyCode {
+        CurrencyCode(unchecked: packed >> Self.codeShift)
+    }
 
     /// How many of the currency's smallest units make one major unit.
-    public let unitScale: UnitScale
+    @inlinable
+    public var unitScale: UnitScale {
+        UnitScale(unchecked: UInt8(truncatingIfNeeded: packed))
+    }
 
     /// Creates a currency from a code and the number of its smallest units per major unit.
     ///
@@ -38,13 +60,14 @@ public struct Currency: Equatable, Hashable, Sendable {
     /// Creates a currency, trusting the code and scale without validating them.
     ///
     /// Used to build the currencies the library itself ships, whose values are already vetted, and so
-    /// must not route back through the validating initialiser (which reads the shipped table).
+    /// must not route back through the validating initialiser (which reads the shipped table). The
+    /// typed byte decoders also build one, only to compare it with their own currency.
+    @inlinable
     init(
         unchecked code: CurrencyCode,
         unitScale: UnitScale
     ) {
-        self.code = code
-        self.unitScale = unitScale
+        self.packed = code.compactValue << Self.codeShift | UInt64(unitScale.places)
     }
 }
 
@@ -68,6 +91,17 @@ extension Currency: CustomStringConvertible {
         String(code)
     }
 }
+
+#if !hasFeature(Embedded)
+
+extension Currency: CustomReflectable {
+    /// A mirror showing the currency's code and unit scale.
+    public var customMirror: Mirror {
+        Mirror(self, children: ["code": code, "unitScale": unitScale], displayStyle: .struct)
+    }
+}
+
+#endif
 
 /// A namespace for the ISO 4217 currencies, one caseless `enum` per code.
 ///

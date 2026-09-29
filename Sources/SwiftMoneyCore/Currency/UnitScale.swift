@@ -11,7 +11,14 @@
 public struct UnitScale: Equatable, Hashable, Sendable {
     // The number of decimal places, `0...18`. Eighteen is the ceiling the `Fixed` engine works to, and
     // the largest power of ten an `Int64` scale can reach.
-    fileprivate let places: UInt8
+    @usableFromInline
+    let places: UInt8
+
+    // 0...18, as a `UnitScale` stored it. Called only by `Currency.unitScale`.
+    @inlinable
+    init(unchecked places: UInt8) {
+        self.places = places
+    }
 
     /// The most decimal places a scale can have, matching the `Fixed` engine's precision.
     private static let maxDecimalPlaces = 18
