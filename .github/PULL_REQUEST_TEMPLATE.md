@@ -1,17 +1,21 @@
-<!-- PR title should follow Conventional Commits: type(scope): description -->
-<!-- Examples: feat(currency): add CurrencyRegistry, fix(tests): resolve ASan failures -->
+<!-- Title: Conventional Commits, type(scope): description. It should make sense on its own in a list of PRs. -->
 
 ## Summary
 
-<!-- What does this PR do and why? One or two sentences. -->
+<!-- The problem, then what this PR does about it, in a short paragraph or two. Link the issue or the PR this fixes. -->
 
 ## Changes
 
-<!-- Two or three bullets on the shape of the change. The diff lists the files; this says what moved. -->
+<!-- What's different for callers, riskiest first. A breaking change goes first, with how callers migrate. -->
 
--
+## Screenshots
+
+<!-- UI changes only: a Before | After table inside a <details> block whose title says what's shown. Delete if not needed. -->
+
+## Benchmarks
+
+<!-- Required when the PR adds benchmarks or is about performance; otherwise delete. Exact figures, never rounded. Changed rows: Benchmark | Before | After | Change | Change (%). New rows: Benchmark | Instructions. Put a table of more than about five rows in a <details> block. -->
 
 ## Notes
 
-<!-- Only what a reviewer must decide on: trade-offs, departures from an agreed plan, what is
-     deliberately not here. Delete if not needed. -->
+<!-- Only what the reviewer must judge: a risk and how the code guards against it, a design choice, a known limitation, or why there's no test. Delete if not needed. -->
