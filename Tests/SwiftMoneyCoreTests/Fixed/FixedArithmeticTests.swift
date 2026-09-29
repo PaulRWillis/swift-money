@@ -117,6 +117,26 @@ struct FixedArithmeticTests {
         #expect(Fixed(1) / Fixed(3) == Fixed(significand: 333_333_333_333_333_333, exponent: -18))
     }
 
+    @Test("A product whose quotient fills both words rounds at the eighteenth digit")
+    func twoWordQuotientRounds() throws {
+        let tenth = try #require(Fixed(decimal: "0.1"))
+        let wide = Fixed(storageBits: 99_999_999_999_999_999_999_999_999_999_999_999_999)
+
+        #expect(wide * tenth == Fixed(storageBits: 10_000_000_000_000_000_000_000_000_000_000_000_000))
+        #expect(Fixed(storageBits: -99_999_999_999_999_999_999_999_999_999_999_999_999) * tenth
+            == Fixed(storageBits: -10_000_000_000_000_000_000_000_000_000_000_000_000))
+    }
+
+    // Found by a search over every high word the divide accepts: each is divided wrongly by a reciprocal
+    // one too small, which a sample of money-sized amounts alone never finds.
+    @Test("A product with a large whole part divides by the scale exactly")
+    func largeWholeProductsDivideExactly() {
+        #expect(Fixed(storageBits: 17_068_515_517_480_262_036_209_373_148_206_837_343) * Fixed(storageBits: 1)
+            == Fixed(storageBits: 17_068_515_517_480_262_036))
+        #expect(Fixed(storageBits: 15_634_048_796_563_106_562_155_515_374_148_585_873) * Fixed(storageBits: 1)
+            == Fixed(storageBits: 15_634_048_796_563_106_562))
+    }
+
     @Test("A large product within range does not trap")
     func largeProductInRange() {
         #expect(Fixed(1_000_000_000) * Fixed(1_000_000_000) == Fixed(1_000_000_000_000_000_000))

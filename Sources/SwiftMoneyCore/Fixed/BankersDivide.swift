@@ -16,17 +16,22 @@ func bankersDivide256(
     return bankersRounded(quotient: quotient, remainder: remainder, divisor: divisor, sign: sign)
 }
 
-// The same, for a divisor that fits one 64-bit word, which divides in two cheaper steps.
-func bankersDivide256(
+// The same, dividing by `Fixed`'s scale.
+@inline(__always)
+func bankersDivideByScale(
     _ dividend: Wide256Magnitude,
-    by divisor: UInt64,
     sign: Sign
 ) -> Int128? {
-    guard let (quotient, remainder) = dividend.quotientAndRemainder(dividingBy: divisor) else {
+    guard let (quotient, remainder) = dividend.quotientAndRemainderDividingByScale() else {
         return nil
     }
 
-    return bankersRounded(quotient: quotient, remainder: UInt128(remainder), divisor: UInt128(divisor), sign: sign)
+    return bankersRounded(
+        quotient: quotient,
+        remainder: UInt128(remainder),
+        divisor: UInt128(Fixed.Scale.divisor),
+        sign: sign
+    )
 }
 
 private func bankersRounded(

@@ -16,9 +16,9 @@ package struct Fixed: Equatable, Hashable, Sendable, BitwiseCopyable {
     // `fileprivate`, not `private`, so the same-file `Int128(exactly:)` / `Int128(_:rounding:)` can read it.
     fileprivate var _storage: Int128
 
-    // The number of fractional digits a value is held to, and ten raised to that power.
+    // The number of fractional digits a value is held to; `Scale` holds ten raised to that power.
     private static let fractionalDigits = 18
-    fileprivate static let scale: Int128 = 1_000_000_000_000_000_000
+    fileprivate static var scale: Int128 { Scale.value }
 
     private init(_storage: Int128) {
         self._storage = _storage
@@ -68,7 +68,7 @@ extension Fixed {
         let sign = Sign(of: _storage) * Sign(of: other._storage)
         let product = Wide256Magnitude(_storage.magnitude, times: other._storage.magnitude)
 
-        guard let result = bankersDivide256(product, by: UInt64(Fixed.scale), sign: sign) else {
+        guard let result = bankersDivideByScale(product, sign: sign) else {
             return (.zero, true)
         }
 
