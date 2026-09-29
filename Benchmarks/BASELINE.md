@@ -224,19 +224,30 @@ A typed row should cost no more than its runtime twin, which also compares curre
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
+| ClosedMoneyRange clamped, throwing | 57 | 0 | 3 |
 | ClosedMoneyRange construction, throwing | 57 | 0 | 2 |
+| ClosedMoneyRange contains a closed range, throwing | 23 | 0 | 1 |
+| ClosedMoneyRange contains a half-open range, throwing | 53 | 0 | 2 |
 | ClosedMoneyRange contains, throwing | 24 | 0 | 1 |
 | ClosedMoneyRange debug description | 4,102 | 3 | 154 |
 | ClosedMoneyRange description | 2,026 | 1 | 73 |
 | ClosedMoneyRange from a half-open range | 41 | 0 | 1 |
 | ClosedMoneyRange from a typed range | 20 | 0 | 1 |
 | ClosedMoneyRange from checked bounds, throwing | 57 | 0 | 2 |
+| ClosedMoneyRange overlaps a half-open range, throwing | 51 | 0 | 2 |
+| ClosedMoneyRange overlaps, throwing | 23 | 0 | 1 |
 | ClosedRange from a half-open range | 38 | 0 | 1 |
 | ClosedRange from checked bounds, throwing | 33 | 0 | 1 |
 | ClosedRange from ClosedMoneyRange, throwing | 38 | 0 | 1 |
+| ClosedRange of MoneyOf clamped | 43 | 0 | 1 |
 | ClosedRange of MoneyOf construction | 33 | 0 | 2 |
 | ClosedRange of MoneyOf contains | 16 | 0 | 1 |
+| ClosedRange of MoneyOf contains a closed range | 16 | 0 | 1 |
+| ClosedRange of MoneyOf overlaps | 16 | 0 | 1 |
+| MoneyRange clamped, throwing | 57 | 0 | 3 |
 | MoneyRange construction, throwing | 62 | 0 | 2 |
+| MoneyRange contains a closed range, throwing | 26 | 0 | 1 |
+| MoneyRange contains a half-open range, throwing | 49 | 0 | 4 |
 | MoneyRange contains, throwing | 24 | 0 | 1 |
 | MoneyRange debug description | 4,058 | 3 | 150 |
 | MoneyRange description | 2,026 | 1 | 72 |
@@ -244,6 +255,8 @@ A typed row should cost no more than its runtime twin, which also compares curre
 | MoneyRange from a typed range | 20 | 0 | 1 |
 | MoneyRange from checked bounds, throwing | 62 | 0 | 2 |
 | MoneyRange is empty | 8 | 0 | 0 |
+| MoneyRange overlaps a closed range, throwing | 51 | 0 | 1 |
+| MoneyRange overlaps, throwing | 50 | 0 | 4 |
 | PartialMoneyRangeFrom construction | 16 | 0 | 1 |
 | PartialMoneyRangeFrom contains, throwing | 25 | 0 | 1 |
 | PartialMoneyRangeThrough construction | 16 | 0 | 1 |

@@ -1044,6 +1044,224 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         blackHole(hits)
     }
 
+    // Each range meets a neighbour three along, so the pairs nest, overlap and sit apart in turn.
+    Benchmark("ClosedRange of MoneyOf contains a closed range", configuration: configuration) { benchmark in
+        var index = 0
+        var hits = 0
+
+        for _ in benchmark.scaledIterations {
+            if closedPounds[index % closedPounds.count].contains(closedPounds[(index &+ 3) % closedPounds.count]) {
+                hits &+= 1
+            }
+            index &+= 1
+        }
+
+        blackHole(hits)
+    }
+
+    Benchmark("ClosedMoneyRange contains a closed range, throwing", configuration: configuration) { benchmark in
+        var index = 0
+        var hits = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                if try runtimeClosedPounds[index % runtimeClosedPounds.count]
+                    .contains(runtimeClosedPounds[(index &+ 3) % runtimeClosedPounds.count]) {
+                    hits &+= 1
+                }
+                index &+= 1
+            }
+        } catch {
+            fatalError("these ranges share a currency, so this cannot happen: \(error)")
+        }
+
+        blackHole(hits)
+    }
+
+    Benchmark("ClosedMoneyRange contains a half-open range, throwing", configuration: configuration) { benchmark in
+        var index = 0
+        var hits = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                if try runtimeClosedPounds[index % runtimeClosedPounds.count]
+                    .contains(runtimeHalfOpenPounds[(index &+ 3) % runtimeHalfOpenPounds.count]) {
+                    hits &+= 1
+                }
+                index &+= 1
+            }
+        } catch {
+            fatalError("these ranges share a currency, so this cannot happen: \(error)")
+        }
+
+        blackHole(hits)
+    }
+
+    Benchmark("ClosedRange of MoneyOf overlaps", configuration: configuration) { benchmark in
+        var index = 0
+        var hits = 0
+
+        for _ in benchmark.scaledIterations {
+            if closedPounds[index % closedPounds.count].overlaps(closedPounds[(index &+ 3) % closedPounds.count]) {
+                hits &+= 1
+            }
+            index &+= 1
+        }
+
+        blackHole(hits)
+    }
+
+    Benchmark("ClosedMoneyRange overlaps, throwing", configuration: configuration) { benchmark in
+        var index = 0
+        var hits = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                if try runtimeClosedPounds[index % runtimeClosedPounds.count]
+                    .overlaps(runtimeClosedPounds[(index &+ 3) % runtimeClosedPounds.count]) {
+                    hits &+= 1
+                }
+                index &+= 1
+            }
+        } catch {
+            fatalError("these ranges share a currency, so this cannot happen: \(error)")
+        }
+
+        blackHole(hits)
+    }
+
+    Benchmark("ClosedMoneyRange overlaps a half-open range, throwing", configuration: configuration) { benchmark in
+        var index = 0
+        var hits = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                if try runtimeClosedPounds[index % runtimeClosedPounds.count]
+                    .overlaps(runtimeHalfOpenPounds[(index &+ 3) % runtimeHalfOpenPounds.count]) {
+                    hits &+= 1
+                }
+                index &+= 1
+            }
+        } catch {
+            fatalError("these ranges share a currency, so this cannot happen: \(error)")
+        }
+
+        blackHole(hits)
+    }
+
+    Benchmark("ClosedRange of MoneyOf clamped", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(closedPounds[index % closedPounds.count].clamped(to: closedPounds[(index &+ 3) % closedPounds.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("ClosedMoneyRange clamped, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try runtimeClosedPounds[index % runtimeClosedPounds.count]
+                    .clamped(to: runtimeClosedPounds[(index &+ 3) % runtimeClosedPounds.count]))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these ranges share a currency, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("MoneyRange contains a half-open range, throwing", configuration: configuration) { benchmark in
+        var index = 0
+        var hits = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                if try runtimeHalfOpenPounds[index % runtimeHalfOpenPounds.count]
+                    .contains(runtimeHalfOpenPounds[(index &+ 3) % runtimeHalfOpenPounds.count]) {
+                    hits &+= 1
+                }
+                index &+= 1
+            }
+        } catch {
+            fatalError("these ranges share a currency, so this cannot happen: \(error)")
+        }
+
+        blackHole(hits)
+    }
+
+    Benchmark("MoneyRange contains a closed range, throwing", configuration: configuration) { benchmark in
+        var index = 0
+        var hits = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                if try runtimeHalfOpenPounds[index % runtimeHalfOpenPounds.count]
+                    .contains(runtimeClosedPounds[(index &+ 3) % runtimeClosedPounds.count]) {
+                    hits &+= 1
+                }
+                index &+= 1
+            }
+        } catch {
+            fatalError("these ranges share a currency, so this cannot happen: \(error)")
+        }
+
+        blackHole(hits)
+    }
+
+    Benchmark("MoneyRange overlaps, throwing", configuration: configuration) { benchmark in
+        var index = 0
+        var hits = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                if try runtimeHalfOpenPounds[index % runtimeHalfOpenPounds.count]
+                    .overlaps(runtimeHalfOpenPounds[(index &+ 3) % runtimeHalfOpenPounds.count]) {
+                    hits &+= 1
+                }
+                index &+= 1
+            }
+        } catch {
+            fatalError("these ranges share a currency, so this cannot happen: \(error)")
+        }
+
+        blackHole(hits)
+    }
+
+    Benchmark("MoneyRange overlaps a closed range, throwing", configuration: configuration) { benchmark in
+        var index = 0
+        var hits = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                if try runtimeHalfOpenPounds[index % runtimeHalfOpenPounds.count]
+                    .overlaps(runtimeClosedPounds[(index &+ 3) % runtimeClosedPounds.count]) {
+                    hits &+= 1
+                }
+                index &+= 1
+            }
+        } catch {
+            fatalError("these ranges share a currency, so this cannot happen: \(error)")
+        }
+
+        blackHole(hits)
+    }
+
+    Benchmark("MoneyRange clamped, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try runtimeHalfOpenPounds[index % runtimeHalfOpenPounds.count]
+                    .clamped(to: runtimeHalfOpenPounds[(index &+ 3) % runtimeHalfOpenPounds.count]))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these ranges share a currency, so this cannot happen: \(error)")
+        }
+    }
+
     // MARK: Serialization configuration
 
     Benchmark("MoneyCodingFormat custom fields", configuration: configuration) { benchmark in

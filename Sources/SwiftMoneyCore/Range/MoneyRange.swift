@@ -107,6 +107,68 @@ public struct MoneyRange: Equatable, Hashable, Sendable {
 
         return _minorUnits.contains(amount.minorUnits)
     }
+
+    /// Returns whether every amount in another half-open range also lies within this one.
+    ///
+    /// An empty range holds no amounts, so any range in its currency contains it.
+    ///
+    /// - Parameter other: The range to look for.
+    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if `other` is in another currency, with
+    ///   this range's currency as `lhs`.
+    public func contains(_ other: MoneyRange) throws(MoneyError) -> Bool {
+        try AnyCurrency.requireMatch(_currency, other._currency)
+
+        return _minorUnits.contains(other._minorUnits)
+    }
+
+    /// Returns whether every amount in a closed range also lies within this one.
+    ///
+    /// - Parameter other: The range to look for.
+    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if `other` is in another currency, with
+    ///   this range's currency as `lhs`.
+    public func contains(_ other: ClosedMoneyRange) throws(MoneyError) -> Bool {
+        try AnyCurrency.requireMatch(_currency, other.currency)
+
+        return _minorUnits.contains(other.lowerBound.minorUnits ... other.upperBound.minorUnits)
+    }
+
+    /// Returns whether this range and another half-open range share at least one amount.
+    ///
+    /// An empty range shares no amount with any range.
+    ///
+    /// - Parameter other: The range to compare with.
+    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if `other` is in another currency, with
+    ///   this range's currency as `lhs`.
+    public func overlaps(_ other: MoneyRange) throws(MoneyError) -> Bool {
+        try AnyCurrency.requireMatch(_currency, other._currency)
+
+        return _minorUnits.overlaps(other._minorUnits)
+    }
+
+    /// Returns whether this range and a closed range share at least one amount.
+    ///
+    /// - Parameter other: The range to compare with.
+    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if `other` is in another currency, with
+    ///   this range's currency as `lhs`.
+    public func overlaps(_ other: ClosedMoneyRange) throws(MoneyError) -> Bool {
+        try AnyCurrency.requireMatch(_currency, other.currency)
+
+        return _minorUnits.overlaps(other.lowerBound.minorUnits ... other.upperBound.minorUnits)
+    }
+
+    /// Returns this range narrowed to lie within the given limits.
+    ///
+    /// A range entirely outside the limits collapses to an empty range at the nearer limit, as the
+    /// standard library's does.
+    ///
+    /// - Parameter limits: The range to clamp to.
+    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if `limits` is in another currency, with
+    ///   this range's currency as `lhs`.
+    public func clamped(to limits: MoneyRange) throws(MoneyError) -> MoneyRange {
+        try AnyCurrency.requireMatch(_currency, limits._currency)
+
+        return MoneyRange(unchecked: _currency, minorUnits: _minorUnits.clamped(to: limits._minorUnits))
+    }
 }
 
 extension MoneyRange: CustomStringConvertible {
