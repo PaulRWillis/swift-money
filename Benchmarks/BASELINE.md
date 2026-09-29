@@ -244,6 +244,14 @@ A typed row should cost no more than its runtime twin, which also compares curre
 | MoneyRange from a typed range | 20 | 0 | 1 |
 | MoneyRange from checked bounds, throwing | 62 | 0 | 2 |
 | MoneyRange is empty | 8 | 0 | 0 |
+| PartialMoneyRangeFrom construction | 16 | 0 | 1 |
+| PartialMoneyRangeFrom contains, throwing | 25 | 0 | 1 |
+| PartialMoneyRangeThrough construction | 16 | 0 | 1 |
+| PartialMoneyRangeThrough contains, throwing | 25 | 0 | 1 |
+| PartialMoneyRangeUpTo construction | 16 | 0 | 1 |
+| PartialMoneyRangeUpTo contains, throwing | 25 | 0 | 1 |
+| PartialRangeUpTo of MoneyOf construction | 28 | 0 | 1 |
+| PartialRangeUpTo of MoneyOf contains | 12 | 0 | 1 |
 | Range from a closed range | 37 | 0 | 1 |
 | Range from checked bounds, throwing | 33 | 0 | 1 |
 | Range from MoneyRange, throwing | 38 | 0 | 1 |

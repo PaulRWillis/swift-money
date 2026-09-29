@@ -936,6 +936,114 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         }
     }
 
+    Benchmark("PartialRangeUpTo of MoneyOf construction", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(..<upperPounds[index % upperPounds.count])
+            index &+= 1
+        }
+    }
+
+    Benchmark("PartialMoneyRangeUpTo construction", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(..<runtimeUpperPounds[index % runtimeUpperPounds.count])
+            index &+= 1
+        }
+    }
+
+    Benchmark("PartialMoneyRangeThrough construction", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(...runtimeUpperPounds[index % runtimeUpperPounds.count])
+            index &+= 1
+        }
+    }
+
+    Benchmark("PartialMoneyRangeFrom construction", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(runtimeLowerPounds[index % runtimeLowerPounds.count]...)
+            index &+= 1
+        }
+    }
+
+    Benchmark("PartialRangeUpTo of MoneyOf contains", configuration: configuration) { benchmark in
+        let limits = upperPounds.map { ..<$0 }
+        var index = 0
+        var hits = 0
+
+        for _ in benchmark.scaledIterations {
+            if limits[index % limits.count].contains(probePounds[(index / 10) % probePounds.count]) {
+                hits &+= 1
+            }
+            index &+= 1
+        }
+
+        blackHole(hits)
+    }
+
+    Benchmark("PartialMoneyRangeUpTo contains, throwing", configuration: configuration) { benchmark in
+        let limits = runtimeUpperPounds.map { ..<$0 }
+        var index = 0
+        var hits = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                if try limits[index % limits.count].contains(runtimeProbePounds[(index / 10) % runtimeProbePounds.count]) {
+                    hits &+= 1
+                }
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts share the ranges' currency, so this cannot happen: \(error)")
+        }
+
+        blackHole(hits)
+    }
+
+    Benchmark("PartialMoneyRangeThrough contains, throwing", configuration: configuration) { benchmark in
+        let limits = runtimeUpperPounds.map { ...$0 }
+        var index = 0
+        var hits = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                if try limits[index % limits.count].contains(runtimeProbePounds[(index / 10) % runtimeProbePounds.count]) {
+                    hits &+= 1
+                }
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts share the ranges' currency, so this cannot happen: \(error)")
+        }
+
+        blackHole(hits)
+    }
+
+    Benchmark("PartialMoneyRangeFrom contains, throwing", configuration: configuration) { benchmark in
+        let limits = runtimeLowerPounds.map { $0... }
+        var index = 0
+        var hits = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                if try limits[index % limits.count].contains(runtimeProbePounds[(index / 10) % runtimeProbePounds.count]) {
+                    hits &+= 1
+                }
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts share the ranges' currency, so this cannot happen: \(error)")
+        }
+
+        blackHole(hits)
+    }
+
     // MARK: Serialization configuration
 
     Benchmark("MoneyCodingFormat custom fields", configuration: configuration) { benchmark in
