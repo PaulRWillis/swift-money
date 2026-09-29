@@ -3,9 +3,11 @@ import SwiftMoneyCore
 import SwiftMoneyLocalization
 
 extension MoneyOf.FormatStyle {
-    // `RoundingIncrement` refuses a below-one value on decode itself. `resolvedNumberingSystem` is derived
-    // from the locale, so it is never on the wire: it is recomputed on decode, which keeps the encoded form
-    // identical to what the compiler synthesized before it was added.
+    // `RoundingIncrement` refuses a below-one value on decode itself. The precision goes through
+    // `CodablePrecision`, Foundation's own decoder being unable to read back most of what its encoder
+    // writes. `resolvedNumberingSystem` is derived from the locale, so it is never on the wire: it is
+    // recomputed on decode, which keeps the encoded form identical to what the compiler synthesized
+    // before it was added.
     private enum CodingKeys: String, CodingKey {
         case locale
         case presentation
@@ -27,7 +29,7 @@ extension MoneyOf.FormatStyle {
             Configuration.DecimalSeparatorDisplayStrategy.self, forKey: .decimalSeparator
         )
         roundingRule = try container.decode(Configuration.RoundingRule.self, forKey: .roundingRule)
-        precision = try container.decodeIfPresent(Configuration.Precision.self, forKey: .precision)
+        precision = try container.decodeIfPresent(CodablePrecision.self, forKey: .precision)?.precision
         roundingIncrement = try container.decodeIfPresent(RoundingIncrement.self, forKey: .roundingIncrement)
         resolvedNumberingSystem = NumberingSystem(locale.numberingSystem)
     }
@@ -40,7 +42,7 @@ extension MoneyOf.FormatStyle {
         try container.encode(sign, forKey: .sign)
         try container.encode(decimalSeparator, forKey: .decimalSeparator)
         try container.encode(roundingRule, forKey: .roundingRule)
-        try container.encodeIfPresent(precision, forKey: .precision)
+        try container.encodeIfPresent(precision.map(CodablePrecision.init), forKey: .precision)
         try container.encodeIfPresent(roundingIncrement, forKey: .roundingIncrement)
     }
 }
