@@ -232,6 +232,15 @@ A typed row should cost no more than its runtime twin, which also compares curre
 | ClosedMoneyRange from checked bounds, throwing | 57 | 0 | 2 |
 | ClosedRange of MoneyOf construction | 33 | 0 | 2 |
 | ClosedRange of MoneyOf contains | 16 | 0 | 1 |
+| MoneyRange construction, throwing | 62 | 0 | 2 |
+| MoneyRange contains, throwing | 24 | 0 | 1 |
+| MoneyRange debug description | 4,058 | 3 | 150 |
+| MoneyRange description | 2,026 | 1 | 72 |
+| MoneyRange from a typed range | 20 | 0 | 1 |
+| MoneyRange from checked bounds, throwing | 62 | 0 | 2 |
+| MoneyRange is empty | 8 | 0 | 0 |
+| Range of MoneyOf construction | 33 | 0 | 1 |
+| Range of MoneyOf contains | 16 | 0 | 1 |
 
 ### Serialization: bytes, Codable, MoneyCodingFormat
 

@@ -724,6 +724,122 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         }
     }
 
+    let halfOpenPounds = operands.map { GBP(minorUnits: $0 * 100) ..< GBP(minorUnits: $0 * 100 + 250_00) }
+    let runtimeHalfOpenPounds = halfOpenPounds.map { MoneyRange($0) }
+
+    Benchmark("Range of MoneyOf construction", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(lowerPounds[index % lowerPounds.count] ..< upperPounds[index % upperPounds.count])
+            index &+= 1
+        }
+    }
+
+    Benchmark("MoneyRange construction, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try runtimeLowerPounds[index % runtimeLowerPounds.count] ..< runtimeUpperPounds[index % runtimeUpperPounds.count])
+                index &+= 1
+            }
+        } catch {
+            fatalError("these bounds share a currency and are ordered, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("MoneyRange from checked bounds, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try MoneyRange(checkedBounds: (
+                    lower: runtimeLowerPounds[index % runtimeLowerPounds.count],
+                    upper: runtimeUpperPounds[index % runtimeUpperPounds.count]
+                )))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these bounds share a currency and are ordered, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("MoneyRange from a typed range", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(MoneyRange(halfOpenPounds[index % halfOpenPounds.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Range of MoneyOf contains", configuration: configuration) { benchmark in
+        var index = 0
+        var hits = 0
+
+        for _ in benchmark.scaledIterations {
+            if halfOpenPounds[index % halfOpenPounds.count].contains(probePounds[(index / 10) % probePounds.count]) {
+                hits &+= 1
+            }
+            index &+= 1
+        }
+
+        blackHole(hits)
+    }
+
+    Benchmark("MoneyRange contains, throwing", configuration: configuration) { benchmark in
+        var index = 0
+        var hits = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                if try runtimeHalfOpenPounds[index % runtimeHalfOpenPounds.count]
+                    .contains(runtimeProbePounds[(index / 10) % runtimeProbePounds.count]) {
+                    hits &+= 1
+                }
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts share the ranges' currency, so this cannot happen: \(error)")
+        }
+
+        blackHole(hits)
+    }
+
+    Benchmark("MoneyRange is empty", configuration: configuration) { benchmark in
+        let ranges = runtimeHalfOpenPounds + [MoneyRange(GBP.zero ..< GBP.zero)]
+        var index = 0
+        var empties = 0
+
+        for _ in benchmark.scaledIterations {
+            if ranges[index % ranges.count].isEmpty {
+                empties &+= 1
+            }
+            index &+= 1
+        }
+
+        blackHole(empties)
+    }
+
+    Benchmark("MoneyRange description", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(runtimeHalfOpenPounds[index % runtimeHalfOpenPounds.count].description)
+            index &+= 1
+        }
+    }
+
+    Benchmark("MoneyRange debug description", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(runtimeHalfOpenPounds[index % runtimeHalfOpenPounds.count].debugDescription)
+            index &+= 1
+        }
+    }
+
     // MARK: Serialization configuration
 
     Benchmark("MoneyCodingFormat custom fields", configuration: configuration) { benchmark in
