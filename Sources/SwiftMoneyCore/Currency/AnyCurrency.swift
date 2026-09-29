@@ -34,13 +34,24 @@ public enum AnyCurrency: CurrencyRepresentation {
         }
     }
 
-    @usableFromInline
+    @inlinable
     static func requireMatch(
         _ lhs: Currency,
         _ rhs: Currency
     ) throws(MoneyError) {
         guard lhs == rhs else {
-            throw .currencyMismatch(lhs: lhs, rhs: rhs)
+            try mismatch(lhs, rhs)
         }
+    }
+
+    // Out of line so that a caller's matching path, the common one, builds no error and saves no
+    // registers for one. Throwing in place gave every non-inlined runtime range method a stack frame.
+    @usableFromInline
+    @inline(never)
+    static func mismatch(
+        _ lhs: Currency,
+        _ rhs: Currency
+    ) throws(MoneyError) -> Never {
+        throw .currencyMismatch(lhs: lhs, rhs: rhs)
     }
 }

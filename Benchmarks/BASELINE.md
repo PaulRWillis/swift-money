@@ -92,7 +92,7 @@ ahead of `Decimal`. The fractional operations are measured against the closest p
 | Money parsing | 354 | 0 | 9 |
 | Money parsing, caller's currency | 307 | 0 | 8 |
 | Money parsing, whole major units | 351 | 0 | 9 |
-| Money proportion, throwing | 183 | 0 | 6 |
+| Money proportion, throwing | 173 | 0 | 7 |
 | Money scalar multiplication, amount times integer | 32 | 0 | 1 |
 | Money scalar multiplication, integer times amount | 32 | 0 | 1 |
 | Money subtraction in place, throwing | 14 | 0 | 1 |
@@ -129,8 +129,8 @@ A typed row should cost no more than its `Money.Unrounded` twin, which also comp
 | Money unrounded applying a rate | 249 | 0 | 7 |
 | Money unrounded divided by an integer | 177 | 0 | 7 |
 | Money unrounded divided exactly | 155 | 0 | 5 |
-| Money unrounded minus settled, throwing | 77 | 0 | 2 |
-| Money unrounded plus settled, throwing | 72 | 0 | 2 |
+| Money unrounded minus settled, throwing | 52 | 0 | 2 |
+| Money unrounded plus settled, throwing | 40 | 0 | 1 |
 | Money unrounded rounded | 112 | 0 | 4 |
 | Money unrounded scaling by a rate | 249 | 0 | 7 |
 | Money unrounded scaling by an integer | 69 | 0 | 2 |
@@ -224,17 +224,17 @@ A typed row should cost no more than its runtime twin, which also compares curre
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
-| ClosedMoneyRange clamped, throwing | 57 | 0 | 3 |
+| ClosedMoneyRange clamped, throwing | 35 | 0 | 1 |
 | ClosedMoneyRange construction, throwing | 57 | 0 | 2 |
 | ClosedMoneyRange contains a closed range, throwing | 23 | 0 | 1 |
-| ClosedMoneyRange contains a half-open range, throwing | 53 | 0 | 2 |
+| ClosedMoneyRange contains a half-open range, throwing | 31 | 0 | 1 |
 | ClosedMoneyRange contains, throwing | 24 | 0 | 1 |
 | ClosedMoneyRange debug description | 4,102 | 3 | 154 |
 | ClosedMoneyRange description | 2,026 | 1 | 73 |
 | ClosedMoneyRange from a half-open range | 41 | 0 | 1 |
 | ClosedMoneyRange from a typed range | 20 | 0 | 1 |
 | ClosedMoneyRange from checked bounds, throwing | 57 | 0 | 2 |
-| ClosedMoneyRange overlaps a half-open range, throwing | 51 | 0 | 2 |
+| ClosedMoneyRange overlaps a half-open range, throwing | 27 | 0 | 1 |
 | ClosedMoneyRange overlaps, throwing | 23 | 0 | 1 |
 | ClosedMoneyRange steps, throwing | 103 | 0 | 4 |
 | ClosedRange from a half-open range | 38 | 0 | 1 |
@@ -253,15 +253,15 @@ A typed row should cost no more than its runtime twin, which also compares curre
 | Money.Steps firstIndex of | 63 | 0 | 2 |
 | Money.Steps from bounds and step, throwing | 74 | 0 | 2 |
 | Money.Steps from typed steps | 35 | 0 | 1 |
-| Money.Steps index for an amount, rounding down, throwing | 93 | 0 | 3 |
-| Money.Steps index for an amount, throwing | 102 | 0 | 4 |
+| Money.Steps index for an amount, rounding down, throwing | 90 | 0 | 4 |
+| Money.Steps index for an amount, throwing | 99 | 0 | 5 |
 | Money.Steps index offset by, limited by | 39 | 0 | 1 |
 | Money.Steps lastIndex of | 63 | 0 | 2 |
 | Money.Steps subscript | 44 | 0 | 1 |
 | Money.Steps.Selection amount | 40 | 0 | 1 |
 | Money.Steps.Selection from a typed selection | 36 | 0 | 1 |
-| Money.Steps.Selection from an amount, throwing | 106 | 0 | 4 |
-| Money.Steps.Selection selecting an amount, throwing | 98 | 0 | 4 |
+| Money.Steps.Selection from an amount, throwing | 103 | 0 | 5 |
+| Money.Steps.Selection selecting an amount, throwing | 95 | 0 | 4 |
 | Money.Steps.Selection selecting an index | 40 | 0 | 1 |
 | Money.Steps walk, £250 by £25 | 116 | 0 | 4 |
 | Money.Stride from a typed stride | 31 | 0 | 1 |
@@ -298,10 +298,10 @@ A typed row should cost no more than its runtime twin, which also compares curre
 | MoneyOf.Stride major units | 37 | 0 | 2 |
 | MoneyOf.Stride minor unit | 22 | 0 | 1 |
 | MoneyOf.Stride minor units | 22 | 0 | 1 |
-| MoneyRange clamped, throwing | 57 | 0 | 3 |
+| MoneyRange clamped, throwing | 35 | 0 | 1 |
 | MoneyRange construction, throwing | 62 | 0 | 2 |
 | MoneyRange contains a closed range, throwing | 26 | 0 | 1 |
-| MoneyRange contains a half-open range, throwing | 49 | 0 | 4 |
+| MoneyRange contains a half-open range, throwing | 27 | 0 | 1 |
 | MoneyRange contains, throwing | 24 | 0 | 1 |
 | MoneyRange debug description | 4,058 | 3 | 150 |
 | MoneyRange description | 2,026 | 1 | 72 |
@@ -309,14 +309,14 @@ A typed row should cost no more than its runtime twin, which also compares curre
 | MoneyRange from a typed range | 20 | 0 | 1 |
 | MoneyRange from checked bounds, throwing | 62 | 0 | 2 |
 | MoneyRange is empty | 8 | 0 | 0 |
-| MoneyRange overlaps a closed range, throwing | 51 | 0 | 1 |
-| MoneyRange overlaps, throwing | 50 | 0 | 4 |
+| MoneyRange overlaps a closed range, throwing | 27 | 0 | 1 |
+| MoneyRange overlaps, throwing | 25 | 0 | 1 |
 | PartialMoneyRangeFrom construction | 16 | 0 | 1 |
-| PartialMoneyRangeFrom contains, throwing | 25 | 0 | 1 |
+| PartialMoneyRangeFrom contains, throwing | 22 | 0 | 1 |
 | PartialMoneyRangeThrough construction | 16 | 0 | 1 |
-| PartialMoneyRangeThrough contains, throwing | 25 | 0 | 1 |
+| PartialMoneyRangeThrough contains, throwing | 22 | 0 | 1 |
 | PartialMoneyRangeUpTo construction | 16 | 0 | 1 |
-| PartialMoneyRangeUpTo contains, throwing | 25 | 0 | 1 |
+| PartialMoneyRangeUpTo contains, throwing | 22 | 0 | 1 |
 | PartialRangeUpTo of MoneyOf construction | 28 | 0 | 1 |
 | PartialRangeUpTo of MoneyOf contains | 12 | 0 | 1 |
 | Range from a closed range | 37 | 0 | 1 |
@@ -325,9 +325,9 @@ A typed row should cost no more than its runtime twin, which also compares curre
 | Range of MoneyOf construction | 33 | 0 | 1 |
 | Range of MoneyOf contains | 16 | 0 | 1 |
 | stride through Int64, £250 by £25 | 96 | 0 | 4 |
-| stride through Money, £250 by £25, throwing | 97 | 0 | 5 |
+| stride through Money, £250 by £25, throwing | 91 | 0 | 5 |
 | stride through MoneyOf, £250 by £25 | 71 | 0 | 4 |
-| stride to Money, £250 by £25, throwing | 97 | 0 | 5 |
+| stride to Money, £250 by £25, throwing | 91 | 0 | 5 |
 | stride to MoneyOf, £250 by £25 | 71 | 0 | 4 |
 
 ### Serialization: bytes, Codable, MoneyCodingFormat
