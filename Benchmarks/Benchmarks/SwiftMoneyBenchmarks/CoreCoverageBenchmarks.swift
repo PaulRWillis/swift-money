@@ -1262,6 +1262,82 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         }
     }
 
+    // Probes spread from well below to well above the £10–£250 limits, so all three outcomes occur.
+    let clampProbes = operands.map { GBP(minorUnits: $0 * 1_500) }
+    let runtimeClampProbes = clampProbes.map { Money($0) }
+    let typedClampLimits = GBP(minorUnits: 10_00) ... GBP(minorUnits: 250_00)
+    let runtimeClampLimits = ClosedMoneyRange(typedClampLimits)
+
+    Benchmark("MoneyOf clamped to a closed range", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(clampProbes[index % clampProbes.count].clamped(to: typedClampLimits))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money clamped to a closed range, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try runtimeClampProbes[index % runtimeClampProbes.count].clamped(to: runtimeClampLimits))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts share the limits' currency, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("MoneyOf clamped to a lower bound", configuration: configuration) { benchmark in
+        let limit = typedClampLimits.lowerBound...
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(clampProbes[index % clampProbes.count].clamped(to: limit))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money clamped to a lower bound, throwing", configuration: configuration) { benchmark in
+        let limit = runtimeClampLimits.lowerBound...
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try runtimeClampProbes[index % runtimeClampProbes.count].clamped(to: limit))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts share the limit's currency, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("MoneyOf clamped to an upper bound", configuration: configuration) { benchmark in
+        let limit = ...typedClampLimits.upperBound
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(clampProbes[index % clampProbes.count].clamped(to: limit))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money clamped to an upper bound, throwing", configuration: configuration) { benchmark in
+        let limit = ...runtimeClampLimits.upperBound
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try runtimeClampProbes[index % runtimeClampProbes.count].clamped(to: limit))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts share the limit's currency, so this cannot happen: \(error)")
+        }
+    }
+
     // MARK: Serialization configuration
 
     Benchmark("MoneyCodingFormat custom fields", configuration: configuration) { benchmark in

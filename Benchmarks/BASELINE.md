@@ -244,6 +244,12 @@ A typed row should cost no more than its runtime twin, which also compares curre
 | ClosedRange of MoneyOf contains | 16 | 0 | 1 |
 | ClosedRange of MoneyOf contains a closed range | 16 | 0 | 1 |
 | ClosedRange of MoneyOf overlaps | 16 | 0 | 1 |
+| Money clamped to a closed range, throwing | 41 | 0 | 1 |
+| Money clamped to a lower bound, throwing | 37 | 0 | 1 |
+| Money clamped to an upper bound, throwing | 37 | 0 | 1 |
+| MoneyOf clamped to a closed range | 32 | 0 | 1 |
+| MoneyOf clamped to a lower bound | 30 | 0 | 1 |
+| MoneyOf clamped to an upper bound | 30 | 0 | 1 |
 | MoneyRange clamped, throwing | 57 | 0 | 3 |
 | MoneyRange construction, throwing | 62 | 0 | 2 |
 | MoneyRange contains a closed range, throwing | 26 | 0 | 1 |
