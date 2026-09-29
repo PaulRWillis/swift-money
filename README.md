@@ -148,6 +148,94 @@ throwing comparison instead:
 let ordered = try prices.sorted { try $0.isLessThan($1) }
 ```
 
+## Ranges
+
+Limits and slider settings usually arrive from a server. Parse them once, when you decode the
+response, into a value whose currency is already checked. After that, most uses need no `try`.
+
+```swift
+// A slider's bounds and step, parsed in one call that throws one error
+let steps = try Money.Steps(from: response.minimum, through: response.maximum, by: response.step)
+
+// The saved amount, rounded onto the nearest step
+let selection = try Money.Steps.Selection(saved, in: steps)
+selection.amount
+selection.selecting(0)   // the first step, or nil for a position not in the steps
+```
+
+A range of runtime amounts is built with a throwing `...` or `..<`, which checks the currencies
+and the order once. A typed range needs only the order checked, so bounds from a server never trap:
+
+```swift
+let limits = try minimum...maximum                                      // ClosedMoneyRange
+let typed = try ClosedRange(checkedBounds: (lower: low, upper: high))   // ClosedRange<GBP>
+
+try limits.contains(amount)
+try amount.clamped(to: limits)
+typed.contains(GBP(minorUnits: 50_00))                                  // no try: one currency
+```
+
+Each call throws one exact error type, so a `switch` over it can be exhaustive. A runtime parse
+wraps the typed error in a `.failure` case beside the currency mismatch:
+
+```swift
+do throws(CurrencyCheckedError<StepsError<AnyCurrency>>) {
+    steps = try Money.Steps(from: minimum, through: maximum, by: step)
+} catch {
+    switch error {
+    case .currencyMismatch(let lhs, let rhs): …                    // the currencies differed
+    case .failure(.zeroStride): …                                  // the step was zero
+    case .failure(.invertedBounds), .failure(.tooManySteps): …
+    }
+}
+```
+
+`Money` has no `~=`, so match a range in a `switch` with a guard: `case _ where try limits.contains(amount):`.
+
+### Steps
+
+Steps always end exactly on the far bound, so the largest amount allowed can always be chosen.
+They are never empty. A negative stride counts down from the upper bound:
+
+```swift
+let limits = GBP(minorUnits: 10_00)...GBP(minorUnits: 250_00)
+
+try limits.steps(by: .majorUnits(100))    // GBP 10.00, 110.00, 210.00, 250.00
+try limits.steps(by: .majorUnits(-100))   // GBP 250.00, 150.00, 50.00, 10.00
+```
+
+An amount between two steps is rounded onto one. The rounding rule is a parameter, so the choice
+is visible. It defaults to the nearest step, ties to the even index, as elsewhere in the library:
+
+```swift
+let steps = try limits.steps(by: .majorUnits(10))
+let saved = GBP(minorUnits: 123_45)
+
+steps.index(for: saved)                    // the nearest step
+steps.index(for: saved, rounding: .down)   // never above the saved amount
+steps.firstIndex(of: saved)                // an exact match only, or nil
+```
+
+`stride(from:through:by:)` works too, with the standard library's behavior for integers: it
+stops at the last step that fits, so 10 through 250 by 100 leaves out 250. Use steps for a slider.
+
+### Strides
+
+A stride is a non-zero amount to step by. A single unit reads the currency's scale for you, so a
+pound is never mistaken for a hundred yen:
+
+```swift
+GBP.Stride.majorUnit                  // GBP 1.00
+JPY.Stride.majorUnit                  // JPY 1
+GBP.Stride.minorUnits(50)             // GBP 0.50
+Money.Stride.majorUnit(of: amount)    // one major unit in the amount's currency
+Money.Stride(exactly: serverStep)     // nil when the step is zero
+```
+
+A minor unit is still a minor unit: `Money(minorUnits: 1_00, currency: .jpy)` is JPY 100. To count
+whole units, `GBP(majorUnits: 15)` and `Money(majorUnits: 15, currency: .jpy)` read the scale too,
+and are `nil` when the amount is too large.
+
 ## Formatting for display
 
 Formatting is locale-aware and lives in `SwiftMoneyFoundation`:
