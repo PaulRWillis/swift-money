@@ -127,6 +127,17 @@ struct StepsPropertyTests {
             }
         }
     }
+
+    @Test("A selection's amount is always the step at its index", arguments: stepsCases)
+    private func selectionIsOnAStep(_ sample: StepsCase) throws {
+        let steps = try runtimeSteps(sample, by: sample.stride)
+
+        for probe in probes(around: steps) {
+            let selection = try Money.Steps.Selection(Money(minorUnits: probe, currency: sample.currency), in: steps)
+            #expect(selection.amount == steps[selection.index])
+            #expect(selection.selecting(selection.index) == selection)
+        }
+    }
 }
 
 // The amounts worth rounding: zero and a minor unit either side, each end, a few steps at the start,

@@ -1823,6 +1823,113 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         }
     }
 
+    let typedSelections = zip(typedSteps, offStepProbes).map { GBP.Steps.Selection($1, in: $0) }
+    let runtimeSelections = typedSelections.map { Money.Steps.Selection($0) }
+
+    Benchmark("MoneyOf.Steps.Selection from an amount", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(GBP.Steps.Selection(offStepProbes[(index / 10) % offStepProbes.count], in: typedSteps[index % typedSteps.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money.Steps.Selection from an amount, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try Money.Steps.Selection(runtimeOffStepProbes[(index / 10) % runtimeOffStepProbes.count], in: runtimeSteps[index % runtimeSteps.count]))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts are in the steps' currency, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("MoneyOf.Steps.Selection amount", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(typedSelections[index % typedSelections.count].amount)
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money.Steps.Selection amount", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(runtimeSelections[index % runtimeSelections.count].amount)
+            index &+= 1
+        }
+    }
+
+    Benchmark("MoneyOf.Steps.Selection selecting an index", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            let selection = typedSelections[index % typedSelections.count]
+            blackHole(selection.selecting(selection.steps.index(selection.steps.startIndex, offsetBy: index % 12)))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money.Steps.Selection selecting an index", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            let selection = runtimeSelections[index % runtimeSelections.count]
+            blackHole(selection.selecting(selection.steps.index(selection.steps.startIndex, offsetBy: index % 12)))
+            index &+= 1
+        }
+    }
+
+    Benchmark("MoneyOf.Steps.Selection selecting an amount", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(typedSelections[index % typedSelections.count].selecting(offStepProbes[(index / 10) % offStepProbes.count], rounding: .down))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money.Steps.Selection selecting an amount, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try runtimeSelections[index % runtimeSelections.count].selecting(runtimeOffStepProbes[(index / 10) % runtimeOffStepProbes.count], rounding: .down))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts are in the steps' currency, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("Money.Steps.Selection from a typed selection", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Money.Steps.Selection(typedSelections[index % typedSelections.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("MoneyOf.Steps.Selection from a runtime selection, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try GBP.Steps.Selection(runtimeSelections[index % runtimeSelections.count]))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these selections are in pounds, so this cannot happen: \(error)")
+        }
+    }
+
     // MARK: Serialization configuration
 
     Benchmark("MoneyCodingFormat custom fields", configuration: configuration) { benchmark in
