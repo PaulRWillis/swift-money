@@ -251,6 +251,7 @@ A typed row should cost no more than its runtime twin, which also compares curre
 | Money clamped to an upper bound, throwing | 37 | 0 | 1 |
 | Money.Steps contains | 44 | 0 | 2 |
 | Money.Steps firstIndex of | 172 | 0 | 8 |
+| Money.Steps from bounds and step, throwing | 93 | 0 | 2 |
 | Money.Steps from typed steps | 35 | 0 | 1 |
 | Money.Steps index offset by, limited by | 39 | 0 | 1 |
 | Money.Steps lastIndex of | 63 | 0 | 2 |
@@ -271,6 +272,7 @@ A typed row should cost no more than its runtime twin, which also compares curre
 | MoneyOf clamped to an upper bound | 30 | 0 | 1 |
 | MoneyOf.Steps contains | 36 | 0 | 1 |
 | MoneyOf.Steps firstIndex of | 156 | 0 | 7 |
+| MoneyOf.Steps from bounds and step, throwing | 63 | 0 | 2 |
 | MoneyOf.Steps from runtime steps, throwing | 38 | 0 | 1 |
 | MoneyOf.Steps index offset by, limited by | 39 | 0 | 1 |
 | MoneyOf.Steps lastIndex of | 53 | 0 | 2 |

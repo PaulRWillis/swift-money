@@ -233,9 +233,58 @@ extension MoneyOf.Steps {
 
         return Int(truncatingIfNeeded: steps)
     }
+
+    // Parses bounds and a step already known to share a currency, so the typed and runtime parses
+    // report the same failures in the same order.
+    @inlinable
+    init(
+        parsing lowerBound: MoneyOf<C>,
+        through upperBound: MoneyOf<C>,
+        by stride: MoneyOf<C>
+    ) throws(StepsError<C>) {
+        guard lowerBound.minorUnits <= upperBound.minorUnits else {
+            throw .invertedBounds(InvertedBoundsError(lowerBound: lowerBound, upperBound: upperBound))
+        }
+        guard let stride = MoneyOf.Stride(exactly: stride) else {
+            throw .zeroStride
+        }
+
+        do throws(TooManyStepsError) {
+            try self.init(checking: lowerBound.minorUnits ... upperBound.minorUnits, by: stride)
+        } catch {
+            throw .tooManySteps(error)
+        }
+    }
 }
 
 public extension MoneyOf.Steps where C: CurrencyType {
+    /// Creates steps from bounds and a step that may not be valid, such as a server's.
+    ///
+    /// The same steps as `(lowerBound...upperBound).steps(by:)`, but one call parses every value and
+    /// reports every failure in one error:
+    ///
+    /// ```swift
+    /// let steps = try GBP.Steps(from: response.minimum, through: response.maximum, by: response.step)
+    /// ```
+    ///
+    /// A negative step starts on `upperBound` and counts down to `lowerBound`.
+    ///
+    /// - Parameters:
+    ///   - lowerBound: The lowest step.
+    ///   - upperBound: The highest step.
+    ///   - stride: The gap between neighboring steps. The last gap may be shorter.
+    /// - Throws: ``StepsError/invertedBounds(_:)`` if `lowerBound` is above `upperBound`; otherwise
+    ///   ``StepsError/zeroStride`` if `stride` is zero; otherwise ``StepsError/tooManySteps(_:)`` if
+    ///   there would be more steps than `Int` can count.
+    @inlinable
+    init(
+        from lowerBound: MoneyOf<C>,
+        through upperBound: MoneyOf<C>,
+        by stride: MoneyOf<C>
+    ) throws(StepsError<C>) {
+        try self.init(parsing: lowerBound, through: upperBound, by: stride)
+    }
+
     /// Creates typed steps from runtime ones, if they are in this type's currency.
     ///
     /// - Parameter steps: The steps whose currency is only known at runtime.
@@ -248,6 +297,44 @@ public extension MoneyOf.Steps where C: CurrencyType {
 }
 
 public extension MoneyOf.Steps where C == AnyCurrency {
+    /// Creates steps from runtime bounds and a step that may not be valid, such as a server's.
+    ///
+    /// Parse a payload once, here, into steps whose currency is checked; using them never throws:
+    ///
+    /// ```swift
+    /// let steps = try Money.Steps(from: response.minimum, through: response.maximum, by: response.step)
+    /// ```
+    ///
+    /// A negative step starts on `upperBound` and counts down to `lowerBound`.
+    ///
+    /// - Parameters:
+    ///   - lowerBound: The lowest step.
+    ///   - upperBound: The highest step.
+    ///   - stride: The gap between neighboring steps. The last gap may be shorter.
+    /// - Throws: ``CurrencyCheckedError/currencyMismatch(lhs:rhs:)`` if `upperBound`, or else
+    ///   `stride`, is in another currency, with `lowerBound`'s as `lhs`; otherwise
+    ///   ``CurrencyCheckedError/failure(_:)`` with the ``StepsError`` the typed parse would throw.
+    @inlinable
+    init(
+        from lowerBound: Money,
+        through upperBound: Money,
+        by stride: Money
+    ) throws(CurrencyCheckedError<StepsError<AnyCurrency>>) {
+        let currency = lowerBound.storage
+        guard currency == upperBound.storage else {
+            throw .currencyMismatch(lhs: currency, rhs: upperBound.storage)
+        }
+        guard currency == stride.storage else {
+            throw .currencyMismatch(lhs: currency, rhs: stride.storage)
+        }
+
+        do throws(StepsError<AnyCurrency>) {
+            try self.init(parsing: lowerBound, through: upperBound, by: stride)
+        } catch {
+            throw .failure(error)
+        }
+    }
+
     /// Creates runtime steps from typed ones, keeping every step and the currency.
     ///
     /// - Parameter typed: The steps whose currency is fixed by their type.

@@ -1744,6 +1744,36 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         }
     }
 
+    // The twins of the `steps` rows, parsing the step as a raw amount, as it arrives from a server.
+    let rawStep = strideByMajorUnits.amount
+    let runtimeRawStep = Money(rawStep)
+
+    Benchmark("MoneyOf.Steps from bounds and step, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try GBP.Steps(from: lowerPounds[index % lowerPounds.count], through: upperPounds[index % upperPounds.count], by: rawStep))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these bounds are ordered and the step is not zero, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("Money.Steps from bounds and step, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try Money.Steps(from: runtimeLowerPounds[index % runtimeLowerPounds.count], through: runtimeUpperPounds[index % runtimeUpperPounds.count], by: runtimeRawStep))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these bounds are ordered, in pounds, and the step is not zero, so this cannot happen: \(error)")
+        }
+    }
+
     // MARK: Serialization configuration
 
     Benchmark("MoneyCodingFormat custom fields", configuration: configuration) { benchmark in
