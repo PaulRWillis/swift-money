@@ -325,10 +325,10 @@ A typed row should cost no more than its runtime twin, which also compares curre
 | Range of MoneyOf construction | 33 | 0 | 1 |
 | Range of MoneyOf contains | 16 | 0 | 1 |
 | stride through Int64, £250 by £25 | 96 | 0 | 4 |
-| stride through Money, £250 by £25, throwing | 190 | 0 | 7 |
-| stride through MoneyOf, £250 by £25 | 159 | 0 | 6 |
-| stride to Money, £250 by £25, throwing | 182 | 0 | 7 |
-| stride to MoneyOf, £250 by £25 | 162 | 0 | 6 |
+| stride through Money, £250 by £25, throwing | 97 | 0 | 5 |
+| stride through MoneyOf, £250 by £25 | 71 | 0 | 4 |
+| stride to Money, £250 by £25, throwing | 97 | 0 | 5 |
+| stride to MoneyOf, £250 by £25 | 71 | 0 | 4 |
 
 ### Serialization: bytes, Codable, MoneyCodingFormat
 

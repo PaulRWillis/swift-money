@@ -116,6 +116,15 @@ struct StrideFunctionsTests {
         #expect(!upTo.contains(GBP(minorUnits: 260_00)))
     }
 
+    @Test("A sequence too long for Int reports Int.max, and an empty one zero, without stepping")
+    func countBeyondInt() {
+        #expect(stride(from: GBP.min, through: .max, by: .minorUnit).underestimatedCount == .max)
+        #expect(stride(from: GBP.min, to: .max, by: .minorUnit).underestimatedCount == .max)
+        #expect(stride(from: GBP.max, through: .min, by: .minorUnits(-2)).underestimatedCount == .max)
+        #expect(stride(from: GBP.zero, to: .zero, by: .minorUnit).underestimatedCount == 0)
+        #expect(stride(from: GBP.zero, through: GBP(minorUnits: -1), by: .minorUnit).underestimatedCount == 0)
+    }
+
     @Test("stride over Int still type-checks with SwiftMoneyCore imported")
     func integerStrideUnaffected() {
         #expect(Array(stride(from: 0, to: 10, by: 2)) == [0, 2, 4, 6, 8])

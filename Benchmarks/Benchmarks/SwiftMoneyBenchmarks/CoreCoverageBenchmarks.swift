@@ -1482,7 +1482,7 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
     }
 
     // Each row walks the whole sequence: £250 by £25 from a moving start, eleven amounts through the end
-    // and ten up to it. The `Int64` row is the standard library's own stride, the floor for the rest.
+    // and ten up to it. The `Int64` row is the standard library's own stride, the reference for the rest.
     let strideByMajorUnits = GBP.Stride.majorUnits(25)
     let runtimeStrideByMajorUnits = Money.Stride(strideByMajorUnits)
     let rawLowerBounds = operands.map { $0 * 100 }

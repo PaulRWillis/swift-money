@@ -1,15 +1,18 @@
 // The amounts from a start up to an end, one stride apart, including the end only if a step lands on
 // it: what `stride(from:through:by:)` returns for amounts.
 //
-// The standard library's `StrideThroughIterator` logic, over minor units with an `Int64` stride, for
-// the reason `AmountStrideTo` gives. Where the standard library keeps a flag for having returned the
-// end and an index sentinel for a step that overflowed, this clears `upcoming` in both cases: the same
-// amounts, with no pair of fields that could disagree.
+// The amounts the standard library's `StrideThroughIterator` returns, over minor units with an `Int64`
+// stride, for the reason `AmountStrideTo` gives, and with its last amount found once, as there.
 @usableFromInline
 struct AmountStrideThrough<C: CurrencyRepresentation>: Sequence, IteratorProtocol, Sendable {
-    // `nil` once the end has been returned or passed, or a step has left `Int64`.
+    // `nil` once `last` has been returned, or from the start when the start is past the end.
     @usableFromInline
     var upcoming: Int64?
+
+    // The final amount returned: the end if a step lands on it. Every amount from `start` to here is
+    // at or before the end, so fits `Int64`.
+    @usableFromInline
+    let last: Int64
 
     @usableFromInline
     let start: Int64
@@ -29,10 +32,21 @@ struct AmountStrideThrough<C: CurrencyRepresentation>: Sequence, IteratorProtoco
         through end: MoneyOf<C>,
         by stride: MoneyOf<C>.Stride
     ) {
-        self.upcoming = start.minorUnits
-        self.start = start.minorUnits
+        let first = start.minorUnits
+        let step = stride.amount.minorUnits
+        let ascending = step > 0
+
+        // At or before the end, the distance to it is below 2⁶⁴, so `UInt64` holds it, and a whole
+        // number of strides within it lands on an amount: wrapping arithmetic finds it exactly.
+        let distance = UInt64(bitPattern: ascending ? end.minorUnits &- first : first &- end.minorUnits)
+        let travel = (distance / step.magnitude) &* step.magnitude
+        let hasAmounts = ascending ? first <= end.minorUnits : first >= end.minorUnits
+
+        self.upcoming = hasAmounts ? first : nil
+        self.last = ascending ? first &+ Int64(bitPattern: travel) : first &- Int64(bitPattern: travel)
+        self.start = first
         self.end = end.minorUnits
-        self.stride = stride.amount.minorUnits
+        self.stride = step
         self.storage = start.storage
     }
 
@@ -41,28 +55,26 @@ struct AmountStrideThrough<C: CurrencyRepresentation>: Sequence, IteratorProtoco
         guard let current = upcoming else {
             return nil
         }
-        guard stride > 0 ? current < end : current > end else {
-            upcoming = nil
-            return current == end ? MoneyOf(unchecked: current, storage: storage) : nil
-        }
 
-        let (advanced, overflow) = current.addingReportingOverflow(stride)
-        upcoming = overflow ? nil : advanced
+        upcoming = current == last ? nil : current &+ stride
 
         return MoneyOf(unchecked: current, storage: storage)
     }
 
     // The exact count, as the standard library's stride sequences report, so `Array(_:)` allocates once.
+    // `last` is known, so a division counts the amounts left without stepping through them. From
+    // `upcoming` to `last` is below 2⁶⁴, so `UInt64` holds it; a count beyond `Int` is reported as
+    // `Int.max`, still an underestimate.
     @inlinable
     var underestimatedCount: Int {
-        var remaining = self
-        var count = 0
-
-        while remaining.next() != nil {
-            count += 1
+        guard let current = upcoming else {
+            return 0
         }
 
-        return count
+        let travel = UInt64(bitPattern: stride > 0 ? last &- current : current &- last)
+        let (count, overflow) = (travel / stride.magnitude).addingReportingOverflow(1)
+
+        return overflow ? .max : Int(exactly: count) ?? .max
     }
 
     // Rules out an amount outside the span at once, as the standard library does; `nil` makes
