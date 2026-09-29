@@ -32,8 +32,8 @@ private let unroundedRateSignificandBound: Int64 = 1_000_000
 private let divideAmountBound: Int64 = 1_000_000_000_000
 private let maxDivisor: Int64 = 1_000
 
-// Every rounding rule the settling properties must hold under. `FloatingPointRoundingRule` is not
-// `CaseIterable`, so the list is written out.
+// Every rounding rule the settling properties must hold under. `RoundingRule` is not `CaseIterable`,
+// so the list is written out.
 private let roundingRules: [RoundingRule] = [
     .toNearestOrAwayFromZero,
     .toNearestOrEven,

@@ -55,8 +55,6 @@ func roundsAwayFromZero(
         case .equalToHalf: !quotientIsEven
         case .moreThanHalf: true
         }
-    @unknown default:
-        preconditionFailure("Unknown rounding rule: \(rule)")   // coverage:ignore — only a future RoundingRule case
     }
 }
 
