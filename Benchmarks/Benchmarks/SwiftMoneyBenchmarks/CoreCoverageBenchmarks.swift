@@ -724,6 +724,40 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         }
     }
 
+    // The typed twin of `ClosedMoneyRange from checked bounds, throwing`.
+    Benchmark("ClosedRange from checked bounds, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try ClosedRange(checkedBounds: (
+                    lower: lowerPounds[index % lowerPounds.count],
+                    upper: upperPounds[index % upperPounds.count]
+                )))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these bounds are ordered, so this cannot happen: \(error)")
+        }
+    }
+
+    // The typed twin of `MoneyRange from checked bounds, throwing`.
+    Benchmark("Range from checked bounds, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try Range(checkedBounds: (
+                    lower: lowerPounds[index % lowerPounds.count],
+                    upper: upperPounds[index % upperPounds.count]
+                )))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these bounds are ordered, so this cannot happen: \(error)")
+        }
+    }
+
     let halfOpenPounds = operands.map { GBP(minorUnits: $0 * 100) ..< GBP(minorUnits: $0 * 100 + 250_00) }
     let runtimeHalfOpenPounds = halfOpenPounds.map { MoneyRange($0) }
 
