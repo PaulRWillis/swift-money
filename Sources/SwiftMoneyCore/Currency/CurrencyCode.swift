@@ -21,7 +21,9 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
     @inlinable
     static var isoCodeLength: Int { 3 }
 
-    private static let validLengths = 3...characterSlots
+    private static let minLength = 3
+    private static var maxLength: Int { characterSlots }
+    private static let acceptedLengths = minLength...maxLength
     private static let characterMask: UInt64 = (1 << bitsPerCharacter) - 1
     private static let emptySlot: UInt8 = 0
     fileprivate static let packedLetters =
@@ -50,7 +52,7 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
     private static func packed(_ string: String) -> UInt64? {
         let bytes = string.utf8
 
-        guard validLengths.contains(bytes.count) else {
+        guard acceptedLengths.contains(bytes.count) else {
             return nil
         }
 
@@ -97,14 +99,14 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
             let byte = utf8[index]
 
             if byte == UInt8(ascii: " ") {
-                guard validLengths.contains(count) else {
+                guard acceptedLengths.contains(count) else {
                     return nil
                 }
 
                 return (CurrencyCode(unchecked: leftAligned(packed, count: count)), index + 1)
             }
 
-            guard count < characterSlots, byte.isASCIIAlphanumeric else {
+            guard count < maxLength, byte.isASCIIAlphanumeric else {
                 return nil
             }
 
@@ -147,7 +149,7 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
             count += 1
         }
 
-        guard Self.validLengths.contains(count) else {
+        guard Self.acceptedLengths.contains(count) else {
             return nil
         }
 
