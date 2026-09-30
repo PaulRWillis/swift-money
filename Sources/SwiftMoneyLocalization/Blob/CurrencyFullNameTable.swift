@@ -83,7 +83,7 @@ package struct CurrencyFullNameTable: Sendable {
 
     private func recordOffset(localeIndex: LocaleIndex, code: CurrencyCode) -> Int? {
         // Only three-letter codes are stored, so a longer one cannot be here and falls back.
-        guard let wire = BlobDigits.currencyCodeWire(code.compactValue) else {
+        guard let wire = code.threeCharacterValue else {
             return nil
         }
 

@@ -44,7 +44,7 @@ package struct CurrencyDisplayTable: Sendable {
     /// there (the caller then falls back to the code).
     package func display(localeIndex: LocaleIndex, code: CurrencyCode) -> CurrencyDisplay? {
         // Only three-letter codes are stored, so a longer one cannot be here and falls back.
-        guard let wire = BlobDigits.currencyCodeWire(code.compactValue) else {
+        guard let wire = code.threeCharacterValue else {
             return nil
         }
 

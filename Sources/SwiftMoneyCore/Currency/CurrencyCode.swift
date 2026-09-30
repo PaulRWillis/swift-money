@@ -12,8 +12,12 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
     @usableFromInline
     let storage: UInt64
 
-    private static let characterSlots = 8
-    private static let bitsPerCharacter = 6
+    @inlinable
+    static var characterSlots: Int { 8 }
+
+    @inlinable
+    static var bitsPerCharacter: Int { 6 }
+
     private static let validLengths = 3...characterSlots
     private static let characterMask: UInt64 = (1 << bitsPerCharacter) - 1
     private static let emptySlot: UInt8 = 0
@@ -111,6 +115,14 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
     // The stored word: the form the byte serializer writes and the packed tables key on.
     @inlinable
     package var compactValue: UInt64 { storage }
+
+    /// The code packed into three character slots, or `nil` unless it is three characters long.
+    @inlinable
+    package var threeCharacterValue: UInt64? {
+        let emptySlotBits = Self.bitsPerCharacter * (Self.characterSlots - 3)
+
+        return storage & ((1 << emptySlotBits) - 1) == 0 ? storage >> emptySlotBits : nil
+    }
 
     // Validating, unlike `init(unchecked:)`, because the word comes from outside.
     @usableFromInline

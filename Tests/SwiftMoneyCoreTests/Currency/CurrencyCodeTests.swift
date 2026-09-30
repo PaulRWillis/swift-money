@@ -228,4 +228,21 @@ struct CurrencyCodeTests {
     func refusesAnInvalidCompactWord(_ word: UInt64) {
         #expect(CurrencyCode(compactValue: word) == nil)
     }
+
+    @Test(
+        "A three-character code's value is its characters, first highest",
+        arguments: [
+            ("GBP", 0b000111_000010_010000),
+            ("EUR", 0b000101_010101_010010),
+            ("999", 0b100100_100100_100100),
+        ] as [(String, UInt64)]
+    )
+    func threeCharacterValue(_ raw: String, _ value: UInt64) throws {
+        #expect(try #require(CurrencyCode(string: raw)).threeCharacterValue == value)
+    }
+
+    @Test("A code longer than three characters has no three-character value")
+    func longerCodeHasNoThreeCharacterValue() throws {
+        #expect(try #require(CurrencyCode(string: "USDT")).threeCharacterValue == nil)
+    }
 }
