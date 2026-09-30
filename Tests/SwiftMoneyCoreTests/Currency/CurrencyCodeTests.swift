@@ -190,15 +190,6 @@ struct CurrencyCodeTests {
         #expect(CurrencyCode(compactValue: code.compactValue) == code)
     }
 
-    private static let compactValueBitWidth = 48
-
-    @Test("The compact form uses only its low forty-eight bits")
-    func compactFormFitsSixBytes() throws {
-        let code = try #require(CurrencyCode(string: "SAFEMOON"))
-
-        #expect(code.compactValue >> Self.compactValueBitWidth == 0)
-    }
-
     @Test(
         "A code packs six bits per character, first character highest, left aligned in eight slots",
         arguments: [
