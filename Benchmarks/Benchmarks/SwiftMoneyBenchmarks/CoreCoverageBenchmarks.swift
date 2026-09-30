@@ -1582,6 +1582,219 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         }
     }
 
+    // £250 by £25 from a moving start: eleven steps, as the stride rows above walk.
+    let typedSteps = closedPounds.map { range in
+        do throws(TooManyStepsError) {
+            return try range.steps(by: strideByMajorUnits)
+        } catch {
+            fatalError("eleven steps fit Int, so this cannot happen: \(error)")
+        }
+    }
+    let runtimeSteps = typedSteps.map { Money.Steps($0) }
+    let stepProbes = typedSteps.map { $0[5] }
+    let runtimeStepProbes = stepProbes.map { Money($0) }
+
+    Benchmark("ClosedRange of MoneyOf steps, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try closedPounds[index % closedPounds.count].steps(by: strideByMajorUnits))
+                index &+= 1
+            }
+        } catch {
+            fatalError("eleven steps fit Int, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("ClosedMoneyRange steps, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try runtimeClosedPounds[index % runtimeClosedPounds.count].steps(by: runtimeStrideByMajorUnits))
+                index &+= 1
+            }
+        } catch {
+            fatalError("the stride is in the ranges' currency and eleven steps fit Int, so this cannot happen: \(error)")
+        }
+    }
+
+    // Every step feeds a running hash. Keeping only the last step lets the optimizer skip straight to
+    // it, since steps are a random-access collection, and then these rows measure no walk at all.
+    Benchmark("MoneyOf.Steps walk, £250 by £25", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            var hash: Int64 = 0
+            for amount in typedSteps[index % typedSteps.count] {
+                hash = hash &* 31 &+ (Int64(minorUnitsOf: amount) ?? 0)
+            }
+            blackHole(hash)
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money.Steps walk, £250 by £25", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            var hash: Int64 = 0
+            for amount in runtimeSteps[index % runtimeSteps.count] {
+                hash = hash &* 31 &+ (Int64(minorUnitsOf: amount) ?? 0)
+            }
+            blackHole(hash)
+            index &+= 1
+        }
+    }
+
+    Benchmark("MoneyOf.Steps subscript", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            let steps = typedSteps[index % typedSteps.count]
+            blackHole(steps[steps.index(steps.startIndex, offsetBy: index % 11)])
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money.Steps subscript", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            let steps = runtimeSteps[index % runtimeSteps.count]
+            blackHole(steps[steps.index(steps.startIndex, offsetBy: index % 11)])
+            index &+= 1
+        }
+    }
+
+    Benchmark("MoneyOf.Steps firstIndex of", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(typedSteps[index % typedSteps.count].firstIndex(of: stepProbes[(index / 10) % stepProbes.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money.Steps firstIndex of", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(runtimeSteps[index % runtimeSteps.count].firstIndex(of: runtimeStepProbes[(index / 10) % runtimeStepProbes.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("MoneyOf.Steps lastIndex of", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(typedSteps[index % typedSteps.count].lastIndex(of: stepProbes[(index / 10) % stepProbes.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money.Steps lastIndex of", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(runtimeSteps[index % runtimeSteps.count].lastIndex(of: runtimeStepProbes[(index / 10) % runtimeStepProbes.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("MoneyOf.Steps contains", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(typedSteps[index % typedSteps.count].contains(stepProbes[(index / 10) % stepProbes.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money.Steps contains", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(runtimeSteps[index % runtimeSteps.count].contains(runtimeStepProbes[(index / 10) % runtimeStepProbes.count]))
+            index &+= 1
+        }
+    }
+
+    // Moves by 0 to 14 steps, so some moves pass the end and return `nil`.
+    Benchmark("MoneyOf.Steps index offset by, limited by", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            let steps = typedSteps[index % typedSteps.count]
+            blackHole(steps.index(steps.startIndex, offsetBy: index % 15, limitedBy: steps.endIndex))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money.Steps index offset by, limited by", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            let steps = runtimeSteps[index % runtimeSteps.count]
+            blackHole(steps.index(steps.startIndex, offsetBy: index % 15, limitedBy: steps.endIndex))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money.Steps from typed steps", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Money.Steps(typedSteps[index % typedSteps.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("MoneyOf.Steps from runtime steps, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try GBP.Steps(runtimeSteps[index % runtimeSteps.count]))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these steps are in pounds, so this cannot happen: \(error)")
+        }
+    }
+
+    // The twins of the `steps` rows, parsing the step as a raw amount, as it arrives from a server.
+    let rawStep = strideByMajorUnits.amount
+    let runtimeRawStep = Money(rawStep)
+
+    Benchmark("MoneyOf.Steps from bounds and step, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try GBP.Steps(from: lowerPounds[index % lowerPounds.count], through: upperPounds[index % upperPounds.count], by: rawStep))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these bounds are ordered and the step is not zero, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("Money.Steps from bounds and step, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try Money.Steps(from: runtimeLowerPounds[index % runtimeLowerPounds.count], through: runtimeUpperPounds[index % runtimeUpperPounds.count], by: runtimeRawStep))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these bounds are ordered, in pounds, and the step is not zero, so this cannot happen: \(error)")
+        }
+    }
+
     // MARK: Serialization configuration
 
     Benchmark("MoneyCodingFormat custom fields", configuration: configuration) { benchmark in
