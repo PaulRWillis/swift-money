@@ -19,11 +19,16 @@ on:
 # than holding runners the newer one is queued for. So does adding or removing the run-benchmarks
 # label. A run started by hand gets a group of its own, and so does an event the gate job ignores (the
 # pull request is closed, or a different label changed), so that event never cancels a comparison in
-# progress. Keep the label name here in step with OPT_IN_LABEL below.
+# progress. Opening the pull request gets its own group too. `gh pr create --label` sends `opened`
+# and `labeled` in the same second, and in one group either run would cancel the other, leaving
+# cancelled checks that block the merge. The opening run's not-run comment lands in seconds, long
+# before the labeled run's results replace it. Keep the label name here in step with OPT_IN_LABEL
+# below.
 concurrency:
   group: >-
     ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}${{
-      (github.event.pull_request.state == 'closed'
+      (github.event.action == 'opened'
+        || github.event.pull_request.state == 'closed'
         || ((github.event.action == 'labeled' || github.event.action == 'unlabeled')
           && github.event.label.name != 'run-benchmarks'))
       && format('-{0}', github.run_id) || '' }}
@@ -41,7 +46,9 @@ env:
 
 jobs:
   # Decides once what this run does, first match winning:
-  #   ignore  the pull request is closed, or a different label changed: nothing runs or comments.
+  #   ignore  the pull request is closed, a different label changed, or it was opened already carrying
+  #           the label: nothing runs or comments. GitHub also sends `labeled` for a label set at
+  #           creation, and that run does the comparison, so running here too would do it twice.
   #   run     started by hand, or the pull request carries the label.
   #   skip    otherwise: nothing runs, and the comment says how to turn the comparison on.
   gate:
@@ -65,6 +72,8 @@ jobs:
         elif [ "$STATE" != open ]; then
           decision=ignore
         elif { [ "$ACTION" = labeled ] || [ "$ACTION" = unlabeled ]; } && [ "$CHANGED_LABEL" != "$OPT_IN_LABEL" ]; then
+          decision=ignore
+        elif [ "$ACTION" = opened ] && [ "$LABELLED" = true ]; then
           decision=ignore
         elif [ "$LABELLED" = true ]; then
           decision=run
