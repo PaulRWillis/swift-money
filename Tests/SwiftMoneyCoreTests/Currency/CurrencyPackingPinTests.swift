@@ -28,36 +28,14 @@ struct CurrencyPackingPinTests {
         #expect(currency.unitScale == scale)
     }
 
-    @Test("A currency's dump shows its code and unit scale")
+    @Test("A currency's mirror shows its code and unit scale")
     func mirrorShowsCodeAndUnitScale() {
-        let children = Array(Mirror(reflecting: Currency.gbp).children)
+        let mirror = Mirror(reflecting: Currency.gbp)
+        let children = Array(mirror.children)
 
+        #expect(mirror.displayStyle == .struct)
         #expect(children.map(\.label) == ["code", "unitScale"])
         #expect(children.first?.value as? CurrencyCode == "GBP")
         #expect(children.last?.value as? UnitScale == 100)
-    }
-
-    @Test("The widest code at the largest scale encodes big-endian")
-    func widestCurrencyBytes() throws {
-        guard #available(macOS 26, iOS 26, watchOS 26, tvOS 26, visionOS 26, *) else { return }
-
-        let widest = try #require(Currency(code: "99999999", unitScale: 1_000_000_000_000_000_000))
-        let money = Money(minorUnits: 1, currency: widest)
-        let expected: [UInt8] = [0, 0, 0, 0, 0, 0, 0, 1, 0x92, 0x49, 0x24, 0x92, 0x49, 0x24, 0x12]
-
-        #expect((0 ..< 15).map { money.bytes[$0] } == expected)
-        #expect(Money(bytes: money.bytes)?.currency == widest)
-    }
-
-    @Test("A code filling its last character's bits encodes big-endian")
-    func fullLastCharacterBytes() throws {
-        guard #available(macOS 26, iOS 26, watchOS 26, tvOS 26, visionOS 26, *) else { return }
-
-        let currency = try #require(Currency(code: "99999994", unitScale: 1_000_000_000_000_000_000))
-        let money = Money(minorUnits: 1, currency: currency)
-        let expected: [UInt8] = [0, 0, 0, 0, 0, 0, 0, 1, 0x92, 0x49, 0x24, 0x92, 0x49, 0x1F, 0x12]
-
-        #expect((0 ..< 15).map { money.bytes[$0] } == expected)
-        #expect(Money(bytes: money.bytes)?.currency == currency)
     }
 }

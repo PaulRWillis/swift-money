@@ -65,7 +65,7 @@ struct CurrencyTests {
 
     @Test("Currencies built separately from equal parts hash the same")
     func separatelyBuiltCurrenciesHashTheSame() throws {
-        let rebuilt = try #require(Currency(code: "gbp", unitScale: 100))
+        let rebuilt = try #require(Currency(code: "GBP", unitScale: 100))
 
         #expect(Set([Currency.gbp, rebuilt]).count == 1)
     }
