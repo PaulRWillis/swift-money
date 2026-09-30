@@ -143,6 +143,19 @@ struct MoneyBytesTests {
         #expect(Money(bytes: Self.bytes(raw)) == nil)
     }
 
+    @Test("A typed amount refuses bytes carrying its code at another scale")
+    func typedRefusesItsCodeAtAnotherScale() {
+        guard #available(macOS 26, iOS 26, watchOS 26, tvOS 26, visionOS 26, *) else { return }
+
+        let raw: [UInt8] = [
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0xF3,  // Int64 499, big-endian
+            0x1C, 0x24, 0x00, 0x00, 0x00, 0x00,              // "GBP", six-bit packed
+            0x03,                                            // three places; GBP ships at two
+        ]
+
+        #expect(GBP(bytes: Self.bytes(raw)) == nil)
+    }
+
     // Pins the wire format so a change to field order, width or endianness cannot pass silently.
     @Test("The bytes are amount, then code, then scale, big-endian")
     func layoutIsFixed() {

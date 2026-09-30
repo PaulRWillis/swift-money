@@ -141,6 +141,20 @@ struct UnroundedBytesTests {
         #expect(Money.Unrounded(bytes: Self.bytes(raw)) == nil)
     }
 
+    @Test("A typed amount refuses bytes carrying its code at another scale")
+    func typedRefusesItsCodeAtAnotherScale() {
+        guard #available(macOS 26, iOS 26, watchOS 26, tvOS 26, visionOS 26, *) else { return }
+
+        let raw: [UInt8] = [
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // one minor unit, widened to 10^18
+            0x0D, 0xE0, 0xB6, 0xB3, 0xA7, 0x64, 0x00, 0x00,
+            0x1C, 0x24, 0x00, 0x00, 0x00, 0x00,              // "GBP", six-bit packed
+            0x03,                                            // three places; GBP ships at two
+        ]
+
+        #expect(GBP.Unrounded(bytes: Self.bytes(raw)) == nil)
+    }
+
     // The convenience encodes a settled amount straight into the unrounded form, widening by 10^18 as it
     // goes. It must match materializing the `Unrounded` first, and read back as that same amount — proof
     // the widen is a genuine multiply, not a zero-pad into the low bytes.
