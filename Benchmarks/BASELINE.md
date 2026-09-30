@@ -220,7 +220,7 @@ A typed row should cost no more than its `Money.Unrounded` twin, which also comp
 | MoneyOf total of 10 | 86 | 0 | 4 |
 | MoneyOf total of 1000 | 6,027 | 0 | 235 |
 
-### Ranges
+### Ranges and steps
 
 A typed row should cost no more than its runtime twin, which also compares currencies. The `ClosedRange of MoneyOf` rows exercise only the standard library, the floor the runtime ranges are measured against.
 
@@ -249,9 +249,25 @@ A typed row should cost no more than its runtime twin, which also compares curre
 | Money clamped to a closed range, throwing | 41 | 0 | 1 |
 | Money clamped to a lower bound, throwing | 37 | 0 | 1 |
 | Money clamped to an upper bound, throwing | 37 | 0 | 1 |
+| Money.Stride from a typed stride | 31 | 0 | 1 |
+| Money.Stride init exactly | 36 | 0 | 1 |
+| Money.Stride major unit of a currency | 42 | 0 | 1 |
+| Money.Stride major unit of an amount | 42 | 0 | 1 |
+| Money.Stride major units of a currency | 50 | 0 | 2 |
+| Money.Stride major units of an amount | 51 | 0 | 2 |
+| Money.Stride minor unit of a currency | 31 | 0 | 1 |
+| Money.Stride minor unit of an amount | 31 | 0 | 1 |
+| Money.Stride minor units of a currency | 31 | 0 | 1 |
+| Money.Stride minor units of an amount | 31 | 0 | 1 |
 | MoneyOf clamped to a closed range | 32 | 0 | 1 |
 | MoneyOf clamped to a lower bound | 30 | 0 | 1 |
 | MoneyOf clamped to an upper bound | 30 | 0 | 1 |
+| MoneyOf.Stride from a runtime stride, throwing | 35 | 0 | 1 |
+| MoneyOf.Stride init exactly | 31 | 0 | 1 |
+| MoneyOf.Stride major unit | 33 | 0 | 1 |
+| MoneyOf.Stride major units | 37 | 0 | 2 |
+| MoneyOf.Stride minor unit | 22 | 0 | 1 |
+| MoneyOf.Stride minor units | 22 | 0 | 1 |
 | MoneyRange clamped, throwing | 35 | 0 | 1 |
 | MoneyRange construction, throwing | 31 | 0 | 1 |
 | MoneyRange contains a closed range, throwing | 26 | 0 | 1 |
@@ -278,6 +294,11 @@ A typed row should cost no more than its runtime twin, which also compares curre
 | Range from MoneyRange, throwing | 38 | 0 | 1 |
 | Range of MoneyOf construction | 33 | 0 | 1 |
 | Range of MoneyOf contains | 16 | 0 | 1 |
+| stride through Int64, £250 by £25 | 96 | 0 | 4 |
+| stride through Money, £250 by £25, throwing | 91 | 0 | 5 |
+| stride through MoneyOf, £250 by £25 | 71 | 0 | 4 |
+| stride to Money, £250 by £25, throwing | 91 | 0 | 5 |
+| stride to MoneyOf, £250 by £25 | 71 | 0 | 4 |
 
 ### Serialization: bytes, Codable, MoneyCodingFormat
 
