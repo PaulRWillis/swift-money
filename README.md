@@ -164,6 +164,11 @@ response, into a value whose currency is already checked. After that, most uses 
 ```swift
 // A slider's bounds and step, parsed in one call that throws one error
 let steps = try Money.Steps(from: response.minimum, through: response.maximum, by: response.step)
+
+// The saved amount, rounded onto the nearest step
+let selection = try Money.Steps.Selection(saved, in: steps)
+selection.amount
+selection.selecting(0)   // the first step, or nil for a position not in the steps
 ```
 
 A range of runtime amounts is built with a throwing `...` or `..<`, which checks the currencies
@@ -205,6 +210,18 @@ let limits = GBP(minorUnits: 10_00)...GBP(minorUnits: 250_00)
 
 try limits.steps(by: .majorUnits(100))    // GBP 10.00, 110.00, 210.00, 250.00
 try limits.steps(by: .majorUnits(-100))   // GBP 250.00, 150.00, 50.00, 10.00
+```
+
+An amount between two steps is rounded onto one. The rounding rule is a parameter, so the choice
+is visible. It defaults to the nearest step, ties to the even index, as elsewhere in the library:
+
+```swift
+let steps = try limits.steps(by: .majorUnits(10))
+let saved = GBP(minorUnits: 123_45)
+
+steps.index(for: saved)                    // the nearest step
+steps.index(for: saved, rounding: .down)   // never above the saved amount
+steps.firstIndex(of: saved)                // an exact match only, or nil
 ```
 
 `stride(from:through:by:)` works too, with the standard library's behavior for integers: it

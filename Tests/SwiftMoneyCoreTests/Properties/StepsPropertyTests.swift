@@ -113,4 +113,88 @@ struct StepsPropertyTests {
         #expect(first == second ? first.hashValue == second.hashValue : true)
         #expect(first == (try runtimeSteps(sample, by: sample.stride)))
     }
+
+    @Test("index(for:rounding:) picks the step a search of every step picks, under every rule", arguments: stepsCases)
+    private func indexForAmountMatchesSearch(_ sample: StepsCase) throws {
+        let steps = try runtimeSteps(sample, by: sample.stride)
+        let rules: [RoundingRule] = [.down, .up, .towardZero, .awayFromZero, .toNearestOrEven, .toNearestOrAwayFromZero]
+
+        for probe in probes(around: steps) {
+            let amount = Money(minorUnits: probe, currency: sample.currency)
+            for rule in rules {
+                let found = try steps.index(for: amount, rounding: rule)
+                #expect(found == searchedIndex(for: probe, in: steps, rounding: rule), "\(probe) by \(rule)")
+            }
+        }
+    }
+
+    @Test("A selection's amount is always the step at its index", arguments: stepsCases)
+    private func selectionIsOnAStep(_ sample: StepsCase) throws {
+        let steps = try runtimeSteps(sample, by: sample.stride)
+
+        for probe in probes(around: steps) {
+            let selection = try Money.Steps.Selection(Money(minorUnits: probe, currency: sample.currency), in: steps)
+            #expect(selection.amount == steps[selection.index])
+            #expect(selection.selecting(selection.index) == selection)
+        }
+    }
+}
+
+// The amounts worth rounding: zero and a minor unit either side, each end, a few steps at the start,
+// middle and end, the amounts a minor unit either side of them, and the midpoints between neighbors.
+private func probes(around steps: Money.Steps) -> [Int64] {
+    let offsets = [0, 1, 2, steps.count / 2, steps.count - 3, steps.count - 2, steps.count - 1]
+    let positions = Set(offsets.filter { $0 >= 0 && $0 < steps.count })
+    var probes: [Int64] = [-1, 0, 1]
+
+    for offset in positions.sorted() {
+        let here = steps[steps.index(steps.startIndex, offsetBy: offset)].minorUnits
+        probes.append(here)
+        probes.append(contentsOf: [here.addingReportingOverflow(1), here.subtractingReportingOverflow(1)]
+            .filter { !$0.overflow }
+            .map(\.partialValue))
+        if offset + 1 < steps.count {
+            let next = steps[steps.index(steps.startIndex, offsetBy: offset + 1)].minorUnits
+            probes.append(Int64(truncatingIfNeeded: (Int128(here) + Int128(next)) / 2))
+        }
+    }
+
+    return probes
+}
+
+// Rounds by searching every step, on the number line as `Double.rounded(_:)` does: `down` is the
+// highest step at or below, `up` the lowest at or above, and an amount beyond every step takes the
+// nearer end. Zero rounds as a positive amount. When the two neighbors lie either side of zero,
+// `towardZero` takes the one smaller in size and `awayFromZero` the larger, and neighbors of equal
+// size give the one with the amount's sign under both.
+private func searchedIndex(for probe: Int64, in steps: Money.Steps, rounding rule: RoundingRule) -> Money.Steps.Index? {
+    let indices = Array(steps.indices)
+    let lowest = indices.min { steps[$0].minorUnits < steps[$1].minorUnits }
+    let highest = indices.max { steps[$0].minorUnits < steps[$1].minorUnits }
+    let below = indices.filter { steps[$0].minorUnits <= probe }.max { steps[$0].minorUnits < steps[$1].minorUnits } ?? lowest
+    let above = indices.filter { steps[$0].minorUnits >= probe }.min { steps[$0].minorUnits < steps[$1].minorUnits } ?? highest
+    guard let below, let above else {
+        return nil
+    }
+
+    let positive = probe >= 0
+    let toBelow = (Int128(probe) - Int128(steps[below].minorUnits)).magnitude
+    let toAbove = (Int128(steps[above].minorUnits) - Int128(probe)).magnitude
+    let even = steps.distance(from: steps.startIndex, to: below).isMultiple(of: 2) ? below : above
+    let belowSize = Int128(steps[below].minorUnits).magnitude
+    let aboveSize = Int128(steps[above].minorUnits).magnitude
+    let acrossZero = steps[below].minorUnits < 0 && steps[above].minorUnits > 0
+    let sameSign = positive ? above : below
+    let smaller = belowSize == aboveSize ? sameSign : (belowSize < aboveSize ? below : above)
+    let larger = belowSize == aboveSize ? sameSign : (belowSize > aboveSize ? below : above)
+
+    switch rule {
+    case .down: return below
+    case .up: return above
+    case .towardZero: return acrossZero ? smaller : (positive ? below : above)
+    case .awayFromZero: return acrossZero ? larger : (positive ? above : below)
+    case .toNearestOrEven: return toBelow == toAbove ? even : (toBelow < toAbove ? below : above)
+    case .toNearestOrAwayFromZero: return toBelow == toAbove ? (positive ? above : below) : (toBelow < toAbove ? below : above)
+    @unknown default: return nil
+    }
 }
