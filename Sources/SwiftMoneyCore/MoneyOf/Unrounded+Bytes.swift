@@ -80,8 +80,7 @@ public extension MoneyOf.Unrounded where C: CurrencyType {
     @inlinable
     init?(bytes: InlineArray<23, UInt8>) {
         guard let fields = decodedUnroundedFields(bytes),
-              fields.code == C.currency.code,
-              fields.scale == C.currency.unitScale else {
+              Currency(unchecked: fields.code, unitScale: fields.scale) == C.currency else {
             return nil
         }
 

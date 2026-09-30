@@ -14,7 +14,8 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
     // two codes is then one integer compare rather than a call into String, which is what makes a runtime
     // amount's arithmetic cheap, and the high-symbol-first order means codes sort as they read. Forty-eight
     // bits hold eight symbols; the top sixteen bits are unused.
-    private let storage: UInt64
+    @usableFromInline
+    let storage: UInt64
 
     /// Creates a currency code from a string that may not be valid.
     ///
@@ -56,7 +57,9 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
         return packed << (6 * (8 - bytes.count))
     }
 
-    private init(packed: UInt64) {
+    // Trusts its input: the word must be a valid code's compact value.
+    @inlinable
+    init(unchecked packed: UInt64) {
         self.storage = packed
     }
 
@@ -76,7 +79,7 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
                     return nil
                 }
 
-                return (CurrencyCode(packed: packed << (6 * (8 - count))), index + 1)
+                return (CurrencyCode(unchecked: packed << (6 * (8 - count))), index + 1)
             }
 
             guard count < 8, byte.isASCIIAlphanumeric else {
@@ -93,7 +96,7 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
     // The code as the single word it is stored as: six bits per character, high character in the top bits,
     // so codes compare and sort as one integer. This is the form the byte serializer writes and the packed
     // tables key on.
-    @usableFromInline
+    @inlinable
     package var compactValue: UInt64 { storage }
 
     // Rebuilds a code from its six-bit packed form, or `nil` when the symbols are not a valid code:

@@ -143,6 +143,19 @@ struct MoneyBytesTests {
         #expect(Money(bytes: Self.bytes(raw)) == nil)
     }
 
+    @Test("A typed amount refuses bytes carrying its code at another scale")
+    func typedRefusesItsCodeAtAnotherScale() {
+        guard #available(macOS 26, iOS 26, watchOS 26, tvOS 26, visionOS 26, *) else { return }
+
+        let raw: [UInt8] = [
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0xF3,  // Int64 499, big-endian
+            0x1C, 0x24, 0x00, 0x00, 0x00, 0x00,              // "GBP", six-bit packed
+            0x03,                                            // three places; GBP ships at two
+        ]
+
+        #expect(GBP(bytes: Self.bytes(raw)) == nil)
+    }
+
     // Pins the wire format so a change to field order, width or endianness cannot pass silently.
     @Test("The bytes are amount, then code, then scale, big-endian")
     func layoutIsFixed() {
@@ -155,5 +168,37 @@ struct MoneyBytesTests {
         ]
 
         #expect(Self.array(GBP(minorUnits: 4_99).bytes) == expected)
+    }
+
+    @Test("The widest code at the largest scale encodes big-endian")
+    func widestCurrencyBytes() throws {
+        guard #available(macOS 26, iOS 26, watchOS 26, tvOS 26, visionOS 26, *) else { return }
+
+        let widest = try #require(Currency(code: "99999999", unitScale: 1_000_000_000_000_000_000))
+        let encoded = Money(minorUnits: 1, currency: widest).bytes
+        let expected: [UInt8] = [
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,  // Int64 1, big-endian
+            0x92, 0x49, 0x24, 0x92, 0x49, 0x24,              // "99999999", six-bit packed
+            0x12,                                            // eighteen decimal places
+        ]
+
+        #expect(Self.array(encoded) == expected)
+        #expect(Money(bytes: encoded)?.currency == widest)
+    }
+
+    @Test("A code filling its last character's bits encodes big-endian")
+    func fullLastCharacterBytes() throws {
+        guard #available(macOS 26, iOS 26, watchOS 26, tvOS 26, visionOS 26, *) else { return }
+
+        let currency = try #require(Currency(code: "99999994", unitScale: 1_000_000_000_000_000_000))
+        let encoded = Money(minorUnits: 1, currency: currency).bytes
+        let expected: [UInt8] = [
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,  // Int64 1, big-endian
+            0x92, 0x49, 0x24, 0x92, 0x49, 0x1F,              // "99999994", six-bit packed
+            0x12,                                            // eighteen decimal places
+        ]
+
+        #expect(Self.array(encoded) == expected)
+        #expect(Money(bytes: encoded)?.currency == currency)
     }
 }

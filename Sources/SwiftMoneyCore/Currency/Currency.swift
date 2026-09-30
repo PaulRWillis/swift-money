@@ -7,11 +7,25 @@
 /// let points = Currency(code: "LTY", unitScale: 1)   // Currency?, nil only for a shipped code at a wrong scale
 /// ```
 public struct Currency: Equatable, Hashable, Sendable {
+    // The code's compact value above the scale's decimal places, which fill the low byte.
+    // Internal only for the inlinable accessors; read it nowhere else.
+    @usableFromInline
+    let packed: UInt64
+
+    @usableFromInline
+    static let codeShift = UInt64(UInt8.bitWidth)
+
     /// The code identifying the currency, such as `GBP`.
-    public let code: CurrencyCode
+    @inlinable
+    public var code: CurrencyCode {
+        CurrencyCode(unchecked: packed >> Self.codeShift)
+    }
 
     /// How many of the currency's smallest units make one major unit.
-    public let unitScale: UnitScale
+    @inlinable
+    public var unitScale: UnitScale {
+        UnitScale(unchecked: UInt8(truncatingIfNeeded: packed))
+    }
 
     /// Creates a currency from a code and the number of its smallest units per major unit.
     ///
@@ -38,13 +52,13 @@ public struct Currency: Equatable, Hashable, Sendable {
     /// Creates a currency, trusting the code and scale without validating them.
     ///
     /// Used to build the currencies the library itself ships, whose values are already vetted, and so
-    /// must not route back through the validating initialiser (which reads the shipped table).
+    /// must not route back through the validating initializer (which reads the shipped table).
+    @inlinable
     init(
         unchecked code: CurrencyCode,
         unitScale: UnitScale
     ) {
-        self.code = code
-        self.unitScale = unitScale
+        self.packed = code.compactValue << Self.codeShift | UInt64(unitScale.places)
     }
 }
 
@@ -68,6 +82,17 @@ extension Currency: CustomStringConvertible {
         String(code)
     }
 }
+
+#if !hasFeature(Embedded)
+
+extension Currency: CustomReflectable {
+    /// A mirror showing the currency's code and unit scale.
+    public var customMirror: Mirror {
+        Mirror(self, children: ["code": code, "unitScale": unitScale], displayStyle: .struct)
+    }
+}
+
+#endif
 
 /// A namespace for the ISO 4217 currencies, one caseless `enum` per code.
 ///

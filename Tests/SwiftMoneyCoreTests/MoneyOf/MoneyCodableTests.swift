@@ -247,6 +247,16 @@ struct MoneyCodableTests {
         #expect(try decoder(.fields).decode(Money.self, from: encoded) == price)
     }
 
+    @Test("A custom currency with the widest code writes its scale as a field")
+    func widestCustomCurrencyWritesItsScale() throws {
+        let widest = try #require(Currency(code: "99999999", unitScale: 1_000_000_000_000_000_000))
+
+        let encoded = try encoder(.fields).encode(Money(minorUnits: 1, currency: widest))
+
+        #expect(String(decoding: encoded, as: UTF8.self) == #"{"amount":1,"currency":"99999999","scale":18}"#)
+        #expect(try decoder(.fields).decode(Money.self, from: encoded).currency == widest)
+    }
+
     @Test("A currency outside ISO 4217 with no scale field still fails to decode")
     func refusesACustomCurrencyWithNoScaleField() {
         #expect(throws: DecodingError.self) {
