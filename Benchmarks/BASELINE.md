@@ -46,6 +46,9 @@ ahead of `Decimal`. The fractional operations are measured against the closest p
 | MoneyOf equality | 7 | 0 | 1 |
 | MoneyOf hashing | 152 | 0 | 7 |
 | MoneyOf init exactly | 25 | 0 | 1 |
+| MoneyOf init major units | 41 | 0 | 1 |
+| MoneyOf init major units, Int64 | 41 | 0 | 1 |
+| MoneyOf init major units, UInt32 | 41 | 0 | 1 |
 | MoneyOf is multiple | 16 | 0 | 1 |
 | MoneyOf is negative | 10 | 0 | 1 |
 | MoneyOf is positive | 7 | 0 | 0 |
@@ -79,6 +82,9 @@ ahead of `Decimal`. The fractional operations are measured against the closest p
 | Money equality | 15 | 0 | 1 |
 | Money hashing | 195 | 0 | 10 |
 | Money init exactly | 26 | 0 | 1 |
+| Money init major units | 46 | 0 | 1 |
+| Money init major units, Int64 | 46 | 0 | 1 |
+| Money init major units, UInt32 | 46 | 0 | 1 |
 | Money is less than, throwing | 18 | 0 | 1 |
 | Money is multiple, throwing | 20 | 0 | 1 |
 | Money parsing | 349 | 0 | 9 |
