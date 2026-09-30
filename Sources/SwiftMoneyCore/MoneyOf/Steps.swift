@@ -27,9 +27,13 @@ public extension MoneyOf {
         /// The positions of every step, in order.
         public typealias Indices = DefaultIndices<Self>
 
-        // The lower and upper bound, in minor units.
+        // The lowest step, never above `upperBound`, and in the currency of `stride`.
         @usableFromInline
-        let bounds: ClosedRange<MinorUnits>
+        let lowerBound: MoneyOf<C>
+
+        // The highest step, in the currency of `stride`.
+        @usableFromInline
+        let upperBound: MoneyOf<C>
 
         /// The gap between neighboring steps, never longer than the span. Its sign is the direction.
         ///
@@ -41,15 +45,17 @@ public extension MoneyOf {
         /// The number of steps, at least one.
         public let count: Int
 
-        // No check: for call sites that computed `count` from `bounds` and a `stride` that is no
-        // longer than the span, and one minor unit upward when the span is zero.
+        // No check: for call sites that computed `count` from ordered bounds and a `stride` that is no
+        // longer than the span, and one minor unit upward when the span is zero, all in one currency.
         @usableFromInline
         init(
-            unchecked bounds: ClosedRange<MinorUnits>,
+            unchecked lowerBound: MoneyOf<C>,
+            through upperBound: MoneyOf<C>,
             stride: MoneyOf<C>.Stride,
             count: Int
         ) {
-            self.bounds = bounds
+            self.lowerBound = lowerBound
+            self.upperBound = upperBound
             self.stride = stride
             self.count = count
         }
@@ -77,7 +83,7 @@ public extension MoneyOf {
                 preconditionFailure("Index out of range")  // coverage:ignore — exit-test trap
             }
 
-            return MoneyOf(unchecked: minorUnits(at: position.offset), storage: stride.amount.storage)
+            return amount(at: position.offset)
         }
 
         /// Returns the position after a position.
@@ -163,22 +169,23 @@ public extension MoneyOf {
 }
 
 extension MoneyOf.Steps {
-    // Counts the steps and settles the stride that a range and a stride give. The span reaches
-    // 2⁶⁴ − 1 minor units, which `Int64` cannot hold but `UInt64` can, and an `Int128` divide is a
-    // library call.
+    // Counts the steps and settles the stride that ordered bounds and a stride, all in one currency,
+    // give. The span reaches 2⁶⁴ − 1 minor units, which `Int64` cannot hold but `UInt64` can, and an
+    // `Int128` divide is a library call.
     @inlinable
     init(
-        checking bounds: ClosedRange<MoneyOf<C>.MinorUnits>,
+        checking lowerBound: MoneyOf<C>,
+        through upperBound: MoneyOf<C>,
         by stride: MoneyOf<C>.Stride
     ) throws(TooManyStepsError) {
         let requested = stride.amount.minorUnits
-        let span = UInt64(bitPattern: bounds.upperBound &- bounds.lowerBound)
+        let span = UInt64(bitPattern: upperBound.minorUnits &- lowerBound.minorUnits)
 
         // One step has no direction, so every stride gives the same steps. Storing one minor unit
         // upward for all of them keeps equal steps equal, hash included.
         guard span > 0 else {
             let unit = MoneyOf(unchecked: 1, storage: stride.amount.storage)
-            self.init(unchecked: bounds, stride: MoneyOf.Stride(unchecked: unit), count: 1)
+            self.init(unchecked: lowerBound, through: upperBound, stride: MoneyOf.Stride(unchecked: unit), count: 1)
             return
         }
 
@@ -194,29 +201,32 @@ extension MoneyOf.Steps {
         let shortened = Swift.min(magnitude, span)
         let settled = Int64(bitPattern: requested < 0 ? 0 &- shortened : shortened)
         let amount = MoneyOf(unchecked: settled, storage: stride.amount.storage)
-        self.init(unchecked: bounds, stride: MoneyOf.Stride(unchecked: amount), count: count)
+        self.init(unchecked: lowerBound, through: upperBound, stride: MoneyOf.Stride(unchecked: amount), count: count)
     }
 
     // The bound the steps start on, and the one they always end on.
     @inlinable
-    var nearBound: MoneyOf<C>.MinorUnits {
-        stride.amount.minorUnits > 0 ? bounds.lowerBound : bounds.upperBound
+    var nearBound: MoneyOf<C> {
+        stride.amount.minorUnits > 0 ? lowerBound : upperBound
     }
 
     @inlinable
-    var farBound: MoneyOf<C>.MinorUnits {
-        stride.amount.minorUnits > 0 ? bounds.upperBound : bounds.lowerBound
+    var farBound: MoneyOf<C> {
+        stride.amount.minorUnits > 0 ? upperBound : lowerBound
     }
 
     // Every offset before the last is strictly between the bounds, so the step fits `Int64` even when
     // the product alone does not: wrapping arithmetic works modulo 2⁶⁴ and lands on it exactly.
     @inlinable
-    func minorUnits(at offset: Int) -> MoneyOf<C>.MinorUnits {
+    func amount(at offset: Int) -> MoneyOf<C> {
         guard offset != count &- 1 else {
             return farBound
         }
 
-        return nearBound &+ Int64(truncatingIfNeeded: offset) &* stride.amount.minorUnits
+        let near = nearBound
+        let minorUnits = near.minorUnits &+ Int64(truncatingIfNeeded: offset) &* stride.amount.minorUnits
+
+        return MoneyOf(unchecked: minorUnits, storage: near.storage)
     }
 
     // The offset of the step equal to `element`, or `nil` if it is in another currency or not a step.
@@ -225,15 +235,17 @@ extension MoneyOf.Steps {
     @inlinable
     func offset(of element: MoneyOf<C>) -> Int? {
         let minorUnits = element.minorUnits
-        guard element.storage == stride.amount.storage, bounds.contains(minorUnits) else {
+        let lower = lowerBound.minorUnits
+        let upper = upperBound.minorUnits
+        guard element.storage == stride.amount.storage, lower <= minorUnits, minorUnits <= upper else {
             return nil
         }
-        guard minorUnits != farBound else {
+        guard minorUnits != farBound.minorUnits else {
             return count &- 1
         }
 
         let ascending = stride.amount.minorUnits > 0
-        let travelled = UInt64(bitPattern: ascending ? minorUnits &- bounds.lowerBound : bounds.upperBound &- minorUnits)
+        let travelled = UInt64(bitPattern: ascending ? minorUnits &- lower : upper &- minorUnits)
         let (steps, remainder) = travelled.quotientAndRemainder(dividingBy: stride.amount.minorUnits.magnitude)
 
         return remainder == 0 ? Int(truncatingIfNeeded: steps) : nil
@@ -248,16 +260,18 @@ extension MoneyOf.Steps {
         _ rule: RoundingRule
     ) -> Int {
         let ascending = stride.amount.minorUnits > 0
-        guard minorUnits > bounds.lowerBound else {
+        let lower = lowerBound.minorUnits
+        let upper = upperBound.minorUnits
+        guard minorUnits > lower else {
             return ascending ? 0 : count - 1
         }
-        guard minorUnits < bounds.upperBound else {
+        guard minorUnits < upper else {
             return ascending ? count - 1 : 0
         }
 
         let gap = stride.amount.minorUnits.magnitude
-        let span = UInt64(bitPattern: bounds.upperBound &- bounds.lowerBound)
-        let travelled = UInt64(bitPattern: ascending ? minorUnits &- bounds.lowerBound : bounds.upperBound &- minorUnits)
+        let span = UInt64(bitPattern: upper &- lower)
+        let travelled = UInt64(bitPattern: ascending ? minorUnits &- lower : upper &- minorUnits)
         let (behind, remainder) = travelled.quotientAndRemainder(dividingBy: gap)
         guard remainder != 0 else {
             return Int(truncatingIfNeeded: behind)
@@ -312,7 +326,7 @@ extension MoneyOf.Steps {
         }
 
         do throws(TooManyStepsError) {
-            try self.init(checking: lowerBound.minorUnits ... upperBound.minorUnits, by: stride)
+            try self.init(checking: lowerBound, through: upperBound, by: stride)
         } catch {
             throw .tooManySteps(error)
         }
@@ -354,7 +368,13 @@ public extension MoneyOf.Steps where C: CurrencyType {
     ///   this type's currency as `lhs`.
     @inlinable
     init(_ steps: Money.Steps) throws(MoneyError) {
-        self.init(unchecked: steps.bounds, stride: try MoneyOf.Stride(steps.stride), count: steps.count)
+        let stride = try MoneyOf.Stride(steps.stride)
+        self.init(
+            unchecked: MoneyOf(unchecked: steps.lowerBound.minorUnits, storage: .implied),
+            through: MoneyOf(unchecked: steps.upperBound.minorUnits, storage: .implied),
+            stride: stride,
+            count: steps.count
+        )
     }
 
     /// Returns the position of the step an amount rounds to.
@@ -436,7 +456,12 @@ public extension MoneyOf.Steps where C == AnyCurrency {
     /// - Parameter typed: The steps whose currency is fixed by their type.
     @inlinable
     init<T: CurrencyType>(_ typed: MoneyOf<T>.Steps) {
-        self.init(unchecked: typed.bounds, stride: Money.Stride(typed.stride), count: typed.count)
+        self.init(
+            unchecked: Money(typed.lowerBound),
+            through: Money(typed.upperBound),
+            stride: Money.Stride(typed.stride),
+            count: typed.count
+        )
     }
 
     /// Returns the position of the step a runtime amount rounds to, if it is in the steps' currency.

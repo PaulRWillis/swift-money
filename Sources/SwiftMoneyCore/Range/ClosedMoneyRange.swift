@@ -205,7 +205,11 @@ public struct ClosedMoneyRange: Equatable, Hashable, Sendable {
         }
 
         do throws(TooManyStepsError) {
-            return try Money.Steps(checking: _minorUnits, by: stride)
+            return try Money.Steps(
+                checking: Money(unchecked: _minorUnits.lowerBound, storage: _currency),
+                through: Money(unchecked: _minorUnits.upperBound, storage: _currency),
+                by: stride
+            )
         } catch {
             throw .failure(error)
         }

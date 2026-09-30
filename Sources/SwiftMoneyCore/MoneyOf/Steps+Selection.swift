@@ -32,7 +32,7 @@ public extension MoneyOf.Steps {
         /// The chosen step.
         @inlinable
         public var amount: MoneyOf<C> {
-            MoneyOf(unchecked: steps.minorUnits(at: index.offset), storage: steps.stride.amount.storage)
+            steps.amount(at: index.offset)
         }
 
         /// Returns the selection of another position in the same steps, if it is one.

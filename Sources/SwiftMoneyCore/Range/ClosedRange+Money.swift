@@ -76,6 +76,6 @@ public extension ClosedRange {
     func steps<C: CurrencyType>(
         by stride: MoneyOf<C>.Stride
     ) throws(TooManyStepsError) -> MoneyOf<C>.Steps where Bound == MoneyOf<C> {
-        try MoneyOf<C>.Steps(checking: lowerBound.minorUnits ... upperBound.minorUnits, by: stride)
+        try MoneyOf<C>.Steps(checking: lowerBound, through: upperBound, by: stride)
     }
 }
