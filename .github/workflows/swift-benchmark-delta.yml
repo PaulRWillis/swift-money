@@ -262,18 +262,15 @@ jobs:
         BENCHMARK_RESULT: ${{ needs.benchmark.result }}
       run: |
         python3 Benchmarks/delta_comment.py shards \
-          --job-result "$BENCHMARK_RESULT" --run-url "$RUN_URL" --github-env "$GITHUB_ENV" \
-          > comment_body.md
+          --job-result "$BENCHMARK_RESULT" --run-url "$RUN_URL" > comment_body.md
 
     - name: Build the not-run comment body
       if: needs.gate.outputs.decision == 'skip'
-      run: |
-        python3 Benchmarks/delta_comment.py --not-run "$OPT_IN_LABEL" --github-env "$GITHUB_ENV" \
-          > comment_body.md
+      run: python3 Benchmarks/delta_comment.py --not-run "$OPT_IN_LABEL" > comment_body.md
 
     # Mirrors swift-benchmark-delta's own long-standing technique: a hidden marker lets this workflow
-    # find and edit its single comment rather than posting a new one on every push. A run that changes
-    # nothing posts nothing, but does refresh a comment an earlier push left behind.
+    # find and edit its single comment rather than posting a new one on every push. A clean run posts too
+    # when there is none to edit, since a pull request opened with the label has no earlier comment.
     - name: Comment on PR
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -283,11 +280,6 @@ jobs:
         existing="$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
           | jq -r --arg marker "$MARKER" \
               '[.[] | select(.body | contains($marker))] | last | .id // empty')"
-
-        if [ "$DELIVERY" != "post" ] && [ -z "$existing" ]; then
-          echo "Nothing changed and there is no comment to update."
-          exit 0
-        fi
 
         body="$(cat comment_body.md)"
 
