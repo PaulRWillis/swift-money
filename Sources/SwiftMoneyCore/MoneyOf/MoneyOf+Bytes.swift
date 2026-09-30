@@ -78,8 +78,7 @@ public extension MoneyOf where C: CurrencyType {
     @inlinable
     init?(bytes: InlineArray<15, UInt8>) {
         guard let fields = decodedMoneyFields(bytes),
-              fields.code == C.currency.code,
-              fields.scale == C.currency.unitScale else {
+              Currency(unchecked: fields.code, unitScale: fields.scale) == C.currency else {
             return nil
         }
 

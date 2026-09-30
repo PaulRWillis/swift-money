@@ -141,6 +141,20 @@ struct UnroundedBytesTests {
         #expect(Money.Unrounded(bytes: Self.bytes(raw)) == nil)
     }
 
+    @Test("A typed amount refuses bytes carrying its code at another scale")
+    func typedRefusesItsCodeAtAnotherScale() {
+        guard #available(macOS 26, iOS 26, watchOS 26, tvOS 26, visionOS 26, *) else { return }
+
+        let raw: [UInt8] = [
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // one minor unit, widened to 10^18
+            0x0D, 0xE0, 0xB6, 0xB3, 0xA7, 0x64, 0x00, 0x00,
+            0x1C, 0x24, 0x00, 0x00, 0x00, 0x00,              // "GBP", six-bit packed
+            0x03,                                            // three places; GBP ships at two
+        ]
+
+        #expect(GBP.Unrounded(bytes: Self.bytes(raw)) == nil)
+    }
+
     // The convenience encodes a settled amount straight into the unrounded form, widening by 10^18 as it
     // goes. It must match materializing the `Unrounded` first, and read back as that same amount — proof
     // the widen is a genuine multiply, not a zero-pad into the low bytes.
@@ -177,5 +191,39 @@ struct UnroundedBytesTests {
         ]
 
         #expect(Self.array(GBP(minorUnits: 1).unrounded.bytes) == expected)
+    }
+
+    @Test("The widest code at the largest scale encodes big-endian")
+    func widestCurrencyBytes() throws {
+        guard #available(macOS 26, iOS 26, watchOS 26, tvOS 26, visionOS 26, *) else { return }
+
+        let widest = try #require(Currency(code: "99999999", unitScale: 1_000_000_000_000_000_000))
+        let encoded = Money(minorUnits: 1, currency: widest).unrounded.bytes
+        let expected: [UInt8] = [
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // one minor unit, widened to 10^18
+            0x0D, 0xE0, 0xB6, 0xB3, 0xA7, 0x64, 0x00, 0x00,
+            0x92, 0x49, 0x24, 0x92, 0x49, 0x24,              // "99999999", six-bit packed
+            0x12,                                            // eighteen decimal places
+        ]
+
+        #expect(Self.array(encoded) == expected)
+        #expect(Money.Unrounded(bytes: encoded)?.rounded(.towardZero).currency == widest)
+    }
+
+    @Test("A code filling its last character's bits encodes big-endian")
+    func fullLastCharacterBytes() throws {
+        guard #available(macOS 26, iOS 26, watchOS 26, tvOS 26, visionOS 26, *) else { return }
+
+        let currency = try #require(Currency(code: "99999994", unitScale: 1_000_000_000_000_000_000))
+        let encoded = Money(minorUnits: 1, currency: currency).unrounded.bytes
+        let expected: [UInt8] = [
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // one minor unit, widened to 10^18
+            0x0D, 0xE0, 0xB6, 0xB3, 0xA7, 0x64, 0x00, 0x00,
+            0x92, 0x49, 0x24, 0x92, 0x49, 0x1F,              // "99999994", six-bit packed
+            0x12,                                            // eighteen decimal places
+        ]
+
+        #expect(Self.array(encoded) == expected)
+        #expect(Money.Unrounded(bytes: encoded)?.rounded(.towardZero).currency == currency)
     }
 }

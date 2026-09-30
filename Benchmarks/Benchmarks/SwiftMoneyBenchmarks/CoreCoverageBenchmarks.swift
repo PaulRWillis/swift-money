@@ -408,6 +408,27 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         }
     }
 
+    Benchmark("Money total of 1000, throwing", configuration: configuration) { benchmark in
+        let amounts = (1 ... 1_000).map { Money(minorUnits: Int64($0), currency: .gbp) }
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try amounts.total())
+            }
+        } catch {
+            fatalError("these amounts share a currency, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("Money split into 1000, materialized", configuration: configuration) { benchmark in
+        var amount: Int64 = 100_00
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Array(Money(minorUnits: amount, currency: .gbp).split(into: 1_000).amounts))
+            amount &+= 1
+        }
+    }
+
     Benchmark("Money parsing, caller's currency", configuration: configuration) { benchmark in
         guard let points = Currency(code: "LTY", unitScale: 1) else {
             preconditionFailure("LTY is not a currency the library ships")
