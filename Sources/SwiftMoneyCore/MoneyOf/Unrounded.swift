@@ -93,18 +93,9 @@ public extension MoneyOf.Unrounded where C: CurrencyType {
     /// Multiplying before dividing (`balance * rate` then `.divided(by: 365)`) keeps more of the value
     /// than scaling by a tiny rate would.
     ///
-    /// - Precondition: `n` must not be zero and must fit in `Int128`.
-    @inlinable func divided(by n: some BinaryInteger) -> Self {
-        Self(minorUnits.divided(by: Int128(n)), storage: .implied)
-    }
-
-    /// Returns this amount divided by a whole number, or `nil` if `n` is zero or outside `Int128`.
-    @inlinable func divided(byExactly n: some BinaryInteger) -> Self? {
-        guard let divisor = Int128(exactly: n), divisor != 0 else {
-            return nil
-        }
-
-        return Self(minorUnits.divided(by: divisor), storage: .implied)
+    /// - Parameter parts: The number of equal parts to divide this amount into.
+    @inlinable func divided(by parts: PartCount) -> Self {
+        Self(minorUnits.divided(by: Int128(Int(parts))), storage: .implied)
     }
 
     /// Returns this amount settled to a whole number of the currency's smallest unit, within one of the
@@ -247,18 +238,9 @@ public extension MoneyOf.Unrounded where C == AnyCurrency {
 
     /// Returns this amount divided by a whole number, keeping the fraction for one settling.
     ///
-    /// - Precondition: `n` must not be zero and must fit in `Int128`.
-    @inlinable func divided(by n: some BinaryInteger) -> Self {
-        Self(minorUnits.divided(by: Int128(n)), storage: storage)
-    }
-
-    /// Returns this amount divided by a whole number, or `nil` if `n` is zero or outside `Int128`.
-    @inlinable func divided(byExactly n: some BinaryInteger) -> Self? {
-        guard let divisor = Int128(exactly: n), divisor != 0 else {
-            return nil
-        }
-
-        return Self(minorUnits.divided(by: divisor), storage: storage)
+    /// - Parameter parts: The number of equal parts to divide this amount into.
+    @inlinable func divided(by parts: PartCount) -> Self {
+        Self(minorUnits.divided(by: Int128(Int(parts))), storage: storage)
     }
 
     /// Returns the sum of two unrounded amounts, keeping both fractions.

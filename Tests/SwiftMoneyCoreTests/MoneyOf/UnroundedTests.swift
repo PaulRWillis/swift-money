@@ -3,6 +3,7 @@ import Testing
 
 @Suite("Unrounded Tests")
 struct UnroundedTests {
+    private static let mostNegative = GBP.Unrounded(minorUnits: "-170141183460469231731.687303715884105728")   // Int128.min storage
 
     @Test("A chain settles once, where scaling settles at every step")
     func aChainSettlesOnce() throws {
@@ -60,22 +61,41 @@ struct UnroundedTests {
         #expect(GBP(minorUnits: 10_00).unrounded.divided(by: 4).rounded(.toNearestOrEven) == GBP(minorUnits: 2_50))
     }
 
-    @Test("Dividing by exactly zero is nil, not a trap")
-    func dividedByExactlyZero() throws {
-        #expect(GBP(minorUnits: 10_00).unrounded.divided(byExactly: 0) == nil)
-
-        let quarter = try #require(GBP(minorUnits: 10_00).unrounded.divided(byExactly: 4))
-        #expect(quarter.rounded(.toNearestOrEven) == GBP(minorUnits: 2_50))
+    @Test("A negative share is the amount times minus one, divided")
+    func negativeShare() {
+        #expect((GBP(minorUnits: 10_00).unrounded * -1).divided(by: 4).rounded(.toNearestOrEven) == GBP(minorUnits: -2_50))
     }
 
-    @Test("Dividing by exactly a value wider than Int128 is nil, not a trap")
-    func dividedByExactlyWiderThanInt128() {
-        #expect(GBP(minorUnits: 10_00).unrounded.divided(byExactly: UInt128.max) == nil)
+    @Test("A runtime-currency negative share is the amount times minus one, divided")
+    func runtimeNegativeShare() {
+        #expect((Money(minorUnits: 10_00, currency: .gbp).unrounded * -1).divided(by: 4).rounded(.toNearestOrEven)
+            == Money(minorUnits: -2_50, currency: .gbp))
     }
 
-    @Test("A runtime-currency amount divided by exactly a value wider than Int128 is nil")
-    func runtimeDividedByExactlyWiderThanInt128() {
-        #expect(Money(minorUnits: 10_00, currency: .gbp).unrounded.divided(byExactly: UInt128.max) == nil)
+    @Test("The most negative unrounded amount divides by one to itself")
+    func mostNegativeDividesByOne() {
+        #expect(Self.mostNegative.divided(by: 1) == Self.mostNegative)
+    }
+
+    @Test("The most negative unrounded amount divides by two exactly")
+    func mostNegativeDividesByTwo() {
+        #expect(Self.mostNegative.divided(by: 2) == GBP.Unrounded(minorUnits: "-85070591730234615865.843651857942052864"))
+    }
+
+    @Test("The largest part count divides without a trap")
+    func largestPartCountDivides() throws {
+        let parts = try #require(PartCount(exactly: .max))
+
+        // -(2^64 + 2) storage: the remainder of 2 rounds down.
+        #expect(Self.mostNegative.divided(by: parts) == GBP.Unrounded(minorUnits: "-18.446744073709551618"))
+    }
+
+    @Test("A runtime count divides once it is a part count")
+    func runtimeCountDivides() {
+        let days = 4
+
+        #expect(PartCount(exactly: days).map(GBP(minorUnits: 10_00).unrounded.divided(by:))?.rounded(.toNearestOrEven)
+            == GBP(minorUnits: 2_50))
     }
 
     @Test("A narrow integer operand gives the same result as an Int")
@@ -85,14 +105,8 @@ struct UnroundedTests {
 
         #expect(typed * Int32(31) == typed * 31)
         #expect(UInt8(31) * typed == 31 * typed)
-        #expect(typed.divided(by: UInt16(365)) == typed.divided(by: 365))
-        #expect(typed.divided(byExactly: Int8(4)) == typed.divided(byExactly: 4))
-        #expect(typed.divided(byExactly: UInt8(0)) == nil)
 
         #expect(runtime * Int32(31) == runtime * 31)
-        #expect(runtime.divided(by: UInt16(365)) == runtime.divided(by: 365))
-        #expect(runtime.divided(byExactly: Int8(4)) == runtime.divided(byExactly: 4))
-        #expect(runtime.divided(byExactly: UInt8(0)) == nil)
     }
 
     @Test("Typed and runtime-currency amounts settle to the same minor units")
@@ -116,7 +130,7 @@ struct UnroundedTests {
         }
     }
 
-    @Test("Dividing by zero traps")
+    @Test("Dividing by a zero literal traps")
     func dividingByZeroTraps() async {
         await #expect(processExitsWith: .failure) {
             blackHole(GBP(minorUnits: 10_00).unrounded.divided(by: 0))
