@@ -156,6 +156,38 @@ throwing comparison instead:
 let ordered = try prices.sorted { try $0.isLessThan($1) }
 ```
 
+## Ranges
+
+Limits usually arrive from a server. Parse them once, when you decode the response, into a range
+whose currency and order are already checked.
+
+A range of runtime amounts is built with a throwing `...` or `..<`, which checks the currencies
+and the order once. A typed range needs only the order checked, so bounds from a server never trap:
+
+```swift
+let limits = try minimum...maximum                                      // ClosedMoneyRange
+let typed = try ClosedRange(checkedBounds: (lower: low, upper: high))   // ClosedRange<GBP>
+
+try limits.contains(amount)
+typed.contains(GBP(minorUnits: 50_00))                                  // no try: one currency
+```
+
+Each call throws one exact error type, so a `switch` over it can be exhaustive. A runtime range
+wraps the typed error in a `.failure` case beside the currency mismatch:
+
+```swift
+do throws(CurrencyCheckedError<InvertedBoundsError<AnyCurrency>>) {
+    limits = try minimum...maximum
+} catch {
+    switch error {
+    case .currencyMismatch(let lhs, let rhs): …                    // the currencies differed
+    case .failure(let inverted): …                                 // minimum was above maximum
+    }
+}
+```
+
+`Money` has no `~=`, so match a range in a `switch` with a guard: `case _ where try limits.contains(amount):`.
+
 ## Formatting for display
 
 Formatting is locale-aware and lives in `SwiftMoneyFoundation`:
