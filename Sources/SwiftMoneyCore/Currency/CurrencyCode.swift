@@ -8,14 +8,19 @@
 /// every token symbol in circulation: some contain punctuation, emoji, or non-Latin scripts, and a
 /// rule permitting those would validate nothing.
 public struct CurrencyCode: Equatable, Hashable, Sendable {
-    // The code packed six bits per character, uppercased, high character in the top six bits and left
-    // aligned in eight symbol slots (the low bits zero for a short code). Each character is a symbol
-    // 1...36 (A–Z then 0–9); zero is an empty slot, so the length is where the symbols stop. Comparing
-    // two codes is then one integer compare rather than a call into String, which is what makes a runtime
-    // amount's arithmetic cheap, and the high-symbol-first order means codes sort as they read. Forty-eight
-    // bits hold eight symbols; the top sixteen bits are unused.
+    // Characters fill slots from the top and empty slots trail, so codes compare and sort as one integer.
     @usableFromInline
     let storage: UInt64
+
+    private static let characterSlots = 8
+    private static let bitsPerCharacter = 6
+    private static let validLengths = 3...characterSlots
+    private static let characterMask: UInt64 = (1 << bitsPerCharacter) - 1
+    private static let emptySlot: UInt8 = 0
+    fileprivate static let packedLetters =
+        (emptySlot + 1)...(emptySlot + UInt8(ascii: "Z") - UInt8(ascii: "A") + 1)
+    fileprivate static let packedDigits =
+        (packedLetters.upperBound + 1)...(packedLetters.upperBound + UInt8(ascii: "9") - UInt8(ascii: "0") + 1)
 
     /// Creates a currency code from a string that may not be valid.
     ///
@@ -34,13 +39,11 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
         self.storage = packed
     }
 
-    // Each byte is checked before it is uppercased, never after. `"ß".uppercased()` is `"SS"`, so
-    // uppercasing a whole string first would let two non-ASCII characters satisfy both the character
-    // rule and the length rule.
+    // Checks each byte before uppercasing: `"ß".uppercased()` is `"SS"`, which would pass as two letters.
     private static func packed(_ string: String) -> UInt64? {
         let bytes = string.utf8
 
-        guard (3...8).contains(bytes.count) else {
+        guard validLengths.contains(bytes.count) else {
             return nil
         }
 
@@ -51,10 +54,23 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
                 return nil
             }
 
-            packed = packed << 6 | UInt64(byte.uppercasedASCII.alphanumericSymbol)
+            packed = appending(byte.uppercasedASCII.characterValue, to: packed)
         }
 
-        return packed << (6 * (8 - bytes.count))
+        return leftAligned(packed, count: bytes.count)
+    }
+
+    private static func appending(_ value: UInt8, to packed: UInt64) -> UInt64 {
+        packed << bitsPerCharacter | UInt64(value)
+    }
+
+    @inline(__always)
+    private static func leftAligned(_ packed: UInt64, count: Int) -> UInt64 {
+        packed << (bitsPerCharacter * (characterSlots - count))
+    }
+
+    private static func value(inSlot slot: Int, of word: UInt64) -> UInt8 {
+        UInt8(truncatingIfNeeded: word >> (bitsPerCharacter * (characterSlots - 1 - slot)) & characterMask)
     }
 
     // Trusts its input: the word must be a valid code's compact value.
@@ -63,8 +79,7 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
         self.storage = packed
     }
 
-    // The code a run of bytes leads with, and the index just past the space ending it. `nil` covers
-    // both a run with no code and one whose leading bytes are not a code.
+    // The code a run of bytes starts with and the index after its space, or `nil` if it has none.
     static func leading(
         in utf8: UnsafeBufferPointer<UInt8>
     ) -> (code: CurrencyCode, after: Int)? {
@@ -75,66 +90,62 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
             let byte = utf8[index]
 
             if byte == UInt8(ascii: " ") {
-                guard count >= 3 else {
+                guard validLengths.contains(count) else {
                     return nil
                 }
 
-                return (CurrencyCode(unchecked: packed << (6 * (8 - count))), index + 1)
+                return (CurrencyCode(unchecked: leftAligned(packed, count: count)), index + 1)
             }
 
-            guard count < 8, byte.isASCIIAlphanumeric else {
+            guard count < characterSlots, byte.isASCIIAlphanumeric else {
                 return nil
             }
 
-            packed = packed << 6 | UInt64(byte.uppercasedASCII.alphanumericSymbol)
+            packed = appending(byte.uppercasedASCII.characterValue, to: packed)
             count += 1
         }
 
         return nil
     }
 
-    // The code as the single word it is stored as: six bits per character, high character in the top bits,
-    // so codes compare and sort as one integer. This is the form the byte serializer writes and the packed
-    // tables key on.
+    // The stored word: the form the byte serializer writes and the packed tables key on.
     @inlinable
     package var compactValue: UInt64 { storage }
 
-    // Rebuilds a code from its six-bit packed form, or `nil` when the symbols are not a valid code:
-    // fewer than three or a symbol out of range. Validating, because packed bytes come from outside.
+    // Validating, unlike `init(unchecked:)`, because the word comes from outside.
     @usableFromInline
     package init?(compactValue: UInt64) {
-        var storage: UInt64 = 0
+        var packed: UInt64 = 0
         var count = 0
 
-        for slot in stride(from: 42, through: 0, by: -6) {
-            let symbol = UInt8(truncatingIfNeeded: compactValue >> slot) & 0b11_1111
+        for slot in 0..<Self.characterSlots {
+            let value = Self.value(inSlot: slot, of: compactValue)
 
-            guard symbol != 0 else {
+            guard value != Self.emptySlot else {
                 break
             }
-            guard UInt8(alphanumericSymbol: symbol) != nil else {
+            guard UInt8(characterValue: value) != nil else {
                 return nil
             }
 
-            storage = storage << 6 | UInt64(symbol)
+            packed = Self.appending(value, to: packed)
             count += 1
         }
 
-        guard (3 ... 8).contains(count) else {
+        guard Self.validLengths.contains(count) else {
             return nil
         }
 
-        self.storage = storage << (6 * (8 - count))
+        self.storage = Self.leftAligned(packed, count: count)
     }
 
-    // The bytes of the code, written into a buffer the caller sizes with `utf8Count`. Lets a caller
-    // assemble a longer string in one pass rather than building this one and concatenating it.
+    // Writes into a buffer the caller sized with `utf8Count`, so a longer string is built in one pass.
     func write(into buffer: UnsafeMutableBufferPointer<UInt8>, at offset: inout Int) {
-        for shift in stride(from: 42, through: 0, by: -6) {
-            let symbol = UInt8(truncatingIfNeeded: storage >> shift) & 0b11_1111
+        for slot in 0..<Self.characterSlots {
+            let value = Self.value(inSlot: slot, of: storage)
 
-            // Storage is built only from validated codes, so every non-zero symbol maps to a byte.
-            guard symbol != 0, let byte = UInt8(alphanumericSymbol: symbol) else {
+            // Storage holds only validated codes, so every non-empty slot maps to a byte.
+            guard value != Self.emptySlot, let byte = UInt8(characterValue: value) else {
                 return
             }
 
@@ -147,7 +158,7 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
     var utf8Count: Int {
         var count = 0
 
-        while count < 8, (UInt8(truncatingIfNeeded: storage >> (42 - 6 * count)) & 0b11_1111) != 0 {
+        while count < Self.characterSlots, Self.value(inSlot: count, of: storage) != Self.emptySlot {
             count += 1
         }
 
@@ -155,13 +166,13 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
     }
 
     fileprivate var stringValue: String {
-        String(unsafeUninitializedCapacity: 8) { buffer in
+        String(unsafeUninitializedCapacity: Self.characterSlots) { buffer in
             var count = 0
 
-            while count < 8 {
-                let symbol = UInt8(truncatingIfNeeded: storage >> (42 - 6 * count)) & 0b11_1111
+            while count < Self.characterSlots {
+                let value = Self.value(inSlot: count, of: storage)
 
-                guard symbol != 0, let byte = UInt8(alphanumericSymbol: symbol) else {
+                guard value != Self.emptySlot, let byte = UInt8(characterValue: value) else {
                     break
                 }
 
@@ -174,9 +185,7 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
     }
 }
 
-// Deliberately byte-level rather than `Character.isLetter`/`.isNumber`, which are true for
-// Arabic-Indic, Devanagari, fullwidth and other non-Latin digits. Here the permitted set is
-// structural: `isASCIIDigit` cannot mean anything but `0`–`9`.
+// Byte-level on purpose: `Character.isNumber` accepts non-ASCII digits such as Arabic-Indic.
 private extension UInt8 {
     var isASCIIUppercase: Bool {
         (UInt8(ascii: "A")...UInt8(ascii: "Z")).contains(self)
@@ -198,22 +207,20 @@ private extension UInt8 {
         isASCIILowercase ? self - (UInt8(ascii: "a") - UInt8(ascii: "A")) : self
     }
 
-    // The six-bit symbol for an uppercase-or-digit byte: `A`–`Z` become 1...26 and `0`–`9` become
-    // 27...36, leaving 0 free as the empty slot. Called only on bytes already known alphanumeric.
-    var alphanumericSymbol: UInt8 {
+    // Called only on bytes already known alphanumeric.
+    var characterValue: UInt8 {
         isASCIIDigit
-            ? self - UInt8(ascii: "0") + 27
-            : self - UInt8(ascii: "A") + 1
+            ? self - UInt8(ascii: "0") + CurrencyCode.packedDigits.lowerBound
+            : self - UInt8(ascii: "A") + CurrencyCode.packedLetters.lowerBound
     }
 
-    // The uppercase-or-digit byte a six-bit symbol stands for, or `nil` when the symbol is outside
-    // 1...36 — the inverse of `alphanumericSymbol`, validating because symbols come from outside.
-    init?(alphanumericSymbol symbol: UInt8) {
-        switch symbol {
-        case 1 ... 26:
-            self = UInt8(ascii: "A") + symbol - 1
-        case 27 ... 36:
-            self = UInt8(ascii: "0") + symbol - 27
+    // The inverse of `characterValue`, validating because the value comes from outside.
+    init?(characterValue value: UInt8) {
+        switch value {
+        case CurrencyCode.packedLetters:
+            self = UInt8(ascii: "A") + value - CurrencyCode.packedLetters.lowerBound
+        case CurrencyCode.packedDigits:
+            self = UInt8(ascii: "0") + value - CurrencyCode.packedDigits.lowerBound
         default:
             return nil
         }
