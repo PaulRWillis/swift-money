@@ -10,16 +10,17 @@ public struct Currency: Equatable, Hashable, Sendable {
     // Representation invariant: bits 8...55 are a valid `CurrencyCode`'s compact value, bits 0...7 a
     // `UnitScale`'s decimal places (0...18), and bits 56...63 zero. Only `init(unchecked:unitScale:)`
     // writes it, from a code and a scale that were each built by their own validating initializer or
-    // by this type's projections, so no path writes any other word. Two internal unchecked
-    // initializers, `CurrencyCode.init(unchecked:)` and `UnitScale.init(unchecked:)`, rebuild the parts
-    // from it and must be called only with bits this word holds. Read `packed` only in this file.
+    // by this type's projections, so no path writes any other word. The projections rebuild the parts
+    // through `CurrencyCode.init(unchecked:)` and `UnitScale.init(unchecked:)`, which trust their input;
+    // each may be called only where its own comment says. Read `packed` only in this file.
     // Abstraction function: the currency whose code is `packed >> codeShift` and whose unit scale is
     // the low byte. Each code has one compact value and each scale one byte, and the two don't overlap,
     // so the synthesized `==` and `hash(into:)` are exact.
     @usableFromInline
     let packed: UInt64
 
-    // The scale fills the low byte, so the code sits one byte up.
+    // The scale fills the low byte, so the code sits one byte up. A constant initializer, so it's
+    // statically initialized, unlike `Implied.implied`.
     @usableFromInline
     static let codeShift = UInt64(UInt8.bitWidth)
 
@@ -60,7 +61,7 @@ public struct Currency: Equatable, Hashable, Sendable {
     /// Creates a currency, trusting the code and scale without validating them.
     ///
     /// Used to build the currencies the library itself ships, whose values are already vetted, and so
-    /// must not route back through the validating initialiser (which reads the shipped table). The
+    /// must not route back through the validating initializer (which reads the shipped table). The
     /// typed byte decoders also build one, only to compare it with their own currency.
     @inlinable
     init(

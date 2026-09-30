@@ -14,14 +14,15 @@ public struct UnitScale: Equatable, Hashable, Sendable {
     @usableFromInline
     let places: UInt8
 
-    // 0...18, as a `UnitScale` stored it. Called only by `Currency.unitScale`.
+    /// The most decimal places a scale can have, matching the `Fixed` engine's precision.
+    private static let maxDecimalPlaces = 18
+
+    // `places` must be 0...18, read back from a `UnitScale`'s storage. Called only by
+    // `Currency.unitScale`.
     @inlinable
     init(unchecked places: UInt8) {
         self.places = places
     }
-
-    /// The most decimal places a scale can have, matching the `Fixed` engine's precision.
-    private static let maxDecimalPlaces = 18
 
     /// How many decimal places write one of the currency's smallest units exactly.
     ///
