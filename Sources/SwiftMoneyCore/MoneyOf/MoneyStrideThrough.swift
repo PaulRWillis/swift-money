@@ -1,8 +1,9 @@
 // The amounts from a start up to an end, one stride apart, including the end only if a step lands on
 // it: what `stride(from:through:by:)` returns for amounts.
 //
-// The amounts the standard library's `StrideThroughIterator` returns, over minor units with an `Int64`
-// stride, for the reason `MoneyStrideTo` gives, and with its last amount found once, as there.
+// The amounts the standard library's `StrideThroughIterator` returns, stepping the minor units by an
+// amount rather than an `Int` for the reason `MoneyStrideTo` gives, and with its last amount found
+// once, as there.
 //
 // Named `MoneyStrideThrough` to mirror the standard library's `StrideThrough`, the way `MoneyRange`
 // mirrors `Range`.
@@ -10,24 +11,21 @@
 struct MoneyStrideThrough<C: CurrencyRepresentation>: Sequence, IteratorProtocol, Sendable {
     // `nil` once `last` has been returned, or from the start when the start is past the end.
     @usableFromInline
-    var upcoming: Int64?
+    var upcoming: MoneyOf<C>?
 
     // The final amount returned: the end if a step lands on it. Every amount from `start` to here is
-    // at or before the end, so fits `Int64`.
+    // at or before the end, so each step fits `Int64` and needs no range check.
     @usableFromInline
-    let last: Int64
+    let last: MoneyOf<C>
 
     @usableFromInline
-    let start: Int64
+    let start: MoneyOf<C>
 
     @usableFromInline
-    let end: Int64
+    let end: MoneyOf<C>
 
     @usableFromInline
-    let stride: Int64
-
-    @usableFromInline
-    let storage: C.Storage
+    let stride: MoneyOf<C>.Stride
 
     @inlinable
     init(
@@ -44,13 +42,13 @@ struct MoneyStrideThrough<C: CurrencyRepresentation>: Sequence, IteratorProtocol
         let distance = UInt64(bitPattern: ascending ? end.minorUnits &- first : first &- end.minorUnits)
         let travel = (distance / step.magnitude) &* step.magnitude
         let hasAmounts = ascending ? first <= end.minorUnits : first >= end.minorUnits
+        let last = ascending ? first &+ Int64(bitPattern: travel) : first &- Int64(bitPattern: travel)
 
-        self.upcoming = hasAmounts ? first : nil
-        self.last = ascending ? first &+ Int64(bitPattern: travel) : first &- Int64(bitPattern: travel)
-        self.start = first
-        self.end = end.minorUnits
-        self.stride = step
-        self.storage = start.storage
+        self.upcoming = hasAmounts ? start : nil
+        self.last = MoneyOf(unchecked: last, storage: start.storage)
+        self.start = start
+        self.end = end
+        self.stride = stride
     }
 
     @inlinable
@@ -59,9 +57,11 @@ struct MoneyStrideThrough<C: CurrencyRepresentation>: Sequence, IteratorProtocol
             return nil
         }
 
-        upcoming = current == last ? nil : current &+ stride
+        upcoming = current.minorUnits == last.minorUnits
+            ? nil
+            : MoneyOf(unchecked: current.minorUnits &+ stride.amount.minorUnits, storage: current.storage)
 
-        return MoneyOf(unchecked: current, storage: storage)
+        return current
     }
 
     // The exact count, as the standard library's stride sequences report, so `Array(_:)` allocates once.
@@ -74,8 +74,11 @@ struct MoneyStrideThrough<C: CurrencyRepresentation>: Sequence, IteratorProtocol
             return 0
         }
 
-        let travel = UInt64(bitPattern: stride > 0 ? last &- current : current &- last)
-        let (count, overflow) = (travel / stride.magnitude).addingReportingOverflow(1)
+        let step = stride.amount.minorUnits
+        let travel = UInt64(
+            bitPattern: step > 0 ? last.minorUnits &- current.minorUnits : current.minorUnits &- last.minorUnits
+        )
+        let (count, overflow) = (travel / step.magnitude).addingReportingOverflow(1)
 
         return overflow ? .max : Int(exactly: count) ?? .max
     }
@@ -85,9 +88,9 @@ struct MoneyStrideThrough<C: CurrencyRepresentation>: Sequence, IteratorProtocol
     @inlinable
     func _customContainsEquatableElement(_ element: MoneyOf<C>) -> Bool? {
         let minorUnits = element.minorUnits
-        let outside = stride < 0
-            ? minorUnits < end || start < minorUnits
-            : minorUnits < start || end < minorUnits
+        let outside = stride.amount.minorUnits < 0
+            ? minorUnits < end.minorUnits || start.minorUnits < minorUnits
+            : minorUnits < start.minorUnits || end.minorUnits < minorUnits
 
         return outside ? false : nil
     }
