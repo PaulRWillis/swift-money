@@ -7,7 +7,8 @@
 /// let points = Currency(code: "LTY", unitScale: 1)   // Currency?, nil only for a shipped code at a wrong scale
 /// ```
 public struct Currency: Equatable, Hashable, Sendable {
-    // The code's compact value above the scale's decimal places, which fill the low byte. Read it only in this file.
+    // The code's compact value above the scale's decimal places, which fill the low byte.
+    // Internal only for the inlinable accessors; read it nowhere else.
     @usableFromInline
     let packed: UInt64
 
