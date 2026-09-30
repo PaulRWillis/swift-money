@@ -63,4 +63,10 @@ struct BlobDigitsTests {
         // The wire form fits the field's width.
         #expect(gbpWire >> (BlobDigits.currencyCode * BlobDigits.bits) == 0)
     }
+
+    @Test("A three-character code's wire form is its characters, first highest")
+    func currencyCodeWireIsItsCharacters() {
+        #expect(BlobDigits.currencyCodeWire(("GBP" as CurrencyCode).compactValue) == 0b000111_000010_010000)
+        #expect(BlobDigits.currencyCodeWire(("999" as CurrencyCode).compactValue) == 0b100100_100100_100100)
+    }
 }

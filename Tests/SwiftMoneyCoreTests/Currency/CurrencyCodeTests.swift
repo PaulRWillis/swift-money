@@ -190,20 +190,39 @@ struct CurrencyCodeTests {
         #expect(CurrencyCode(compactValue: code.compactValue) == code)
     }
 
+    private static let compactValueBitWidth = 48
+
     @Test("The compact form uses only its low forty-eight bits")
     func compactFormFitsSixBytes() throws {
         let code = try #require(CurrencyCode(string: "SAFEMOON"))
 
-        #expect(code.compactValue >> 48 == 0)
+        #expect(code.compactValue >> Self.compactValueBitWidth == 0)
+    }
+
+    @Test(
+        "A code packs six bits per character, first character highest, left aligned in eight slots",
+        arguments: [
+            ("GBP", 0b000111_000010_010000_000000_000000_000000_000000_000000),
+            ("USDT", 0b010101_010011_000100_010100_000000_000000_000000_000000),
+            ("1INCH", 0b011100_001001_001110_000011_001000_000000_000000_000000),
+            ("SAFEMOON", 0b010011_000001_000110_000101_001101_001111_001111_001110),
+            ("99999999", 0b100100_100100_100100_100100_100100_100100_100100_100100),
+        ] as [(String, UInt64)]
+    )
+    func packsEachCharacterIntoItsSlot(_ raw: String, _ word: UInt64) throws {
+        let code = try #require(CurrencyCode(string: raw))
+
+        #expect(code.compactValue == word)
+        #expect(CurrencyCode(compactValue: word) == code)
     }
 
     @Test(
         "A compact word that is not a valid code is refused",
         arguments: [
-            0,                          // no symbols at all
-            0b000001 << 42,             // one symbol, fewer than three
-            (0b000001 << 42) | (0b000010 << 36),   // two symbols
-            UInt64(0b111111) << 42,     // symbol 63, past the 36 that map to a character
+            0,                                                          // no characters at all
+            0b000001_000000_000000_000000_000000_000000_000000_000000,  // one character, fewer than three
+            0b000001_000010_000000_000000_000000_000000_000000_000000,  // two characters
+            0b111111_000000_000000_000000_000000_000000_000000_000000,  // 63, past the 36 that map to a character
         ] as [UInt64]
     )
     func refusesAnInvalidCompactWord(_ word: UInt64) {
