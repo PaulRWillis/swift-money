@@ -17,4 +17,5 @@ enum PropertySeed {
     static let powerOfTenProduct: UInt64 = 0x3009
     static let majorUnits: UInt64 = 0x400A
     static let amountConversion: UInt64 = 0x500B
+    static let ranges: UInt64 = 0x600C
 }

@@ -226,23 +226,54 @@ A typed row should cost no more than its runtime twin, which also compares curre
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
+| ClosedMoneyRange clamped, throwing | 35 | 0 | 1 |
 | ClosedMoneyRange construction, throwing | 31 | 0 | 1 |
+| ClosedMoneyRange contains a closed range, throwing | 23 | 0 | 1 |
+| ClosedMoneyRange contains a half-open range, throwing | 31 | 0 | 1 |
 | ClosedMoneyRange contains, throwing | 24 | 0 | 1 |
 | ClosedMoneyRange debug description | 4,102 | 3 | 154 |
 | ClosedMoneyRange description | 1,881 | 1 | 69 |
+| ClosedMoneyRange from a half-open range | 41 | 0 | 1 |
 | ClosedMoneyRange from a typed range | 20 | 0 | 1 |
 | ClosedMoneyRange from checked bounds, throwing | 31 | 0 | 1 |
+| ClosedMoneyRange overlaps a half-open range, throwing | 27 | 0 | 1 |
+| ClosedMoneyRange overlaps, throwing | 23 | 0 | 1 |
+| ClosedRange from a half-open range | 38 | 0 | 1 |
 | ClosedRange from checked bounds, throwing | 33 | 0 | 1 |
 | ClosedRange from ClosedMoneyRange, throwing | 38 | 0 | 1 |
+| ClosedRange of MoneyOf clamped | 43 | 0 | 1 |
 | ClosedRange of MoneyOf construction | 33 | 0 | 2 |
 | ClosedRange of MoneyOf contains | 16 | 0 | 1 |
+| ClosedRange of MoneyOf contains a closed range | 16 | 0 | 1 |
+| ClosedRange of MoneyOf overlaps | 16 | 0 | 1 |
+| Money clamped to a closed range, throwing | 41 | 0 | 1 |
+| Money clamped to a lower bound, throwing | 37 | 0 | 1 |
+| Money clamped to an upper bound, throwing | 37 | 0 | 1 |
+| MoneyOf clamped to a closed range | 32 | 0 | 1 |
+| MoneyOf clamped to a lower bound | 30 | 0 | 1 |
+| MoneyOf clamped to an upper bound | 30 | 0 | 1 |
+| MoneyRange clamped, throwing | 35 | 0 | 1 |
 | MoneyRange construction, throwing | 31 | 0 | 1 |
+| MoneyRange contains a closed range, throwing | 26 | 0 | 1 |
+| MoneyRange contains a half-open range, throwing | 27 | 0 | 1 |
 | MoneyRange contains, throwing | 24 | 0 | 1 |
 | MoneyRange debug description | 4,058 | 3 | 150 |
 | MoneyRange description | 1,882 | 1 | 75 |
+| MoneyRange from a closed range | 40 | 0 | 1 |
 | MoneyRange from a typed range | 20 | 0 | 1 |
 | MoneyRange from checked bounds, throwing | 31 | 0 | 1 |
 | MoneyRange is empty | 8 | 0 | 0 |
+| MoneyRange overlaps a closed range, throwing | 27 | 0 | 1 |
+| MoneyRange overlaps, throwing | 25 | 0 | 1 |
+| PartialMoneyRangeFrom construction | 16 | 0 | 1 |
+| PartialMoneyRangeFrom contains, throwing | 22 | 0 | 1 |
+| PartialMoneyRangeThrough construction | 16 | 0 | 1 |
+| PartialMoneyRangeThrough contains, throwing | 22 | 0 | 1 |
+| PartialMoneyRangeUpTo construction | 16 | 0 | 1 |
+| PartialMoneyRangeUpTo contains, throwing | 22 | 0 | 1 |
+| PartialRangeUpTo of MoneyOf construction | 28 | 0 | 1 |
+| PartialRangeUpTo of MoneyOf contains | 12 | 0 | 1 |
+| Range from a closed range | 37 | 0 | 1 |
 | Range from checked bounds, throwing | 33 | 0 | 1 |
 | Range from MoneyRange, throwing | 38 | 0 | 1 |
 | Range of MoneyOf construction | 33 | 0 | 1 |

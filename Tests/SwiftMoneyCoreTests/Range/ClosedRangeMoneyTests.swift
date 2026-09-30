@@ -52,6 +52,17 @@ struct ClosedRangeMoneyTests {
         #expect(try ClosedRange<JPY>(ClosedMoneyRange(typed)) == typed)
     }
 
+    @Test("A half-open range becomes the closed range ending one minor unit lower")
+    func fromHalfOpen() {
+        #expect(ClosedRange(GBP(minorUnits: 1_00) ..< GBP(minorUnits: 2_00)) == GBP(minorUnits: 1_00) ... GBP(minorUnits: 1_99))
+        #expect(ClosedRange(JPY.min ..< JPY.max) == JPY.min ... JPY(minorUnits: Int64.max - 1))
+    }
+
+    @Test("An empty half-open range has no closed equivalent")
+    func fromEmptyHalfOpen() {
+        #expect(ClosedRange(GBP(minorUnits: 1_00) ..< GBP(minorUnits: 1_00)) == nil)
+    }
+
     @Test("A custom currency builds and refuses in the same way")
     func customScale() {
         typealias Credits = MoneyOf<Millicredits>

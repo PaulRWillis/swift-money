@@ -169,6 +169,7 @@ let limits = try minimum...maximum                                      // Close
 let typed = try ClosedRange(checkedBounds: (lower: low, upper: high))   // ClosedRange<GBP>
 
 try limits.contains(amount)
+try amount.clamped(to: limits)
 typed.contains(GBP(minorUnits: 50_00))                                  // no try: one currency
 ```
 
