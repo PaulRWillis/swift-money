@@ -223,6 +223,7 @@ struct CurrencyCodeTests {
             0b000001_000000_000000_000000_000000_000000_000000_000000,  // one character, fewer than three
             0b000001_000010_000000_000000_000000_000000_000000_000000,  // two characters
             0b111111_000000_000000_000000_000000_000000_000000_000000,  // 63, past the 36 that map to a character
+            0b100101_000001_000001_000000_000000_000000_000000_000000,  // 37, one past the last digit
         ] as [UInt64]
     )
     func refusesAnInvalidCompactWord(_ word: UInt64) {
