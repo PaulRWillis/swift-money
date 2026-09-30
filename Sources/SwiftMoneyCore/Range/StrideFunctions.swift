@@ -21,7 +21,7 @@ public func stride<C: CurrencyType>(
     to end: MoneyOf<C>,
     by stride: MoneyOf<C>.Stride
 ) -> some Sequence<MoneyOf<C>> & Sendable {
-    AmountStrideTo(from: start, to: end, by: stride)
+    MoneyStrideTo(from: start, to: end, by: stride)
 }
 
 /// Returns the amounts from a start up to an end, one stride apart, including the end only if a step
@@ -49,7 +49,7 @@ public func stride<C: CurrencyType>(
     through end: MoneyOf<C>,
     by stride: MoneyOf<C>.Stride
 ) -> some Sequence<MoneyOf<C>> & Sendable {
-    AmountStrideThrough(from: start, through: end, by: stride)
+    MoneyStrideThrough(from: start, through: end, by: stride)
 }
 
 /// Returns the runtime amounts from a start up to, but not including, an end, one stride apart.
@@ -78,7 +78,7 @@ public func stride(
     try AnyCurrency.requireMatch(start.storage, end.storage)
     try AnyCurrency.requireMatch(start.storage, stride.amount.storage)
 
-    return AmountStrideTo(from: start, to: end, by: stride)
+    return MoneyStrideTo(from: start, to: end, by: stride)
 }
 
 /// Returns the runtime amounts from a start up to an end, one stride apart, including the end only if
@@ -103,5 +103,5 @@ public func stride(
     try AnyCurrency.requireMatch(start.storage, end.storage)
     try AnyCurrency.requireMatch(start.storage, stride.amount.storage)
 
-    return AmountStrideThrough(from: start, through: end, by: stride)
+    return MoneyStrideThrough(from: start, through: end, by: stride)
 }
