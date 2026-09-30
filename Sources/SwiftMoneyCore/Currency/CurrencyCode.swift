@@ -57,8 +57,7 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
         return packed << (6 * (8 - bytes.count))
     }
 
-    // The word must be a compact value some valid code produced. Called only by `Currency.code` and
-    // `leading(in:)`.
+    // Trusts its input: the word must be a valid code's compact value.
     @inlinable
     init(unchecked packed: UInt64) {
         self.storage = packed

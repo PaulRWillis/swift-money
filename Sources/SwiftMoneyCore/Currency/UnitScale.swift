@@ -17,8 +17,7 @@ public struct UnitScale: Equatable, Hashable, Sendable {
     /// The most decimal places a scale can have, matching the `Fixed` engine's precision.
     private static let maxDecimalPlaces = 18
 
-    // `places` must be 0...18, read back from a `UnitScale`'s storage. Called only by
-    // `Currency.unitScale`.
+    // Trusts its input: `places` must be 0...18.
     @inlinable
     init(unchecked places: UInt8) {
         self.places = places
