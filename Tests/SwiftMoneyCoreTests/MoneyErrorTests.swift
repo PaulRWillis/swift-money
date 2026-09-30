@@ -25,6 +25,17 @@ struct MoneyErrorTests {
         )
     }
 
+    @Test("Equal mismatches hash equally, so errors can be collected in a set")
+    func equalMismatchesHashEqually() {
+        let errors: Set<MoneyError> = [
+            .currencyMismatch(lhs: .gbp, rhs: .eur),
+            .currencyMismatch(lhs: .gbp, rhs: .eur),
+            .currencyMismatch(lhs: .eur, rhs: .gbp),
+        ]
+
+        #expect(errors.count == 2)
+    }
+
     @Test("A mismatch is directional, so swapping the currencies is a different error")
     func mismatchIsDirectional() {
         #expect(
