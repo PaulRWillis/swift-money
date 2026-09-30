@@ -93,18 +93,18 @@ public extension MoneyOf.Unrounded where C: CurrencyType {
     /// Multiplying before dividing (`balance * rate` then `.divided(by: 365)`) keeps more of the value
     /// than scaling by a tiny rate would.
     ///
-    /// - Precondition: `n` is not zero.
+    /// - Precondition: `n` must not be zero and must fit in `Int128`.
     @inlinable func divided(by n: some BinaryInteger) -> Self {
         Self(minorUnits.divided(by: Int128(n)), storage: .implied)
     }
 
-    /// Returns this amount divided by a whole number, or `nil` if `n` is zero.
+    /// Returns this amount divided by a whole number, or `nil` if `n` is zero or outside `Int128`.
     @inlinable func divided(byExactly n: some BinaryInteger) -> Self? {
-        guard n != 0 else {
+        guard let divisor = Int128(exactly: n), divisor != 0 else {
             return nil
         }
 
-        return Self(minorUnits.divided(by: Int128(n)), storage: .implied)
+        return Self(minorUnits.divided(by: divisor), storage: .implied)
     }
 
     /// Returns this amount settled to a whole number of the currency's smallest unit, within one of the
@@ -247,18 +247,18 @@ public extension MoneyOf.Unrounded where C == AnyCurrency {
 
     /// Returns this amount divided by a whole number, keeping the fraction for one settling.
     ///
-    /// - Precondition: `n` is not zero.
+    /// - Precondition: `n` must not be zero and must fit in `Int128`.
     @inlinable func divided(by n: some BinaryInteger) -> Self {
         Self(minorUnits.divided(by: Int128(n)), storage: storage)
     }
 
-    /// Returns this amount divided by a whole number, or `nil` if `n` is zero.
+    /// Returns this amount divided by a whole number, or `nil` if `n` is zero or outside `Int128`.
     @inlinable func divided(byExactly n: some BinaryInteger) -> Self? {
-        guard n != 0 else {
+        guard let divisor = Int128(exactly: n), divisor != 0 else {
             return nil
         }
 
-        return Self(minorUnits.divided(by: Int128(n)), storage: storage)
+        return Self(minorUnits.divided(by: divisor), storage: storage)
     }
 
     /// Returns the sum of two unrounded amounts, keeping both fractions.

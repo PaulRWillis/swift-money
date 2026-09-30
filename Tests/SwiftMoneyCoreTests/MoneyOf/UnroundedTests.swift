@@ -68,6 +68,16 @@ struct UnroundedTests {
         #expect(quarter.rounded(.toNearestOrEven) == GBP(minorUnits: 2_50))
     }
 
+    @Test("Dividing by exactly a value wider than Int128 is nil, not a trap")
+    func dividedByExactlyWiderThanInt128() {
+        #expect(GBP(minorUnits: 10_00).unrounded.divided(byExactly: UInt128.max) == nil)
+    }
+
+    @Test("A runtime-currency amount divided by exactly a value wider than Int128 is nil")
+    func runtimeDividedByExactlyWiderThanInt128() {
+        #expect(Money(minorUnits: 10_00, currency: .gbp).unrounded.divided(byExactly: UInt128.max) == nil)
+    }
+
     @Test("A narrow integer operand gives the same result as an Int")
     func narrowIntegerOperands() {
         let typed = GBP(minorUnits: 10_00).unrounded
