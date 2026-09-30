@@ -121,7 +121,7 @@ def types(found):
     return lines + ["}"]
 
 
-def character_value(char):
+def packed_character(char):
     if "A" <= char <= "Z":
         return ord(char) - ord("A") + PACKED_LETTERS.start
     if "0" <= char <= "9":
@@ -134,7 +134,7 @@ def packed(code):
     value = 0
 
     for char in code:
-        value = value << BITS_PER_CHARACTER | character_value(char)
+        value = value << BITS_PER_CHARACTER | packed_character(char)
 
     return value << (BITS_PER_CHARACTER * (CHARACTER_SLOTS - len(code)))
 

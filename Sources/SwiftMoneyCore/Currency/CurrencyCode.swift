@@ -18,6 +18,9 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
     @inlinable
     static var bitsPerCharacter: Int { 6 }
 
+    @inlinable
+    static var isoCodeLength: Int { 3 }
+
     private static let validLengths = 3...characterSlots
     private static let characterMask: UInt64 = (1 << bitsPerCharacter) - 1
     private static let emptySlot: UInt8 = 0
@@ -58,7 +61,7 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
                 return nil
             }
 
-            packed = appending(byte.uppercasedASCII.characterValue, to: packed)
+            packed = appending(byte.uppercasedASCII.packedCharacter, to: packed)
         }
 
         return leftAligned(packed, count: bytes.count)
@@ -105,7 +108,7 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
                 return nil
             }
 
-            packed = appending(byte.uppercasedASCII.characterValue, to: packed)
+            packed = appending(byte.uppercasedASCII.packedCharacter, to: packed)
             count += 1
         }
 
@@ -119,7 +122,7 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
     /// The code packed into three character slots, or `nil` unless it is three characters long.
     @inlinable
     package var threeCharacterValue: UInt64? {
-        let emptySlotBits = Self.bitsPerCharacter * (Self.characterSlots - 3)
+        let emptySlotBits = Self.bitsPerCharacter * (Self.characterSlots - Self.isoCodeLength)
 
         return storage & ((1 << emptySlotBits) - 1) == 0 ? storage >> emptySlotBits : nil
     }
@@ -136,7 +139,7 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
             guard value != Self.emptySlot else {
                 break
             }
-            guard UInt8(characterValue: value) != nil else {
+            guard UInt8(packedCharacter: value) != nil else {
                 return nil
             }
 
@@ -157,7 +160,7 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
             let value = Self.value(inSlot: slot, of: storage)
 
             // Storage holds only validated codes, so every non-empty slot maps to a byte.
-            guard value != Self.emptySlot, let byte = UInt8(characterValue: value) else {
+            guard value != Self.emptySlot, let byte = UInt8(packedCharacter: value) else {
                 return
             }
 
@@ -184,7 +187,7 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
             while count < Self.characterSlots {
                 let value = Self.value(inSlot: count, of: storage)
 
-                guard value != Self.emptySlot, let byte = UInt8(characterValue: value) else {
+                guard value != Self.emptySlot, let byte = UInt8(packedCharacter: value) else {
                     break
                 }
 
@@ -220,14 +223,14 @@ private extension UInt8 {
     }
 
     // Called only on bytes already known alphanumeric.
-    var characterValue: UInt8 {
+    var packedCharacter: UInt8 {
         isASCIIDigit
             ? self - UInt8(ascii: "0") + CurrencyCode.packedDigits.lowerBound
             : self - UInt8(ascii: "A") + CurrencyCode.packedLetters.lowerBound
     }
 
-    // The inverse of `characterValue`, validating because the value comes from outside.
-    init?(characterValue value: UInt8) {
+    // The inverse of `packedCharacter`, or `nil` for a value outside both ranges.
+    init?(packedCharacter value: UInt8) {
         switch value {
         case CurrencyCode.packedLetters:
             self = UInt8(ascii: "A") + value - CurrencyCode.packedLetters.lowerBound
