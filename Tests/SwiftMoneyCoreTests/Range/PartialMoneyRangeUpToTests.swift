@@ -31,6 +31,11 @@ struct PartialMoneyRangeUpToTests {
         }
     }
 
+    @Test("A typed range becomes a runtime range with the same bound, in the type's currency")
+    func fromTyped() {
+        #expect(PartialMoneyRangeUpTo(..<GBP(minorUnits: 250_00)) == ..<limit)
+    }
+
     @Test("Equal ranges hash equally; the same bound in another currency is unequal")
     func hashAndEquality() {
         let euros = Money(minorUnits: 250_00, currency: .eur)
