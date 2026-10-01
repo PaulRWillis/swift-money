@@ -1133,6 +1133,108 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         blackHole(hits)
     }
 
+    Benchmark("PartialMoneyRangeFrom from a typed range", configuration: configuration) { benchmark in
+        let limits = lowerPounds.map { $0... }
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(PartialMoneyRangeFrom(limits[index % limits.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("PartialMoneyRangeThrough from a typed range", configuration: configuration) { benchmark in
+        let limits = upperPounds.map { ...$0 }
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(PartialMoneyRangeThrough(limits[index % limits.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("PartialMoneyRangeUpTo from a typed range", configuration: configuration) { benchmark in
+        let limits = upperPounds.map { ..<$0 }
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(PartialMoneyRangeUpTo(limits[index % limits.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("PartialRangeFrom from PartialMoneyRangeFrom, throwing", configuration: configuration) { benchmark in
+        let limits = runtimeLowerPounds.map { $0... }
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try PartialRangeFrom<GBP>(limits[index % limits.count]))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these ranges are all in pounds, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("PartialRangeThrough from PartialMoneyRangeThrough, throwing", configuration: configuration) { benchmark in
+        let limits = runtimeUpperPounds.map { ...$0 }
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try PartialRangeThrough<GBP>(limits[index % limits.count]))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these ranges are all in pounds, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("PartialRangeUpTo from PartialMoneyRangeUpTo, throwing", configuration: configuration) { benchmark in
+        let limits = runtimeUpperPounds.map { ..<$0 }
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try PartialRangeUpTo<GBP>(limits[index % limits.count]))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these ranges are all in pounds, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("PartialMoneyRangeFrom currency", configuration: configuration) { benchmark in
+        let limits = runtimeLowerPounds.map { $0... }
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(limits[index % limits.count].currency)
+            index &+= 1
+        }
+    }
+
+    Benchmark("PartialMoneyRangeThrough currency", configuration: configuration) { benchmark in
+        let limits = runtimeUpperPounds.map { ...$0 }
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(limits[index % limits.count].currency)
+            index &+= 1
+        }
+    }
+
+    Benchmark("PartialMoneyRangeUpTo currency", configuration: configuration) { benchmark in
+        let limits = runtimeUpperPounds.map { ..<$0 }
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(limits[index % limits.count].currency)
+            index &+= 1
+        }
+    }
+
     // Each range meets a neighbour three along, so the pairs nest, overlap and sit apart in turn.
     Benchmark("ClosedRange of MoneyOf contains a closed range", configuration: configuration) { benchmark in
         var index = 0
