@@ -90,6 +90,28 @@ struct StepsParsingTests {
         }
     }
 
+    @Test("MoneyStepsParsingError's doc example compiles and binds both inverted bounds")
+    func errorDocExample() {
+        let minimum = GBP(minorUnits: 250_00)
+        let maximum = GBP(minorUnits: 10_00)
+        let step = GBP(minorUnits: 1_00)
+
+        do throws(MoneyStepsParsingError<Currencies.GBP>) {
+            let steps = try GBP.Steps(checkedBounds: (lower: minimum, upper: maximum), by: step)
+            Issue.record("Expected inverted bounds to throw, not \(steps)")
+        } catch {
+            switch error {
+            case let .invertedBounds(lowerBound, upperBound):
+                #expect(lowerBound == minimum)
+                #expect(upperBound == maximum)
+            case .zeroStride:
+                Issue.record("Expected inverted bounds, not \(error)")
+            case .tooManySteps:
+                Issue.record("Expected inverted bounds, not \(error)")
+            }
+        }
+    }
+
     @Test("Inverted bounds are reported before a zero step")
     func typedOrder() {
         #expect(throws: TypedStepsError.invertedBounds(lowerBound: GBP(minorUnits: 2), upperBound: GBP(minorUnits: 1))) {

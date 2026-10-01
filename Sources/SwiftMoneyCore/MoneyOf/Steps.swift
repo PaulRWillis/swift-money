@@ -12,8 +12,9 @@ public extension MoneyOf {
     /// A positive stride runs from the lower bound up to the upper; a negative one starts on the upper
     /// bound and counts down to the lower. Steps are never empty: bounds that are equal give one step.
     ///
-    /// Steps are a random-access collection, so `count`, the subscript, `firstIndex(of:)` and
-    /// `contains(_:)` take constant time however many steps there are.
+    /// `count` and the subscript take constant time however many steps there are, as for any
+    /// random-access collection. So do `firstIndex(of:)`, `lastIndex(of:)` and `contains(_:)`, which
+    /// work out an amount's position from the bounds and the stride rather than stepping through.
     ///
     /// Two sets of steps are equal when they hold the same amounts, in the same order and the same
     /// currency. A stride longer than the span gives the same steps as a stride of the span itself, so
@@ -39,6 +40,8 @@ public extension MoneyOf {
         @usableFromInline
         let step: NonZeroInt64
 
+        // Stored rather than worked out from `span` and `step`, since `endIndex` reads it on every
+        // step of a loop.
         /// The number of steps, at least one.
         public let count: Int
 
@@ -60,8 +63,6 @@ public extension MoneyOf {
             self.currency = currency
             self.span = span
             self.step = step
-            // Stored rather than worked out from `span` and `step`, since `endIndex` reads it on every
-            // step of a loop.
             self.count = count
         }
 
@@ -258,14 +259,18 @@ extension MoneyOf.Steps {
         }
     }
 
-    // Every offset before the last is strictly between the bounds, so the step fits `Int64` even when
-    // the product alone does not: wrapping arithmetic works modulo 2⁶⁴ and lands on it exactly.
+    /// Returns the amount a number of steps from the first.
+    ///
+    /// - Parameter offset: How many steps the amount is from the first, from zero up to `count - 1`.
+    /// - Returns: The far bound for the last offset; otherwise the near bound moved `offset` steps.
     @inlinable
     func amount(at offset: Int) -> MoneyOf<C> {
         guard offset != count &- 1 else {
             return MoneyOf(unchecked: farBound, storage: currency)
         }
 
+        // An offset before the last lands from the near bound up to, but not including, the far one,
+        // so it fits `Int64` even when the product does not: wrapping modulo 2⁶⁴ lands on it exactly.
         let minorUnits = nearBound &+ Int64(truncatingIfNeeded: offset) &* step.rawValue
 
         return MoneyOf(unchecked: minorUnits, storage: currency)

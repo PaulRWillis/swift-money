@@ -17,8 +17,8 @@
 ///
 /// When more than one applies, the first in the order of these cases is reported.
 public enum MoneyStepsParsingError<C: CurrencyRepresentation>: Error, Hashable, Sendable {
-    /// The upper bound or the stride is in another currency than the lower bound, with the currency
-    /// it is in.
+    /// An amount given is in another currency than the steps: the upper bound's or the stride's,
+    /// with that currency.
     case currencyMismatch(C.Mismatch)
 
     /// The bound given as the lower one is above the one given as the upper, with both as given.
