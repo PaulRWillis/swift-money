@@ -163,7 +163,10 @@ response, into a value whose currency is already checked. After that, most uses 
 
 ```swift
 // A slider's bounds and step, parsed in one call that throws one error
-let steps = try Money.Steps(checkedBounds: (lower: response.minimum, upper: response.maximum), by: response.step)
+var steps = try Money.Steps(
+    checkedBounds: (lower: response.minimum, upper: response.maximum),
+    by: response.step
+)
 ```
 
 A range of runtime amounts is built with a throwing `...` or `..<`, which checks the currencies
@@ -213,7 +216,7 @@ count:
 
 ```swift
 do throws(MoneyStepsParsingError<AnyCurrency>) {
-    let steps = try Money.Steps(checkedBounds: (lower: minimum, upper: maximum), by: step)
+    steps = try Money.Steps(checkedBounds: (lower: minimum, upper: maximum), by: step)
 } catch {
     switch error {
     case .currencyMismatch(let currency): …       // maximum's, or else step's, currency differed

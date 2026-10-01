@@ -276,9 +276,11 @@ extension MoneyOf.Steps {
         return MoneyOf(unchecked: minorUnits, storage: storage)
     }
 
-    // The offset of the step equal to `element`, or `nil` if it is in another currency or not a step.
-    // Short of the far bound, the distance from the near one is below the span, so `UInt64` holds it
-    // and a whole number of strides is a step before the last, which `Int` counts.
+    /// Returns how many steps from the first the step equal to an amount is.
+    ///
+    /// - Parameter element: The amount to find.
+    /// - Returns: The offset of the step equal to `element`, or `nil` if `element` is in another
+    ///   currency or isn't a step.
     @inlinable
     func offset(of element: MoneyOf<C>) -> Int? {
         let minorUnits = element.minorUnits
@@ -289,6 +291,8 @@ extension MoneyOf.Steps {
             return count &- 1
         }
 
+        // Short of the far bound, the distance from the near one is below the span, so `UInt64` holds
+        // it and a whole number of strides is a step before the last, which `Int` counts.
         let travelled: UInt64
         switch direction {
         case .upward:
