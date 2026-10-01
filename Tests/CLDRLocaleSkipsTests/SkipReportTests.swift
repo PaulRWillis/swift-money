@@ -91,9 +91,9 @@ struct SkipReportTests {
     func currencyCodeSectionIsConditional() {
         #expect(!Self.report().rendered.contains("Currency codes CLDR names"))
 
-        let listed = Self.report(unusableCurrencyCodes: ["XBB", "XBA"]).rendered
-        #expect(listed.contains("## Currency codes CLDR names that a currency cannot carry (2)"))
-        #expect(listed.contains("XBA, XBB"))
+        let listed = Self.report(unusableCurrencyCodes: ["USDT", "XBA"]).rendered
+        #expect(listed.contains("## Currency codes CLDR names that the tables cannot hold (2)"))
+        #expect(listed.contains("USDT, XBA"))
     }
 
     @Test("A report with no skips says so rather than heading an empty list")

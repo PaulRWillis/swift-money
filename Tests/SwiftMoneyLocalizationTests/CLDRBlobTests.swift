@@ -20,8 +20,9 @@ struct CLDRBlobTests {
     static let gbp: CurrencyCode = "GBP"
 
     // One locale, "en", naming and displaying GBP alone.
-    static func makeBlob() -> [UInt8] {
+    static func makeBlob() throws -> [UInt8] {
         var body = BlobTestBuilder(base: CLDRBlob.headerWidth)
+        let gbp = try #require(Localization.CurrencyCode(Self.gbp))
 
         let key = body.pool("en")
         let decimalSeparator = body.pool(".")
@@ -115,14 +116,10 @@ struct CLDRBlobTests {
         return header.bytes + body.bytes
     }
 
-    static func withBlob(_ body: (CLDRBlob) -> Void) {
-        makeBlob().withUnsafeBufferPointer { buffer in
-            guard let base = buffer.baseAddress else {
-                Issue.record("a non-empty array has a base address")
-                return
-            }
+    static func withBlob(_ body: (CLDRBlob) -> Void) throws {
+        try makeBlob().withUnsafeBufferPointer { buffer in
             body(CLDRBlob(
-                reader: BlobReader(base: base, count: buffer.count),
+                reader: BlobReader(base: try #require(buffer.baseAddress), count: buffer.count),
                 arrangements: [
                     CurrencyArrangement(pattern: pattern, primaryGroupingSize: 3, secondaryGroupingSize: 3),
                 ],
@@ -132,8 +129,8 @@ struct CLDRBlobTests {
     }
 
     @Test("The header gives the locale count and resolves a locale")
-    func readsTheLocaleSection() {
-        Self.withBlob { blob in
+    func readsTheLocaleSection() throws {
+        try Self.withBlob { blob in
             #expect(blob.locales.localeCount == 1)
             #expect(blob.locales.index(of: "en") == LocaleIndex(position: 0))
             #expect(blob.locales.index(of: "de") == nil)
@@ -141,8 +138,8 @@ struct CLDRBlobTests {
     }
 
     @Test("Each table reads its own section")
-    func readsEachTable() {
-        Self.withBlob { blob in
+    func readsEachTable() throws {
+        try Self.withBlob { blob in
             let locale = LocaleIndex(position: 0)
 
             #expect(blob.numberFormats.numberFormat(localeIndex: locale).decimalSeparator == ".")
@@ -160,8 +157,8 @@ struct CLDRBlobTests {
     }
 
     @Test("The header resolves the numbering-system section")
-    func readsNumberingSystems() {
-        Self.withBlob { blob in
+    func readsNumberingSystems() throws {
+        try Self.withBlob { blob in
             #expect(blob.numberingSystems.count == 1)
             #expect(blob.numberingSystems.index(of: "latn") != nil)
             #expect(blob.numberingSystems.index(of: "arab") == nil)
@@ -169,8 +166,8 @@ struct CLDRBlobTests {
     }
 
     @Test("The header resolves the currency-arrangement-variant section")
-    func readsCurrencyArrangementVariants() {
-        Self.withBlob { blob in
+    func readsCurrencyArrangementVariants() throws {
+        try Self.withBlob { blob in
             #expect(blob.currencyArrangementVariants.count == 0)
             #expect(blob.currencyArrangementVariants.variants(localeIndex: LocaleIndex(position: 0)) == nil)
         }

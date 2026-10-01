@@ -79,11 +79,12 @@ let package = Package(
         .target(
             name: "CLDRLocaleIdentifiers"
         ),
-        // Dev-only. Names why the generator cannot build tables for a CLDR locale, and renders the
-        // committed report of the ones it left out. Not in any library product.
+        // Dev-only. Names why the generator cannot build tables for a CLDR locale, decides which of a
+        // locale's currency codes the tables can hold, and renders the committed report of what it
+        // left out. Not in any library product.
         .target(
             name: "CLDRLocaleSkips",
-            dependencies: ["CLDRCurrencyPatterns", "SwiftMoneyLocalization"]
+            dependencies: ["CLDRCurrencyPatterns", "SwiftMoneyCore", "SwiftMoneyLocalization"]
         ),
         .testTarget(
             name: "SwiftMoneyTests",
@@ -121,7 +122,12 @@ let package = Package(
         ),
         .testTarget(
             name: "CLDRLocaleSkipsTests",
-            dependencies: ["CLDRLocaleSkips", "CLDRCurrencyPatterns", "SwiftMoneyLocalization"]
+            dependencies: [
+                "CLDRLocaleSkips",
+                "CLDRCurrencyPatterns",
+                "SwiftMoneyCore",
+                "SwiftMoneyLocalization",
+            ]
         ),
         // Dev-only. Reads the pinned CLDR JSON (Tools/cldr/node_modules) and regenerates
         // SwiftMoneyLocalization's data tables. Not in any library product.

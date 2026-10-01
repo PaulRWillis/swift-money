@@ -7,22 +7,19 @@ import Testing
 @Suite("Currency Display Table Tests")
 struct CurrencyDisplayTableTests {
 
-    static func code(_ iso: String) -> CurrencyCode {
-        guard let code = CurrencyCode(string: iso) else { preconditionFailure("\(iso) is not a code") }
-        return code
-    }
-
     // One locale (index 0) displaying GBP (£, no gap, a glyph both forms) and USD (US$ standard, a
     // letter-adjacent form as in a locale that takes it through `-alphaNextToNumber`; $ narrow, a glyph).
-    static func makeBlob() -> (bytes: [UInt8], directoryOffset: Int) {
+    static func makeBlob() throws -> (bytes: [UInt8], directoryOffset: Int) {
         var b = BlobTestBuilder()
+        let gbp = try tableCode("GBP")
+        let usd = try tableCode("USD")
         let records: [(
-            code: CurrencyCode, standard: StringRef, standardGap: Spacing, standardForm: SymbolForm,
-            narrow: StringRef, narrowGap: Spacing, narrowForm: SymbolForm
+            code: Localization.CurrencyCode, standard: StringRef, standardGap: Spacing,
+            standardForm: SymbolForm, narrow: StringRef, narrowGap: Spacing, narrowForm: SymbolForm
         )] = [
-            (code("GBP"), b.pool("£"), .none, .glyph, b.pool("£"), .none, .glyph),
-            (code("USD"), b.pool("US$"), .nonBreakingSpace, .letters, b.pool("$"), .none, .glyph),
-        ].sorted { $0.code.compactValue < $1.code.compactValue }
+            (gbp, b.pool("£"), .none, .glyph, b.pool("£"), .none, .glyph),
+            (usd, b.pool("US$"), .nonBreakingSpace, .letters, b.pool("$"), .none, .glyph),
+        ].sorted { $0.code < $1.code }
 
         let recordsStart = b.count
         for record in records {
@@ -40,18 +37,18 @@ struct CurrencyDisplayTableTests {
         return (b.bytes, directoryOffset)
     }
 
-    static func withTable(_ body: (CurrencyDisplayTable) -> Void) {
-        let (bytes, directoryOffset) = makeBlob()
-        bytes.withUnsafeBufferPointer { buffer in
-            let reader = BlobReader(base: buffer.baseAddress!, count: buffer.count)
+    static func withTable(_ body: (CurrencyDisplayTable) -> Void) throws {
+        let (bytes, directoryOffset) = try makeBlob()
+        try bytes.withUnsafeBufferPointer { buffer in
+            let reader = BlobReader(base: try #require(buffer.baseAddress), count: buffer.count)
             body(CurrencyDisplayTable(reader: reader, directoryOffset: directoryOffset))
         }
     }
 
     @Test("Decodes a currency's symbols, spacings and letter forms")
-    func decodesSymbols() {
-        Self.withTable { table in
-            let usd = table.display(localeIndex: LocaleIndex(position: 0), code: Self.code("USD"))
+    func decodesSymbols() throws {
+        try Self.withTable { table in
+            let usd = table.display(localeIndex: LocaleIndex(position: 0), code: "USD")
             #expect(usd == CurrencyDisplay(
                 standardSymbol: "US$", standardSpacing: .nonBreakingSpace, standardForm: .letters,
                 narrowSymbol: "$", narrowSpacing: .none, narrowForm: .glyph
@@ -60,9 +57,9 @@ struct CurrencyDisplayTableTests {
     }
 
     @Test("A currency with no distinct symbol decodes to nil")
-    func undisplayedCurrencyIsNil() {
-        Self.withTable { table in
-            #expect(table.display(localeIndex: LocaleIndex(position: 0), code: Self.code("EUR")) == nil)
+    func undisplayedCurrencyIsNil() throws {
+        try Self.withTable { table in
+            #expect(table.display(localeIndex: LocaleIndex(position: 0), code: "EUR") == nil)
         }
     }
 }

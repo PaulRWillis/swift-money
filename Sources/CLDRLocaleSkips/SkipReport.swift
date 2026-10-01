@@ -16,7 +16,7 @@ package struct SkipReport: Equatable, Sendable {
     ///   - cldrVersion: The release the tables were built from.
     ///   - candidates: How many locales the generator considered.
     ///   - skipped: The ones it could not build, in any order.
-    ///   - unusableCurrencyCodes: Codes CLDR names that no currency can carry.
+    ///   - unusableCurrencyCodes: Codes CLDR names that the tables cannot hold.
     package init(
         cldrVersion: String,
         candidates: Int,
@@ -81,7 +81,7 @@ package struct SkipReport: Equatable, Sendable {
         }
 
         return ["""
-            ## Currency codes CLDR names that a currency cannot carry (\(unusableCurrencyCodes.count))
+            ## Currency codes CLDR names that the tables cannot hold (\(unusableCurrencyCodes.count))
 
             \(unusableCurrencyCodes.sorted().joined(separator: ", "))
             """]

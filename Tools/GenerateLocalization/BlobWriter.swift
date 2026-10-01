@@ -1,4 +1,3 @@
-import SwiftMoneyCore
 import SwiftMoneyLocalization
 
 // Writes the bytes of the packed tables: every integer as the printable digits `BlobReader` decodes,
@@ -28,11 +27,8 @@ struct BlobWriter {
     mutating func u16(_ value: UInt16) { digits(UInt64(value), width: BlobDigits.u16) }
     mutating func u32(_ value: Int) { digits(UInt64(value), width: BlobDigits.u32) }
     mutating func u64(_ value: UInt64) { digits(value, width: BlobDigits.u64) }
-    mutating func currencyCode(_ code: CurrencyCode) {
-        guard let wire = code.threeCharacterValue else {
-            preconditionFailure("currency code \(code) is not three characters")
-        }
-        digits(wire, width: BlobDigits.currencyCode)
+    mutating func currencyCode(_ code: Localization.CurrencyCode) {
+        digits(code.value, width: BlobDigits.currencyCode)
     }
 
     mutating func offsetField(_ value: Int) {

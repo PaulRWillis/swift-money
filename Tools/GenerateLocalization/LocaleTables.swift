@@ -1,4 +1,3 @@
-import SwiftMoneyCore
 import SwiftMoneyLocalization
 
 // One locale's tables as plain values, decided before a byte of it reaches the string pool.
@@ -13,7 +12,7 @@ struct LocaleTables {
     // What a locale calls one currency in symbol form, the gap each form takes beside the digits, and
     // whether a letter touches the number in each.
     struct Display {
-        let code: CurrencyCode
+        let code: Localization.CurrencyCode
         let standardSymbol: String
         let standardSpacing: Spacing
         let standardForm: SymbolForm
@@ -25,7 +24,7 @@ struct LocaleTables {
     // What a locale calls one currency in words: the name CLDR always publishes, and any plural
     // category that words it differently.
     struct FullName {
-        let code: CurrencyCode
+        let code: Localization.CurrencyCode
         let other: String
         let overrides: [(category: PluralCategory, name: String)]
     }
@@ -70,7 +69,7 @@ struct LocaleTables {
     let displays: [Display]
     let fullNames: [FullName]
 
-    // Codes CLDR names in this locale that no currency can carry, reported rather than dropped in
+    // Codes CLDR names in this locale that the tables can't hold, reported rather than dropped in
     // silence.
     let unusableCurrencyCodes: Set<String>
 

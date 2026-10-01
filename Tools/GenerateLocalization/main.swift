@@ -1298,8 +1298,7 @@ func displays(
     parsed: ParsedPattern,
     insertBetween: String
 ) throws(LocaleSkip) -> (records: [LocaleTables.Display], unusableCodes: Set<String>) {
-    var records: [LocaleTables.Display] = []
-    var unusableCodes: Set<String> = []
+    var distinct: [(code: String, fields: (symbol: String, narrow: String))] = []
 
     for (code, fields) in currencies(locale).sorted(by: { $0.key < $1.key }) {
         let symbol = fields["symbol"] ?? code
@@ -1307,22 +1306,26 @@ func displays(
         guard symbol != code || narrow != code else {
             continue   // neither form is distinct; the runtime falls back to the code
         }
-        guard let currencyCode = CurrencyCode(string: code) else {
-            unusableCodes.insert(code)
-            continue
-        }
 
-        let gap = { (form: String) throws(LocaleSkip) -> Spacing in
-            try spacingCode(
-                for: form,
-                side: parsed.side,
-                patternSpacing: parsed.patternSpacing,
-                insertBetween: insertBetween
-            )
-        }
+        distinct.append((code, (symbol, narrow)))
+    }
+
+    let entries = LocaleCurrencyEntries(distinct)
+    let gap = { (form: String) throws(LocaleSkip) -> Spacing in
+        try spacingCode(
+            for: form,
+            side: parsed.side,
+            patternSpacing: parsed.patternSpacing,
+            insertBetween: insertBetween
+        )
+    }
+    var records: [LocaleTables.Display] = []
+
+    for entry in entries.held {
+        let (symbol, narrow) = entry.fields
 
         records.append(LocaleTables.Display(
-            code: currencyCode,
+            code: entry.code,
             standardSymbol: symbol,
             standardSpacing: try gap(symbol),
             standardForm: symbolForm(for: symbol, side: parsed.side),
@@ -1332,30 +1335,25 @@ func displays(
         ))
     }
 
-    return (records, unusableCodes)
+    return (records, entries.unusableCodes)
 }
 
 // What a locale calls each currency in words, in the order `Currency.allISO4217` lists them.
 func fullNameRecords(of locale: String) -> (records: [LocaleTables.FullName], unusableCodes: Set<String>) {
-    var records: [LocaleTables.FullName] = []
-    var unusableCodes: Set<String> = []
+    // Every code here is one the library ships, each three characters, so none comes back unusable.
+    let entries = LocaleCurrencyEntries(fullNames(currencies(locale)).map { (code: $0.code, fields: $0) })
 
-    for name in fullNames(currencies(locale)) {
-        guard let code = CurrencyCode(string: name.code) else {
-            unusableCodes.insert(name.code)
-            continue
-        }
-
-        records.append(LocaleTables.FullName(
-            code: code,
-            other: name.other,
+    let records = entries.held.map { entry in
+        LocaleTables.FullName(
+            code: entry.code,
+            other: entry.fields.other,
             overrides: PluralCategory.allCases.compactMap { category in
-                name.byCategory[category].map { (category, $0) }
+                entry.fields.byCategory[category].map { (category, $0) }
             }
-        ))
+        )
     }
 
-    return (records, unusableCodes)
+    return (records, entries.unusableCodes)
 }
 
 // The script each language implies, so that a locale's data is filed under the identifier a caller
@@ -1480,8 +1478,8 @@ func pack(
     return PackedLocale(
         key: pool.insert(locale),
         numberFormat: numberFormat,
-        displays: displays.sorted { $0.code.compactValue < $1.code.compactValue },
-        fullNames: names.sorted { $0.code.compactValue < $1.code.compactValue }
+        displays: displays.sorted { $0.code < $1.code },
+        fullNames: names.sorted { $0.code < $1.code }
     )
 }
 
