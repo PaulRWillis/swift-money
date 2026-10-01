@@ -154,16 +154,18 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
 
     /// Creates a code from its packed word, or `nil` unless the word is exactly a code's own.
     ///
-    /// A code's word holds three to eight characters left-aligned, with every slot after the last
-    /// character empty and no bit set above the eight slots.
+    /// A code's word holds three to eight packed characters (1 to 36) left-aligned, with every
+    /// slot after the last character empty and no bit set above the eight slots.
     ///
     /// ```swift
-    /// CurrencyCode(compactValue: 0x1C24_0000_0000)  // GBP
-    /// CurrencyCode(compactValue: 0x1C24_0000_0001)  // nil, a character after an empty slot
+    /// let gbp: CurrencyCode = "GBP"
+    /// CurrencyCode(compactValue: gbp.compactValue)      // GBP
+    /// CurrencyCode(compactValue: gbp.compactValue | 1)  // nil
     /// ```
     ///
     /// - Parameter compactValue: A packed word, such as one read back from bytes.
-    /// - Returns: `nil` unless `compactValue` is the ``compactValue`` of some code.
+    /// - Returns: The code whose ``CurrencyCode/compactValue`` is `compactValue`, or `nil` if no
+    ///   code has it.
     @usableFromInline
     package init?(compactValue: UInt64) {
         var packed: UInt64 = 0
@@ -185,7 +187,7 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
 
         let rebuilt = Self.leftAligned(packed, count: count)
 
-        // The loop stops at the first empty slot, so this refuses any bit it did not read.
+        // The loop stops at the first empty slot, so the compare refuses any bit it did not read.
         guard Self.acceptedLengths.contains(count), rebuilt == compactValue else {
             return nil
         }
