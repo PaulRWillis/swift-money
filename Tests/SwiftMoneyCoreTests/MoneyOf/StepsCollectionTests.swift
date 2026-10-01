@@ -114,6 +114,8 @@ struct StepsCollectionTests {
 
         #expect(offset(up, up.firstIndex(of: middle)) == Int.max / 2)
         #expect(offset(up, up.firstIndex(of: GBP(minorUnits: farBound))) == Int.max - 1)
+        // A backward scan finds each sequence's last element first, so for `lastIndex(of:)` only the
+        // middle lookups show the steps aren't walked.
         #expect(offset(up, up.lastIndex(of: middle)) == Int.max / 2)
         #expect(offset(up, up.lastIndex(of: GBP(minorUnits: farBound))) == Int.max - 1)
         #expect(up.contains(middle))

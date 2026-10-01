@@ -25,18 +25,25 @@ struct StepsParsingTests {
         #expect(Array(runtime).map(\.minorUnits) == [250, 150, 50, 0])
     }
 
-    @Test("Named bounds of 250 and 0 throw invertedBounds, typed and runtime")
+    @Test("Named bounds of 250 and 0 throw invertedBounds for either stride sign, typed and runtime")
     func namedBoundsInverted() {
         let typedInverted = MoneyStepsParsingError<Currencies.JPY>.invertedBounds(
             lowerBound: JPY(minorUnits: 250),
             upperBound: JPY(minorUnits: 0)
         )
+        let runtimeInverted = RuntimeStepsError.invertedBounds(lowerBound: yen(250), upperBound: yen(0))
 
         #expect(throws: typedInverted) {
             try JPY.Steps(checkedBounds: (lower: JPY(minorUnits: 250), upper: JPY(minorUnits: 0)), by: JPY(minorUnits: 100))
         }
-        #expect(throws: RuntimeStepsError.invertedBounds(lowerBound: yen(250), upperBound: yen(0))) {
+        #expect(throws: typedInverted) {
+            try JPY.Steps(checkedBounds: (lower: JPY(minorUnits: 250), upper: JPY(minorUnits: 0)), by: JPY(minorUnits: -100))
+        }
+        #expect(throws: runtimeInverted) {
             try Money.Steps(checkedBounds: (lower: yen(250), upper: yen(0)), by: yen(100))
+        }
+        #expect(throws: runtimeInverted) {
+            try Money.Steps(checkedBounds: (lower: yen(250), upper: yen(0)), by: yen(-100))
         }
     }
 
