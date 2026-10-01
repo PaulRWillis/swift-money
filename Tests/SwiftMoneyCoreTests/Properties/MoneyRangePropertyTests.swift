@@ -96,11 +96,39 @@ struct MoneyRangePropertyTests {
     }
 
     @Test("A typed closed range contains a half-open one as ClosedRange<Int64> does", arguments: rangePairs)
-    private func typedClosedContainsHalfOpen(_ pair: RangePair) {
+    private func typedClosedContainsHalfOpen(_ pair: RangePair) throws {
         let first = GBP(minorUnits: pair.first.lowerBound) ... GBP(minorUnits: pair.first.upperBound)
         let second = GBP(minorUnits: pair.second.lowerBound) ..< GBP(minorUnits: pair.second.upperBound)
 
         #expect(first.contains(second) == pair.first.contains(pair.second.lowerBound ..< pair.second.upperBound))
+        #expect(try ClosedMoneyRange(first).contains(MoneyRange(second)) == first.contains(second))
+    }
+
+    @Test("Clamping an amount matches min and max on its minor units", arguments: rangePairs)
+    private func amountClampingMatchesMinAndMax(_ pair: RangePair) throws {
+        let (probe, lower, upper) = (pair.probe, pair.first.lowerBound, pair.first.upperBound)
+        let amount = money(probe, pair.currency)
+        let typed = GBP(minorUnits: probe)
+
+        let clampedToClosed = try amount.clamped(to: closed(pair.first, pair.currency))
+        #expect(clampedToClosed == money(Swift.min(Swift.max(probe, lower), upper), pair.currency))
+        #expect(try amount.clamped(to: money(lower, pair.currency)...) == money(Swift.max(probe, lower), pair.currency))
+        #expect(try amount.clamped(to: ...money(upper, pair.currency)) == money(Swift.min(probe, upper), pair.currency))
+
+        let typedLimits = GBP(minorUnits: lower) ... GBP(minorUnits: upper)
+        #expect(typed.clamped(to: typedLimits) == GBP(minorUnits: Swift.min(Swift.max(probe, lower), upper)))
+        #expect(typed.clamped(to: GBP(minorUnits: lower)...) == GBP(minorUnits: Swift.max(probe, lower)))
+        #expect(typed.clamped(to: ...GBP(minorUnits: upper)) == GBP(minorUnits: Swift.min(probe, upper)))
+    }
+
+    @Test("Partial runtime ranges contain an amount as comparisons on minor units do", arguments: rangePairs)
+    private func partialContainsMatchesComparisons(_ pair: RangePair) throws {
+        let (probe, lower, upper) = (pair.probe, pair.first.lowerBound, pair.first.upperBound)
+        let amount = money(probe, pair.currency)
+
+        #expect(try (money(lower, pair.currency)...).contains(amount) == (probe >= lower))
+        #expect(try (...money(upper, pair.currency)).contains(amount) == (probe <= upper))
+        #expect(try (..<money(upper, pair.currency)).contains(amount) == (probe < upper))
     }
 
     @Test("A closed range round-trips through a half-open one unless it ends at the maximum", arguments: rangePairs)
