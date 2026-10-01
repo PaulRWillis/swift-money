@@ -365,6 +365,44 @@ extension MoneyOf.Steps {
         return rounded == .awayFromZero ? awayFromZero : towardZero
     }
 
+    /// Returns how many steps from the first the step an amount rounds to is, if a step satisfies
+    /// the rule.
+    ///
+    /// - Parameters:
+    ///   - minorUnits: The amount's minor units, in the steps' currency.
+    ///   - rule: How to choose between the two steps either side of the amount.
+    /// - Returns: The offset of the step `rule` picks, the nearer end for an amount beyond the steps.
+    /// - Throws: ``MoneyStepsRoundingError/outOfBounds`` if the amount is beyond the steps and `rule`
+    ///   rules out the only step beside it.
+    @inlinable
+    func offset(
+        approximating minorUnits: MoneyOf<C>.MinorUnits,
+        rounding rule: RoundingRule
+    ) throws(MoneyStepsRoundingError<C>) -> Int {
+        let isBelow = minorUnits < span.lowerBound
+        if isBelow || minorUnits > span.upperBound {
+            let endIsTowardZero = isBelow == (minorUnits < 0)
+            let reachesEnd: Bool
+            switch rule {
+            case .toNearestOrEven, .toNearestOrAwayFromZero:
+                reachesEnd = true
+            case .up:
+                reachesEnd = isBelow
+            case .down:
+                reachesEnd = !isBelow
+            case .towardZero:
+                reachesEnd = endIsTowardZero
+            case .awayFromZero:
+                reachesEnd = !endIsTowardZero
+            }
+            guard reachesEnd else {
+                throw .outOfBounds
+            }
+        }
+
+        return offset(rounding: minorUnits, rule)
+    }
+
     /// Creates steps from bounds and a step already known to share a currency, so the typed and
     /// runtime parses report the same failures in the same order.
     ///
@@ -452,14 +490,34 @@ public extension MoneyOf.Steps where C: CurrencyType {
         self.init(unchecked: .implied, span: steps.span, step: steps.step, count: steps.count)
     }
 
-    /// Returns the position of the step an amount rounds to.
+    /// Returns the position of the step nearest an amount.
+    ///
+    /// An amount between two steps, such as a saved £123.45 on £10 steps, takes the nearer one,
+    /// measuring the shorter last gap as it is. A tie goes to the even index. An amount beyond the
+    /// steps takes the nearer end, so this never fails:
+    ///
+    /// ```swift
+    /// steps.index(approximating: saved)   // the nearest step
+    /// ```
+    ///
+    /// To choose the step by another rule, use ``index(approximating:rounding:)``. For an exact match
+    /// without rounding, use `firstIndex(of:)`.
+    ///
+    /// - Parameter amount: The amount to find a step for.
+    /// - Returns: A position in the steps, never `endIndex`.
+    /// - Complexity: O(1).
+    @inlinable
+    func index(approximating amount: MoneyOf<C>) -> Index {
+        Index(offset: offset(rounding: amount.minorUnits, .toNearestOrEven))
+    }
+
+    /// Returns the position of the step an amount rounds to by a rule.
     ///
     /// An amount between two steps, such as a saved £123.45 on £10 steps, has to become one of them.
     /// The rule says which:
     ///
     /// ```swift
-    /// steps.index(approximating: saved)                    // the nearest step
-    /// steps.index(approximating: saved, rounding: .down)   // the highest step at or below `saved`
+    /// try steps.index(approximating: saved, rounding: .down)   // the highest step at or below
     /// ```
     ///
     /// `.down` takes the step at or below the amount and `.up` the one at or above. `.towardZero`
@@ -470,20 +528,25 @@ public extension MoneyOf.Steps where C: CurrencyType {
     /// last gap included: `.toNearestOrEven` breaks a tie toward the even index, and
     /// `.toNearestOrAwayFromZero` toward the step larger in size. Where the neighbors are the same
     /// size, as −£10 and £10 are, the rules that name zero take the one with the amount's sign; zero
-    /// counts as positive. An amount beyond the steps takes the nearer end under every rule. For an
-    /// exact match without rounding, use `firstIndex(of:)`.
+    /// counts as positive.
+    ///
+    /// An amount beyond the steps has one neighbor, the nearer end. The nearest rules take it, and so
+    /// does any other rule that allows a step on that side. `.towardZero` and `.awayFromZero` act as
+    /// `.down` or `.up` by the amount's sign there.
     ///
     /// - Parameters:
     ///   - amount: The amount to find a step for.
     ///   - rule: How to choose between the two steps either side of `amount`.
     /// - Returns: A position in the steps, never `endIndex`.
+    /// - Throws: ``MoneyStepsRoundingError/outOfBounds`` if no step satisfies `rule`, such as under
+    ///   `.up` for an amount above the highest step, or `.down` for one below the lowest.
     /// - Complexity: O(1).
     @inlinable
     func index(
         approximating amount: MoneyOf<C>,
-        rounding rule: RoundingRule = .toNearestOrEven
-    ) -> Index {
-        Index(offset: offset(rounding: amount.minorUnits, rule))
+        rounding rule: RoundingRule
+    ) throws(MoneyStepsRoundingError<C>) -> Index {
+        Index(offset: try offset(approximating: amount.minorUnits, rounding: rule))
     }
 }
 
@@ -544,7 +607,28 @@ public extension MoneyOf.Steps where C == AnyCurrency {
         self.init(unchecked: T.currency, span: typed.span, step: typed.step, count: typed.count)
     }
 
-    /// Returns the position of the step a runtime amount rounds to, if it is in the steps' currency.
+    /// Returns the position of the step nearest a runtime amount, if it is in the steps' currency.
+    ///
+    /// Rounds as the typed `index(approximating:)` does, so only a currency mismatch fails:
+    ///
+    /// ```swift
+    /// let position = try steps.index(approximating: saved)
+    /// ```
+    ///
+    /// - Parameter amount: The amount to find a step for.
+    /// - Returns: A position in the steps, never `endIndex`.
+    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if `amount` is in another currency, with
+    ///   the steps' currency as `lhs`.
+    /// - Complexity: O(1).
+    @inlinable
+    func index(approximating amount: Money) throws(MoneyError) -> Index {
+        try AnyCurrency.requireMatch(storage, amount.storage)
+
+        return Index(offset: offset(rounding: amount.minorUnits, .toNearestOrEven))
+    }
+
+    /// Returns the position of the step a runtime amount rounds to by a rule, if it is in the steps'
+    /// currency.
     ///
     /// Rounds as the typed `index(approximating:rounding:)` does:
     ///
@@ -556,16 +640,19 @@ public extension MoneyOf.Steps where C == AnyCurrency {
     ///   - amount: The amount to find a step for.
     ///   - rule: How to choose between the two steps either side of `amount`.
     /// - Returns: A position in the steps, never `endIndex`.
-    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if `amount` is in another currency, with
-    ///   the steps' currency as `lhs`.
+    /// - Throws: ``MoneyStepsRoundingError/currencyMismatch(_:)`` with the currency of `amount` if
+    ///   it differs from the steps'; otherwise ``MoneyStepsRoundingError/outOfBounds`` if no step
+    ///   satisfies `rule`.
     /// - Complexity: O(1).
     @inlinable
     func index(
         approximating amount: Money,
-        rounding rule: RoundingRule = .toNearestOrEven
-    ) throws(MoneyError) -> Index {
-        try AnyCurrency.requireMatch(storage, amount.storage)
+        rounding rule: RoundingRule
+    ) throws(MoneyStepsRoundingError<AnyCurrency>) -> Index {
+        guard amount.storage == storage else {
+            throw .currencyMismatch(amount.currency)
+        }
 
-        return Index(offset: offset(rounding: amount.minorUnits, rule))
+        return Index(offset: try offset(approximating: amount.minorUnits, rounding: rule))
     }
 }

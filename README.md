@@ -253,16 +253,17 @@ try limits.steps(by: .majorUnits(100))    // GBP 10.00, 110.00, 210.00, 250.00
 try limits.steps(by: .majorUnits(-100))   // GBP 250.00, 150.00, 50.00, 10.00
 ```
 
-An amount between two steps is rounded onto one. The rounding rule is a parameter, so the choice
-is visible. It defaults to the nearest step, ties to the even index, as elsewhere in the library:
+An amount between two steps is rounded onto one. Without a rule it takes the nearest step, ties to
+the even index, as elsewhere in the library, and an amount beyond the steps takes the nearer end.
+A rule such as `.down` throws `MoneyStepsRoundingError.outOfBounds` when no step satisfies it:
 
 ```swift
 let steps = try limits.steps(by: .majorUnits(10))
 let saved = GBP(minorUnits: 123_45)
 
-steps.index(approximating: saved)                    // the nearest step
-steps.index(approximating: saved, rounding: .down)   // never above the saved amount
-steps.firstIndex(of: saved)                          // an exact match only, or nil
+steps.index(approximating: saved)                        // the nearest step
+try steps.index(approximating: saved, rounding: .down)   // never above the saved amount
+steps.firstIndex(of: saved)                              // an exact match only, or nil
 ```
 
 `stride(from:through:by:)` and `stride(from:to:by:)` work too, with the standard library's behavior

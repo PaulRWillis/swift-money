@@ -122,8 +122,13 @@ struct StepsPropertyTests {
         for probe in probes(around: steps) {
             let amount = Money(minorUnits: probe, currency: sample.currency)
             for rule in rules {
-                let found = try steps.index(approximating: amount, rounding: rule)
-                #expect(found == searchedIndex(for: probe, in: steps, rounding: rule), "\(probe) by \(rule)")
+                guard let searched = searchedIndex(for: probe, in: steps, rounding: rule) else {
+                    #expect(throws: MoneyStepsRoundingError<AnyCurrency>.outOfBounds, "\(probe) by \(rule)") {
+                        try steps.index(approximating: amount, rounding: rule)
+                    }
+                    continue
+                }
+                #expect(try steps.index(approximating: amount, rounding: rule) == searched, "\(probe) by \(rule)")
             }
         }
     }
@@ -163,19 +168,47 @@ private func probes(around steps: Money.Steps) -> [Int64] {
 }
 
 // Rounds by searching every step, on the number line as `Double.rounded(_:)` does: `down` is the
-// highest step at or below, `up` the lowest at or above, and an amount beyond every step takes the
-// nearer end. Zero rounds as a positive amount. When the two neighbors lie either side of zero,
-// `towardZero` takes the one smaller in size and `awayFromZero` the larger, and neighbors of equal
-// size give the one with the amount's sign under both.
+// highest step at or below, `up` the lowest at or above, and `nil` when there is none. Zero rounds as
+// a positive amount, so beyond every step `towardZero` acts as `down` for it and `awayFromZero` as
+// `up`. When the two neighbors lie either side of zero, `towardZero` takes the one smaller in size and
+// `awayFromZero` the larger, and neighbors of equal size give the one with the amount's sign under
+// both. The nearest rules take the only neighbor when there is one.
 private func searchedIndex(for probe: Int64, in steps: Money.Steps, rounding rule: RoundingRule) -> Money.Steps.Index? {
     let indices = Array(steps.indices)
-    let lowest = indices.min { steps[$0].minorUnits < steps[$1].minorUnits }
-    let highest = indices.max { steps[$0].minorUnits < steps[$1].minorUnits }
-    let below = indices.filter { steps[$0].minorUnits <= probe }.max { steps[$0].minorUnits < steps[$1].minorUnits } ?? lowest
-    let above = indices.filter { steps[$0].minorUnits >= probe }.min { steps[$0].minorUnits < steps[$1].minorUnits } ?? highest
-    guard let below, let above else {
+    let below = indices.filter { steps[$0].minorUnits <= probe }.max { steps[$0].minorUnits < steps[$1].minorUnits }
+    let above = indices.filter { steps[$0].minorUnits >= probe }.min { steps[$0].minorUnits < steps[$1].minorUnits }
+    switch (below, above) {
+    case let (below?, above?):
+        return searchedIndex(for: probe, between: below, and: above, in: steps, rounding: rule)
+    case let (below?, nil):
+        return takesOnlyNeighbor(above: false, of: probe, rounding: rule) ? below : nil
+    case let (nil, above?):
+        return takesOnlyNeighbor(above: true, of: probe, rounding: rule) ? above : nil
+    case (nil, nil):
         return nil
     }
+}
+
+// Whether a rule may take the only step beside an amount beyond every step, above it or below it.
+private func takesOnlyNeighbor(above: Bool, of probe: Int64, rounding rule: RoundingRule) -> Bool {
+    switch rule {
+    case .down: return !above
+    case .up: return above
+    case .towardZero: return probe < 0 ? above : !above
+    case .awayFromZero: return probe < 0 ? !above : above
+    case .toNearestOrEven, .toNearestOrAwayFromZero: return true
+    @unknown default: return false
+    }
+}
+
+// Rounds an amount between two neighboring steps, or on one when both are the same step.
+private func searchedIndex(
+    for probe: Int64,
+    between below: Money.Steps.Index,
+    and above: Money.Steps.Index,
+    in steps: Money.Steps,
+    rounding rule: RoundingRule
+) -> Money.Steps.Index? {
 
     let positive = probe >= 0
     let toBelow = (Int128(probe) - Int128(steps[below].minorUnits)).magnitude

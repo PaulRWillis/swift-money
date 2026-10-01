@@ -54,35 +54,60 @@ public extension MoneyOf.Steps {
 }
 
 public extension MoneyOf.Steps.Selection where C: CurrencyType {
-    /// Creates the selection of the step an amount rounds to.
+    /// Creates the selection of the step nearest an amount.
     ///
-    /// Rounds as ``MoneyOf/Steps/index(approximating:rounding:)`` does: to the nearest step by
-    /// default, or by the rule given.
+    /// Rounds as ``MoneyOf/Steps/index(approximating:)`` does, so an amount beyond the steps
+    /// selects the nearer end.
+    ///
+    /// - Parameters:
+    ///   - amount: The amount to select, such as a saved one.
+    ///   - steps: The steps to choose among.
+    @inlinable
+    init(
+        approximating amount: MoneyOf<C>,
+        in steps: MoneyOf<C>.Steps
+    ) {
+        self.init(unchecked: steps, index: steps.index(approximating: amount))
+    }
+
+    /// Creates the selection of the step an amount rounds to by a rule.
+    ///
+    /// Rounds as ``MoneyOf/Steps/index(approximating:rounding:)`` does.
     ///
     /// - Parameters:
     ///   - amount: The amount to select, such as a saved one.
     ///   - steps: The steps to choose among.
     ///   - rule: How to choose between the two steps either side of `amount`.
+    /// - Throws: ``MoneyStepsRoundingError/outOfBounds`` if no step satisfies `rule`.
     @inlinable
     init(
         approximating amount: MoneyOf<C>,
         in steps: MoneyOf<C>.Steps,
-        rounding rule: RoundingRule = .toNearestOrEven
-    ) {
-        self.init(unchecked: steps, index: steps.index(approximating: amount, rounding: rule))
+        rounding rule: RoundingRule
+    ) throws(MoneyStepsRoundingError<C>) {
+        self.init(unchecked: steps, index: try steps.index(approximating: amount, rounding: rule))
     }
 
-    /// Returns the selection of the step an amount rounds to, in the same steps.
+    /// Returns the selection of the step nearest an amount, in the same steps.
+    ///
+    /// - Parameter amount: The amount to select.
+    @inlinable
+    func selecting(approximating amount: MoneyOf<C>) -> Self {
+        Self(approximating: amount, in: steps)
+    }
+
+    /// Returns the selection of the step an amount rounds to by a rule, in the same steps.
     ///
     /// - Parameters:
     ///   - amount: The amount to select.
     ///   - rule: How to choose between the two steps either side of `amount`.
+    /// - Throws: ``MoneyStepsRoundingError/outOfBounds`` if no step satisfies `rule`.
     @inlinable
     func selecting(
         approximating amount: MoneyOf<C>,
-        rounding rule: RoundingRule = .toNearestOrEven
-    ) -> Self {
-        Self(approximating: amount, in: steps, rounding: rule)
+        rounding rule: RoundingRule
+    ) throws(MoneyStepsRoundingError<C>) -> Self {
+        try Self(approximating: amount, in: steps, rounding: rule)
     }
 
     /// Creates a typed selection from a runtime one, if it is in this type's currency.
@@ -97,7 +122,7 @@ public extension MoneyOf.Steps.Selection where C: CurrencyType {
 }
 
 public extension MoneyOf.Steps.Selection where C == AnyCurrency {
-    /// Creates the selection of the step a runtime amount rounds to, if it is in the steps' currency.
+    /// Creates the selection of the step nearest a runtime amount, if it is in the steps' currency.
     ///
     /// ```swift
     /// let selection = try Money.Steps.Selection(approximating: saved, in: steps)
@@ -106,30 +131,58 @@ public extension MoneyOf.Steps.Selection where C == AnyCurrency {
     /// - Parameters:
     ///   - amount: The amount to select, such as a saved one.
     ///   - steps: The steps to choose among.
-    ///   - rule: How to choose between the two steps either side of `amount`.
     /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if `amount` is in another currency, with
     ///   the steps' currency as `lhs`.
     @inlinable
     init(
         approximating amount: Money,
-        in steps: Money.Steps,
-        rounding rule: RoundingRule = .toNearestOrEven
+        in steps: Money.Steps
     ) throws(MoneyError) {
+        self.init(unchecked: steps, index: try steps.index(approximating: amount))
+    }
+
+    /// Creates the selection of the step a runtime amount rounds to by a rule, if it is in the
+    /// steps' currency.
+    ///
+    /// - Parameters:
+    ///   - amount: The amount to select, such as a saved one.
+    ///   - steps: The steps to choose among.
+    ///   - rule: How to choose between the two steps either side of `amount`.
+    /// - Throws: ``MoneyStepsRoundingError/currencyMismatch(_:)`` with the currency of `amount` if
+    ///   it differs from the steps'; otherwise ``MoneyStepsRoundingError/outOfBounds`` if no step
+    ///   satisfies `rule`.
+    @inlinable
+    init(
+        approximating amount: Money,
+        in steps: Money.Steps,
+        rounding rule: RoundingRule
+    ) throws(MoneyStepsRoundingError<AnyCurrency>) {
         self.init(unchecked: steps, index: try steps.index(approximating: amount, rounding: rule))
     }
 
-    /// Returns the selection of the step a runtime amount rounds to, in the same steps.
+    /// Returns the selection of the step nearest a runtime amount, in the same steps.
+    ///
+    /// - Parameter amount: The amount to select.
+    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if `amount` is in another currency, with
+    ///   the steps' currency as `lhs`.
+    @inlinable
+    func selecting(approximating amount: Money) throws(MoneyError) -> Self {
+        try Self(approximating: amount, in: steps)
+    }
+
+    /// Returns the selection of the step a runtime amount rounds to by a rule, in the same steps.
     ///
     /// - Parameters:
     ///   - amount: The amount to select.
     ///   - rule: How to choose between the two steps either side of `amount`.
-    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if `amount` is in another currency, with
-    ///   the steps' currency as `lhs`.
+    /// - Throws: ``MoneyStepsRoundingError/currencyMismatch(_:)`` with the currency of `amount` if
+    ///   it differs from the steps'; otherwise ``MoneyStepsRoundingError/outOfBounds`` if no step
+    ///   satisfies `rule`.
     @inlinable
     func selecting(
         approximating amount: Money,
-        rounding rule: RoundingRule = .toNearestOrEven
-    ) throws(MoneyError) -> Self {
+        rounding rule: RoundingRule
+    ) throws(MoneyStepsRoundingError<AnyCurrency>) -> Self {
         try Self(approximating: amount, in: steps, rounding: rule)
     }
 

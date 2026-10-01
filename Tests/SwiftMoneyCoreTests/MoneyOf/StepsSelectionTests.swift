@@ -2,6 +2,8 @@ import SwiftMoneyCore
 import Testing
 
 private typealias Credits = MoneyOf<Millicredits>
+private typealias RoundingError = MoneyStepsRoundingError<Currencies.GBP>
+private typealias RuntimeRoundingError = MoneyStepsRoundingError<AnyCurrency>
 
 private func pounds(_ minorUnits: Int64) -> GBP {
     GBP(minorUnits: minorUnits)
@@ -25,17 +27,39 @@ struct StepsSelectionTests {
 
         #expect(GBP.Steps.Selection(approximating: pounds(123_45), in: steps).amount == pounds(110_00))
         #expect(GBP.Steps.Selection(approximating: pounds(160_00), in: steps).index == 2)
-        #expect(GBP.Steps.Selection(approximating: pounds(123_45), in: steps, rounding: .up).amount == pounds(210_00))
-        #expect(GBP.Steps.Selection(approximating: pounds(999_00), in: steps, rounding: .down).amount == pounds(250_00))
+        #expect(GBP.Steps.Selection(approximating: pounds(999_00), in: steps).amount == pounds(250_00))
+        #expect(try GBP.Steps.Selection(approximating: pounds(123_45), in: steps, rounding: .up).amount == pounds(210_00))
+        #expect(try GBP.Steps.Selection(approximating: pounds(999_00), in: steps, rounding: .down).amount == pounds(250_00))
+    }
+
+    @Test("A rule with no step on its side of the amount throws outOfBounds, typed and runtime")
+    func outOfBounds() throws {
+        let steps = try tenToTwoFifty()
+        let selection = GBP.Steps.Selection(approximating: pounds(10_00), in: steps)
+        let runtime = Money.Steps.Selection(selection)
+
+        #expect(throws: RoundingError.outOfBounds) {
+            try GBP.Steps.Selection(approximating: pounds(999_00), in: steps, rounding: .up)
+        }
+        #expect(throws: RoundingError.outOfBounds) {
+            try selection.selecting(approximating: pounds(5_00), rounding: .down)
+        }
+        #expect(throws: RuntimeRoundingError.outOfBounds) {
+            try Money.Steps.Selection(approximating: Money(pounds(999_00)), in: runtime.steps, rounding: .up)
+        }
+        #expect(throws: RuntimeRoundingError.outOfBounds) {
+            try runtime.selecting(approximating: Money(pounds(5_00)), rounding: .towardZero)
+        }
+        #expect(try runtime.selecting(approximating: Money(pounds(5_00))).amount == Money(pounds(10_00)))
     }
 
     @Test("Every rule picks the step index(approximating:rounding:) finds", arguments: everyRule)
     func matchesIndexForAmount(_ rule: RoundingRule) throws {
         let steps = try tenToTwoFifty()
         let saved = pounds(123_45)
-        let selection = GBP.Steps.Selection(approximating: saved, in: steps, rounding: rule)
+        let selection = try GBP.Steps.Selection(approximating: saved, in: steps, rounding: rule)
 
-        #expect(selection.index == steps.index(approximating: saved, rounding: rule))
+        #expect(try selection.index == steps.index(approximating: saved, rounding: rule))
         #expect(selection.amount == steps[selection.index])
         #expect(selection.steps == steps)
     }
@@ -44,8 +68,8 @@ struct StepsSelectionTests {
     func onAStepIsKept(_ rule: RoundingRule) throws {
         let steps = try tenToTwoFifty()
 
-        #expect(GBP.Steps.Selection(approximating: pounds(250_00), in: steps, rounding: rule).amount == pounds(250_00))
-        #expect(GBP.Steps.Selection(approximating: pounds(110_00), in: steps, rounding: rule).amount == pounds(110_00))
+        #expect(try GBP.Steps.Selection(approximating: pounds(250_00), in: steps, rounding: rule).amount == pounds(250_00))
+        #expect(try GBP.Steps.Selection(approximating: pounds(110_00), in: steps, rounding: rule).amount == pounds(110_00))
     }
 
     @Test("Selecting a position in the steps moves there; any other position is nil")
@@ -66,7 +90,7 @@ struct StepsSelectionTests {
         let selection = GBP.Steps.Selection(approximating: pounds(10_00), in: try tenToTwoFifty())
 
         #expect(selection.selecting(approximating: pounds(200_00)).amount == pounds(210_00))
-        #expect(selection.selecting(approximating: pounds(200_00), rounding: .down).amount == pounds(110_00))
+        #expect(try selection.selecting(approximating: pounds(200_00), rounding: .down).amount == pounds(110_00))
         #expect(selection.selecting(approximating: pounds(200_00)).steps == selection.steps)
     }
 
@@ -74,11 +98,11 @@ struct StepsSelectionTests {
     func acrossZeroBySize() throws {
         let steps = try (pounds(-50_00) ... pounds(50_00)).steps(by: .majorUnits(20))
         let straddling = try (pounds(-7_00) ... pounds(17_00)).steps(by: .majorUnits(12))
-        let selection = GBP.Steps.Selection(approximating: pounds(3_00), in: steps, rounding: .towardZero)
+        let selection = try GBP.Steps.Selection(approximating: pounds(3_00), in: steps, rounding: .towardZero)
         let runtime = try Money.Steps.Selection(approximating: Money(pounds(3_00)), in: Money.Steps(straddling), rounding: .towardZero)
 
         #expect(selection.amount == pounds(10_00))
-        #expect(selection.selecting(approximating: pounds(-3_00), rounding: .awayFromZero).amount == pounds(-10_00))
+        #expect(try selection.selecting(approximating: pounds(-3_00), rounding: .awayFromZero).amount == pounds(-10_00))
         #expect(runtime.amount == Money(pounds(5_00)))
         #expect(try runtime.selecting(approximating: Money(pounds(3_00)), rounding: .awayFromZero).amount == Money(pounds(-7_00)))
     }
@@ -89,7 +113,7 @@ struct StepsSelectionTests {
         let credits = try (Credits.zero ... Credits(minorUnits: 5_000)).steps(by: .majorUnits(2))
 
         #expect(JPY.Steps.Selection(approximating: JPY(minorUnits: 950), in: yen).amount == JPY(minorUnits: 1_000))
-        #expect(Credits.Steps.Selection(approximating: Credits(minorUnits: 3_999), in: credits, rounding: .down).index == 1)
+        #expect(try Credits.Steps.Selection(approximating: Credits(minorUnits: 3_999), in: credits, rounding: .down).index == 1)
     }
 
     @Test("Equal selections hash equally; the same position in other steps is a different selection")
@@ -108,7 +132,7 @@ struct StepsSelectionTests {
 
     @Test("A runtime selection rounds as a typed one does and selects the same way")
     func runtimeMatchesTyped() throws {
-        let typed = GBP.Steps.Selection(approximating: pounds(123_45), in: try tenToTwoFifty(), rounding: .up)
+        let typed = try GBP.Steps.Selection(approximating: pounds(123_45), in: tenToTwoFifty(), rounding: .up)
         let runtime = try Money.Steps.Selection(approximating: Money(pounds(123_45)), in: Money.Steps(typed.steps), rounding: .up)
 
         #expect(runtime.amount == Money(typed.amount))
@@ -119,8 +143,8 @@ struct StepsSelectionTests {
         #expect(runtime.selecting(runtime.steps.endIndex) == nil)
     }
 
-    @Test("A runtime amount in another currency throws a mismatch, the steps' currency first")
-    func runtimeMismatch() throws {
+    @Test("Without a rule, a runtime amount in another currency throws MoneyError, the steps' currency first")
+    func runtimeMismatchWithoutARule() throws {
         let steps = Money.Steps(try tenToTwoFifty())
         let euros = Money(minorUnits: 60_00, currency: .eur)
         let selection = try Money.Steps.Selection(approximating: Money(pounds(60_00)), in: steps)
@@ -129,6 +153,20 @@ struct StepsSelectionTests {
             try Money.Steps.Selection(approximating: euros, in: steps)
         }
         #expect(throws: MoneyError.currencyMismatch(lhs: .gbp, rhs: .eur)) {
+            try selection.selecting(approximating: euros)
+        }
+    }
+
+    @Test("With a rule, a runtime amount in another currency throws a mismatch with its currency, checked first")
+    func runtimeMismatchWithARule() throws {
+        let steps = Money.Steps(try tenToTwoFifty())
+        let euros = Money(minorUnits: 999_00, currency: .eur)
+        let selection = try Money.Steps.Selection(approximating: Money(pounds(60_00)), in: steps)
+
+        #expect(throws: RuntimeRoundingError.currencyMismatch(.eur)) {
+            try Money.Steps.Selection(approximating: euros, in: steps, rounding: .up)
+        }
+        #expect(throws: RuntimeRoundingError.currencyMismatch(.eur)) {
             try selection.selecting(approximating: euros, rounding: .down)
         }
     }

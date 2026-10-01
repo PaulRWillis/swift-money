@@ -2029,12 +2029,16 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         }
     }
 
-    Benchmark("MoneyOf.Steps index for an amount, rounding down", configuration: configuration) { benchmark in
+    Benchmark("MoneyOf.Steps index for an amount, rounding down, throwing", configuration: configuration) { benchmark in
         var index = 0
 
-        for _ in benchmark.scaledIterations {
-            blackHole(typedSteps[index % typedSteps.count].index(approximating: offStepProbes[(index / 10) % offStepProbes.count], rounding: .down))
-            index &+= 1
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try typedSteps[index % typedSteps.count].index(approximating: offStepProbes[(index / 10) % offStepProbes.count], rounding: .down))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts are inside the steps, so this cannot happen: \(error)")
         }
     }
 
@@ -2047,7 +2051,7 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
                 index &+= 1
             }
         } catch {
-            fatalError("these amounts are in the steps' currency, so this cannot happen: \(error)")
+            fatalError("these amounts are in the steps' currency and inside them, so this cannot happen: \(error)")
         }
     }
 
@@ -2114,16 +2118,20 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         }
     }
 
-    Benchmark("MoneyOf.Steps.Selection selecting an amount", configuration: configuration) { benchmark in
+    Benchmark("MoneyOf.Steps.Selection selecting an amount, rounding down, throwing", configuration: configuration) { benchmark in
         var index = 0
 
-        for _ in benchmark.scaledIterations {
-            blackHole(typedSelections[index % typedSelections.count].selecting(approximating: offStepProbes[(index / 10) % offStepProbes.count], rounding: .down))
-            index &+= 1
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try typedSelections[index % typedSelections.count].selecting(approximating: offStepProbes[(index / 10) % offStepProbes.count], rounding: .down))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts are inside the steps, so this cannot happen: \(error)")
         }
     }
 
-    Benchmark("Money.Steps.Selection selecting an amount, throwing", configuration: configuration) { benchmark in
+    Benchmark("Money.Steps.Selection selecting an amount, rounding down, throwing", configuration: configuration) { benchmark in
         var index = 0
 
         do {
@@ -2132,7 +2140,7 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
                 index &+= 1
             }
         } catch {
-            fatalError("these amounts are in the steps' currency, so this cannot happen: \(error)")
+            fatalError("these amounts are in the steps' currency and inside them, so this cannot happen: \(error)")
         }
     }
 
