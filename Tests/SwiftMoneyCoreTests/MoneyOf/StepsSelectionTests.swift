@@ -204,7 +204,7 @@ struct StepsSelectionTests {
             try Money.Steps.Selection(approximating: euros, in: steps, rounding: .up)
         }
         #expect(throws: RuntimeRoundingError.currencyMismatch(.eur)) {
-            try selection.selecting(approximating: euros, rounding: .down)
+            try selection.selecting(approximating: euros, rounding: .up)
         }
     }
 

@@ -111,6 +111,31 @@ struct StepsIndexForAmountTests {
         #expect(rounded(.zero, onto: negative, by: .awayFromZero) == nil)
     }
 
+    @Test("One minor unit either side of each bound, each rule takes that end or throws, whichever way the steps run")
+    func eitherSideOfEachBound() throws {
+        let straddling = try (pounds(-7_00) ... pounds(17_00)).steps(by: .majorUnits(12))
+
+        for steps in [try tenToTwoFifty(), try (pounds(10_00) ... pounds(250_00)).steps(by: .majorUnits(-100))] {
+            let label = "by \(steps.stride)"
+            #expect(rounded(pounds(9_99), onto: steps, by: .down) == nil, "\(label)")
+            #expect(rounded(pounds(9_99), onto: steps, by: .up) == pounds(10_00), "\(label)")
+            #expect(rounded(pounds(9_99), onto: steps, by: .towardZero) == nil, "\(label)")
+            #expect(rounded(pounds(9_99), onto: steps, by: .awayFromZero) == pounds(10_00), "\(label)")
+            #expect(rounded(pounds(10_01), onto: steps, by: .down) == pounds(10_00), "\(label)")
+            #expect(rounded(pounds(10_01), onto: steps, by: .towardZero) == pounds(10_00), "\(label)")
+            #expect(rounded(pounds(249_99), onto: steps, by: .up) == pounds(250_00), "\(label)")
+            #expect(rounded(pounds(249_99), onto: steps, by: .awayFromZero) == pounds(250_00), "\(label)")
+            #expect(rounded(pounds(250_01), onto: steps, by: .down) == pounds(250_00), "\(label)")
+            #expect(rounded(pounds(250_01), onto: steps, by: .up) == nil, "\(label)")
+            #expect(rounded(pounds(250_01), onto: steps, by: .towardZero) == pounds(250_00), "\(label)")
+            #expect(rounded(pounds(250_01), onto: steps, by: .awayFromZero) == nil, "\(label)")
+        }
+        #expect(rounded(pounds(-7_01), onto: straddling, by: .towardZero) == pounds(-7_00))
+        #expect(rounded(pounds(-7_01), onto: straddling, by: .awayFromZero) == nil)
+        #expect(rounded(pounds(17_01), onto: straddling, by: .towardZero) == pounds(17_00))
+        #expect(rounded(pounds(17_01), onto: straddling, by: .awayFromZero) == nil)
+    }
+
     @Test("Beyond the steps, the nearest step is the nearer end under every tie-break", arguments: everyTie)
     func outsideNearestIsTheNearerEnd(_ tie: TieBreakingRule) throws {
         let steps = try tenToTwoFifty()
@@ -267,6 +292,7 @@ struct StepsIndexForAmountTests {
         let oddDown = try (pounds(0) ... pounds(400_00)).steps(by: .majorUnits(-100))
         let shorterLastGapDown = try (pounds(10_00) ... pounds(250_00)).steps(by: .majorUnits(-100))
         let acrossZeroDown = try (pounds(-50_00) ... pounds(50_00)).steps(by: .majorUnits(-20))
+        let negativeDown = try (pounds(-250_00) ... pounds(-10_00)).steps(by: .majorUnits(-100))
 
         #expect(nearest(pounds(50_00), onto: try even.steps(by: .majorUnits(100))) == pounds(0))
         #expect(nearest(pounds(50_00), onto: evenDown) == pounds(0))
@@ -276,7 +302,10 @@ struct StepsIndexForAmountTests {
         #expect(nearest(pounds(150_00), onto: oddDown) == pounds(200_00))
         #expect(shorterLastGapDown.map(\.minorUnits) == [250_00, 150_00, 50_00, 10_00])
         #expect(nearest(pounds(100_00), onto: shorterLastGapDown) == pounds(150_00))
+        #expect(nearest(pounds(30_00), onto: shorterLastGapDown) == pounds(10_00))
         #expect(nearest(.zero, onto: acrossZeroDown) == pounds(-10_00))
+        #expect(negativeDown.map(\.minorUnits) == [-10_00, -110_00, -210_00, -250_00])
+        #expect(nearest(pounds(-160_00), onto: negativeDown) == pounds(-110_00))
     }
 
     @Test("Descending steps on the same amounts pick the same amount as ascending ones", arguments: everyRule)
