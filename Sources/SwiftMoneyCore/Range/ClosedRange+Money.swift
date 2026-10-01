@@ -11,7 +11,7 @@ public extension ClosedRange {
     /// let limits = try ClosedRange(checkedBounds: (lower: minimum, upper: maximum))
     /// ```
     ///
-    /// - Parameter bounds: The lower and upper bounds, lowest first.
+    /// - Parameter bounds: The lower and upper bounds, the intended lower one first.
     /// - Throws: ``MoneyRangeParsingError/invertedBounds(lowerBound:upperBound:)`` with both bounds
     ///   if the lower is above the upper.
     @inlinable

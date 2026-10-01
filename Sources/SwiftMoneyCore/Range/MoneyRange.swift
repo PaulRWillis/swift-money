@@ -30,7 +30,7 @@ public struct MoneyRange: Equatable, Hashable, Sendable {
     /// let band = try MoneyRange(checkedBounds: (lower: floor, upper: ceiling))
     /// ```
     ///
-    /// - Parameter bounds: The lower and upper bounds, lowest first.
+    /// - Parameter bounds: The lower and upper bounds, the intended lower one first.
     /// - Throws: ``MoneyRangeParsingError/currencyMismatch(_:)`` with the upper bound's currency if
     ///   the bounds are in different currencies; otherwise
     ///   ``MoneyRangeParsingError/invertedBounds(lowerBound:upperBound:)`` with both bounds if the
