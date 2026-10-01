@@ -29,9 +29,7 @@ package struct Fixed: Equatable, Hashable, Sendable, BitwiseCopyable {
 }
 
 extension Fixed {
-    // The raw storage integer — the value times 10^18 — for the byte serializer, which writes it as
-    // sixteen two's-complement bytes and reads it back. Not a public number and not a bit pattern to
-    // reinterpret as anything else: it is exactly the integer this type holds internally.
+    /// The raw stored integer: the value times 10¹⁸.
     @usableFromInline
     package var storageBits: Int128 {
         _storage

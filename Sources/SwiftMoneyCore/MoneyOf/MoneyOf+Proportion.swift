@@ -39,9 +39,7 @@ func proportion(
     _ part: Int64,
     of whole: Int64
 ) -> Rate? {
-    // `Fixed(part) / Fixed(whole)` would widen both sides and divide through the 256-bit path. The result
-    // is `part / whole`, which `Fixed(part).divided(by: whole)` reaches with one 128-bit divide —
-    // `part × 10¹⁸` fits `Int128` for any `Int64` part — giving the same banker's-rounded value.
+    // `Fixed(part) / Fixed(whole)` would take the 256-bit path; one 128-bit divide gives the same rounded value.
     NonZeroInt64(whole).map { whole in
         let signedPart = switch Sign(of: whole.rawValue) {
         case .positive:
