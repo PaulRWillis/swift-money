@@ -1958,7 +1958,8 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
 
         do {
             for _ in benchmark.scaledIterations {
-                blackHole(try GBP.Steps(from: lowerPounds[index % lowerPounds.count], through: upperPounds[index % upperPounds.count], by: rawStep))
+                let bounds = (lower: lowerPounds[index % lowerPounds.count], upper: upperPounds[index % upperPounds.count])
+                blackHole(try GBP.Steps(checkedBounds: bounds, by: rawStep))
                 index &+= 1
             }
         } catch {
@@ -1971,7 +1972,11 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
 
         do {
             for _ in benchmark.scaledIterations {
-                blackHole(try Money.Steps(from: runtimeLowerPounds[index % runtimeLowerPounds.count], through: runtimeUpperPounds[index % runtimeUpperPounds.count], by: runtimeRawStep))
+                let bounds = (
+                    lower: runtimeLowerPounds[index % runtimeLowerPounds.count],
+                    upper: runtimeUpperPounds[index % runtimeUpperPounds.count]
+                )
+                blackHole(try Money.Steps(checkedBounds: bounds, by: runtimeRawStep))
                 index &+= 1
             }
         } catch {

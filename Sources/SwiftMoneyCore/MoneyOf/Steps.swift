@@ -296,24 +296,31 @@ extension MoneyOf.Steps {
         return remainder == 0 ? Int(truncatingIfNeeded: steps) : nil
     }
 
-    // Parses bounds and a step already known to share a currency, so the typed and runtime parses
-    // report the same failures in the same order.
+    /// Creates steps from bounds and a step already known to share a currency, so the typed and
+    /// runtime parses report the same failures in the same order.
+    ///
+    /// - Parameters:
+    ///   - bounds: The lowest step and the highest, the intended lower one first.
+    ///   - stride: The gap between neighboring steps. Negative counts down.
+    /// - Throws: ``MoneyStepsParsingError/invertedBounds(lowerBound:upperBound:)`` if the lower
+    ///   bound is above the upper; otherwise ``MoneyStepsParsingError/zeroStride`` if `stride` is
+    ///   zero; otherwise ``MoneyStepsParsingError/tooManySteps`` if there would be more steps than
+    ///   `Int` can count.
     @inlinable
     init(
-        parsing lowerBound: MoneyOf<C>,
-        through upperBound: MoneyOf<C>,
+        parsing bounds: (lower: MoneyOf<C>, upper: MoneyOf<C>),
         by stride: MoneyOf<C>
     ) throws(MoneyStepsParsingError<C>) {
-        guard lowerBound.minorUnits <= upperBound.minorUnits else {
-            throw .invertedBounds(lowerBound: lowerBound, upperBound: upperBound)
+        guard bounds.lower.minorUnits <= bounds.upper.minorUnits else {
+            throw .invertedBounds(lowerBound: bounds.lower, upperBound: bounds.upper)
         }
         guard stride.minorUnits != 0 else {
             throw .zeroStride
         }
 
         try self.init(
-            checking: lowerBound.storage,
-            span: lowerBound.minorUnits ... upperBound.minorUnits,
+            checking: bounds.lower.storage,
+            span: bounds.lower.minorUnits ... bounds.upper.minorUnits,
             by: NonZeroInt64(unchecked: stride.minorUnits)
         )
     }
@@ -322,30 +329,30 @@ extension MoneyOf.Steps {
 public extension MoneyOf.Steps where C: CurrencyType {
     /// Creates steps from bounds and a step that may not be valid, such as a server's.
     ///
-    /// The same steps as `(lowerBound...upperBound).steps(by:)`, but one call parses every value and
-    /// reports every failure in one error:
+    /// The same steps as `(bounds.lower...bounds.upper).steps(by:)`, but one call parses every value
+    /// and reports every failure in one error. The bounds are named, as for
+    /// `ClosedRange(checkedBounds:)`, so a pair that arrives swapped throws rather than counting
+    /// down:
     ///
     /// ```swift
-    /// let steps = try GBP.Steps(from: response.minimum, through: response.maximum, by: response.step)
+    /// let steps = try GBP.Steps(checkedBounds: (lower: minimum, upper: maximum), by: step)
     /// ```
     ///
-    /// A negative step starts on `upperBound` and counts down to `lowerBound`.
+    /// A negative step starts on the upper bound and counts down to the lower.
     ///
     /// - Parameters:
-    ///   - lowerBound: The lowest step.
-    ///   - upperBound: The highest step.
+    ///   - bounds: The lowest step and the highest, the intended lower one first.
     ///   - stride: The gap between neighboring steps. The last gap may be shorter.
-    /// - Throws: ``MoneyStepsParsingError/invertedBounds(lowerBound:upperBound:)`` if `lowerBound`
-    ///   is above `upperBound`; otherwise ``MoneyStepsParsingError/zeroStride`` if `stride` is zero;
-    ///   otherwise ``MoneyStepsParsingError/tooManySteps`` if there would be more steps than `Int`
-    ///   can count.
+    /// - Throws: ``MoneyStepsParsingError/invertedBounds(lowerBound:upperBound:)`` with both bounds
+    ///   if the lower is above the upper; otherwise ``MoneyStepsParsingError/zeroStride`` if
+    ///   `stride` is zero; otherwise ``MoneyStepsParsingError/tooManySteps`` if there would be more
+    ///   steps than `Int` can count.
     @inlinable
     init(
-        from lowerBound: MoneyOf<C>,
-        through upperBound: MoneyOf<C>,
+        checkedBounds bounds: (lower: MoneyOf<C>, upper: MoneyOf<C>),
         by stride: MoneyOf<C>
     ) throws(MoneyStepsParsingError<C>) {
-        try self.init(parsing: lowerBound, through: upperBound, by: stride)
+        try self.init(parsing: bounds, by: stride)
     }
 
     /// The lowest step and the highest, as a range, whichever way the steps run.
@@ -380,36 +387,38 @@ public extension MoneyOf.Steps where C: CurrencyType {
 public extension MoneyOf.Steps where C == AnyCurrency {
     /// Creates steps from runtime bounds and a step that may not be valid, such as a server's.
     ///
-    /// Parse a payload once, here, into steps whose currency is checked; using them never throws:
+    /// Parse a payload once, here, into steps whose currency is checked; using them never throws.
+    /// The bounds are named, as for ``ClosedMoneyRange/init(checkedBounds:)``:
     ///
     /// ```swift
-    /// let steps = try Money.Steps(from: response.minimum, through: response.maximum, by: response.step)
+    /// let steps = try Money.Steps(
+    ///     checkedBounds: (lower: response.minimum, upper: response.maximum),
+    ///     by: response.step
+    /// )
     /// ```
     ///
-    /// A negative step starts on `upperBound` and counts down to `lowerBound`.
+    /// A negative step starts on the upper bound and counts down to the lower.
     ///
     /// - Parameters:
-    ///   - lowerBound: The lowest step.
-    ///   - upperBound: The highest step.
+    ///   - bounds: The lowest step and the highest, the intended lower one first.
     ///   - stride: The gap between neighboring steps. The last gap may be shorter.
-    /// - Throws: ``MoneyStepsParsingError/currencyMismatch(_:)`` with the currency of `upperBound`,
-    ///   or else of `stride`, if it differs from `lowerBound`'s; otherwise the error the typed parse
-    ///   would throw.
+    /// - Throws: ``MoneyStepsParsingError/currencyMismatch(_:)`` with the currency of the upper
+    ///   bound, or else of `stride`, if it differs from the lower bound's; otherwise the error the
+    ///   typed parse would throw.
     @inlinable
     init(
-        from lowerBound: Money,
-        through upperBound: Money,
+        checkedBounds bounds: (lower: Money, upper: Money),
         by stride: Money
     ) throws(MoneyStepsParsingError<AnyCurrency>) {
-        let currency = lowerBound.storage
-        guard currency == upperBound.storage else {
-            throw .currencyMismatch(upperBound.currency)
+        let currency = bounds.lower.storage
+        guard currency == bounds.upper.storage else {
+            throw .currencyMismatch(bounds.upper.currency)
         }
         guard currency == stride.storage else {
             throw .currencyMismatch(stride.currency)
         }
 
-        try self.init(parsing: lowerBound, through: upperBound, by: stride)
+        try self.init(parsing: bounds, by: stride)
     }
 
     /// The lowest step and the highest, as a range in the steps' currency, whichever way the steps

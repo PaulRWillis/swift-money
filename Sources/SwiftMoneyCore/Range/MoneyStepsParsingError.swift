@@ -5,7 +5,7 @@
 ///
 /// ```swift
 /// do throws(MoneyStepsParsingError<Currencies.GBP>) {
-///     let steps = try GBP.Steps(from: minimum, through: maximum, by: step)
+///     let steps = try GBP.Steps(checkedBounds: (lower: minimum, upper: maximum), by: step)
 /// } catch {
 ///     switch error {
 ///     case let .invertedBounds(lowerBound, upperBound): …

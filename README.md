@@ -163,7 +163,7 @@ response, into a value whose currency is already checked. After that, most uses 
 
 ```swift
 // A slider's bounds and step, parsed in one call that throws one error
-let steps = try Money.Steps(from: response.minimum, through: response.maximum, by: response.step)
+let steps = try Money.Steps(checkedBounds: (lower: response.minimum, upper: response.maximum), by: response.step)
 ```
 
 A range of runtime amounts is built with a throwing `...` or `..<`, which checks the currencies
@@ -208,6 +208,20 @@ do throws(MoneyRangeParsingError<AnyCurrency>) {
 }
 ```
 
+Building steps throws `MoneyStepsParsingError`, which adds a zero stride and too many steps to
+count:
+
+```swift
+do throws(MoneyStepsParsingError<AnyCurrency>) {
+    let steps = try Money.Steps(checkedBounds: (lower: minimum, upper: maximum), by: step)
+} catch {
+    switch error {
+    case .currencyMismatch(let currency): …       // maximum's, or else step's, currency differed
+    case .invertedBounds, .zeroStride, .tooManySteps: …
+    }
+}
+```
+
 Once a range is built, a call whose only failure is an amount in another currency, such as
 `contains` or converting a runtime range to a typed one, throws `MoneyError`, as arithmetic does.
 
@@ -231,8 +245,9 @@ try limits.steps(by: .majorUnits(100))    // GBP 10.00, 110.00, 210.00, 250.00
 try limits.steps(by: .majorUnits(-100))   // GBP 250.00, 150.00, 50.00, 10.00
 ```
 
-`stride(from:through:by:)` works too, with the standard library's behavior for integers: it
-stops at the last step that fits, so 10 through 250 by 100 leaves out 250. Use steps for a slider.
+`stride(from:through:by:)` and `stride(from:to:by:)` work too, with the standard library's behavior
+for integers: they stop at the last step that fits, so 10 through 250 by 100 leaves out 250. Use
+steps for a slider.
 
 ### Strides
 
