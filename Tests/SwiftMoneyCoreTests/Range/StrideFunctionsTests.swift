@@ -123,6 +123,56 @@ struct StrideFunctionsTests {
         #expect(!everyPound.contains(Money(minorUnits: 0, currency: .jpy)))
     }
 
+    @Test("A runtime stride contains an amount on a step in its currency, and not one between steps")
+    func runtimeContainsOnAStep() throws {
+        let amounts = try stride(from: pounds(10_00), through: pounds(250_00), by: runtimeStride(100_00))
+
+        #expect(amounts.contains(pounds(110_00)))
+        #expect(amounts.contains(pounds(210_00)))
+        #expect(!amounts.contains(pounds(111_00)))
+    }
+
+    @Test("A step landing on the end: to doesn't contain the end, through does")
+    func containsEndOnAStep() {
+        let start = JPY(minorUnits: 0)
+        let end = JPY(minorUnits: 300)
+        let upTo = stride(from: start, to: end, by: .minorUnits(100))
+        let through = stride(from: start, through: end, by: .minorUnits(100))
+
+        #expect(!upTo.contains(end))
+        #expect(through.contains(end))
+        #expect(upTo.contains(JPY(minorUnits: 200)))
+    }
+
+    @Test("A descending through from the largest amount to the smallest contains exactly its steps")
+    func descendingThroughAtTheExtremes() {
+        // Stepping -10p from the largest amount, the last step lands 5p above the smallest.
+        let byTen = stride(from: GBP.max, through: .min, by: .minorUnits(-10))
+        let byHalf = stride(from: GBP.max, through: .min, by: .minorUnits(-9_223_372_036_854_775_808))
+
+        #expect(byTen.contains(.max))
+        #expect(!byTen.contains(GBP(minorUnits: Int64.max - 5)))
+        #expect(byTen.contains(GBP(minorUnits: Int64.min + 5)))
+        #expect(!byTen.contains(GBP(minorUnits: Int64.min + 4)))
+        #expect(!byTen.contains(.min))
+        #expect(Array(byHalf) == [GBP.max, GBP(minorUnits: -1)])
+        #expect(byHalf.contains(GBP(minorUnits: -1)))
+        #expect(!byHalf.contains(.min))
+        #expect(!byHalf.contains(.zero))
+    }
+
+    @Test("The stride types' doc examples compile and give their amounts")
+    func docExamples() {
+        let end = GBP(minorUnits: 3_00)
+        let amounts = stride(from: .zero, to: end, by: .majorUnit)   // MoneyStrideTo<Currencies.GBP>
+        let throughEnd = GBP(minorUnits: 2_50)
+        // MoneyStrideThrough<Currencies.GBP>
+        let throughAmounts = stride(from: .zero, through: throughEnd, by: .majorUnit)
+
+        #expect(Array(amounts).map(\.minorUnits) == [0, 1_00, 2_00])
+        #expect(Array(throughAmounts).map(\.minorUnits) == [0, 1_00, 2_00])
+    }
+
     @Test("A typed stride over every pound amount contains 5p")
     func typedContainsWithinAWideStride() {
         #expect(stride(from: GBP.min, through: .max, by: .minorUnit).contains(GBP(minorUnits: 5)))
