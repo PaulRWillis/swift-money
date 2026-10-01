@@ -65,19 +65,13 @@ struct MoneyStrideTo<C: CurrencyRepresentation>: Sequence, IteratorProtocol, Sen
         return positions.count
     }
 
-    // Rules out an amount outside the span at once, as the standard library does; `nil` makes
-    // `contains(_:)` step through the rest.
+    // Answers exactly from the positions, so `contains(_:)` never steps through the amounts.
     @inlinable
     func _customContainsEquatableElement(_ element: MoneyOf<C>) -> Bool? {
         guard let positions else {
             return false
         }
 
-        let minorUnits = element.minorUnits
-        let outside = positions.step.rawValue < 0
-            ? minorUnits < positions.last || positions.next < minorUnits
-            : minorUnits < positions.next || positions.last < minorUnits
-
-        return outside ? false : nil
+        return element.storage == currency && positions.contains(element.minorUnits)
     }
 }

@@ -46,6 +46,26 @@ struct StridePositions: Sendable {
         return StridePositions(next: next &+ step.rawValue, last: last, step: step)
     }
 
+    /// Returns whether the given minor units are one of the positions from `next` to `last`.
+    ///
+    /// - Parameter minorUnits: The minor units to look for.
+    /// - Returns: `true` if `minorUnits` lies from `next` to `last` and a whole number of steps from
+    ///   `next`; otherwise, `false`.
+    @inlinable
+    func contains(_ minorUnits: Int64) -> Bool {
+        let ascending = step.rawValue > 0
+
+        guard ascending ? next <= minorUnits : minorUnits <= next else {
+            return false
+        }
+
+        // On `last`'s side of `next`, each distance is below 2⁶⁴, so `UInt64` holds it exactly.
+        let distance = UInt64(bitPattern: ascending ? minorUnits &- next : next &- minorUnits)
+        let span = UInt64(bitPattern: ascending ? last &- next : next &- last)
+
+        return distance <= span && distance % step.rawValue.magnitude == 0
+    }
+
     /// The number of positions from `next` to `last`, or `Int.max` if that many don't fit `Int`.
     @inlinable
     var count: Int {

@@ -116,6 +116,38 @@ struct StrideFunctionsTests {
         #expect(!upTo.contains(GBP(minorUnits: 260_00)))
     }
 
+    @Test("A runtime stride over every pound amount doesn't contain a yen amount")
+    func runtimeContainsOtherCurrency() throws {
+        let everyPound = try stride(from: pounds(.min), through: pounds(.max), by: runtimeStride(1))
+
+        #expect(!everyPound.contains(Money(minorUnits: 0, currency: .jpy)))
+    }
+
+    @Test("A typed stride over every pound amount contains 5p")
+    func typedContainsWithinAWideStride() {
+        #expect(stride(from: GBP.min, through: .max, by: .minorUnit).contains(GBP(minorUnits: 5)))
+    }
+
+    @Test("contains is false between steps, true at the last amount and false past it")
+    func containsAtAndAroundTheLast() {
+        // Stepping 10p from either extreme, the last step lands 5p short of the other.
+        let upward = stride(from: GBP.min, through: .max, by: .minorUnits(10))
+        let downward = stride(from: GBP.max, to: .min, by: .minorUnits(-10))
+
+        #expect(!upward.contains(GBP(minorUnits: Int64.min + 5)))
+        #expect(upward.contains(GBP(minorUnits: Int64.max - 5)))
+        #expect(!upward.contains(GBP(minorUnits: Int64.max - 4)))
+        #expect(!downward.contains(GBP(minorUnits: Int64.max - 5)))
+        #expect(downward.contains(GBP(minorUnits: Int64.min + 5)))
+        #expect(!downward.contains(GBP(minorUnits: Int64.min + 4)))
+    }
+
+    @Test("An empty stride contains nothing, not even its start")
+    func emptyContainsNothing() {
+        #expect(!stride(from: GBP.zero, to: .zero, by: .minorUnit).contains(.zero))
+        #expect(!stride(from: GBP(minorUnits: 1), through: .zero, by: .minorUnit).contains(GBP(minorUnits: 1)))
+    }
+
     @Test("A sequence too long for Int reports Int.max, and an empty one zero, without stepping")
     func countBeyondInt() {
         #expect(stride(from: GBP.min, through: .max, by: .minorUnit).underestimatedCount == .max)
