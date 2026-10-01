@@ -78,6 +78,15 @@ struct CurrencyFullNameTableTests {
         }
     }
 
+    @Test("A code longer than the tables hold decodes to nil")
+    func longerCodeIsNil() throws {
+        try Self.withTable { table in
+            let locale = LocaleIndex(position: 0)
+            #expect(table.name(localeIndex: locale, code: "USDT") == nil)
+            #expect(table.name(localeIndex: locale, code: "USDT", category: .other) == nil)
+        }
+    }
+
     // Formatting an amount needs one name, not every form, so it reads the category it resolved.
     @Test("One category's name is read without the rest")
     func decodesOneCategory() throws {

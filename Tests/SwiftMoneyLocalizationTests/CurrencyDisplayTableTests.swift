@@ -62,4 +62,11 @@ struct CurrencyDisplayTableTests {
             #expect(table.display(localeIndex: LocaleIndex(position: 0), code: "EUR") == nil)
         }
     }
+
+    @Test("A code longer than the tables hold decodes to nil")
+    func longerCodeIsNil() throws {
+        try Self.withTable { table in
+            #expect(table.display(localeIndex: LocaleIndex(position: 0), code: "USDT") == nil)
+        }
+    }
 }
