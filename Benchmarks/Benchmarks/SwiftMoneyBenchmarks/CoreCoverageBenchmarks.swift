@@ -1927,6 +1927,24 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         }
     }
 
+    Benchmark("MoneyOf.Steps bounds", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(typedSteps[index % typedSteps.count].bounds)
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money.Steps bounds", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(runtimeSteps[index % runtimeSteps.count].bounds)
+            index &+= 1
+        }
+    }
+
     Benchmark("Money.Steps from typed steps", configuration: configuration) { benchmark in
         var index = 0
 
