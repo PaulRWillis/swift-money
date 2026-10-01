@@ -25,9 +25,8 @@ TEST_OUTPUT = ROOT / "Tests" / "SwiftMoneyCoreTests" / "Currency" / "CurrencyISO
 # `CurrencyCode`'s packing, which `CurrencyISO4217Tests` checks against Swift's for every code.
 BITS_PER_CHARACTER = 6
 CHARACTER_SLOTS = 8
-EMPTY_SLOT = 0
-PACKED_LETTERS = range(EMPTY_SLOT + 1, EMPTY_SLOT + 1 + ord("Z") - ord("A") + 1)
-PACKED_DIGITS = range(PACKED_LETTERS.stop, PACKED_LETTERS.stop + ord("9") - ord("0") + 1)
+# A character packs as its place in this string counting from 1, because 0 is an empty slot.
+PACKED_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 # `try` is the only ISO code whose lowercased form Swift reserves.
 SWIFT_KEYWORDS = {"try"}
@@ -122,15 +121,13 @@ def types(found):
 
 
 def packed_character(char):
-    if "A" <= char <= "Z":
-        return ord(char) - ord("A") + PACKED_LETTERS.start
-    if "0" <= char <= "9":
-        return ord(char) - ord("0") + PACKED_DIGITS.start
-    raise ValueError(f"{char!r} is not an uppercase alphanumeric")
+    if len(char) != 1 or char not in PACKED_ALPHABET:
+        raise ValueError(f"{char!r} is not an uppercase alphanumeric")
+    return PACKED_ALPHABET.index(char) + 1
 
 
 def packed(code):
-    """A code as the single word `CurrencyCode` stores."""
+    """A code as the word `CurrencyCode` stores: A-Z pack as 1...26, 0-9 as 27...36."""
     value = 0
 
     for char in code:

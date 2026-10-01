@@ -12,24 +12,38 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
     @usableFromInline
     let storage: UInt64
 
+    /// How many characters the stored word holds: 8.
     @inlinable
     static var characterSlots: Int { 8 }
 
+    /// How many bits each character takes: 6.
     @inlinable
     static var bitsPerCharacter: Int { 6 }
 
+    /// How many characters an ISO 4217 code has: 3.
     @inlinable
     static var isoCodeLength: Int { 3 }
 
+    /// The fewest characters a code may have.
     private static let minLength = 3
-    private static var maxLength: Int { characterSlots }
+
+    /// The most characters a code may have.
+    private static let maxLength = 8
+
+    /// How many characters a code may have: 3 to 8.
     private static let acceptedLengths = minLength...maxLength
-    private static let characterMask: UInt64 = (1 << bitsPerCharacter) - 1
+
+    /// The six bits of the lowest slot.
+    private static let characterMask: UInt64 = 0b11_1111
+
+    /// The packed value of a slot with no character in it.
     private static let emptySlot: UInt8 = 0
-    fileprivate static let packedLetters =
-        (emptySlot + 1)...(emptySlot + UInt8(ascii: "Z") - UInt8(ascii: "A") + 1)
-    fileprivate static let packedDigits =
-        (packedLetters.upperBound + 1)...(packedLetters.upperBound + UInt8(ascii: "9") - UInt8(ascii: "0") + 1)
+
+    /// The packed values of `A` to `Z`, in order. These are the library's own, not ASCII.
+    fileprivate static let packedLetters: ClosedRange<UInt8> = 1...26
+
+    /// The packed values of `0` to `9`, in order.
+    fileprivate static let packedDigits: ClosedRange<UInt8> = 27...36
 
     /// Creates a currency code from a string that may not be valid.
     ///
