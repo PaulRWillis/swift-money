@@ -90,6 +90,14 @@ integer type and traps when the value does not fit. For values from outside the 
 GBP(exactly: unvalidatedAmount)     // nil when the amount does not fit
 ```
 
+To count whole units instead, `init?(majorUnits:)` reads the currency's scale for you, so a count of
+pounds is never taken as pence. It returns `nil` when the amount is too large:
+
+```swift
+GBP(majorUnits: 15)                      // GBP 15.00
+Money(majorUnits: 15, currency: .jpy)    // JPY 15
+```
+
 To hand the count to an API that takes a plain integer, read it back out:
 
 ```swift

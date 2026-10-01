@@ -26,6 +26,33 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         }
     }
 
+    Benchmark("MoneyOf init major units", configuration: configuration) { benchmark in
+        var count = 1
+
+        for _ in benchmark.scaledIterations {
+            blackHole(GBP(majorUnits: count))
+            count &+= 1
+        }
+    }
+
+    Benchmark("MoneyOf init major units, Int64", configuration: configuration) { benchmark in
+        var count: Int64 = 1
+
+        for _ in benchmark.scaledIterations {
+            blackHole(GBP(majorUnits: count))
+            count &+= 1
+        }
+    }
+
+    Benchmark("MoneyOf init major units, UInt32", configuration: configuration) { benchmark in
+        var count: UInt32 = 1
+
+        for _ in benchmark.scaledIterations {
+            blackHole(GBP(majorUnits: count))
+            count &+= 1
+        }
+    }
+
     Benchmark("MoneyOf addition in place", configuration: configuration) { benchmark in
         var accumulated = GBP.zero
         var index = 0
@@ -287,6 +314,33 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         for _ in benchmark.scaledIterations {
             blackHole(Money(exactly: amount, currency: .gbp))
             amount &+= 1
+        }
+    }
+
+    Benchmark("Money init major units", configuration: configuration) { benchmark in
+        var count = 1
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Money(majorUnits: count, currency: .gbp))
+            count &+= 1
+        }
+    }
+
+    Benchmark("Money init major units, Int64", configuration: configuration) { benchmark in
+        var count: Int64 = 1
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Money(majorUnits: count, currency: .gbp))
+            count &+= 1
+        }
+    }
+
+    Benchmark("Money init major units, UInt32", configuration: configuration) { benchmark in
+        var count: UInt32 = 1
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Money(majorUnits: count, currency: .gbp))
+            count &+= 1
         }
     }
 
