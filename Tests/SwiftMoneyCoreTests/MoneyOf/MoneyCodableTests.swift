@@ -271,21 +271,67 @@ struct MoneyCodableTests {
         }
     }
 
-    @Test("A typed amount ignores a scale field, its currency already being fixed")
-    func typedAmountIgnoresAScaleField() throws {
+    @Test("A typed amount reads a scale field that matches its currency")
+    func typedAmountReadsAMatchingScaleField() throws {
         let expected = GBP(minorUnits: 4_99)
 
         #expect(try decoded(GBP.self, from: #"{"currency":"GBP","amount":499,"scale":2}"#, .fields) == expected)
     }
 
-    // A typed amount's currency is fixed at compile time and never looks at a scale field at all, so
-    // an invalid one must not break a decode it has no bearing on — unlike Money, which does consult
-    // it and correctly refuses one, covered by `refusesAnInvalidScaleField` above.
-    @Test("A typed amount ignores an invalid scale field too")
-    func typedAmountIgnoresAnInvalidScaleField() throws {
-        let expected = GBP(minorUnits: 4_99)
+    @Test("A runtime amount in a custom currency reads into the type that names it")
+    func runtimeCustomCurrencyReadsIntoItsType() throws {
+        let encoded = try encoder(.fields).encode(Money(minorUnits: 875, currency: Mills.currency))
 
-        #expect(try decoded(GBP.self, from: #"{"currency":"GBP","amount":499,"scale":-1}"#, .fields) == expected)
+        #expect(try decoder(.fields).decode(MoneyOf<Mills>.self, from: encoded) == MoneyOf<Mills>(minorUnits: 875))
+    }
+
+    @Test(
+        "A typed amount refuses a scale field its currency does not have, blaming the scale",
+        arguments: [#"{"currency":"MIL","amount":875,"scale":2}"#,
+                    #"{"currency":"MIL","amount":875,"scale":19}"#,
+                    #"{"amount":875,"scale":2}"#]
+    )
+    func typedAmountRefusesAMismatchedScaleField(_ text: String) throws {
+        let context = try refusalContext { try decoded(MoneyOf<Mills>.self, from: text, .fields) }
+
+        #expect(context?.codingPath.last?.stringValue == "scale")
+        #expect(context?.debugDescription.contains(#"in the "scale" field"#) == true)
+    }
+
+    @Test("A typed amount refuses an invalid scale field, blaming the scale")
+    func typedAmountRefusesAnInvalidScaleField() throws {
+        let context = try refusalContext {
+            try decoded(GBP.self, from: #"{"currency":"GBP","amount":499,"scale":-1}"#, .fields)
+        }
+
+        #expect(context?.codingPath.last?.stringValue == "scale")
+    }
+
+    @Test("A typed amount with no currency field reads a scale field that matches its currency")
+    func typedAmountReadsAMatchingScaleWithoutACode() throws {
+        let expected = MoneyOf<Mills>(minorUnits: 875)
+
+        #expect(try decoded(MoneyOf<Mills>.self, from: #"{"amount":875,"scale":3}"#, .fields) == expected)
+    }
+
+    @Test("A code that is not the type's own is refused for its code, even with a matching scale")
+    func typedAmountRefusesAMismatchedCodeWithAMatchingScale() throws {
+        let context = try refusalContext {
+            try decoded(MoneyOf<Mills>.self, from: #"{"currency":"USD","amount":875,"scale":3}"#, .fields)
+        }
+
+        #expect(context?.codingPath.last?.stringValue == "currency")
+        #expect(context?.debugDescription.contains(#"Expected MIL but read "USD""#) == true)
+    }
+
+    @Test("A runtime amount refuses a shipped currency at another scale, blaming the scale")
+    func runtimeAmountRefusesAShippedCodeAtAnotherScale() throws {
+        let context = try refusalContext {
+            try decoded(Money.self, from: #"{"currency":"GBP","amount":499,"scale":3}"#, .fields)
+        }
+
+        #expect(context?.codingPath.last?.stringValue == "scale")
+        #expect(context?.debugDescription.contains("Expected GBP with a scale of 2 but read 3") == true)
     }
 
     @Test(
@@ -623,6 +669,15 @@ struct MoneyCodableTests {
         #expect(message.contains("\"USD\""))
     }
 
+    @Test("A scale the type's currency does not have names both scales", arguments: [2, 19, -1])
+    func refusalForAMismatchedScale(_ scale: Int) throws {
+        let message = try refusalMessage {
+            try decoded(MoneyOf<Mills>.self, from: #"{"currency":"MIL","amount":875,"scale":\#(scale)}"#, .fields)
+        }
+
+        #expect(message.contains("Expected MIL with a scale of 3 but read \(scale)"))
+    }
+
     @Test("An amount with no currency at all says that, rather than blaming the digits")
     func refusalForAnUnnamedCurrency() throws {
         let message = try refusalMessage { try decoded(Money.self, from: "\"4.99\"") }
@@ -711,14 +766,29 @@ private func encodingRefusalMessage(_ encode: () throws -> Data) throws -> Strin
     return context.debugDescription
 }
 
-private func refusalMessage(_ decode: () throws -> some Decodable) throws -> String {
+/// Returns the context of the `dataCorrupted` error a decode throws.
+///
+/// - Parameter decode: The decode expected to fail.
+/// - Returns: The error's context, or `nil` after recording an issue when the error is another case.
+/// - Throws: The expectation's failure when `decode` throws nothing.
+private func refusalContext(_ decode: () throws -> some Decodable) throws -> DecodingError.Context? {
     let error = #expect(throws: DecodingError.self) { _ = try decode() }
 
     guard case let .dataCorrupted(context) = try #require(error) else {
         Issue.record("Expected a dataCorrupted error")
 
-        return ""
+        return nil
     }
 
-    return context.debugDescription
+    return context
+}
+
+/// Returns the description of the `dataCorrupted` error a decode throws.
+///
+/// - Parameter decode: The decode expected to fail.
+/// - Returns: The error's description, or an empty string after recording an issue when the error
+///   is another case.
+/// - Throws: The expectation's failure when `decode` throws nothing.
+private func refusalMessage(_ decode: () throws -> some Decodable) throws -> String {
+    try refusalContext(decode)?.debugDescription ?? ""
 }
