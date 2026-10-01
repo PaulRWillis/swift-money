@@ -103,6 +103,47 @@ struct MoneyRangePropertyTests {
         #expect(first.contains(second) == pair.first.contains(pair.second.lowerBound ..< pair.second.upperBound))
     }
 
+    @Test("A closed range round-trips through a half-open one unless it ends at the maximum", arguments: rangePairs)
+    private func closedToHalfOpenRoundTrip(_ pair: RangePair) throws {
+        let range = try closed(pair.first, pair.currency)
+        let converted = MoneyRange(range)
+
+        guard pair.first.upperBound < Int64.max else {
+            #expect(converted == nil)
+            return
+        }
+        let wider = try money(pair.first.lowerBound, pair.currency)..<money(pair.first.upperBound + 1, pair.currency)
+        #expect(converted == wider)
+        #expect(converted.flatMap { ClosedMoneyRange($0) } == range)
+    }
+
+    @Test("A non-empty half-open range round-trips through a closed one", arguments: rangePairs)
+    private func halfOpenToClosedRoundTrip(_ pair: RangePair) throws {
+        let range = try halfOpen(pair.first, pair.currency)
+        let converted = ClosedMoneyRange(range)
+
+        guard pair.first.lowerBound < pair.first.upperBound else {
+            #expect(converted == nil)
+            return
+        }
+        let narrower = try money(pair.first.lowerBound, pair.currency)...money(pair.first.upperBound - 1, pair.currency)
+        #expect(converted == narrower)
+        #expect(converted.flatMap { MoneyRange($0) } == range)
+    }
+
+    @Test("Partial ranges keep their bound through a typed and runtime round trip", arguments: rangePairs)
+    private func partialRoundTrip(_ pair: RangePair) throws {
+        let typed = GBP(minorUnits: pair.probe)
+        let runtime = Money(minorUnits: pair.probe, currency: .gbp)
+
+        #expect(try PartialRangeFrom<GBP>(PartialMoneyRangeFrom(typed...)).lowerBound == typed)
+        #expect(try PartialRangeThrough<GBP>(PartialMoneyRangeThrough(...typed)).upperBound == typed)
+        #expect(try PartialRangeUpTo<GBP>(PartialMoneyRangeUpTo(..<typed)).upperBound == typed)
+        #expect(try PartialMoneyRangeFrom(PartialRangeFrom<GBP>(runtime...)) == runtime...)
+        #expect(try PartialMoneyRangeThrough(PartialRangeThrough<GBP>(...runtime)) == ...runtime)
+        #expect(try PartialMoneyRangeUpTo(PartialRangeUpTo<GBP>(..<runtime)) == ..<runtime)
+    }
+
     @Test("Equal ranges hash equally, and a range never equals one in another currency", arguments: rangePairs)
     private func hashing(_ pair: RangePair) throws {
         let first = try closed(pair.first, pair.currency)

@@ -104,6 +104,16 @@ struct MoneyRangeTests {
         #expect(MoneyRange(closed) == nil)
     }
 
+    @Test("Closed ranges at the extremes of Int64 convert while the upper bound has room above it")
+    func fromClosedAtExtremes() throws {
+        let lowest = pounds(Int64.min)
+        let highest = pounds(Int64.max)
+
+        #expect(try MoneyRange(lowest...lowest) == lowest..<pounds(Int64.min + 1))
+        #expect(try MoneyRange(lowest...pounds(Int64.max - 1)) == lowest..<highest)
+        #expect(MoneyRange(try highest...highest) == nil)
+    }
+
     @Test("Contains its lower bound but not its upper")
     func containsLowerNotUpper() throws {
         let range = try pounds(10_00)..<pounds(250_00)

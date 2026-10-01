@@ -107,6 +107,15 @@ struct ClosedMoneyRangeTests {
         #expect(ClosedMoneyRange(try pounds(1_00)..<pounds(1_00)) == nil)
     }
 
+    @Test("Half-open ranges at the extremes of Int64 convert, and an empty one at the minimum has none")
+    func fromHalfOpenAtExtremes() throws {
+        let lowest = pounds(Int64.min)
+
+        #expect(try ClosedMoneyRange(lowest..<pounds(Int64.min + 1)) == lowest...lowest)
+        #expect(try ClosedMoneyRange(lowest..<pounds(Int64.max)) == lowest...pounds(Int64.max - 1))
+        #expect(ClosedMoneyRange(try lowest..<lowest) == nil)
+    }
+
     @Test("Contains both bounds and what lies between them")
     func containsBothEnds() throws {
         let range = try pounds(10_00)...pounds(250_00)
