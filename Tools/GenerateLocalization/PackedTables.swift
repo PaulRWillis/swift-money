@@ -172,7 +172,7 @@ struct PackedTables {
         var image = BlobWriter(base: 0)
 
         for (name, override) in zip(locale.fullNames, overrides) {
-            image.currencyCode(name.code.compactValue)
+            image.currencyCode(name.code)
             image.ref(name.other)
             image.offsetField(override.start)
             image.u8(UInt8(override.count))
@@ -197,7 +197,7 @@ struct PackedTables {
         var image = BlobWriter(base: 0)
 
         for display in locale.displays {
-            image.currencyCode(display.code.compactValue)
+            image.currencyCode(display.code)
             image.ref(display.standardSymbol)
             image.u8(display.standardSpacing.blobCode)
             image.ref(display.narrowSymbol)

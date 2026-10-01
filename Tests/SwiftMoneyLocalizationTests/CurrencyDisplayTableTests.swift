@@ -26,7 +26,7 @@ struct CurrencyDisplayTableTests {
 
         let recordsStart = b.count
         for record in records {
-            b.currencyCode(record.code.compactValue)
+            b.currencyCode(record.code)
             b.ref(record.standard)
             b.u8(record.standardGap.blobCode)
             b.ref(record.narrow)

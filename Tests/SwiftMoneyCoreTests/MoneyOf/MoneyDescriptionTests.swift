@@ -78,6 +78,13 @@ struct MoneyDescriptionTests {
         #expect(String(describing: carried) == "MIL 0.875")
     }
 
+    @Test("A code of the longest accepted length is written in full")
+    func longestCode() {
+        let carried = Money(minorUnits: 250, currency: customCurrency(code: "SAFEMOON", unitScale: 1))
+
+        #expect(String(describing: carried) == "SAFEMOON 250")
+    }
+
     @Test("Interpolating an amount uses the same form")
     func interpolation() {
         #expect("costs \(GBP(minorUnits: 4_99))" == "costs GBP 4.99")
