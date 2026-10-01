@@ -173,8 +173,9 @@ try amount.clamped(to: limits)
 typed.contains(GBP(minorUnits: 50_00))                                  // no try: one currency
 ```
 
-One bound has no order to check, so the partial ranges `minimum...`, `...maximum` and `..<maximum`
-never throw, and each has a `currency`. Every range converts between runtime and typed amounts:
+One bound has no order to check, so building a partial range with `minimum...`, `...maximum` or
+`..<maximum` never throws, and each has a `currency`. Every range converts between runtime and
+typed amounts:
 
 ```swift
 let atLeast = minimum...                // PartialMoneyRangeFrom
@@ -208,9 +209,10 @@ Once a range is built, a call whose only failure is an amount in another currenc
 A runtime range has no `~=`, because it would have to throw and a `switch` pattern can't be marked
 `try`. Match one with a guard instead: `case _ where try limits.contains(amount):`.
 
-There is no clamp to a half-open range. `a..<a` holds no amount, so the clamp would be failable,
-and a runtime one would be failable and throwing. Convert the range to a closed one first:
-`try ClosedMoneyRange(band).map { try amount.clamped(to: $0) }`.
+There is no clamp to a half-open range, `a..<b` or `..<b`. Either can hold no amount (`a..<a`, or
+`..<` the smallest amount), so the clamp would be failable, and a runtime one would be failable and
+throwing. To clamp to a `band` built with `..<` between two amounts, convert it to a closed range
+first: `try ClosedMoneyRange(band).map { try amount.clamped(to: $0) }`.
 
 ## Formatting for display
 
