@@ -314,19 +314,28 @@ extension MoneyOf.Steps {
         rounding minorUnits: MoneyOf<C>.MinorUnits,
         _ rule: RoundingRule
     ) -> Int {
-        let ascending = step.rawValue > 0
-        let lower = span.lowerBound
-        let upper = span.upperBound
-        guard minorUnits > lower else {
-            return ascending ? 0 : count - 1
-        }
-        guard minorUnits < upper else {
-            return ascending ? count - 1 : 0
+        let travelled: UInt64
+        switch direction {
+        case .upward:
+            guard minorUnits > span.lowerBound else {
+                return 0
+            }
+            guard minorUnits < span.upperBound else {
+                return count &- 1
+            }
+            travelled = UInt64(bitPattern: minorUnits &- span.lowerBound)
+        case .downward:
+            guard minorUnits < span.upperBound else {
+                return 0
+            }
+            guard minorUnits > span.lowerBound else {
+                return count &- 1
+            }
+            travelled = UInt64(bitPattern: span.upperBound &- minorUnits)
         }
 
         let gap = step.rawValue.magnitude
-        let extent = UInt64(bitPattern: upper &- lower)
-        let travelled = UInt64(bitPattern: ascending ? minorUnits &- lower : upper &- minorUnits)
+        let extent = UInt64(bitPattern: span.upperBound &- span.lowerBound)
         let (behind, remainder) = travelled.quotientAndRemainder(dividingBy: gap)
         guard remainder != 0 else {
             return Int(truncatingIfNeeded: behind)
@@ -338,7 +347,13 @@ extension MoneyOf.Steps {
         // The rounding rules work from the step toward zero, as for a quotient: the lower one for a
         // positive amount, the higher for a negative.
         let sign = Sign(of: minorUnits)
-        let towardZeroIsBehind = (sign == .positive) == ascending
+        let towardZeroIsBehind: Bool
+        switch direction {
+        case .upward:
+            towardZeroIsBehind = sign == .positive
+        case .downward:
+            towardZeroIsBehind = sign == .negative
+        }
         let towardZero = Int(truncatingIfNeeded: towardZeroIsBehind ? behind : behind + 1)
         let awayFromZero = towardZeroIsBehind ? towardZero + 1 : towardZero - 1
         let dropped = towardZeroIsBehind ? remainder : width - remainder
@@ -357,7 +372,13 @@ extension MoneyOf.Steps {
 
         // Parity counts from the lower bound rather than the first step, so the same amounts break a
         // tie the same way whichever way the steps run.
-        let fromLowerBound = ascending ? towardZero : count &- 1 &- towardZero
+        let fromLowerBound: Int
+        switch direction {
+        case .upward:
+            fromLowerBound = towardZero
+        case .downward:
+            fromLowerBound = count &- 1 &- towardZero
+        }
         let rounded = rule.step(
             dropping: DroppedFraction(remainder: dropped, divisor: width),
             sign: sign,
