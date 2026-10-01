@@ -27,6 +27,12 @@ struct RateParsingTests {
         #expect(Rate(string: "1/3", rounding: .down) != Rate(string: "1/3", rounding: .up))
     }
 
+    @Test("A negative inexact fraction rounds down away from zero and up toward it")
+    func negativeInexactFractionRoundsBySign() {
+        #expect(Rate(string: "-1/3", rounding: .down) == "-0.333333333333333334")
+        #expect(Rate(string: "-1/3", rounding: .up) == "-0.333333333333333333")
+    }
+
     @Test("Malformed strings return nil", arguments: [
         "", "abc", "1.2.3", "1e3", "1/0", "1/-3", "1/2/3", "1/3%", ".", "-", "%",
     ])
