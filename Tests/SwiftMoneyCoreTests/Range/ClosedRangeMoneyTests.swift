@@ -18,14 +18,17 @@ struct ClosedRangeMoneyTests {
         #expect(range.contains(JPY(minorUnits: 5)))
     }
 
-    @Test("Inverted bounds throw only InvertedBoundsError, so a catch needs no mismatch branch")
+    @Test("Inverted bounds throw invertedBounds, and a switch over the error needs no mismatch case")
     func invertedThrowsExactly() {
-        do throws(InvertedBoundsError<Currencies.GBP>) {
+        do throws(MoneyRangeParsingError<Currencies.GBP>) {
             _ = try ClosedRange(checkedBounds: (lower: GBP(minorUnits: 250_00), upper: GBP(minorUnits: 10_00)))
             Issue.record("Expected inverted bounds to throw")
         } catch {
-            #expect(error.lowerBound == GBP(minorUnits: 250_00))
-            #expect(error.upperBound == GBP(minorUnits: 10_00))
+            switch error {
+            case let .invertedBounds(lowerBound, upperBound):
+                #expect(lowerBound == GBP(minorUnits: 250_00))
+                #expect(upperBound == GBP(minorUnits: 10_00))
+            }
         }
     }
 
@@ -63,12 +66,27 @@ struct ClosedRangeMoneyTests {
         #expect(ClosedRange(GBP(minorUnits: 1_00) ..< GBP(minorUnits: 1_00)) == nil)
     }
 
-    @Test("A custom currency builds and refuses in the same way")
+    @Test("Bounds at the extremes of Int64 build, and survive a round trip through a runtime range")
+    func int64Extremes() throws {
+        let typed = try ClosedRange(checkedBounds: (lower: GBP.min, upper: GBP.max))
+
+        #expect(typed == GBP.min ... GBP.max)
+        #expect(try ClosedRange<GBP>(ClosedMoneyRange(typed)) == typed)
+    }
+
+    @Test("A custom currency builds and refuses in the same way, with no mismatch case to switch on")
     func customScale() {
         typealias Credits = MoneyOf<Millicredits>
 
-        #expect(throws: InvertedBoundsError<Millicredits>.self) {
-            try ClosedRange(checkedBounds: (lower: Credits(minorUnits: 2), upper: Credits(minorUnits: 1)))
+        do throws(MoneyRangeParsingError<Millicredits>) {
+            _ = try ClosedRange(checkedBounds: (lower: Credits(minorUnits: 2), upper: Credits(minorUnits: 1)))
+            Issue.record("Expected inverted bounds to throw")
+        } catch {
+            switch error {
+            case let .invertedBounds(lowerBound, upperBound):
+                #expect(lowerBound == Credits(minorUnits: 2))
+                #expect(upperBound == Credits(minorUnits: 1))
+            }
         }
         #expect(throws: Never.self) {
             try ClosedRange(checkedBounds: (lower: Credits(minorUnits: 1), upper: Credits(minorUnits: 2)))

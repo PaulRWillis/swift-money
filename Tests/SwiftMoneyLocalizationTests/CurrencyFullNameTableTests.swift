@@ -35,7 +35,7 @@ struct CurrencyFullNameTableTests {
 
         let recordsStart = b.count
         for (index, name) in names.enumerated() {
-            b.currencyCode(name.code.compactValue)
+            b.currencyCode(name.code)
             b.ref(name.other)
             b.offsetField(Int(overrides[index].start))
             b.u8(overrides[index].count)
