@@ -1167,6 +1167,20 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         blackHole(hits)
     }
 
+    Benchmark("ClosedRange of MoneyOf contains a half-open range", configuration: configuration) { benchmark in
+        var index = 0
+        var hits = 0
+
+        for _ in benchmark.scaledIterations {
+            if closedPounds[index % closedPounds.count].contains(halfOpenPounds[(index &+ 3) % halfOpenPounds.count]) {
+                hits &+= 1
+            }
+            index &+= 1
+        }
+
+        blackHole(hits)
+    }
+
     Benchmark("ClosedMoneyRange contains a half-open range, throwing", configuration: configuration) { benchmark in
         var index = 0
         var hits = 0

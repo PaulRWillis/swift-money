@@ -95,6 +95,14 @@ struct MoneyRangePropertyTests {
         #expect(clamped.upperBound == money(rawClamped.upperBound, pair.currency))
     }
 
+    @Test("A typed closed range contains a half-open one as ClosedRange<Int64> does", arguments: rangePairs)
+    private func typedClosedContainsHalfOpen(_ pair: RangePair) {
+        let first = GBP(minorUnits: pair.first.lowerBound) ... GBP(minorUnits: pair.first.upperBound)
+        let second = GBP(minorUnits: pair.second.lowerBound) ..< GBP(minorUnits: pair.second.upperBound)
+
+        #expect(first.contains(second) == pair.first.contains(pair.second.lowerBound ..< pair.second.upperBound))
+    }
+
     @Test("Equal ranges hash equally, and a range never equals one in another currency", arguments: rangePairs)
     private func hashing(_ pair: RangePair) throws {
         let first = try closed(pair.first, pair.currency)

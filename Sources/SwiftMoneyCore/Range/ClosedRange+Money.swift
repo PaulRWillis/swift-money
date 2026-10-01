@@ -58,4 +58,24 @@ public extension ClosedRange {
         // Not empty, so the upper bound is above the lower and one minor unit less cannot underflow.
         self = range.lowerBound ... MoneyOf<C>(unchecked: range.upperBound.minorUnits - 1, storage: .implied)
     }
+
+    /// Returns whether every amount in a half-open range also lies within this one.
+    ///
+    /// An empty range holds no amounts, so any range contains it. `£0...£1` contains `£0..<£1.01`,
+    /// whose last amount is £1.00.
+    ///
+    /// ```swift
+    /// let limits = GBP.zero ... GBP(minorUnits: 1_00)
+    /// limits.contains(GBP.zero ..< GBP(minorUnits: 1_01))   // true
+    /// limits.contains(GBP.zero ..< GBP(minorUnits: 1_02))   // false
+    /// ```
+    ///
+    /// - Parameter other: The range to look for.
+    /// - Returns: `true` if `other` is empty or every amount in it lies within this range;
+    ///   otherwise, `false`.
+    @inlinable
+    func contains<C: CurrencyType>(_ other: Range<MoneyOf<C>>) -> Bool where Bound == MoneyOf<C> {
+        (lowerBound.minorUnits ... upperBound.minorUnits)
+            .contains(other.lowerBound.minorUnits ..< other.upperBound.minorUnits)
+    }
 }
