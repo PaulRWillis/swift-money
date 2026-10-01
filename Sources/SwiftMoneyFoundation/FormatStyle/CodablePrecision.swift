@@ -178,7 +178,7 @@ struct CodablePrecision: Codable {
             }
         }
 
-        /// Returns one part of a mixed precision whose other part isn't fixed at one length.
+        /// Returns one part of a mixed precision whose parts aren't both fixed at one length.
         ///
         /// Foundation builds such a precision through its range factory, which clamps a part fixed
         /// at one length as it clamps a closed range.
