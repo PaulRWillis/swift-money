@@ -35,6 +35,9 @@ extension Fixed {
         _storage
     }
 
+    /// Creates a value from its raw stored integer, the value times 10¹⁸.
+    ///
+    /// - Parameter storageBits: The value times 10¹⁸.
     @usableFromInline
     package init(storageBits: Int128) {
         self.init(_storage: storageBits)
