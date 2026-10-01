@@ -35,7 +35,11 @@ extension Fixed {
         _storage
     }
 
-    /// Creates a value from its raw stored integer, the value times 10¹⁸.
+    /// Creates a value from its raw stored integer.
+    ///
+    /// ```swift
+    /// Fixed(storageBits: 1_500_000_000_000_000_000)  // 1.5
+    /// ```
     ///
     /// - Parameter storageBits: The value times 10¹⁸.
     @usableFromInline
