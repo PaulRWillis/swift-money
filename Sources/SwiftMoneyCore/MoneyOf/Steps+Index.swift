@@ -8,8 +8,9 @@ public extension MoneyOf.Steps {
     /// steps[0]    // the first step
     /// ```
     ///
-    /// There is no initializer from a runtime `Int`, so a count of something else, such as minor
-    /// units, cannot become a position by mistake. Indices order by position.
+    /// Its only public initializer is ``init(integerLiteral:)``, so a runtime `Int` holding a count
+    /// of something else, such as minor units, becomes a position only if that call is written out.
+    /// Indices order by position.
     struct Index: Comparable, Hashable, Sendable {
         // How many steps this position is from the first. Index arithmetic can move it below zero or
         // past the end, as it can for `Array`; the subscript checks it.

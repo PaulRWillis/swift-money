@@ -12,9 +12,10 @@ public extension MoneyOf {
     /// A positive stride runs from the lower bound up to the upper; a negative one starts on the upper
     /// bound and counts down to the lower. Steps are never empty: bounds that are equal give one step.
     ///
-    /// Steps are a random-access collection, so `count`, the subscript, `firstIndex(of:)` and
-    /// `contains(_:)` take constant time however many steps there are. So does
-    /// `index(for:rounding:)`, which rounds an amount between two steps to one of them.
+    /// `count` and the subscript take constant time however many steps there are, as for any
+    /// random-access collection. So do `firstIndex(of:)`, `lastIndex(of:)` and `contains(_:)`, which
+    /// work out an amount's position from the bounds and the stride rather than stepping through,
+    /// and `index(for:rounding:)`, which rounds an amount between two steps to one of them.
     ///
     /// Two sets of steps are equal when they hold the same amounts, in the same order and the same
     /// currency. A stride longer than the span gives the same steps as a stride of the span itself, so
@@ -27,37 +28,53 @@ public extension MoneyOf {
         /// The positions of every step, in order.
         public typealias Indices = DefaultIndices<Self>
 
-        // The lowest step, never above `upperBound`, and in the currency of `stride`.
+        /// The currency of every step, stored as an amount stores it.
         @usableFromInline
-        let lowerBound: MoneyOf<C>
+        let storage: C.Storage
 
-        // The highest step, in the currency of `stride`.
+        /// The minor units of the lowest step and the highest.
         @usableFromInline
-        let upperBound: MoneyOf<C>
+        let span: ClosedRange<MoneyOf<C>.MinorUnits>
+
+        /// The minor units between neighboring steps, no more than the span's width; one upward when
+        /// the width is zero. Its sign is the direction.
+        @usableFromInline
+        let step: NonZeroInt64
+
+        // Stored rather than worked out from `span` and `step`, since `endIndex` reads it on every
+        // step of a loop.
+        /// The number of steps, at least one.
+        public let count: Int
+
+        /// Creates steps without checking that the parts agree.
+        ///
+        /// - Parameters:
+        ///   - storage: The currency of every step, stored as an amount stores it.
+        ///   - span: The minor units of the lowest step and the highest.
+        ///   - step: The minor units between neighboring steps, no more than the span's width, or one
+        ///     upward when the width is zero.
+        ///   - count: The number of steps that `span` and `step` give.
+        @usableFromInline
+        init(
+            unchecked storage: C.Storage,
+            span: ClosedRange<MoneyOf<C>.MinorUnits>,
+            step: NonZeroInt64,
+            count: Int
+        ) {
+            self.storage = storage
+            self.span = span
+            self.step = step
+            self.count = count
+        }
 
         /// The gap between neighboring steps, never longer than the span. Its sign is the direction.
         ///
         /// A negative stride means the steps run from the upper bound down to the lower. The last gap,
         /// onto the far bound, may be shorter. A single step has no neighbor, so its stride is one
         /// minor unit upward.
-        public let stride: MoneyOf<C>.Stride
-
-        /// The number of steps, at least one.
-        public let count: Int
-
-        // No check: for call sites that computed `count` from ordered bounds and a `stride` that is no
-        // longer than the span, and one minor unit upward when the span is zero, all in one currency.
-        @usableFromInline
-        init(
-            unchecked lowerBound: MoneyOf<C>,
-            through upperBound: MoneyOf<C>,
-            stride: MoneyOf<C>.Stride,
-            count: Int
-        ) {
-            self.lowerBound = lowerBound
-            self.upperBound = upperBound
-            self.stride = stride
-            self.count = count
+        @inlinable
+        public var stride: MoneyOf<C>.Stride {
+            MoneyOf.Stride(unchecked: MoneyOf(unchecked: step.rawValue, storage: storage))
         }
 
         /// The position of the first step.
@@ -169,84 +186,122 @@ public extension MoneyOf {
 }
 
 extension MoneyOf.Steps {
-    // Counts the steps and settles the stride that ordered bounds and a stride, all in one currency,
-    // give. The span reaches 2⁶⁴ − 1 minor units, which `Int64` cannot hold but `UInt64` can, and an
-    // `Int128` divide is a library call.
+    /// Creates steps over a span in one currency, counting them and settling the step.
+    ///
+    /// A step longer than the span is shortened to it, and a span of one amount gets a step of one
+    /// minor unit upward, so equal steps compare and hash equal.
+    ///
+    /// - Parameters:
+    ///   - storage: The currency of every step, stored as an amount stores it.
+    ///   - span: The minor units of the lowest step and the highest.
+    ///   - requested: The minor units between neighboring steps. Negative counts down.
+    /// - Throws: ``MoneyStepsParsingError/tooManySteps`` if there would be more steps than `Int` can
+    ///   count.
     @inlinable
     init(
-        checking lowerBound: MoneyOf<C>,
-        through upperBound: MoneyOf<C>,
-        by stride: MoneyOf<C>.Stride
-    ) throws(TooManyStepsError) {
-        let requested = stride.amount.minorUnits
-        let span = UInt64(bitPattern: upperBound.minorUnits &- lowerBound.minorUnits)
+        storage: C.Storage,
+        span: ClosedRange<MoneyOf<C>.MinorUnits>,
+        by requested: NonZeroInt64
+    ) throws(MoneyStepsParsingError<C>) {
+        // The width reaches 2⁶⁴ − 1 minor units, which `Int64` cannot hold but `UInt64` can, and an
+        // `Int128` divide is a library call.
+        let width = UInt64(bitPattern: span.upperBound &- span.lowerBound)
 
-        // One step has no direction, so every stride gives the same steps. Storing one minor unit
-        // upward for all of them keeps equal steps equal, hash included.
-        guard span > 0 else {
-            let unit = MoneyOf(unchecked: 1, storage: stride.amount.storage)
-            self.init(unchecked: lowerBound, through: upperBound, stride: MoneyOf.Stride(unchecked: unit), count: 1)
+        guard width > 0 else {
+            self.init(unchecked: storage, span: span, step: NonZeroInt64(unchecked: 1), count: 1)
             return
         }
 
-        let magnitude = requested.magnitude
-        let (steps, overflow) = ((span &- 1) / magnitude).addingReportingOverflow(2)
+        let magnitude = requested.rawValue.magnitude
+        let (steps, overflow) = ((width &- 1) / magnitude).addingReportingOverflow(2)
         guard !overflow, let count = Int(exactly: steps) else {
-            throw TooManyStepsError()
+            throw .tooManySteps
         }
 
-        // A stride longer than the span gives the same two steps as the span itself, so it is
-        // shortened to it: equal steps then compare and hash equal. The shortened stride is at most
-        // the requested one, so its bit pattern, negated for a downward stride, fits `Int64`.
-        let shortened = Swift.min(magnitude, span)
-        let settled = Int64(bitPattern: requested < 0 ? 0 &- shortened : shortened)
-        let amount = MoneyOf(unchecked: settled, storage: stride.amount.storage)
-        self.init(unchecked: lowerBound, through: upperBound, stride: MoneyOf.Stride(unchecked: amount), count: count)
+        // The shortened step is at most the requested one and at least one, so its bit pattern,
+        // negated for a downward step, fits `Int64` and is not zero.
+        let shortened = Swift.min(magnitude, width)
+        let settled: Int64
+        switch StrideDirection(of: requested) {
+        case .upward:
+            settled = Int64(bitPattern: shortened)
+        case .downward:
+            settled = Int64(bitPattern: 0 &- shortened)
+        }
+
+        self.init(unchecked: storage, span: span, step: NonZeroInt64(unchecked: settled), count: count)
     }
 
-    // The bound the steps start on, and the one they always end on.
+    /// The way the steps run.
     @inlinable
-    var nearBound: MoneyOf<C> {
-        stride.amount.minorUnits > 0 ? lowerBound : upperBound
+    var direction: StrideDirection {
+        StrideDirection(of: step)
     }
 
+    /// The minor units of the bound the steps start on.
     @inlinable
-    var farBound: MoneyOf<C> {
-        stride.amount.minorUnits > 0 ? upperBound : lowerBound
+    var nearBound: MoneyOf<C>.MinorUnits {
+        switch direction {
+        case .upward:
+            span.lowerBound
+        case .downward:
+            span.upperBound
+        }
     }
 
-    // Every offset before the last is strictly between the bounds, so the step fits `Int64` even when
-    // the product alone does not: wrapping arithmetic works modulo 2⁶⁴ and lands on it exactly.
+    /// The minor units of the bound the steps always end on.
+    @inlinable
+    var farBound: MoneyOf<C>.MinorUnits {
+        switch direction {
+        case .upward:
+            span.upperBound
+        case .downward:
+            span.lowerBound
+        }
+    }
+
+    /// Returns the amount a number of steps from the first.
+    ///
+    /// - Parameter offset: How many steps the amount is from the first, from zero up to `count - 1`.
+    /// - Returns: The far bound for the last offset; otherwise the near bound moved `offset` steps.
     @inlinable
     func amount(at offset: Int) -> MoneyOf<C> {
         guard offset != count &- 1 else {
-            return farBound
+            return MoneyOf(unchecked: farBound, storage: storage)
         }
 
-        let near = nearBound
-        let minorUnits = near.minorUnits &+ Int64(truncatingIfNeeded: offset) &* stride.amount.minorUnits
+        // An offset before the last lands from the near bound up to, but not including, the far one,
+        // so it fits `Int64` even when the product does not: wrapping modulo 2⁶⁴ lands on it exactly.
+        let minorUnits = nearBound &+ Int64(truncatingIfNeeded: offset) &* step.rawValue
 
-        return MoneyOf(unchecked: minorUnits, storage: near.storage)
+        return MoneyOf(unchecked: minorUnits, storage: storage)
     }
 
-    // The offset of the step equal to `element`, or `nil` if it is in another currency or not a step.
-    // Short of the far bound, the distance from the near one is below the span, so `UInt64` holds it
-    // and a whole number of strides is a step before the last, which `Int` counts.
+    /// Returns how many steps from the first the step equal to an amount is.
+    ///
+    /// - Parameter element: The amount to find.
+    /// - Returns: The offset of the step equal to `element`, or `nil` if `element` is in another
+    ///   currency or isn't a step.
     @inlinable
     func offset(of element: MoneyOf<C>) -> Int? {
         let minorUnits = element.minorUnits
-        let lower = lowerBound.minorUnits
-        let upper = upperBound.minorUnits
-        guard element.storage == stride.amount.storage, lower <= minorUnits, minorUnits <= upper else {
+        guard element.storage == storage, span.contains(minorUnits) else {
             return nil
         }
-        guard minorUnits != farBound.minorUnits else {
+        guard minorUnits != farBound else {
             return count &- 1
         }
 
-        let ascending = stride.amount.minorUnits > 0
-        let travelled = UInt64(bitPattern: ascending ? minorUnits &- lower : upper &- minorUnits)
-        let (steps, remainder) = travelled.quotientAndRemainder(dividingBy: stride.amount.minorUnits.magnitude)
+        // Short of the far bound, the distance from the near one is below the span, so `UInt64` holds
+        // it and a whole number of strides is a step before the last, which `Int` counts.
+        let travelled: UInt64
+        switch direction {
+        case .upward:
+            travelled = UInt64(bitPattern: minorUnits &- span.lowerBound)
+        case .downward:
+            travelled = UInt64(bitPattern: span.upperBound &- minorUnits)
+        }
+        let (steps, remainder) = travelled.quotientAndRemainder(dividingBy: step.rawValue.magnitude)
 
         return remainder == 0 ? Int(truncatingIfNeeded: steps) : nil
     }
@@ -259,9 +314,9 @@ extension MoneyOf.Steps {
         rounding minorUnits: MoneyOf<C>.MinorUnits,
         _ rule: RoundingRule
     ) -> Int {
-        let ascending = stride.amount.minorUnits > 0
-        let lower = lowerBound.minorUnits
-        let upper = upperBound.minorUnits
+        let ascending = step.rawValue > 0
+        let lower = span.lowerBound
+        let upper = span.upperBound
         guard minorUnits > lower else {
             return ascending ? 0 : count - 1
         }
@@ -269,8 +324,8 @@ extension MoneyOf.Steps {
             return ascending ? count - 1 : 0
         }
 
-        let gap = stride.amount.minorUnits.magnitude
-        let span = UInt64(bitPattern: upper &- lower)
+        let gap = step.rawValue.magnitude
+        let extent = UInt64(bitPattern: upper &- lower)
         let travelled = UInt64(bitPattern: ascending ? minorUnits &- lower : upper &- minorUnits)
         let (behind, remainder) = travelled.quotientAndRemainder(dividingBy: gap)
         guard remainder != 0 else {
@@ -278,7 +333,7 @@ extension MoneyOf.Steps {
         }
 
         // The step ahead is a whole stride on, unless it is the far bound, which may be nearer.
-        let width = Swift.min(gap, span - behind * gap)
+        let width = Swift.min(gap, extent - behind * gap)
 
         // The rounding rules work from the step toward zero, as for a quotient: the lower one for a
         // positive amount, the higher for a negative. Zero counts as positive, as in `Sign(of:)`, which
@@ -301,64 +356,88 @@ extension MoneyOf.Steps {
             return takesPastZero ? towardZero : awayFromZero
         }
 
-        let step = rule.step(
+        let rounded = rule.step(
             dropping: DroppedFraction(remainder: dropped, divisor: width),
             sign: sign,
             truncated: Parity(of: towardZero)
         )
 
-        return step == .awayFromZero ? awayFromZero : towardZero
+        return rounded == .awayFromZero ? awayFromZero : towardZero
     }
 
-    // Parses bounds and a step already known to share a currency, so the typed and runtime parses
-    // report the same failures in the same order.
+    /// Creates steps from bounds and a step already known to share a currency, so the typed and
+    /// runtime parses report the same failures in the same order.
+    ///
+    /// - Parameters:
+    ///   - bounds: The lowest step and the highest, the intended lower one first.
+    ///   - stride: The gap between neighboring steps. Negative counts down.
+    /// - Throws: ``MoneyStepsParsingError/invertedBounds(lowerBound:upperBound:)`` if the lower
+    ///   bound is above the upper; otherwise ``MoneyStepsParsingError/zeroStride`` if `stride` is
+    ///   zero; otherwise ``MoneyStepsParsingError/tooManySteps`` if there would be more steps than
+    ///   `Int` can count.
     @inlinable
     init(
-        parsing lowerBound: MoneyOf<C>,
-        through upperBound: MoneyOf<C>,
+        parsing bounds: (lower: MoneyOf<C>, upper: MoneyOf<C>),
         by stride: MoneyOf<C>
-    ) throws(StepsError<C>) {
-        guard lowerBound.minorUnits <= upperBound.minorUnits else {
-            throw .invertedBounds(InvertedBoundsError(lowerBound: lowerBound, upperBound: upperBound))
+    ) throws(MoneyStepsParsingError<C>) {
+        guard bounds.lower.minorUnits <= bounds.upper.minorUnits else {
+            throw .invertedBounds(lowerBound: bounds.lower, upperBound: bounds.upper)
         }
-        guard let stride = MoneyOf.Stride(exactly: stride) else {
+        guard let step = NonZeroInt64(stride.minorUnits) else {
             throw .zeroStride
         }
 
-        do throws(TooManyStepsError) {
-            try self.init(checking: lowerBound, through: upperBound, by: stride)
-        } catch {
-            throw .tooManySteps(error)
-        }
+        try self.init(
+            storage: bounds.lower.storage,
+            span: bounds.lower.minorUnits ... bounds.upper.minorUnits,
+            by: step
+        )
     }
 }
 
 public extension MoneyOf.Steps where C: CurrencyType {
     /// Creates steps from bounds and a step that may not be valid, such as a server's.
     ///
-    /// The same steps as `(lowerBound...upperBound).steps(by:)`, but one call parses every value and
-    /// reports every failure in one error:
+    /// The same steps as `(bounds.lower...bounds.upper).steps(by:)`, but one call parses every value
+    /// and reports every failure in one error. The bounds are named, as for
+    /// `ClosedRange(checkedBounds:)`, so a pair that arrives swapped throws rather than counting
+    /// down:
     ///
     /// ```swift
-    /// let steps = try GBP.Steps(from: response.minimum, through: response.maximum, by: response.step)
+    /// let steps = try GBP.Steps(checkedBounds: (lower: minimum, upper: maximum), by: step)
     /// ```
     ///
-    /// A negative step starts on `upperBound` and counts down to `lowerBound`.
+    /// A negative step starts on the upper bound and counts down to the lower.
     ///
     /// - Parameters:
-    ///   - lowerBound: The lowest step.
-    ///   - upperBound: The highest step.
+    ///   - bounds: The lowest step and the highest, the intended lower one first.
     ///   - stride: The gap between neighboring steps. The last gap may be shorter.
-    /// - Throws: ``StepsError/invertedBounds(_:)`` if `lowerBound` is above `upperBound`; otherwise
-    ///   ``StepsError/zeroStride`` if `stride` is zero; otherwise ``StepsError/tooManySteps(_:)`` if
-    ///   there would be more steps than `Int` can count.
+    /// - Throws: ``MoneyStepsParsingError/invertedBounds(lowerBound:upperBound:)`` with both bounds
+    ///   if the lower is above the upper; otherwise ``MoneyStepsParsingError/zeroStride`` if
+    ///   `stride` is zero; otherwise ``MoneyStepsParsingError/tooManySteps`` if there would be more
+    ///   steps than `Int` can count.
     @inlinable
     init(
-        from lowerBound: MoneyOf<C>,
-        through upperBound: MoneyOf<C>,
+        checkedBounds bounds: (lower: MoneyOf<C>, upper: MoneyOf<C>),
         by stride: MoneyOf<C>
-    ) throws(StepsError<C>) {
-        try self.init(parsing: lowerBound, through: upperBound, by: stride)
+    ) throws(MoneyStepsParsingError<C>) {
+        try self.init(parsing: bounds, by: stride)
+    }
+
+    /// The lowest step and the highest, as a range, whichever way the steps run.
+    ///
+    /// ```swift
+    /// let limits = GBP(minorUnits: 10_00) ... GBP(minorUnits: 250_00)
+    /// try limits.steps(by: .majorUnits(-100)).bounds   // £10...£250
+    /// ```
+    @inlinable
+    var bounds: ClosedRange<MoneyOf<C>> {
+        ClosedRange(
+            uncheckedBounds: (
+                lower: MoneyOf(unchecked: span.lowerBound, storage: .implied),
+                upper: MoneyOf(unchecked: span.upperBound, storage: .implied)
+            )
+        )
     }
 
     /// Creates typed steps from runtime ones, if they are in this type's currency.
@@ -368,13 +447,9 @@ public extension MoneyOf.Steps where C: CurrencyType {
     ///   this type's currency as `lhs`.
     @inlinable
     init(_ steps: Money.Steps) throws(MoneyError) {
-        let stride = try MoneyOf.Stride(steps.stride)
-        self.init(
-            unchecked: MoneyOf(unchecked: steps.lowerBound.minorUnits, storage: .implied),
-            through: MoneyOf(unchecked: steps.upperBound.minorUnits, storage: .implied),
-            stride: stride,
-            count: steps.count
-        )
+        try AnyCurrency.requireMatch(C.currency, steps.storage)
+
+        self.init(unchecked: .implied, span: steps.span, step: steps.step, count: steps.count)
     }
 
     /// Returns the position of the step an amount rounds to.
@@ -415,40 +490,50 @@ public extension MoneyOf.Steps where C: CurrencyType {
 public extension MoneyOf.Steps where C == AnyCurrency {
     /// Creates steps from runtime bounds and a step that may not be valid, such as a server's.
     ///
-    /// Parse a payload once, here, into steps whose currency is checked; using them never throws:
+    /// Parse a payload once, here, into steps whose currency is checked; using them never throws.
+    /// The bounds are named, as for ``ClosedMoneyRange/init(checkedBounds:)``:
     ///
     /// ```swift
-    /// let steps = try Money.Steps(from: response.minimum, through: response.maximum, by: response.step)
+    /// let steps = try Money.Steps(
+    ///     checkedBounds: (lower: response.minimum, upper: response.maximum),
+    ///     by: response.step
+    /// )
     /// ```
     ///
-    /// A negative step starts on `upperBound` and counts down to `lowerBound`.
+    /// A negative step starts on the upper bound and counts down to the lower.
     ///
     /// - Parameters:
-    ///   - lowerBound: The lowest step.
-    ///   - upperBound: The highest step.
+    ///   - bounds: The lowest step and the highest, the intended lower one first.
     ///   - stride: The gap between neighboring steps. The last gap may be shorter.
-    /// - Throws: ``CurrencyCheckedError/currencyMismatch(lhs:rhs:)`` if `upperBound`, or else
-    ///   `stride`, is in another currency, with `lowerBound`'s as `lhs`; otherwise
-    ///   ``CurrencyCheckedError/failure(_:)`` with the ``StepsError`` the typed parse would throw.
+    /// - Throws: ``MoneyStepsParsingError/currencyMismatch(_:)`` with the currency of the upper
+    ///   bound, or else of `stride`, if it differs from the lower bound's; otherwise the error the
+    ///   typed parse would throw.
     @inlinable
     init(
-        from lowerBound: Money,
-        through upperBound: Money,
+        checkedBounds bounds: (lower: Money, upper: Money),
         by stride: Money
-    ) throws(CurrencyCheckedError<StepsError<AnyCurrency>>) {
-        let currency = lowerBound.storage
-        guard currency == upperBound.storage else {
-            throw .currencyMismatch(lhs: currency, rhs: upperBound.storage)
+    ) throws(MoneyStepsParsingError<AnyCurrency>) {
+        let currency = bounds.lower.storage
+        guard currency == bounds.upper.storage else {
+            throw .currencyMismatch(bounds.upper.currency)
         }
         guard currency == stride.storage else {
-            throw .currencyMismatch(lhs: currency, rhs: stride.storage)
+            throw .currencyMismatch(stride.currency)
         }
 
-        do throws(StepsError<AnyCurrency>) {
-            try self.init(parsing: lowerBound, through: upperBound, by: stride)
-        } catch {
-            throw .failure(error)
-        }
+        try self.init(parsing: bounds, by: stride)
+    }
+
+    /// The lowest step and the highest, as a range in the steps' currency, whichever way the steps
+    /// run.
+    ///
+    /// ```swift
+    /// let limits = try pounds(10)...pounds(250)
+    /// try limits.steps(by: .minorUnits(-100_00, of: .gbp)).bounds   // GBP 10.00...GBP 250.00
+    /// ```
+    @inlinable
+    var bounds: ClosedMoneyRange {
+        ClosedMoneyRange(currency: storage, minorUnits: span)
     }
 
     /// Creates runtime steps from typed ones, keeping every step and the currency.
@@ -456,12 +541,7 @@ public extension MoneyOf.Steps where C == AnyCurrency {
     /// - Parameter typed: The steps whose currency is fixed by their type.
     @inlinable
     init<T: CurrencyType>(_ typed: MoneyOf<T>.Steps) {
-        self.init(
-            unchecked: Money(typed.lowerBound),
-            through: Money(typed.upperBound),
-            stride: Money.Stride(typed.stride),
-            count: typed.count
-        )
+        self.init(unchecked: T.currency, span: typed.span, step: typed.step, count: typed.count)
     }
 
     /// Returns the position of the step a runtime amount rounds to, if it is in the steps' currency.
@@ -484,7 +564,7 @@ public extension MoneyOf.Steps where C == AnyCurrency {
         for amount: Money,
         rounding rule: RoundingRule = .toNearestOrEven
     ) throws(MoneyError) -> Index {
-        try AnyCurrency.requireMatch(stride.amount.storage, amount.storage)
+        try AnyCurrency.requireMatch(storage, amount.storage)
 
         return Index(offset: offset(rounding: amount.minorUnits, rule))
     }

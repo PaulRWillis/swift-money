@@ -117,6 +117,14 @@ struct MoneyParsingTests {
         #expect(Money(string: text, currency: loyaltyPoints) == nil)
     }
 
+    @Test("A code of the longest accepted length is read before the amount")
+    func longestCode() throws {
+        let safemoon = customCurrency(code: "SAFEMOON", unitScale: 1)
+
+        #expect(try #require(Money(string: "SAFEMOON 250", currency: safemoon))
+            == Money(minorUnits: 250, currency: safemoon))
+    }
+
     @Test("A lowercase code names the same currency as an uppercase one")
     func lowercaseCode() throws {
         #expect(try #require(GBP(string: "gbp 4.99")) == GBP(minorUnits: 4_99))

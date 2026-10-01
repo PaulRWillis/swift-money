@@ -163,7 +163,10 @@ response, into a value whose currency is already checked. After that, most uses 
 
 ```swift
 // A slider's bounds and step, parsed in one call that throws one error
-let steps = try Money.Steps(from: response.minimum, through: response.maximum, by: response.step)
+var steps = try Money.Steps(
+    checkedBounds: (lower: response.minimum, upper: response.maximum),
+    by: response.step
+)
 
 // The saved amount, rounded onto the nearest step
 let selection = try Money.Steps.Selection(saved, in: steps)
@@ -175,7 +178,7 @@ A range of runtime amounts is built with a throwing `...` or `..<`, which checks
 and the order once. A typed range needs only the order checked, so bounds from a server never trap:
 
 ```swift
-let limits = try minimum...maximum                                      // ClosedMoneyRange
+var limits = try minimum...maximum                                      // ClosedMoneyRange
 let typed = try ClosedRange(checkedBounds: (lower: low, upper: high))   // ClosedRange<GBP>
 
 try limits.contains(amount)
@@ -183,22 +186,60 @@ try amount.clamped(to: limits)
 typed.contains(GBP(minorUnits: 50_00))                                  // no try: one currency
 ```
 
-Each call throws one exact error type, so a `switch` over it can be exhaustive. A runtime parse
-wraps the typed error in a `.failure` case beside the currency mismatch:
+One bound has no order to check, so building a partial range with `minimum...`, `...maximum` or
+`..<maximum` never throws, and each has a `currency`. Every range converts between runtime and
+typed amounts:
 
 ```swift
-do throws(CurrencyCheckedError<StepsError<AnyCurrency>>) {
-    steps = try Money.Steps(from: minimum, through: maximum, by: step)
+let atLeast = minimum...                // PartialMoneyRangeFrom
+atLeast.currency                        // minimum's currency
+
+ClosedMoneyRange(typed)                 // typed to runtime: no try
+PartialMoneyRangeFrom(low...)
+try ClosedRange<GBP>(limits)            // runtime to typed: throws unless limits is in pounds
+try PartialRangeUpTo<GBP>(..<maximum)
+MoneyRange(limits)                      // to half-open: nil if limits holds the largest amount
+```
+
+Each call throws one exact error type, so a `switch` over it can be exhaustive. Building a range
+throws `MoneyRangeParsingError`. Only runtime bounds can be in two currencies, so a typed range's
+`switch` needs no `.currencyMismatch` case:
+
+```swift
+do throws(MoneyRangeParsingError<AnyCurrency>) {
+    limits = try minimum...maximum
 } catch {
     switch error {
-    case .currencyMismatch(let lhs, let rhs): …                    // the currencies differed
-    case .failure(.zeroStride): …                                  // the step was zero
-    case .failure(.invertedBounds), .failure(.tooManySteps): …
+    case .invertedBounds(let lower, let upper): …                  // minimum was above maximum
+    case .currencyMismatch(let currency): …                        // maximum's currency differed
     }
 }
 ```
 
-`Money` has no `~=`, so match a range in a `switch` with a guard: `case _ where try limits.contains(amount):`.
+Building steps throws `MoneyStepsParsingError`, which adds a zero stride and too many steps to
+count:
+
+```swift
+do throws(MoneyStepsParsingError<AnyCurrency>) {
+    steps = try Money.Steps(checkedBounds: (lower: minimum, upper: maximum), by: step)
+} catch {
+    switch error {
+    case .currencyMismatch(let currency): …       // maximum's, or else step's, currency differed
+    case .invertedBounds, .zeroStride, .tooManySteps: …
+    }
+}
+```
+
+Once a range is built, a call whose only failure is an amount in another currency, such as
+`contains` or converting a runtime range to a typed one, throws `MoneyError`, as arithmetic does.
+
+A runtime range has no `~=`, because it would have to throw and a `switch` pattern can't be marked
+`try`. Match one with a guard instead: `case _ where try limits.contains(amount):`.
+
+There is no clamp to a half-open range, `a..<b` or `..<b`. Either can hold no amount (`a..<a`, or
+`..<` the smallest amount), so the clamp would be failable, and a runtime one would be failable and
+throwing. To clamp to a `band` built with `..<` between two amounts, convert it to a closed range
+first: `try ClosedMoneyRange(band).map { try amount.clamped(to: $0) }`.
 
 ### Steps
 
@@ -224,8 +265,9 @@ steps.index(for: saved, rounding: .down)   // never above the saved amount
 steps.firstIndex(of: saved)                // an exact match only, or nil
 ```
 
-`stride(from:through:by:)` works too, with the standard library's behavior for integers: it
-stops at the last step that fits, so 10 through 250 by 100 leaves out 250. Use steps for a slider.
+`stride(from:through:by:)` and `stride(from:to:by:)` work too, with the standard library's behavior
+for integers: they stop at the last step that fits, so 10 through 250 by 100 leaves out 250. Use
+steps for a slider.
 
 ### Strides
 

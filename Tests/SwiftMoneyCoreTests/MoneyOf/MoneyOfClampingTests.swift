@@ -51,6 +51,28 @@ struct MoneyOfClampingTests {
         #expect(try pounds(50_00).clamped(to: ...pounds(250_00)) == pounds(50_00))
     }
 
+    @Test("A typed amount exactly at a bound clamps to itself")
+    func typedAtBound() {
+        #expect(GBP(minorUnits: 10_00).clamped(to: typedLimits) == GBP(minorUnits: 10_00))
+        #expect(GBP(minorUnits: 250_00).clamped(to: typedLimits) == GBP(minorUnits: 250_00))
+        #expect(GBP(minorUnits: 10_00).clamped(to: GBP(minorUnits: 10_00)...) == GBP(minorUnits: 10_00))
+        #expect(GBP(minorUnits: 250_00).clamped(to: ...GBP(minorUnits: 250_00)) == GBP(minorUnits: 250_00))
+        #expect(GBP.min.clamped(to: GBP.min ... GBP.max) == GBP.min)
+        #expect(GBP.max.clamped(to: GBP.min ... GBP.max) == GBP.max)
+    }
+
+    @Test("A runtime amount exactly at a bound clamps to itself")
+    func runtimeAtBound() throws {
+        let limits = try pounds(10_00)...pounds(250_00)
+
+        #expect(try pounds(10_00).clamped(to: limits) == pounds(10_00))
+        #expect(try pounds(250_00).clamped(to: limits) == pounds(250_00))
+        #expect(try pounds(10_00).clamped(to: pounds(10_00)...) == pounds(10_00))
+        #expect(try pounds(250_00).clamped(to: ...pounds(250_00)) == pounds(250_00))
+        #expect(try pounds(Int64.min).clamped(to: pounds(Int64.min)...pounds(Int64.max)) == pounds(Int64.min))
+        #expect(try pounds(Int64.max).clamped(to: pounds(Int64.min)...pounds(Int64.max)) == pounds(Int64.max))
+    }
+
     @Test("Clamping to limits in another currency throws a mismatch, the amount's currency first")
     func runtimeMismatch() throws {
         let yen = Money(minorUnits: 500, currency: .jpy)

@@ -18,8 +18,8 @@ public extension MoneyOf.Stride {
 extension MoneyOf.Stride.UnitCount: ExpressibleByIntegerLiteral {
     /// Creates a unit count from an integer literal.
     ///
-    /// A literal is written by a programmer rather than derived from data, so zero is a mistake in
-    /// the source rather than bad input: it traps.
+    /// Traps on zero, because `ExpressibleByIntegerLiteral` can't fail. A literal is written in the
+    /// source, so a zero here is a programmer's mistake rather than bad input.
     ///
     /// ```swift
     /// let five: GBP.Stride.UnitCount = 5    // fine

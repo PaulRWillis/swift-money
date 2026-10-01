@@ -1,6 +1,9 @@
 public extension MoneyOf {
     /// A non-zero amount to step by.
     ///
+    /// `MoneyOf` isn't meant to be `Strideable`, and this type's name blocks it: `Strideable`
+    /// would take this type as its `Stride`, which must be `SignedNumeric`.
+    ///
     /// A negative stride steps downward, as the standard library's do. A stride of zero would never
     /// reach its end, so it cannot be constructed:
     ///
@@ -34,6 +37,13 @@ public extension MoneyOf {
         @usableFromInline
         init(unchecked amount: MoneyOf<C>) {
             self.amount = amount
+        }
+
+        /// The minor units each step moves by, never zero. Negative steps downward.
+        @inlinable
+        var step: NonZeroInt64 {
+            // Every initializer either rejects a zero amount or builds a non-zero one.
+            NonZeroInt64(unchecked: amount.minorUnits)
         }
     }
 }

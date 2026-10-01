@@ -68,6 +68,26 @@ struct StepsTests {
         #expect(down.map(\.minorUnits) == [Int64.max, Int64.max - quarter, -1, -1 - quarter, Int64.min])
     }
 
+    @Test("Typed steps' bounds are the range they were built from, whichever way they run")
+    func typedBounds() throws {
+        let range = GBP(minorUnits: 10_00) ... GBP(minorUnits: 250_00)
+
+        #expect(try range.steps(by: .majorUnits(100)).bounds == range)
+        #expect(try range.steps(by: .majorUnits(-100)).bounds == range)
+        #expect(try (GBP.min ... GBP.max).steps(by: typedStride(1 << 62)).bounds == GBP.min ... GBP.max)
+    }
+
+    @Test("Runtime steps' bounds are the range they were built from, in its currency")
+    func runtimeBounds() throws {
+        let range = try pounds(10_00)...pounds(250_00)
+        let down = try range.steps(by: #require(.majorUnits(-100, of: .gbp)))
+        let yen = try Money(minorUnits: 5, currency: .jpy)...Money(minorUnits: 5, currency: .jpy)
+
+        #expect(try range.steps(by: .minorUnits(100_00, of: .gbp)).bounds == range)
+        #expect(down.bounds == range)
+        #expect(try yen.steps(by: .minorUnit(of: .jpy)).bounds == yen)
+    }
+
     @Test("The stride is the requested one, or the span when that is shorter, in the requested direction")
     func canonicalStride() throws {
         let range = GBP(minorUnits: 10) ... GBP(minorUnits: 250)
@@ -100,27 +120,34 @@ struct StepsTests {
         #expect(steps[steps.index(before: steps.endIndex)] == GBP(minorUnits: 1_000_000_00))
     }
 
-    @Test("A count that Int can hold builds; one more throws TooManyStepsError")
+    @Test("A count that Int can hold builds; one more throws tooManySteps")
     func tooManySteps() throws {
         let largest = Int64(Int.max)
 
         #expect(try (GBP.zero ... GBP(minorUnits: largest - 1)).steps(by: .minorUnit).count == Int.max)
-        #expect(throws: TooManyStepsError.self) {
+        #expect(throws: MoneyStepsParsingError<Currencies.GBP>.tooManySteps) {
             try (GBP.zero ... GBP(minorUnits: largest)).steps(by: .minorUnit)
         }
-        #expect(throws: TooManyStepsError.self) {
+        #expect(throws: MoneyStepsParsingError<Currencies.GBP>.tooManySteps) {
             try (GBP.min ... GBP.max).steps(by: .minorUnits(-1))
         }
     }
 
-    @Test("Typed steps throw only TooManyStepsError, so a catch needs no mismatch branch")
+    @Test("Typed steps throw MoneyStepsParsingError, so a switch needs no mismatch branch")
     func typedThrowsExactly() {
         // The check is the compiler's: this `do` compiles only if `steps(by:)` throws exactly
-        // `TooManyStepsError`.
-        do throws(TooManyStepsError) {
+        // `MoneyStepsParsingError<Currencies.GBP>`.
+        do throws(MoneyStepsParsingError<Currencies.GBP>) {
             _ = try (GBP.min ... GBP.max).steps(by: .minorUnit)
             Issue.record("Expected too many steps to throw")
-        } catch {}
+        } catch {
+            switch error {
+            case .invertedBounds, .zeroStride:
+                Issue.record("Expected too many steps, not \(error)")
+            case .tooManySteps:
+                break
+            }
+        }
     }
 
     @Test("Runtime steps are the typed ones, in the range's currency")
@@ -132,28 +159,28 @@ struct StepsTests {
         #expect(runtime.stride == Money.Stride(typed.stride))
     }
 
-    @Test("A yen range with a stride in pence throws a mismatch, the range's currency first")
+    @Test("A yen range with a stride in pence throws a mismatch with the stride's currency")
     func runtimeMismatch() throws {
         let yen = try Money(minorUnits: 0, currency: .jpy)...Money(minorUnits: 1_000, currency: .jpy)
 
-        #expect(throws: CurrencyCheckedError<TooManyStepsError>.currencyMismatch(lhs: .jpy, rhs: .gbp)) {
+        #expect(throws: MoneyStepsParsingError<AnyCurrency>.currencyMismatch(.gbp)) {
             try yen.steps(by: .minorUnits(1_00, of: .gbp))
         }
     }
 
-    @Test("Runtime steps too many to count throw a failure")
+    @Test("Runtime steps too many to count throw tooManySteps")
     func runtimeTooMany() throws {
         let range = try Money(minorUnits: Int64.min, currency: .gbp)...Money(minorUnits: Int64.max, currency: .gbp)
 
-        do throws(CurrencyCheckedError<TooManyStepsError>) {
+        do throws(MoneyStepsParsingError<AnyCurrency>) {
             _ = try range.steps(by: .minorUnit(of: .gbp))
             Issue.record("Expected too many steps to throw")
         } catch {
             switch error {
-            case .currencyMismatch:
-                Issue.record("Expected too many steps, not a mismatch")
-            case .failure:
+            case .tooManySteps:
                 break
+            case .currencyMismatch, .invertedBounds, .zeroStride:
+                Issue.record("Expected too many steps, not \(error)")
             }
         }
     }

@@ -21,6 +21,25 @@ public struct PartialMoneyRangeFrom: Equatable, Hashable, Sendable {
         self.lowerBound = lowerBound
     }
 
+    /// Creates a runtime range from a typed one, keeping its bound and currency.
+    ///
+    /// ```swift
+    /// let atLeastMinimum = PartialMoneyRangeFrom(GBP(minorUnits: 10_00)...)
+    /// atLeastMinimum.lowerBound   // GBP 10.00
+    /// ```
+    ///
+    /// - Parameter typed: The range whose currency is fixed by its bound's type.
+    @inlinable
+    public init<C: CurrencyType>(_ typed: PartialRangeFrom<MoneyOf<C>>) {
+        self.init(Money(typed.lowerBound))
+    }
+
+    /// The currency the lower bound, and every amount in the range, are denominated in.
+    @inlinable
+    public var currency: Currency {
+        lowerBound.currency
+    }
+
     /// Returns whether an amount lies at or above the lower bound.
     ///
     /// - Parameter amount: The amount to look for.

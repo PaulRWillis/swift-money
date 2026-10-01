@@ -22,6 +22,20 @@ private func nonZero(_ magnitude: Int64, negative: Bool) -> Int64 {
     negative ? -magnitude : magnitude
 }
 
+/// Returns the given minor units, each with its neighbors a minor unit either side, leaving out a
+/// neighbor beyond the range of `Int64`.
+///
+/// - Parameter minorUnits: The minor units to probe around.
+/// - Returns: Each of `minorUnits`, one below it and one above it, where they fit `Int64`.
+/// - Complexity: O(*n*), where *n* is the number of `minorUnits`.
+private func withNeighbors(_ minorUnits: [Int64]) -> [Int64] {
+    minorUnits.flatMap { value in
+        [value.subtractingReportingOverflow(1), (partialValue: value, overflow: false), value.addingReportingOverflow(1)]
+            .filter { !$0.overflow }
+            .map(\.partialValue)
+    }
+}
+
 private let strideCases: [StrideCase] = samples(
     zip(
         zip3(Gen<Int64>.int(in: 0 ... 1), Gen<Int64>.int(in: 0 ... 1), Gen<Int64>.int(in: 1 ... 60)),
@@ -88,6 +102,43 @@ struct StridePropertyTests {
         #expect(through.map(\.minorUnits) == Array(Swift.stride(from: sample.start, through: sample.end, by: Int(sample.stride))))
         #expect(to.allSatisfy { $0.currency == sample.currency })
         #expect(through.allSatisfy { $0.currency == sample.currency })
+    }
+
+    @Test("A typed stride contains exactly the amounts stepping through it gives, and none beside them", arguments: strideCases)
+    private func typedContainsMatchesStepping(_ sample: StrideCase) throws {
+        let step = try #require(GBP.Stride(exactly: GBP(minorUnits: sample.stride)))
+        let to = stride(from: GBP(minorUnits: sample.start), to: GBP(minorUnits: sample.end), by: step)
+        let through = stride(from: GBP(minorUnits: sample.start), through: GBP(minorUnits: sample.end), by: step)
+        // Every case is short enough to step through in full: a narrow one holds at most about a
+        // thousand amounts, and a wide one, with strides of at least 2⁵⁸, at most about sixty-five.
+        let steppedTo = Set(to.map(\.minorUnits))
+        let steppedThrough = Set(through.map(\.minorUnits))
+
+        for minorUnits in withNeighbors(Array(steppedThrough) + [sample.start, sample.end]) {
+            #expect(to.contains(GBP(minorUnits: minorUnits)) == steppedTo.contains(minorUnits))
+            #expect(through.contains(GBP(minorUnits: minorUnits)) == steppedThrough.contains(minorUnits))
+        }
+    }
+
+    @Test("A runtime stride contains exactly the amounts stepping through it gives, in its currency only", arguments: strideCases)
+    private func runtimeContainsMatchesStepping(_ sample: StrideCase) throws {
+        let start = Money(minorUnits: sample.start, currency: sample.currency)
+        let end = Money(minorUnits: sample.end, currency: sample.currency)
+        let step = try #require(Money.Stride(exactly: Money(minorUnits: sample.stride, currency: sample.currency)))
+        let to = try stride(from: start, to: end, by: step)
+        let through = try stride(from: start, through: end, by: step)
+        let steppedTo = Set(to.map(\.minorUnits))
+        let steppedThrough = Set(through.map(\.minorUnits))
+        // The corpus never uses euros.
+        let otherCurrency = Currency.eur
+
+        for minorUnits in withNeighbors(Array(steppedThrough) + [sample.start, sample.end]) {
+            let amount = Money(minorUnits: minorUnits, currency: sample.currency)
+
+            #expect(to.contains(amount) == steppedTo.contains(minorUnits))
+            #expect(through.contains(amount) == steppedThrough.contains(minorUnits))
+            #expect(!through.contains(Money(minorUnits: minorUnits, currency: otherCurrency)))
+        }
     }
 }
 #endif
