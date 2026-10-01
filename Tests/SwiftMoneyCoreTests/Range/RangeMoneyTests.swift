@@ -55,6 +55,14 @@ struct RangeMoneyTests {
         #expect(try Range<JPY>(MoneyRange(typed)) == typed)
     }
 
+    @Test("Bounds at the extremes of Int64 build, and survive a round trip through a runtime range")
+    func int64Extremes() throws {
+        let typed = try Range(checkedBounds: (lower: GBP.min, upper: GBP.max))
+
+        #expect(typed == GBP.min ..< GBP.max)
+        #expect(try Range<GBP>(MoneyRange(typed)) == typed)
+    }
+
     @Test("Inverted bounds in yen report both bounds")
     func invertedYen() {
         #expect(throws: MoneyRangeParsingError<Currencies.JPY>.invertedBounds(

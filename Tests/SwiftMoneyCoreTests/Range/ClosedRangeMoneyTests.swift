@@ -55,6 +55,14 @@ struct ClosedRangeMoneyTests {
         #expect(try ClosedRange<JPY>(ClosedMoneyRange(typed)) == typed)
     }
 
+    @Test("Bounds at the extremes of Int64 build, and survive a round trip through a runtime range")
+    func int64Extremes() throws {
+        let typed = try ClosedRange(checkedBounds: (lower: GBP.min, upper: GBP.max))
+
+        #expect(typed == GBP.min ... GBP.max)
+        #expect(try ClosedRange<GBP>(ClosedMoneyRange(typed)) == typed)
+    }
+
     @Test("A custom currency builds and refuses in the same way, with no mismatch case to switch on")
     func customScale() {
         typealias Credits = MoneyOf<Millicredits>

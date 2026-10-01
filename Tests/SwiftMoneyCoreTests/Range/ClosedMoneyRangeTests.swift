@@ -133,6 +133,20 @@ struct ClosedMoneyRangeTests {
         }
     }
 
+    @Test("Bounds at the extremes of Int64 build a range that holds both")
+    func int64Extremes() throws {
+        let range = try pounds(.min)...pounds(.max)
+
+        #expect(range.lowerBound == pounds(.min))
+        #expect(range.upperBound == pounds(.max))
+        #expect(try range.contains(pounds(.min)))
+        #expect(try range.contains(pounds(0)))
+        #expect(try range.contains(pounds(.max)))
+        #expect(throws: BuildError.invertedBounds(lowerBound: pounds(.max), upperBound: pounds(.min))) {
+            try pounds(.max)...pounds(.min)
+        }
+    }
+
     @Test("Equal ranges hash equally, and the same bounds in another currency are unequal")
     func hashAndEquality() throws {
         let first = try pounds(1_00)...pounds(2_00)
