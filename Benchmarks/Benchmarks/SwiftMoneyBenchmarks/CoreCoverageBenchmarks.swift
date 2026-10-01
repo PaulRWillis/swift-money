@@ -2008,7 +2008,7 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
     let runtimeOffStepProbes = offStepProbes.map { Money($0) }
     // Halfway between each set's sixth and seventh steps. Read with the steps' own index, so every
     // tie-break row lands on a tie.
-    let tieProbes = stepProbes.map { GBP(minorUnits: $0.minorUnits + 12_50) }
+    let tieProbes = stepProbes.map { $0 + GBP(minorUnits: 12_50) }
     let runtimeTieProbes = tieProbes.map { Money($0) }
 
     Benchmark("MoneyOf.Steps index for an amount", configuration: configuration) { benchmark in
