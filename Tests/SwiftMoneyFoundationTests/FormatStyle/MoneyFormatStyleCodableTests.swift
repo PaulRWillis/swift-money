@@ -355,7 +355,7 @@ struct MoneyFormatStyleCodableTests {
     func foundationCannotReadBackAFractionLengthPrecision() throws {
         // Foundation's `Precision` writes `null` for the integer lengths it did not set, then refuses
         // its own output on the way back in. Kept as a known issue so it flags once Foundation fixes
-        // the defect `CodablePrecision` works around. Verified on Swift 6.3.2.
+        // the defect `CodablePrecision` works around. Verified on Swift 6.4.
         let foundationStyle = Decimal.FormatStyle.Currency(code: "GBP", locale: Self.britishEnglish)
             .precision(.fractionLength(2))
 

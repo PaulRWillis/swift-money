@@ -30,7 +30,8 @@ extension MoneyOf.FormatStyle {
     ///   digits with lengths, has a length below zero or a significant-digit count below one, puts
     ///   its fewest digits above its most, leaves out its fewest significant digits, or has a
     ///   bound Foundation's range factories would clamp, or if the rounding increment is below
-    ///   one. Another `DecodingError` if a field is missing or has the wrong type.
+    ///   one. Another `DecodingError` if a field is missing or has the wrong type, or the
+    ///   decoder's error for a digit count that isn't a whole number.
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         locale = try container.decode(Locale.self, forKey: .locale)
@@ -49,7 +50,8 @@ extension MoneyOf.FormatStyle {
     /// Encodes this style into the given encoder.
     ///
     /// Writes the precision as Foundation's `Precision` writes it, so an encoded precision may not
-    /// decode: `.fractionLength(-1)` and `.significantDigits(0)` encode, and decoding them throws.
+    /// decode. For example, `.fractionLength(-1)` and `.significantDigits(0)` encode, and decoding
+    /// them throws.
     ///
     /// ```swift
     /// let json = try JSONEncoder().encode(GBP.FormatStyle().precision(.fractionLength(2)))

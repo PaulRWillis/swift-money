@@ -383,8 +383,10 @@ struct CodablePrecision: Codable {
         ///   - allowed: The counts a precision accepts.
         ///   - option: A precision's option.
         /// - Returns: The count, or `nil` if `key` holds no value.
-        /// - Throws: `DecodingError.typeMismatch` if the value isn't a whole number;
-        ///   `DecodingError.dataCorrupted` if it's outside `allowed`.
+        /// - Throws: `DecodingError.typeMismatch` if the value isn't a number; the decoder's error
+        ///   for a number that isn't whole, which from `JSONDecoder` is `DecodingError.dataCorrupted`
+        ///   with an empty coding path; `DecodingError.dataCorrupted` if the count is outside
+        ///   `allowed`.
         private static func count(
             _ key: OptionKeys,
             allowed: PartialRangeFrom<Int>,
@@ -409,15 +411,18 @@ struct CodablePrecision: Codable {
     private static let validLengths: PartialRangeFrom<Int> = 0...
     private static let validSignificantDigits: PartialRangeFrom<Int> = 1...
 
-    /// The most digits Foundation's range factories keep in a closed range's bound: 998.
+    /// The most digits Foundation's range factories keep in a closed range's upper bound: 998.
     ///
-    /// Measured on Swift 6.4. It also limits a mixed precision's part fixed at one length, which
-    /// goes through the same factories.
+    /// Foundation clamps a length range to its `validPartLength`, `0..<999`, and a significant-digits
+    /// range to its `validSignificantDigits`, `1..<999`. A closed range clamped to a half-open one
+    /// ends at 998. The same holds for a mixed precision's part fixed at one length, which goes
+    /// through the range factory. Measured on Swift 6.4.
     private static let closedRangeCeiling = 998
 
     /// The most digits Foundation's range factories keep in a range open at one end: 999.
     ///
-    /// Measured on Swift 6.4.
+    /// Foundation clamps a one-sided bound, of lengths or of significant digits, to the end of the
+    /// same half-open ranges, so it keeps 999. Measured on Swift 6.4.
     private static let oneSidedCeiling = 999
 
     let precision: Precision
