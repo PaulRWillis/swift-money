@@ -71,11 +71,12 @@ public extension ClosedRange {
     /// A negative stride starts on the upper bound and counts down to the lower.
     ///
     /// - Parameter stride: The gap between neighboring steps. The last gap may be shorter.
-    /// - Throws: ``TooManyStepsError`` if there would be more steps than `Int` can count.
+    /// - Throws: ``MoneyStepsParsingError/tooManySteps`` if there would be more steps than `Int` can
+    ///   count.
     @inlinable
     func steps<C: CurrencyType>(
         by stride: MoneyOf<C>.Stride
-    ) throws(TooManyStepsError) -> MoneyOf<C>.Steps where Bound == MoneyOf<C> {
+    ) throws(MoneyStepsParsingError<C>) -> MoneyOf<C>.Steps where Bound == MoneyOf<C> {
         try MoneyOf<C>.Steps(checking: lowerBound, through: upperBound, by: stride)
     }
 }

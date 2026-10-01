@@ -1584,7 +1584,7 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
 
     // £250 by £25 from a moving start: eleven steps, as the stride rows above walk.
     let typedSteps = closedPounds.map { range in
-        do throws(TooManyStepsError) {
+        do throws(MoneyStepsParsingError<Currencies.GBP>) {
             return try range.steps(by: strideByMajorUnits)
         } catch {
             fatalError("eleven steps fit Int, so this cannot happen: \(error)")

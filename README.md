@@ -182,7 +182,7 @@ Each call throws one exact error type, so a `switch` over it can be exhaustive. 
 wraps the typed error in a `.failure` case beside the currency mismatch:
 
 ```swift
-do throws(CurrencyCheckedError<StepsError<AnyCurrency>>) {
+do throws(CurrencyCheckedError<MoneyStepsParsingError<AnyCurrency>>) {
     steps = try Money.Steps(from: minimum, through: maximum, by: step)
 } catch {
     switch error {

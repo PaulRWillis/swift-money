@@ -196,15 +196,17 @@ public struct ClosedMoneyRange: Equatable, Hashable, Sendable {
     ///
     /// - Parameter stride: The gap between neighboring steps. The last gap may be shorter.
     /// - Throws: ``CurrencyCheckedError/currencyMismatch(lhs:rhs:)`` if `stride` is in another
-    ///   currency, with the range's as `lhs`; otherwise ``CurrencyCheckedError/failure(_:)`` if there
-    ///   would be more steps than `Int` can count.
+    ///   currency, with the range's as `lhs`; otherwise ``CurrencyCheckedError/failure(_:)`` with
+    ///   ``MoneyStepsParsingError/tooManySteps`` if there would be more steps than `Int` can count.
     @inlinable
-    public func steps(by stride: Money.Stride) throws(CurrencyCheckedError<TooManyStepsError>) -> Money.Steps {
+    public func steps(
+        by stride: Money.Stride
+    ) throws(CurrencyCheckedError<MoneyStepsParsingError<AnyCurrency>>) -> Money.Steps {
         guard _currency == stride.amount.storage else {
             throw .currencyMismatch(lhs: _currency, rhs: stride.amount.storage)
         }
 
-        do throws(TooManyStepsError) {
+        do throws(MoneyStepsParsingError<AnyCurrency>) {
             return try Money.Steps(
                 checking: Money(unchecked: _minorUnits.lowerBound, storage: _currency),
                 through: Money(unchecked: _minorUnits.upperBound, storage: _currency),

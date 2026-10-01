@@ -176,7 +176,7 @@ extension MoneyOf.Steps {
         checking lowerBound: MoneyOf<C>,
         through upperBound: MoneyOf<C>,
         by stride: MoneyOf<C>.Stride
-    ) throws(TooManyStepsError) {
+    ) throws(MoneyStepsParsingError<C>) {
         let requested = stride.amount.minorUnits
         let span = UInt64(bitPattern: upperBound.minorUnits &- lowerBound.minorUnits)
 
@@ -191,7 +191,7 @@ extension MoneyOf.Steps {
         let magnitude = requested.magnitude
         let (steps, overflow) = ((span &- 1) / magnitude).addingReportingOverflow(2)
         guard !overflow, let count = Int(exactly: steps) else {
-            throw TooManyStepsError()
+            throw .tooManySteps
         }
 
         // A stride longer than the span gives the same two steps as the span itself, so it is
@@ -257,19 +257,15 @@ extension MoneyOf.Steps {
         parsing lowerBound: MoneyOf<C>,
         through upperBound: MoneyOf<C>,
         by stride: MoneyOf<C>
-    ) throws(StepsError<C>) {
+    ) throws(MoneyStepsParsingError<C>) {
         guard lowerBound.minorUnits <= upperBound.minorUnits else {
-            throw .invertedBounds(InvertedBoundsError(lowerBound: lowerBound, upperBound: upperBound))
+            throw .invertedBounds(lowerBound: lowerBound, upperBound: upperBound)
         }
         guard let stride = MoneyOf.Stride(exactly: stride) else {
             throw .zeroStride
         }
 
-        do throws(TooManyStepsError) {
-            try self.init(checking: lowerBound, through: upperBound, by: stride)
-        } catch {
-            throw .tooManySteps(error)
-        }
+        try self.init(checking: lowerBound, through: upperBound, by: stride)
     }
 }
 
@@ -289,15 +285,16 @@ public extension MoneyOf.Steps where C: CurrencyType {
     ///   - lowerBound: The lowest step.
     ///   - upperBound: The highest step.
     ///   - stride: The gap between neighboring steps. The last gap may be shorter.
-    /// - Throws: ``StepsError/invertedBounds(_:)`` if `lowerBound` is above `upperBound`; otherwise
-    ///   ``StepsError/zeroStride`` if `stride` is zero; otherwise ``StepsError/tooManySteps(_:)`` if
-    ///   there would be more steps than `Int` can count.
+    /// - Throws: ``MoneyStepsParsingError/invertedBounds(lowerBound:upperBound:)`` if `lowerBound`
+    ///   is above `upperBound`; otherwise ``MoneyStepsParsingError/zeroStride`` if `stride` is zero;
+    ///   otherwise ``MoneyStepsParsingError/tooManySteps`` if there would be more steps than `Int`
+    ///   can count.
     @inlinable
     init(
         from lowerBound: MoneyOf<C>,
         through upperBound: MoneyOf<C>,
         by stride: MoneyOf<C>
-    ) throws(StepsError<C>) {
+    ) throws(MoneyStepsParsingError<C>) {
         try self.init(parsing: lowerBound, through: upperBound, by: stride)
     }
 
@@ -335,13 +332,14 @@ public extension MoneyOf.Steps where C == AnyCurrency {
     ///   - stride: The gap between neighboring steps. The last gap may be shorter.
     /// - Throws: ``CurrencyCheckedError/currencyMismatch(lhs:rhs:)`` if `upperBound`, or else
     ///   `stride`, is in another currency, with `lowerBound`'s as `lhs`; otherwise
-    ///   ``CurrencyCheckedError/failure(_:)`` with the ``StepsError`` the typed parse would throw.
+    ///   ``CurrencyCheckedError/failure(_:)`` with the ``MoneyStepsParsingError`` the typed parse
+    ///   would throw.
     @inlinable
     init(
         from lowerBound: Money,
         through upperBound: Money,
         by stride: Money
-    ) throws(CurrencyCheckedError<StepsError<AnyCurrency>>) {
+    ) throws(CurrencyCheckedError<MoneyStepsParsingError<AnyCurrency>>) {
         let currency = lowerBound.storage
         guard currency == upperBound.storage else {
             throw .currencyMismatch(lhs: currency, rhs: upperBound.storage)
@@ -350,7 +348,7 @@ public extension MoneyOf.Steps where C == AnyCurrency {
             throw .currencyMismatch(lhs: currency, rhs: stride.storage)
         }
 
-        do throws(StepsError<AnyCurrency>) {
+        do throws(MoneyStepsParsingError<AnyCurrency>) {
             try self.init(parsing: lowerBound, through: upperBound, by: stride)
         } catch {
             throw .failure(error)
