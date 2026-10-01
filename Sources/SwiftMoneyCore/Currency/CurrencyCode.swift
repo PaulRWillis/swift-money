@@ -87,7 +87,7 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
         packed << bitsPerCharacter | UInt64(character)
     }
 
-    // Forced inline: an outlined copy can't see the count is 3 to 8, so it keeps overflow traps.
+    // Forced inline: an outlined copy can't see the count is at most 8, so it keeps overflow traps.
     @inline(__always)
     private static func leftAligned(_ packed: UInt64, count: Int) -> UInt64 {
         packed << (bitsPerCharacter * (characterSlots - count))
@@ -154,13 +154,13 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
 
     /// Creates a code from its packed word, or `nil` unless the word is exactly a code's own.
     ///
-    /// A code's word holds three to eight packed characters (1 to 36) left-aligned, with every
-    /// slot after the last character empty and no bit set above the eight slots.
+    /// A code's word holds three to eight characters, each packed as 1 to 36, left-aligned, with
+    /// every slot after the last character empty and no bit set above the eight slots.
     ///
     /// ```swift
     /// let gbp: CurrencyCode = "GBP"
-    /// CurrencyCode(compactValue: gbp.compactValue)      // GBP
-    /// CurrencyCode(compactValue: gbp.compactValue | 1)  // nil
+    /// CurrencyCode(compactValue: gbp.compactValue)      // Optional(GBP)
+    /// CurrencyCode(compactValue: gbp.compactValue | 1)  // nil: "A" after empty slots
     /// ```
     ///
     /// - Parameter compactValue: A packed word, such as one read back from bytes.
@@ -187,7 +187,7 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
 
         let rebuilt = Self.leftAligned(packed, count: count)
 
-        // The loop stops at the first empty slot, so the compare refuses any bit it did not read.
+        // The loop stops at the first empty slot, so the compare refuses any set bit left unread.
         guard Self.acceptedLengths.contains(count), rebuilt == compactValue else {
             return nil
         }
