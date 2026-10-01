@@ -15,4 +15,5 @@ enum PropertySeed {
     static let roundTrip: UInt64 = 0x1007
     static let proportion: UInt64 = 0x2008
     static let powerOfTenProduct: UInt64 = 0x3009
+    static let majorUnits: UInt64 = 0x400A
 }

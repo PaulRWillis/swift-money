@@ -201,19 +201,6 @@ class JobResult(Enum):
     SKIPPED = "skipped"
 
 
-class Delivery(Enum):
-    """Whether the comment is news, or only worth refreshing a comment an earlier push left behind."""
-
-    POST = "post"
-    REFRESH_ONLY = "refresh-only"
-
-
-@dataclass(frozen=True)
-class Comment:
-    body: str
-    delivery: Delivery
-
-
 class ComparisonFormatError(ValueError):
     """A comparison file that does not have the shape `benchmark baseline check` prints."""
 
@@ -435,30 +422,21 @@ def paragraphs(*blocks):
 def no_comparison(job, run_url):
     """The comment when no shard uploaded a comparison: main has no baseline yet, or every shard failed."""
     if job is JobResult.SUCCESS:
-        return Comment(
-            paragraphs(
-                [MARKER, "### Benchmarks ran; no comparison yet"],
-                [f"No baseline was available to compare against. [Run details]({run_url})"],
-            ),
-            Delivery.REFRESH_ONLY,
+        return paragraphs(
+            [MARKER, "### Benchmarks ran; no comparison yet"],
+            [f"No baseline was available to compare against. [Run details]({run_url})"],
         )
-    return Comment(
-        paragraphs(
-            [MARKER, "### ❓ Benchmarks did not complete"],
-            [f"No shard produced a comparison. [Run details]({run_url})"],
-        ),
-        Delivery.POST,
+    return paragraphs(
+        [MARKER, "### ❓ Benchmarks did not complete"],
+        [f"No shard produced a comparison. [Run details]({run_url})"],
     )
 
 
 def not_run(label):
     """The comment when the pull request lacks the label that turns the comparison on."""
-    return Comment(
-        paragraphs(
-            [MARKER, "### ⏸️ Not run"],
-            [f"Add the `{label}` label to compare this pull request's speed with main."],
-        ),
-        Delivery.POST,
+    return paragraphs(
+        [MARKER, "### ⏸️ Not run"],
+        [f"Add the `{label}` label to compare this pull request's speed with main."],
     )
 
 
@@ -479,7 +457,7 @@ def comment(shards, job, run_url):
     # signal in its own right, on top of any shard that uploaded a failed status.
     incomplete = bool(failed) or job is not JobResult.SUCCESS
 
-    body = paragraphs(
+    return paragraphs(
         [MARKER, headline(regressed, improved, incomplete)],
         [f"{tally(significant, noise, len(shards))} [Run details]({run_url})"],
         [
@@ -496,9 +474,6 @@ def comment(shards, job, run_url):
         folded("Improvement tables (numbers)", [printed(improved)]) if improved else [],
         set_aside(noise) if noise else [],
     )
-
-    news = regressed or improved or incomplete
-    return Comment(body, Delivery.POST if news else Delivery.REFRESH_ONLY)
 
 
 RUN_URL = "https://github.com/owner/repo/actions/runs/1"
@@ -733,78 +708,73 @@ def selftest():
         shard_from("shard1", "2", WORSE_ONLY),
         shard_from("shard2", "0", WITHIN),
     ]
-    mixed_comment = comment(mixed, JobResult.SUCCESS, RUN_URL)
-    lines = mixed_comment.body.splitlines()
+    body = comment(mixed, JobResult.SUCCESS, RUN_URL)
+    lines = body.splitlines()
     assert lines[0] == "<!-- benchmark-delta -->", lines[0]
     assert lines[1] == "### ⚠️ 1 regressed, 2 improved vs main", lines[1]
-    assert mixed_comment.delivery is Delivery.POST
-    assert RUN_URL in mixed_comment.body
+    assert RUN_URL in body
     regressed_at, improved_at = lines.index("**Regressed:**"), lines.index("**Improved:**")
     assert regressed_at < improved_at
     assert lines[regressed_at + 1:regressed_at + 2] == ["- Int from MoneyOf minor units"]
     assert lines[improved_at + 1:improved_at + 3] == ["- MoneyOf unrounded converted", "- Rate from percent"]
     # Regressions need attention, so their tables fold away first.
-    body = mixed_comment.body
     assert body.index("Int from MoneyOf minor units\n=") < body.index("Rate from percent\n=")
     assert body.count("<details>") == 2
     assert "incomplete" not in body
     assert "noise" not in body
 
     # Noise stays out of the headline and the lists, and folds away below the real changes.
-    with_noise = comment(
+    body = comment(
         [shard_from("shard0", "4", BETTER_ONLY), shard_from("shard1", "2", REAL_AND_NOISE)],
         JobResult.SUCCESS,
         RUN_URL,
     )
-    lines = with_noise.body.splitlines()
+    lines = body.splitlines()
     assert lines[1] == "### ⚠️ 1 regressed, 2 improved vs main", lines[1]
     assert f"3 benchmark(s) flagged across 2 shards; 2 more set aside as noise. [Run details]({RUN_URL})" in lines
     regressed_at = lines.index("**Regressed:**")
     assert lines[regressed_at + 1:regressed_at + 3] == ["- Int from MoneyOf minor units", ""], lines
-    assert with_noise.delivery is Delivery.POST
-    body = with_noise.body
     noise_at = body.index("<details><summary>Set aside as noise (2)")
     assert body.index("Improvement tables") < noise_at
     for name in ["FractionLength construction", "Money scalar multiplication, amount times integer"]:
         assert body.index(f"- {name}") > noise_at and body.index(f"{name}\n=") > noise_at, name
     assert body.count("<details>") == 3
 
-    # A run whose every flag was noise is no news.
+    # A run whose every flag was noise reports no significant change.
     all_noise = comment(
         [shard_from("shard0", "2", NOISE_ONLY), shard_from("shard1", "0", WITHIN)],
         JobResult.SUCCESS,
         RUN_URL,
     )
-    lines = all_noise.body.splitlines()
+    lines = all_noise.splitlines()
     assert lines[1] == "### ✅ No significant benchmark changes", lines[1]
     assert f"0 benchmark(s) flagged across 2 shards; 2 set aside as noise. [Run details]({RUN_URL})" in lines, lines
-    assert "**Regressed:**" not in all_noise.body and "**Improved:**" not in all_noise.body
-    assert "- FractionLength construction" in all_noise.body
-    assert all_noise.delivery is Delivery.REFRESH_ONLY
+    assert "**Regressed:**" not in all_noise and "**Improved:**" not in all_noise
+    assert "- FractionLength construction" in all_noise
     # The tool drops a shard's improvements for any regression, noise or not.
-    assert "does not report its improvements" in all_noise.body
+    assert "does not report its improvements" in all_noise
 
     noise_and_failed = comment(
         [shard_from("shard0", "2", NOISE_ONLY), shard_from("shard3", "failed", "")],
         JobResult.FAILURE,
         RUN_URL,
     )
-    assert noise_and_failed.body.splitlines()[1] == "### ❓ Benchmark comparison incomplete"
-    assert noise_and_failed.delivery is Delivery.POST
+    assert noise_and_failed.splitlines()[1] == "### ❓ Benchmark comparison incomplete"
 
     regressed_only = comment([shard_from("shard0", "2", WORSE_ONLY)], JobResult.SUCCESS, RUN_URL)
-    assert regressed_only.body.splitlines()[1] == "### ⚠️ 1 regressed vs main"
-    assert "**Improved:**" not in regressed_only.body
+    assert regressed_only.splitlines()[1] == "### ⚠️ 1 regressed vs main"
+    assert "**Improved:**" not in regressed_only
 
     improved_only = comment([shard_from("shard0", "4", BETTER_ONLY)], JobResult.SUCCESS, RUN_URL)
-    assert improved_only.body.splitlines()[1] == "### ✅ 2 improved, none regressed"
-    assert "**Regressed:**" not in improved_only.body
-    assert improved_only.delivery is Delivery.POST
+    assert improved_only.splitlines()[1] == "### ✅ 2 improved, none regressed"
+    assert "**Regressed:**" not in improved_only
 
-    quiet = comment([shard_from("shard0", "0", WITHIN)], JobResult.SUCCESS, RUN_URL)
-    assert quiet.body.splitlines()[1] == "### ✅ No significant benchmark changes"
-    assert quiet.delivery is Delivery.REFRESH_ONLY
-    assert "<details>" not in quiet.body
+    # A clean run can be the first comment on the pull request, so it stands alone as a verdict.
+    quiet = comment([shard_from("shard0", "0", WITHIN), shard_from("shard1", "0", WITHIN)], JobResult.SUCCESS, RUN_URL)
+    assert quiet == paragraphs(
+        [MARKER, "### ✅ No significant benchmark changes"],
+        [f"0 benchmark(s) flagged across 2 shards. [Run details]({RUN_URL})"],
+    ), quiet
 
     # A failed shard surfaces, by name, whatever else the other shards found.
     with_failure = comment(
@@ -812,37 +782,31 @@ def selftest():
         JobResult.FAILURE,
         RUN_URL,
     )
-    assert with_failure.body.splitlines()[1] == "### ❓ Benchmark comparison incomplete"
-    assert "shard3" in with_failure.body
-    assert "- Rate from percent" in with_failure.body
-    assert with_failure.delivery is Delivery.POST
+    assert with_failure.splitlines()[1] == "### ❓ Benchmark comparison incomplete"
+    assert "shard3" in with_failure
+    assert "- Rate from percent" in with_failure
 
     regressed_and_failed = comment(
         [shard_from("shard1", "2", WORSE_ONLY), shard_from("shard3", "failed", "")],
         JobResult.FAILURE,
         RUN_URL,
     )
-    assert regressed_and_failed.body.splitlines()[1] == "### ⚠️ 1 regressed vs main"
-    assert "incomplete" in regressed_and_failed.body
+    assert regressed_and_failed.splitlines()[1] == "### ⚠️ 1 regressed vs main"
+    assert "incomplete" in regressed_and_failed
 
     # A shard that failed before uploading leaves no artifact; only the job result says so.
     missing_artifact = comment([shard_from("shard0", "0", WITHIN)], JobResult.FAILURE, RUN_URL)
-    assert missing_artifact.body.splitlines()[1] == "### ❓ Benchmark comparison incomplete"
-    assert missing_artifact.delivery is Delivery.POST
+    assert missing_artifact.splitlines()[1] == "### ❓ Benchmark comparison incomplete"
 
     no_baseline = comment([], JobResult.SUCCESS, RUN_URL)
-    assert no_baseline.body.splitlines()[1] == "### Benchmarks ran; no comparison yet"
-    assert no_baseline.delivery is Delivery.REFRESH_ONLY
+    assert no_baseline.splitlines()[1] == "### Benchmarks ran; no comparison yet"
 
     nothing_ran = comment([], JobResult.FAILURE, RUN_URL)
-    assert nothing_ran.body.splitlines()[1] == "### ❓ Benchmarks did not complete"
-    assert nothing_ran.delivery is Delivery.POST
+    assert nothing_ran.splitlines()[1] == "### ❓ Benchmarks did not complete"
 
-    # Posted, not only refreshed, so it also replaces the result of a push that had the label.
     unlabelled = not_run("run-benchmarks")
-    assert unlabelled.body.splitlines()[:2] == [MARKER, "### ⏸️ Not run"], unlabelled.body
-    assert "`run-benchmarks`" in unlabelled.body
-    assert unlabelled.delivery is Delivery.POST
+    assert unlabelled.splitlines()[:2] == [MARKER, "### ⏸️ Not run"], unlabelled
+    assert "`run-benchmarks`" in unlabelled
 
     with tempfile.TemporaryDirectory() as root:
         artifacts = Path(root)
@@ -877,23 +841,17 @@ def main(argv):
     parser.add_argument("--job-result", choices=[result.value for result in JobResult],
                         help="the benchmark job's result, from needs.benchmark.result")
     parser.add_argument("--run-url", help="the workflow run the comment links to")
-    parser.add_argument("--github-env", type=Path,
-                        help="a file to append DELIVERY=post|refresh-only to, such as $GITHUB_ENV")
     args = parser.parse_args(argv[1:])
 
     comparison = (args.shards, args.job_result, args.run_url)
     if args.not_run and not any(comparison):
-        result = not_run(args.not_run)
+        body = not_run(args.not_run)
     elif all(comparison) and not args.not_run:
-        result = comment(read_shards(args.shards), JobResult(args.job_result), args.run_url)
+        body = comment(read_shards(args.shards), JobResult(args.job_result), args.run_url)
     else:
         parser.error("give either --not-run LABEL, or shards with --job-result and --run-url")
 
-    sys.stdout.write(result.body)
-    print(f"delivery: {result.delivery.value}", file=sys.stderr)
-    if args.github_env:
-        with open(args.github_env, "a") as environment:
-            environment.write(f"DELIVERY={result.delivery.value}\n")
+    sys.stdout.write(body)
     return 0
 
 
