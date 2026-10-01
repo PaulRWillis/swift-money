@@ -14,8 +14,8 @@ public extension MoneyOf {
     ///
     /// `count` and the subscript take constant time however many steps there are, as for any
     /// random-access collection. So do `firstIndex(of:)`, `lastIndex(of:)` and `contains(_:)`, which
-    /// work out an amount's position from the bounds and the stride rather than stepping through,
-    /// and `index(approximating:tiesTo:)` and `index(approximating:rounding:)`, which round an
+    /// work out an amount's position from the bounds and the stride rather than stepping through.
+    /// So do `index(approximating:tiesTo:)` and `index(approximating:rounding:)`, which round an
     /// amount between two steps to one of them.
     ///
     /// Two sets of steps are equal when they hold the same amounts, in the same order and the same
@@ -510,8 +510,8 @@ extension MoneyOf.Steps {
     ///   - minorUnits: The amount's minor units, in the steps' currency.
     ///   - rule: Which side of the amount to take the step from.
     /// - Returns: The offset of the step `rule` picks.
-    /// - Throws: ``MoneyStepsRoundingError/outOfBounds`` if the amount is beyond the steps and `rule`
-    ///   rules out the only step beside it.
+    /// - Throws: ``MoneyStepsRoundingError/outOfBounds`` if the amount is beyond the steps and
+    ///   `rule` rules out the only step beside it.
     /// - Complexity: O(1).
     @inlinable
     func offset(
@@ -653,16 +653,16 @@ public extension MoneyOf.Steps where C: CurrencyType {
     /// Returns the position of the step nearest an amount.
     ///
     /// An amount between two steps, such as a saved £123.45 on £10 steps, takes the nearer one,
-    /// measuring the shorter last gap as it is. An amount beyond the steps takes the nearer end, so
-    /// this never fails:
+    /// measuring the shorter last gap as it is. An amount beyond the steps takes the nearer end:
     ///
     /// ```swift
     /// steps.index(approximating: saved)   // the nearest step
     /// ```
     ///
-    /// A tie goes by default to the step at an even position from the lower bound, so it falls the
-    /// same way whichever way the steps run. `tiesTo: .awayFromZero` takes the step with the
-    /// amount's sign instead, the larger in size; zero counts as positive.
+    /// A tie goes by default to the step at an even position from the lower bound, so steps that
+    /// hold the same amounts break a tie the same way, whichever way they run.
+    /// `tiesTo: .awayFromZero` takes the step with the amount's sign instead, the larger in size;
+    /// zero counts as positive.
     ///
     /// The nearest step always exists, so this takes a tie-break and can't fail; a rule that names
     /// a direction can, so ``index(approximating:rounding:)`` throws. For an exact match without
@@ -683,24 +683,25 @@ public extension MoneyOf.Steps where C: CurrencyType {
 
     /// Returns the position of the step on one side of an amount, by a rule that names a direction.
     ///
-    /// An amount between two steps, such as a saved £123.45 on £10 steps, has to become one of them.
-    /// The rule says which:
+    /// An amount between two steps, such as a saved £123.45 on £10 steps, has to become one of
+    /// them. The rule says which:
     ///
     /// ```swift
-    /// try steps.index(approximating: saved, rounding: .down)   // the highest step at or below
+    /// try steps.index(approximating: saved, rounding: .down)   // the step at or below `saved`
     /// ```
     ///
     /// `.down` takes the step at or below the amount and `.up` the one at or above. `.towardZero`
-    /// takes the neighbor smaller in size and `.awayFromZero` the larger, so when both neighbors share
-    /// the amount's sign they act as `.down` or `.up` by that sign. When the neighbors lie either side
-    /// of zero, the step can have the other sign: between −£7 and £5, £3 rounds toward zero to £5 and
-    /// away from zero to −£7. Where the neighbors are the same size, as −£10 and £10 are, both take
-    /// the one with the amount's sign; zero counts as positive.
+    /// takes the neighbor smaller in size and `.awayFromZero` the larger, so when both neighbors
+    /// share the amount's sign they act as `.down` or `.up` by that sign. When the neighbors lie
+    /// either side of zero, the step can have the other sign: between −£7 and £5, £3 rounds toward
+    /// zero to £5 and away from zero to −£7. Where the neighbors are the same size, as −£10 and £10
+    /// are, both take the one with the amount's sign; zero counts as positive.
     ///
     /// An amount beyond the steps has one neighbor, the nearer end, and a rule takes it only if it
     /// allows a step on that side. `.towardZero` and `.awayFromZero` act as `.down` or `.up` by the
-    /// amount's sign there. A directed rule can find no step, so this throws; the nearest step
-    /// always exists, so ``index(approximating:tiesTo:)`` doesn't.
+    /// amount's sign there, and zero counts as positive, so £0 on £5...£17 steps throws under
+    /// `.towardZero`. A directed rule can find no step, so this throws; the nearest step always
+    /// exists, so ``index(approximating:tiesTo:)`` doesn't.
     ///
     /// - Parameters:
     ///   - amount: The amount to find a step for.
@@ -777,7 +778,8 @@ public extension MoneyOf.Steps where C == AnyCurrency {
 
     /// Returns the position of the step nearest a runtime amount, if it is in the steps' currency.
     ///
-    /// Rounds as the typed `index(approximating:tiesTo:)` does, so only a currency mismatch fails:
+    /// Rounds as the typed ``index(approximating:tiesTo:)`` does, so only a currency mismatch
+    /// fails:
     ///
     /// ```swift
     /// let position = try steps.index(approximating: saved)
@@ -806,7 +808,7 @@ public extension MoneyOf.Steps where C == AnyCurrency {
     /// Returns the position of the step on one side of a runtime amount, by a rule that names a
     /// direction, if the amount is in the steps' currency.
     ///
-    /// Rounds as the typed `index(approximating:rounding:)` does:
+    /// Rounds as the typed ``index(approximating:rounding:)`` does:
     ///
     /// ```swift
     /// let position = try steps.index(approximating: saved, rounding: .down)

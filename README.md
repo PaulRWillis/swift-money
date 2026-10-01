@@ -255,8 +255,9 @@ try limits.steps(by: .majorUnits(-100))   // GBP 250.00, 150.00, 50.00, 10.00
 
 An amount between two steps is rounded onto one. By default it takes the nearest step, which never
 fails: an amount beyond the steps takes the nearer end, and a tie goes to the step at an even
-position from the lower bound, or with `tiesTo: .awayFromZero` to the larger. A rule that names a
-direction, such as `.down`, throws `MoneyStepsRoundingError.outOfBounds` when no step satisfies it:
+position from the lower bound, or with `tiesTo: .awayFromZero` to the one larger in size. A rule
+that names a direction, such as `.down`, throws `MoneyStepsRoundingError.outOfBounds` when no step
+satisfies it:
 
 ```swift
 let steps = try limits.steps(by: .majorUnits(10))

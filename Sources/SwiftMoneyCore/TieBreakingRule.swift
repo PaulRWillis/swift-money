@@ -7,10 +7,11 @@
 /// steps.index(approximating: saved, tiesTo: .awayFromZero)
 /// ```
 public enum TieBreakingRule: Equatable, Hashable, Sendable {
-    /// Toward the even neighbor, as ``RoundingRule/toNearestOrEven`` does.
+    /// Toward the neighbor at an even position, as ``RoundingRule/toNearestOrEven`` does.
     case even
 
-    /// Toward the neighbor larger in size, as ``RoundingRule/toNearestOrAwayFromZero`` does.
+    /// Toward the neighbor larger in size, or the positive one when both are the same size, as
+    /// ``RoundingRule/toNearestOrAwayFromZero`` does.
     case awayFromZero
 }
 

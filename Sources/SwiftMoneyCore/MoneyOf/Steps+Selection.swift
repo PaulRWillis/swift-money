@@ -19,7 +19,11 @@ public extension MoneyOf.Steps {
         /// The position of the chosen step, always a position in ``steps``.
         public let index: Index
 
-        // No check: for call sites whose `index` came from `steps` and is before its `endIndex`.
+        /// Creates a selection without checking that the position is in the steps.
+        ///
+        /// - Parameters:
+        ///   - steps: The steps chosen among.
+        ///   - index: The position of the chosen step, from `steps` and before its `endIndex`.
         @usableFromInline
         init(
             unchecked steps: MoneyOf<C>.Steps,
@@ -100,6 +104,7 @@ public extension MoneyOf.Steps.Selection where C: CurrencyType {
     /// - Parameters:
     ///   - amount: The amount to select.
     ///   - tie: How to choose between two steps the same distance from `amount`.
+    /// - Returns: The selection of the step nearest `amount`, in ``steps``.
     @inlinable
     func selecting(
         approximating amount: MoneyOf<C>,
@@ -116,6 +121,7 @@ public extension MoneyOf.Steps.Selection where C: CurrencyType {
     /// - Parameters:
     ///   - amount: The amount to select.
     ///   - rule: Which side of `amount` to take the step from.
+    /// - Returns: The selection of the step `rule` takes, in ``steps``.
     /// - Throws: ``MoneyStepsRoundingError/outOfBounds`` if no step satisfies `rule`.
     @inlinable
     func selecting(
@@ -128,8 +134,8 @@ public extension MoneyOf.Steps.Selection where C: CurrencyType {
     /// Creates a typed selection from a runtime one, if it is in this type's currency.
     ///
     /// - Parameter selection: The selection whose currency is only known at runtime.
-    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if `selection` is in another currency, with
-    ///   this type's currency as `lhs`.
+    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if `selection` is in another currency,
+    ///   with this type's currency as `lhs`.
     @inlinable
     init(_ selection: Money.Steps.Selection) throws(MoneyError) {
         self.init(unchecked: try MoneyOf.Steps(selection.steps), index: MoneyOf.Steps.Index(offset: selection.index.offset))
@@ -188,6 +194,7 @@ public extension MoneyOf.Steps.Selection where C == AnyCurrency {
     /// - Parameters:
     ///   - amount: The amount to select.
     ///   - tie: How to choose between two steps the same distance from `amount`.
+    /// - Returns: The selection of the step nearest `amount`, in ``steps``.
     /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if `amount` is in another currency, with
     ///   the steps' currency as `lhs`.
     @inlinable
@@ -206,6 +213,7 @@ public extension MoneyOf.Steps.Selection where C == AnyCurrency {
     /// - Parameters:
     ///   - amount: The amount to select.
     ///   - rule: Which side of `amount` to take the step from.
+    /// - Returns: The selection of the step `rule` takes, in ``steps``.
     /// - Throws: ``MoneyStepsRoundingError/currencyMismatch(_:)`` with the currency of `amount` if
     ///   it differs from the steps'; otherwise ``MoneyStepsRoundingError/outOfBounds`` if no step
     ///   satisfies `rule`.

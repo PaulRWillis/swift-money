@@ -1,4 +1,4 @@
-/// One of the four rounding rules that name a direction, IEEE 754's directed roundings.
+/// One of the four rounding rules that name a direction.
 ///
 /// A directed rule takes the neighbor on one side whatever the distance, so it can find none, such
 /// as `.up` for an amount above the highest step. A rounding that can fail that way takes a
