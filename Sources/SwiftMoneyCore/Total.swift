@@ -39,7 +39,8 @@ public extension Sequence where Element == Money {
     /// Traps on overflow.
     ///
     /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if the amounts are not all in the same
-    ///   currency.
+    ///   currency. `lhs` is the first amount's currency, and `rhs` is the currency of the first
+    ///   amount that differs from it.
     @inlinable
     func total() throws(MoneyError) -> Money? {
         var running: Money?
@@ -68,7 +69,8 @@ public extension Sequence where Element == Money.Unrounded {
     /// Traps on overflow.
     ///
     /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if the amounts are not all in the same
-    ///   currency.
+    ///   currency. `lhs` is the first amount's currency, and `rhs` is the currency of the first
+    ///   amount that differs from it.
     @inlinable
     func total() throws(MoneyError) -> Money.Unrounded? {
         var running: Money.Unrounded?

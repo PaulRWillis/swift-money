@@ -344,6 +344,29 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         }
     }
 
+    Benchmark("Money from MoneyOf", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Money(pounds[index % pounds.count]))
+            index &+= 1
+        }
+    }
+
+    // The typed twin of `Money from MoneyOf`: the check that the runtime currency is this type's.
+    Benchmark("MoneyOf from Money, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try GBP(runtimePounds[index % runtimePounds.count]))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts are all in pounds, so this cannot happen: \(error)")
+        }
+    }
+
     Benchmark("Money subtraction in place, throwing", configuration: configuration) { benchmark in
         var accumulated = Money(minorUnits: 0, currency: .gbp)
         var index = 0
