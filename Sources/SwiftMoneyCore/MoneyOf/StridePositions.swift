@@ -35,6 +35,8 @@ struct StridePositions: Sendable {
         self.step = step
     }
 
+    // The last amount is found once, by a division, so a step only compares with it. Comparing with
+    // the end instead would cost every step a test of the stride's sign and an `Int64` range check.
     /// The positions after this one, or `nil` once `next` is `last`.
     @inlinable
     var advanced: StridePositions? {
@@ -49,8 +51,8 @@ struct StridePositions: Sendable {
     /// Returns whether the given minor units are one of the positions from `next` to `last`.
     ///
     /// - Parameter minorUnits: The minor units to look for.
-    /// - Returns: `true` if `minorUnits` lies from `next` to `last` and a whole number of steps from
-    ///   `next`; otherwise, `false`.
+    /// - Returns: `true` if `minorUnits` lies from `next` to `last` and a whole number of steps
+    ///   from `next`; otherwise, `false`.
     @inlinable
     func contains(_ minorUnits: Int64) -> Bool {
         let ascending = step.rawValue > 0

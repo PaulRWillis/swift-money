@@ -24,11 +24,11 @@ public func stride<C: CurrencyType>(
     MoneyStrideTo(from: start, to: end, by: stride)
 }
 
-/// Returns the amounts from a start up to an end, one stride apart, including the end only if a step
-/// lands on it.
+/// Returns the amounts from a start up to an end, one stride apart, including the end only if a
+/// step lands on it.
 ///
-/// Behaves as the standard library's `stride(from:through:by:)` does for integers, so an end between
-/// two steps is left out:
+/// Behaves as the standard library's `stride(from:through:by:)` does for integers, so an end
+/// between two steps is left out:
 ///
 /// ```swift
 /// stride(from: GBP(minorUnits: 10_00), through: GBP(minorUnits: 250_00), by: .majorUnits(100))
@@ -82,8 +82,8 @@ public func stride(
     return MoneyStrideTo(from: start, to: end, by: stride)
 }
 
-/// Returns the runtime amounts from a start up to an end, one stride apart, including the end only if
-/// a step lands on it.
+/// Returns the runtime amounts from a start up to an end, one stride apart, including the end only
+/// if a step lands on it.
 ///
 /// The currencies are checked once, here, so iterating never throws. Behaves as the standard
 /// library's `stride(from:through:by:)` does for integers.

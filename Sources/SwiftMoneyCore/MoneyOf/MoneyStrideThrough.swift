@@ -7,8 +7,8 @@
 ///
 /// ```swift
 /// let end = GBP(minorUnits: 2_50)
-/// let amounts: MoneyStrideThrough<Currencies.GBP>
-/// amounts = stride(from: .zero, through: end, by: .majorUnit)
+/// // MoneyStrideThrough<Currencies.GBP>
+/// let amounts = stride(from: .zero, through: end, by: .majorUnit)
 /// Array(amounts)  // £0, £1, £2: no £2.50, since no step lands on it
 /// ```
 public struct MoneyStrideThrough<C: CurrencyRepresentation>: Sequence, Sendable {
@@ -61,7 +61,7 @@ public struct MoneyStrideThrough<C: CurrencyRepresentation>: Sequence, Sendable 
 
     /// The number of amounts in the sequence, or `Int.max` if that many don't fit `Int`.
     ///
-    /// The count is exact, as the standard library's stride sequences report it.
+    /// Exact, as the standard library's stride sequences report it, unless it exceeds `Int.max`.
     @inlinable
     public var underestimatedCount: Int {
         guard let positions else {

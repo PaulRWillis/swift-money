@@ -6,7 +6,7 @@
 ///
 /// ```swift
 /// let end = GBP(minorUnits: 3_00)
-/// let amounts: MoneyStrideTo<Currencies.GBP> =stride(from: .zero, to: end, by: .majorUnit)
+/// let amounts = stride(from: .zero, to: end, by: .majorUnit)   // MoneyStrideTo<Currencies.GBP>
 /// Array(amounts)  // £0, £1, £2
 /// ```
 public struct MoneyStrideTo<C: CurrencyRepresentation>: Sequence, Sendable {
@@ -37,8 +37,8 @@ public struct MoneyStrideTo<C: CurrencyRepresentation>: Sequence, Sendable {
         let step = NonZeroInt64(unchecked: stride.amount.minorUnits)
         let ascending = step.rawValue > 0
 
-        // Before the end, the distance to it is at least one and below 2⁶⁴, so `UInt64` holds it, and a
-        // whole number of strides short of it lands on an amount: wrapping arithmetic finds it exactly.
+        // Before the end, the distance is at least one and below 2⁶⁴, so `UInt64` holds it, and a
+        // whole number of strides short of it is an amount: wrapping arithmetic finds it exactly.
         let distance = UInt64(bitPattern: ascending ? end.minorUnits &- first : first &- end.minorUnits)
         let travel = ((distance &- 1) / step.rawValue.magnitude) &* step.rawValue.magnitude
         let hasAmounts = ascending ? first < end.minorUnits : first > end.minorUnits
@@ -58,7 +58,7 @@ public struct MoneyStrideTo<C: CurrencyRepresentation>: Sequence, Sendable {
 
     /// The number of amounts in the sequence, or `Int.max` if that many don't fit `Int`.
     ///
-    /// The count is exact, as the standard library's stride sequences report it.
+    /// Exact, as the standard library's stride sequences report it, unless it exceeds `Int.max`.
     @inlinable
     public var underestimatedCount: Int {
         guard let positions else {
