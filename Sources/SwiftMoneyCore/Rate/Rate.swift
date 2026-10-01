@@ -167,11 +167,12 @@ private extension Rate {
         let denominatorText = text[text.index(after: slash)...]
 
         guard let numerator = Int128(numeratorText),
-              let denominator = Int128(denominatorText), denominator > 0,
+              let denominator = Int128(denominatorText),
+              let divisor = Fixed.Divisor(exactly: denominator),
               let whole = Fixed(exactly: numerator) else {
             return nil
         }
-        let value = whole.divided(by: denominator, rounding: rounding)
+        let value = whole.divided(by: divisor, rounding: rounding)
         guard value.multipliedIfRepresentable(by: denominator) == whole else {
             return .rounded(value)
         }

@@ -171,15 +171,14 @@ struct FixedArithmeticTests {
     // `exponent: -18` names the least significant digit, so a `significand:` there reads as the stored
     // value — the way to construct and check the extremes through the public interface.
     @Test("Integer division ties to even, symmetrically across sign", arguments: [
-        (Int128(5), Int128(2), Int128(2)),          // 2.5 → 2 (even)
-        (Int128(7), Int128(2), Int128(4)),          // 3.5 → 4 (even)
-        (Int128(-7), Int128(2), Int128(-4)),
-        (Int128(7), Int128(-2), Int128(-4)),
-        (Int128(-7), Int128(-2), Int128(4)),
-        (Int128.min, Int128(1), Int128.min),        // taken from its magnitude, never negated
-        (Int128.max, Int128(2), Int128.max / 2 + 1),
+        (Int128(5), Fixed.Divisor(2), Int128(2)),          // 2.5 → 2 (even)
+        (Int128(7), Fixed.Divisor(2), Int128(4)),          // 3.5 → 4 (even)
+        (Int128(-7), Fixed.Divisor(2), Int128(-4)),
+        (Int128(-5), Fixed.Divisor(2), Int128(-2)),        // -2.5 → -2 (even)
+        (Int128.min, Fixed.Divisor(1), Int128.min),        // taken from its magnitude, never negated
+        (Int128.max, Fixed.Divisor(2), Int128.max / 2 + 1),
     ])
-    func integerDivisionRoundsHalfToEven(_ testCase: (storage: Int128, divisor: Int128, expected: Int128)) throws {
+    func integerDivisionRoundsHalfToEven(_ testCase: (storage: Int128, divisor: Fixed.Divisor, expected: Int128)) throws {
         let value = try #require(Fixed(significand: testCase.storage, exponent: -18))
         let expected = try #require(Fixed(significand: testCase.expected, exponent: -18))
 
@@ -232,13 +231,6 @@ struct FixedArithmeticTests {
         }
     }
 
-    @Test("Integer division by zero traps")
-    func integerDivisionByZeroTraps() async {
-        await #expect(processExitsWith: .failure) {
-            blackHole(Fixed(1).divided(by: 0))
-        }
-    }
-
     @Test("A product beyond the range traps")
     func productOverflowTraps() async {
         await #expect(processExitsWith: .failure) {
@@ -258,15 +250,6 @@ struct FixedArithmeticTests {
         await #expect(processExitsWith: .failure) {
             let tiny = Fixed(decimal: "0.000000001")   // 1e-9
             blackHole(tiny.map { Fixed(1_000_000_000_000) / $0 })
-        }
-    }
-
-    @Test("Integer division past the range traps")
-    func integerDivisionOverflowTraps() async {
-        await #expect(processExitsWith: .failure) {
-            // The most negative value divided by -1 has no positive counterpart.
-            let mostNegative = Fixed(significand: .min, exponent: -18)
-            blackHole(mostNegative.map { $0.divided(by: -1) })
         }
     }
 }

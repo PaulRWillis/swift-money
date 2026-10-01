@@ -12,10 +12,15 @@ public enum AnyCurrency: CurrencyRepresentation {
         code.flatMap(Currency.init(iso:))
     }
 
-    /// Resolves a currency the ISO table ships from the code alone, or a currency the table does not
-    /// ship from the code and its scale together. Validates the scale itself, since this is the one
-    /// representation that ever looks at it — a malformed scale here is refused, not silently
-    /// dropped, but it never reaches a representation that would have ignored it anyway.
+    /// Returns the currency a decoded field names, or `nil` where it names none this type can be.
+    ///
+    /// A code alone resolves a currency the ISO table ships. A code and a scale rebuild any currency,
+    /// as ``Currency/init(code:unitScale:)`` does.
+    ///
+    /// - Parameter field: What a decoded payload named as the currency.
+    /// - Returns: The currency `field` names, or `nil` where it names no currency, a code alone the
+    ///   ISO table doesn't ship, a scale ``UnitScale`` can't hold, or a shipped code at another
+    ///   scale.
     @inlinable
     public static func storage(for field: CurrencyField) -> Currency? {
         switch field {

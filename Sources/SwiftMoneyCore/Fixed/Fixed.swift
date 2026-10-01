@@ -29,14 +29,19 @@ package struct Fixed: Equatable, Hashable, Sendable, BitwiseCopyable {
 }
 
 extension Fixed {
-    // The raw storage integer — the value times 10^18 — for the byte serializer, which writes it as
-    // sixteen two's-complement bytes and reads it back. Not a public number and not a bit pattern to
-    // reinterpret as anything else: it is exactly the integer this type holds internally.
+    /// The raw stored integer: the value times 10¹⁸.
     @usableFromInline
     package var storageBits: Int128 {
         _storage
     }
 
+    /// Creates a value from its raw stored integer.
+    ///
+    /// ```swift
+    /// Fixed(storageBits: 1_500_000_000_000_000_000)  // 1.5
+    /// ```
+    ///
+    /// - Parameter storageBits: The value times 10¹⁸.
     @usableFromInline
     package init(storageBits: Int128) {
         self.init(_storage: storageBits)
@@ -141,25 +146,19 @@ extension Fixed {
     }
 
     /// Returns this value divided by a whole number, rounded half to even.
-    ///
-    /// - Precondition: `n` is not zero and the result is representable.
-    @usableFromInline package func divided(by n: Int128) -> Fixed {
-        divided(by: n, rounding: .toNearestOrEven)
+    @usableFromInline package func divided(by divisor: Divisor) -> Fixed {
+        divided(by: divisor, rounding: .toNearestOrEven)
     }
 
     /// Returns this value divided by a whole number, rounded by `rounding`.
-    ///
-    /// - Precondition: `divisor` is not zero and the result is representable.
-    package func divided(by divisor: Int128, rounding: RoundingRule) -> Fixed {
-        precondition(divisor != 0, "Fixed divided by zero")
-
-        let sign = Sign(of: _storage) * Sign(of: divisor)
+    package func divided(by divisor: Divisor, rounding: RoundingRule) -> Fixed {
+        let sign = Sign(of: _storage)
         let (quotient, remainder) = _storage.magnitude.quotientAndRemainder(dividingBy: divisor.magnitude)
         let dropped = DroppedFraction(remainder: remainder, divisor: divisor.magnitude)
         let step = rounding.step(dropping: dropped, sign: sign, truncated: Parity(of: quotient))
 
         guard let storage = signedRounded(quotient: quotient, step: step, sign: sign) else {
-            preconditionFailure("Fixed integer division overflowed")  // coverage:ignore — exit-test trap
+            preconditionFailure("Fixed integer division overflowed")  // coverage:ignore — unreachable: a divisor of at least one can't grow the quotient
         }
 
         return Fixed(_storage: storage)
