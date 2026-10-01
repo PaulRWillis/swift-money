@@ -70,6 +70,24 @@ struct ProportionTests {
         #expect(part.proportion(of: whole) == Rate.percent(20))
     }
 
+    @Test("A third of a negative whole rounds the same as of a positive one")
+    func thirdOfNegativeWhole() {
+        #expect(GBP(minorUnits: 1).proportion(of: GBP(minorUnits: -3)) == "-0.333333333333333333")
+        #expect(GBP(minorUnits: 2).proportion(of: GBP(minorUnits: -3)) == "-0.666666666666666667")
+        #expect(GBP(minorUnits: -1).proportion(of: GBP(minorUnits: -3)) == "0.333333333333333333")
+    }
+
+    @Test("Nothing is none of a negative whole")
+    func zeroOfNegativeWhole() {
+        #expect(GBP.zero.proportion(of: GBP(minorUnits: -3)) == "0")
+        #expect(GBP.zero.proportion(of: GBP(minorUnits: -1)) == "0")
+    }
+
+    @Test("The smallest amount over minus one is its positive size")
+    func smallestOverMinusOne() {
+        #expect(GBP.min.proportion(of: GBP(minorUnits: -1)) == "9223372036854775808")
+    }
+
     @Test("The largest and smallest amounts are each all of themselves")
     func extremesOfThemselves() {
         #expect(GBP.max.proportion(of: .max) == "1")

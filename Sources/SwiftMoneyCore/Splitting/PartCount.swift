@@ -3,7 +3,8 @@
 /// Always at least one. Splitting into zero or a negative number of parts has no meaning, so those
 /// values cannot be constructed.
 public struct PartCount: Equatable, Hashable, Sendable {
-    fileprivate let rawValue: Int
+    /// The number of parts, at least one.
+    @usableFromInline let rawValue: Int
 
     /// Creates a part count from a value that may not be valid.
     ///
@@ -63,6 +64,7 @@ public extension Int {
     /// Creates an integer from a part count.
     ///
     /// - Parameter parts: The part count to convert.
+    @inlinable
     init(_ parts: PartCount) {
         self = parts.rawValue
     }
