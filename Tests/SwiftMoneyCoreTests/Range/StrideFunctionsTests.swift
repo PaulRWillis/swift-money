@@ -157,6 +157,19 @@ struct StrideFunctionsTests {
         #expect(stride(from: GBP.zero, through: GBP(minorUnits: -1), by: .minorUnit).underestimatedCount == 0)
     }
 
+    @Test("stride returns MoneyStrideTo and MoneyStrideThrough, and stepping an iterator leaves them intact")
+    func namedTypes() throws {
+        let upTo: MoneyStrideTo<Currencies.GBP> = stride(from: GBP.zero, to: GBP(minorUnits: 2), by: .minorUnit)
+        let through: MoneyStrideThrough<AnyCurrency> = try stride(from: pounds(0), through: pounds(1), by: runtimeStride(1))
+        var upToIterator: MoneyStrideToIterator<Currencies.GBP> = upTo.makeIterator()
+        var throughIterator: MoneyStrideThroughIterator<AnyCurrency> = through.makeIterator()
+
+        #expect(upToIterator.next() == .zero)
+        #expect(throughIterator.next() == pounds(0))
+        #expect(Array(upTo) == [GBP.zero, GBP(minorUnits: 1)])
+        #expect(Array(through) == [pounds(0), pounds(1)])
+    }
+
     @Test("stride over Int still type-checks with SwiftMoneyCore imported")
     func integerStrideUnaffected() {
         #expect(Array(stride(from: 0, to: 10, by: 2)) == [0, 2, 4, 6, 8])

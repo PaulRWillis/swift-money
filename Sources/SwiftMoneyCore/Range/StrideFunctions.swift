@@ -14,12 +14,13 @@
 ///   - start: The first amount, unless it is already at or past `end`.
 ///   - end: The amount the sequence stops before.
 ///   - stride: The amount each step moves by.
+/// - Returns: The amounts, in `start`'s currency.
 @inlinable
 public func stride<C: CurrencyType>(
     from start: MoneyOf<C>,
     to end: MoneyOf<C>,
     by stride: MoneyOf<C>.Stride
-) -> some Sequence<MoneyOf<C>> & Sendable {
+) -> MoneyStrideTo<C> {
     MoneyStrideTo(from: start, to: end, by: stride)
 }
 
@@ -41,12 +42,13 @@ public func stride<C: CurrencyType>(
 ///   - start: The first amount, unless it is already past `end`.
 ///   - end: The last amount, if a step lands on it.
 ///   - stride: The amount each step moves by.
+/// - Returns: The amounts, in `start`'s currency.
 @inlinable
 public func stride<C: CurrencyType>(
     from start: MoneyOf<C>,
     through end: MoneyOf<C>,
     by stride: MoneyOf<C>.Stride
-) -> some Sequence<MoneyOf<C>> & Sendable {
+) -> MoneyStrideThrough<C> {
     MoneyStrideThrough(from: start, through: end, by: stride)
 }
 
@@ -64,6 +66,7 @@ public func stride<C: CurrencyType>(
 ///   - start: The first amount, unless it is already at or past `end`.
 ///   - end: The amount the sequence stops before.
 ///   - stride: The amount each step moves by.
+/// - Returns: The amounts, in `start`'s currency.
 /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if `end`, or else `stride`, is in another
 ///   currency from `start`, with `start`'s currency as `lhs`.
 @inlinable
@@ -71,7 +74,7 @@ public func stride(
     from start: Money,
     to end: Money,
     by stride: Money.Stride
-) throws(MoneyError) -> some Sequence<Money> & Sendable {
+) throws(MoneyError) -> MoneyStrideTo<AnyCurrency> {
     try AnyCurrency.requireMatch(start.storage, end.storage)
     try AnyCurrency.requireMatch(start.storage, stride.amount.storage)
 
@@ -88,6 +91,7 @@ public func stride(
 ///   - start: The first amount, unless it is already past `end`.
 ///   - end: The last amount, if a step lands on it.
 ///   - stride: The amount each step moves by.
+/// - Returns: The amounts, in `start`'s currency.
 /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if `end`, or else `stride`, is in another
 ///   currency from `start`, with `start`'s currency as `lhs`.
 @inlinable
@@ -95,7 +99,7 @@ public func stride(
     from start: Money,
     through end: Money,
     by stride: Money.Stride
-) throws(MoneyError) -> some Sequence<Money> & Sendable {
+) throws(MoneyError) -> MoneyStrideThrough<AnyCurrency> {
     try AnyCurrency.requireMatch(start.storage, end.storage)
     try AnyCurrency.requireMatch(start.storage, stride.amount.storage)
 

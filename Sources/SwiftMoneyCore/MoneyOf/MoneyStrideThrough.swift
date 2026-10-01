@@ -1,23 +1,34 @@
-// The amounts from a start up to an end, one stride apart, including the end only if a step lands on
-// it: what `stride(from:through:by:)` returns for amounts.
-//
-// The amounts the standard library's `StrideThroughIterator` returns, stepping the minor units by an
-// amount rather than an `Int` for the reason `MoneyStrideTo` gives, and with its last amount found
-// once, as there.
-//
-// Named `MoneyStrideThrough` to mirror the standard library's `StrideThrough`, the way `MoneyRange`
-// mirrors `Range`.
-@usableFromInline
-struct MoneyStrideThrough<C: CurrencyRepresentation>: Sequence, IteratorProtocol, Sendable {
-    /// The currency of every amount returned.
+/// The amounts from a start up to an end, one stride apart, including the end only if a step lands
+/// on it.
+///
+/// What ``stride(from:through:by:)`` returns for amounts, as the standard library's `StrideThrough`
+/// is for numbers. It steps by an amount rather than an `Int`, so a stride above `Int32.max`
+/// doesn't trap where `Int` is 32 bits.
+///
+/// ```swift
+/// let end = GBP(minorUnits: 2_50)
+/// let amounts: MoneyStrideThrough<Currencies.GBP>
+/// amounts = stride(from: .zero, through: end, by: .majorUnit)
+/// Array(amounts)  // £0, £1, £2: no £2.50, since no step lands on it
+/// ```
+public struct MoneyStrideThrough<C: CurrencyRepresentation>: Sequence, Sendable {
+    /// The currency of every amount in the sequence.
     @usableFromInline
     let currency: C.Storage
 
-    /// The positions left to return, or `nil` once the last has been returned or when the start is
-    /// past the end.
+    /// The positions of the amounts, or `nil` when the start is past the end.
     @usableFromInline
-    var positions: StridePositions?
+    let positions: StridePositions?
 
+    /// Creates the amounts from a start up to an end, one stride apart, including the end only if a
+    /// step lands on it.
+    ///
+    /// Every amount takes `start`'s currency; the currencies of `end` and `stride` aren't checked.
+    ///
+    /// - Parameters:
+    ///   - start: The first amount, unless it is already past `end`.
+    ///   - end: The last amount, if a step lands on it.
+    ///   - stride: The amount each step moves by.
     @inlinable
     init(
         from start: MoneyOf<C>,
@@ -40,20 +51,19 @@ struct MoneyStrideThrough<C: CurrencyRepresentation>: Sequence, IteratorProtocol
         self.positions = hasAmounts ? StridePositions(next: first, last: last, step: step) : nil
     }
 
+    /// Returns an iterator over the amounts.
+    ///
+    /// - Returns: An iterator that starts at the first amount.
     @inlinable
-    mutating func next() -> MoneyOf<C>? {
-        guard let current = positions else {
-            return nil
-        }
-
-        positions = current.advanced
-
-        return MoneyOf(unchecked: current.next, storage: currency)
+    public func makeIterator() -> MoneyStrideThroughIterator<C> {
+        MoneyStrideThroughIterator(currency: currency, remaining: positions)
     }
 
-    // The exact count, as the standard library's stride sequences report, so `Array(_:)` allocates once.
+    /// The number of amounts in the sequence, or `Int.max` if that many don't fit `Int`.
+    ///
+    /// The count is exact, as the standard library's stride sequences report it.
     @inlinable
-    var underestimatedCount: Int {
+    public var underestimatedCount: Int {
         guard let positions else {
             return 0
         }
@@ -61,9 +71,14 @@ struct MoneyStrideThrough<C: CurrencyRepresentation>: Sequence, IteratorProtocol
         return positions.count
     }
 
-    // Answers exactly from the positions, so `contains(_:)` never steps through the amounts.
+    /// Returns whether the sequence holds an amount, without stepping through it.
+    ///
+    /// - Parameter element: The amount to look for.
+    /// - Returns: `true` if `element` is in the sequence's currency, lies from its first amount to
+    ///   its last, and is a whole number of strides from the first; otherwise, `false`. Never
+    ///   `nil`.
     @inlinable
-    func _customContainsEquatableElement(_ element: MoneyOf<C>) -> Bool? {
+    public func _customContainsEquatableElement(_ element: MoneyOf<C>) -> Bool? {
         guard let positions else {
             return false
         }
