@@ -235,8 +235,9 @@ struct CurrencyCodeTests {
     @Test(
         "A compact word with a bit set above its eight slots is refused",
         arguments: [
-            0b1_000111_000010_010000_000000_000000_000000_000000_000000,                  // "GBP", plus bit 48
-            0b1_000000000000000_000111_000010_010000_000000_000000_000000_000000_000000,  // "GBP", plus bit 63
+            0b1_000111_000010_010000_000000_000000_000000_000000_000000,                    // "GBP", plus bit 48
+            0b1_000_000000_000000_000111_000010_010000_000000_000000_000000_000000_000000,  // "GBP", plus bit 63
+            0b1_010011_000001_000110_000101_001101_001111_001111_001110,                    // "SAFEMOON", plus bit 48
         ] as [UInt64]
     )
     func refusesABitAboveTheSlots(_ word: UInt64) {
