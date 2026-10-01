@@ -35,6 +35,8 @@ struct MoneyFormatStyleCodableTests {
         .significantDigits(2...),
         .significantDigits(...4),
         .significantDigits(...999),
+        .significantDigits(...1),
+        .significantDigits(...0),
     ]
 
     // Captured from the encoder before the style read its precision itself, so a change to the shape
@@ -296,6 +298,19 @@ struct MoneyFormatStyleCodableTests {
 
         #expect(decoded == GBP.FormatStyle().locale(Self.britishEnglish).precision(.significantDigits(5000)))
         #expect(decoded != GBP.FormatStyle().locale(Self.britishEnglish).precision(.significantDigits(998)))
+    }
+
+    @Test("At most one or zero significant digits is written as exactly one", arguments: [1, 0])
+    func writesAtMostOneSignificantDigitAsExactlyOne(most: Int) throws {
+        let json = try JSONEncoder().encode(
+            GBP.FormatStyle().locale(Self.britishEnglish).precision(.significantDigits(...most))
+        )
+        let style = try #require(JSONSerialization.jsonObject(with: json) as? [String: Any])
+        let precision = try #require(style["precision"])
+        let written = try JSONSerialization.data(withJSONObject: precision, options: .sortedKeys)
+
+        #expect(String(decoding: written, as: UTF8.self) == #"{"option":{"maxSignificantDigits":1,"minSignificantDigits":1}}"#)
+        #expect(Precision.significantDigits(...most) == .significantDigits(...1))
     }
 
     @Test("A style written with no precision decodes with none")
