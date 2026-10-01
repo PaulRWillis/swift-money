@@ -336,9 +336,8 @@ extension MoneyOf.Steps {
         let width = Swift.min(gap, extent - behind * gap)
 
         // The rounding rules work from the step toward zero, as for a quotient: the lower one for a
-        // positive amount, the higher for a negative. Zero counts as positive, as in `Sign(of:)`, which
-        // is generic and not inlinable, so calling it here would cost an unspecialized call.
-        let sign: Sign = minorUnits < 0 ? .negative : .positive
+        // positive amount, the higher for a negative.
+        let sign = Sign(of: minorUnits)
         let towardZeroIsBehind = (sign == .positive) == ascending
         let towardZero = Int(truncatingIfNeeded: towardZeroIsBehind ? behind : behind + 1)
         let awayFromZero = towardZeroIsBehind ? towardZero + 1 : towardZero - 1
