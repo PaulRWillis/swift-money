@@ -27,7 +27,10 @@ struct MoneyFormatStyleCodableTests {
         .integerAndFractionLength(integerLimits: 1...2, fractionLimits: 3...),
         .integerAndFractionLength(integerLimits: ...4, fractionLimits: 1...2),
         .integerAndFractionLength(integerLimits: 2...2, fractionLimits: 1...3),
+        .integerAndFractionLength(integerLimits: 1..., fractionLimits: ...2),
+        .integerAndFractionLength(integerLimits: 1...3, fractionLimits: 2...2),
         .significantDigits(3),
+        .significantDigits(5000),
         .significantDigits(2...4),
         .significantDigits(2...),
         .significantDigits(...4),
@@ -200,6 +203,16 @@ struct MoneyFormatStyleCodableTests {
         let decoded = try JSONDecoder().decode(GBP.FormatStyle.self, from: json)
 
         #expect(decoded == GBP.FormatStyle().locale(Self.britishEnglish).precision(.fractionLength(2)))
+    }
+
+    @Test("An exact significant-digits count above Foundation's range limits decodes unchanged")
+    func decodesAnExactSignificantDigitsCountUnchanged() throws {
+        let json = Self.styleJSON(precision: #"{"option":{"maxSignificantDigits":5000,"minSignificantDigits":5000}}"#)
+
+        let decoded = try JSONDecoder().decode(GBP.FormatStyle.self, from: json)
+
+        #expect(decoded == GBP.FormatStyle().locale(Self.britishEnglish).precision(.significantDigits(5000)))
+        #expect(decoded != GBP.FormatStyle().locale(Self.britishEnglish).precision(.significantDigits(998)))
     }
 
     @Test("A style written with no precision decodes with none")
