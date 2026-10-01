@@ -123,7 +123,7 @@ extension MoneyRange: CustomDebugStringConvertible {
     /// String(reflecting: try floor..<ceiling)   // "MoneyRange(GBP 10.00..<GBP 250.00)"
     /// ```
     public var debugDescription: String {
-        "MoneyRange(" + description + ")"
+        rangeDescription(lowerBound, "..<", upperBound, opening: "MoneyRange(", closing: ")")
     }
 }
 

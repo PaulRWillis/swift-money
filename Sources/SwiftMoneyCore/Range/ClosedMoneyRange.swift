@@ -124,7 +124,7 @@ extension ClosedMoneyRange: CustomDebugStringConvertible {
     /// String(reflecting: try minimum...maximum)   // "ClosedMoneyRange(GBP 10.00...GBP 250.00)"
     /// ```
     public var debugDescription: String {
-        "ClosedMoneyRange(" + description + ")"
+        rangeDescription(lowerBound, "...", upperBound, opening: "ClosedMoneyRange(", closing: ")")
     }
 }
 
