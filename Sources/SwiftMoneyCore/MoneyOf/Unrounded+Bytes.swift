@@ -3,7 +3,8 @@
 // accrues daily interest. Twenty-three bytes, big-endian throughout, laid out amount then currency:
 //
 //     bytes  0 ... 15   Int128  amount times 10^18   (two's-complement)
-//     bytes 16 ... 21   UInt48  currency code         (the code packed six bits per character)
+//     bytes 16 ... 21   UInt48  currency code         (the code packed six bits per character,
+//                                                      left-aligned, unused slots zero)
 //     byte  22          UInt8   currency scale        (decimal places, 0 ... 18)
 //
 // The amount is the internal storage of the `Fixed` count of minor units — the count multiplied by

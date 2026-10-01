@@ -4,7 +4,8 @@
 // laid out amount then currency:
 //
 //     bytes  0 ... 7   Int64  minorUnits          (two's-complement)
-//     bytes  8 ... 13  UInt48 currency code        (the code packed six bits per character)
+//     bytes  8 ... 13  UInt48 currency code        (the code packed six bits per character,
+//                                                   left-aligned, unused slots zero)
 //     byte  14         UInt8  currency scale       (decimal places, 0 ... 18)
 //
 // Every amount encodes to the same fifteen bytes, whatever its currency, so a record holds a fixed

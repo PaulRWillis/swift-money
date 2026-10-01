@@ -152,11 +152,18 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
         return storage.trailingZeroBitCount >= bitsAfterCode ? storage >> bitsAfterCode : nil
     }
 
-    /// Creates a code from the characters a packed word starts with, or `nil` if they aren't one.
+    /// Creates a code from its packed word, or `nil` unless the word is exactly a code's own.
+    ///
+    /// A code's word holds three to eight characters left-aligned, with every slot after the last
+    /// character empty and no bit set above the eight slots.
+    ///
+    /// ```swift
+    /// CurrencyCode(compactValue: 0x1C24_0000_0000)  // GBP
+    /// CurrencyCode(compactValue: 0x1C24_0000_0001)  // nil, a character after an empty slot
+    /// ```
     ///
     /// - Parameter compactValue: A packed word, such as one read back from bytes.
-    /// - Returns: `nil` if fewer than three characters come before the first empty slot, or if a
-    ///   slot before it isn't a character.
+    /// - Returns: `nil` unless `compactValue` is the ``compactValue`` of some code.
     @usableFromInline
     package init?(compactValue: UInt64) {
         var packed: UInt64 = 0
@@ -176,11 +183,13 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
             count += 1
         }
 
-        guard Self.acceptedLengths.contains(count) else {
+        // The loop stops at the first empty slot, so this refuses any bit it did not read.
+        guard Self.acceptedLengths.contains(count),
+              Self.leftAligned(packed, count: count) == compactValue else {
             return nil
         }
 
-        self.storage = Self.leftAligned(packed, count: count)
+        self.storage = compactValue
     }
 
     // Writes into a buffer the caller sized with `utf8Count`, so a longer string is built in one pass.
