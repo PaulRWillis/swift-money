@@ -1,3 +1,4 @@
+import CLDRLocaleSkips
 import SwiftMoneyLocalization
 
 // One locale's tables as plain values, decided before a byte of it reaches the string pool.
@@ -6,13 +7,12 @@ import SwiftMoneyLocalization
 // of the way through. Were they one pass, the strings and patterns of a locale that then failed would
 // already be in the pool with nothing pointing at them, and every pattern index after it would shift.
 //
-// The two arrays are held in the order their strings should reach the pool, which is not the order
-// they are searched in: `pack` sorts the records afterwards.
+// The two currency splits hold their entries in the order their strings should reach the pool, which
+// is not the order they are searched in: `pack` sorts the records afterwards.
 struct LocaleTables {
     // What a locale calls one currency in symbol form, the gap each form takes beside the digits, and
     // whether a letter touches the number in each.
     struct Display {
-        let code: Localization.CurrencyCode
         let standardSymbol: String
         let standardSpacing: Spacing
         let standardForm: SymbolForm
@@ -24,7 +24,6 @@ struct LocaleTables {
     // What a locale calls one currency in words: the name CLDR always publishes, and any plural
     // category that words it differently.
     struct FullName {
-        let code: Localization.CurrencyCode
         let other: String
         let overrides: [(category: PluralCategory, name: String)]
     }
@@ -66,12 +65,13 @@ struct LocaleTables {
     let alphaArrangement: String?
     let alphaAccountingArrangement: String?
 
-    let displays: [Display]
-    let fullNames: [FullName]
+    let displays: LocaleCurrencyEntries<Display>
+    let fullNames: LocaleCurrencyEntries<FullName>
 
-    // Codes CLDR names in this locale that the tables can't hold, reported rather than dropped in
-    // silence.
-    let unusableCurrencyCodes: Set<String>
+    // Codes this locale gives a distinct symbol or a shipped name for that the tables can't hold.
+    var unusableCurrencyCodes: Set<String> {
+        displays.unusableCodes.union(fullNames.unusableCodes)
+    }
 
     // The imposing systems this locale writes with separators of its own, differing from the system
     // default. Sorted by system name so the packed rows come out the same on any machine.

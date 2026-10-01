@@ -4,7 +4,8 @@ import SwiftMoneyLocalization
 /// One locale's currency entries from CLDR, split by whether the packed tables can hold each code.
 ///
 /// ```swift
-/// let entries = LocaleCurrencyEntries([(code: "GBP", fields: "£"), (code: "USDT", fields: "₮")])
+/// let published = [(code: "GBP", fields: "£"), (code: "USDT", fields: "₮")]
+/// let entries = LocaleCurrencyEntries(parsing: published)
 /// entries.held.map(\.fields)   // ["£"]
 /// entries.unusableCodes        // ["USDT"]
 /// ```
@@ -23,7 +24,7 @@ package struct LocaleCurrencyEntries<Fields> {
         /// What CLDR publishes for the currency.
         package let fields: Fields
 
-        /// Creates an entry from a code the split has already parsed.
+        /// Creates an entry from a code the split has already narrowed.
         ///
         /// - Parameters:
         ///   - code: The code the tables file the currency under.
@@ -34,35 +35,93 @@ package struct LocaleCurrencyEntries<Fields> {
         }
     }
 
-    /// Creates the split of a locale's entries.
+    /// Creates the split of a locale's entries from Core's currency codes.
     ///
-    /// Each code is read as `CurrencyCode(string:)` reads it, so lowercase is accepted, and is held
-    /// only if it has three characters.
+    /// A code is held only if it has three characters.
     ///
     /// ```swift
-    /// LocaleCurrencyEntries([(code: "USDT", fields: "₮")]).unusableCodes   // ["USDT"]
+    /// let usdt: CurrencyCode = "USDT"
+    /// LocaleCurrencyEntries([(code: usdt, fields: "₮")]).unusableCodes   // ["USDT"]
     /// ```
     ///
-    /// - Parameter published: Each currency's code as CLDR spells it, with its fields, in the order
-    ///   to keep.
-    package init(_ published: some Sequence<(code: String, fields: Fields)>) {
+    /// - Parameter published: Each currency's code with its fields, in the order to keep.
+    package init(_ published: some Sequence<(code: CurrencyCode, fields: Fields)>) {
         var held: [Entry] = []
         var unusableCodes: Set<String> = []
 
-        for (code, fields) in published {
-            guard
-                let currencyCode = CurrencyCode(string: code),
-                let tableCode = Localization.CurrencyCode(currencyCode)
-            else {
-                unusableCodes.insert(code)
+        for (currencyCode, fields) in published {
+            guard let tableCode = Localization.CurrencyCode(currencyCode) else {
+                unusableCodes.insert(currencyCode.description)
                 continue
             }
 
             held.append(Entry(code: tableCode, fields: fields))
         }
 
+        self.init(held: held, unusableCodes: unusableCodes)
+    }
+
+    /// Creates the split of a locale's entries from codes as CLDR spells them.
+    ///
+    /// Each code is read as `CurrencyCode(string:)` reads it, so lowercase is accepted, and is held
+    /// only if it has three characters.
+    ///
+    /// ```swift
+    /// LocaleCurrencyEntries(parsing: [(code: "G-P", fields: "?")]).unusableCodes   // ["G-P"]
+    /// ```
+    ///
+    /// - Parameter published: Each currency's code as CLDR spells it, with its fields, in the order
+    ///   to keep.
+    package init(parsing published: some Sequence<(code: String, fields: Fields)>) {
+        var parsed: [(code: CurrencyCode, fields: Fields)] = []
+        var notCurrencyCodes: Set<String> = []
+
+        for (text, fields) in published {
+            guard let currencyCode = CurrencyCode(string: text) else {
+                notCurrencyCodes.insert(text)
+                continue
+            }
+
+            parsed.append((currencyCode, fields))
+        }
+
+        let narrowed = Self(parsed)
+        self.init(held: narrowed.held, unusableCodes: narrowed.unusableCodes.union(notCurrencyCodes))
+    }
+
+    /// Creates a split from its parts.
+    ///
+    /// - Parameters:
+    ///   - held: The entries whose code the tables can hold.
+    ///   - unusableCodes: The codes the tables can't hold.
+    private init(held: [Entry], unusableCodes: Set<String>) {
         self.held = held
         self.unusableCodes = unusableCodes
+    }
+
+    /// Returns the split with each held entry's fields transformed, keeping its codes and its
+    /// unusable codes.
+    ///
+    /// ```swift
+    /// let published = [(code: "GBP", fields: 1), (code: "USDT", fields: 2)]
+    /// let entries = LocaleCurrencyEntries(parsing: published)
+    /// let scaled = entries.map { $0 * 10 }
+    /// scaled.held.map(\.fields)   // [10]
+    /// scaled.unusableCodes        // ["USDT"]
+    /// ```
+    ///
+    /// - Parameter transform: The transform applied to each held entry's fields, in order.
+    /// - Returns: The split with the transformed fields.
+    /// - Throws: The first error `transform` throws.
+    /// - Complexity: O(*n*), where *n* is the number of held entries.
+    package func map<T, E: Error>(
+        _ transform: (Fields) throws(E) -> T
+    ) throws(E) -> LocaleCurrencyEntries<T> {
+        let mapped = try held.map { entry throws(E) in
+            LocaleCurrencyEntries<T>.Entry(code: entry.code, fields: try transform(entry.fields))
+        }
+
+        return LocaleCurrencyEntries<T>(held: mapped, unusableCodes: unusableCodes)
     }
 }
 
