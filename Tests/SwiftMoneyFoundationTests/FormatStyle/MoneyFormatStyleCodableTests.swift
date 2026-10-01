@@ -13,6 +13,7 @@ struct MoneyFormatStyleCodableTests {
         .fractionLength(0),
         .fractionLength(2),
         .fractionLength(40),
+        .fractionLength(5000),
         .fractionLength(1...3),
         .fractionLength(1..<3),
         .fractionLength(1...),
@@ -22,6 +23,7 @@ struct MoneyFormatStyleCodableTests {
         .integerLength(1...),
         .integerLength(...3),
         .integerAndFractionLength(integer: 2, fraction: 3),
+        .integerAndFractionLength(integer: 1000, fraction: 1000),
         .integerAndFractionLength(integerLimits: 1...2, fractionLimits: 3...),
         .integerAndFractionLength(integerLimits: ...4, fractionLimits: 1...2),
         .integerAndFractionLength(integerLimits: 2...2, fractionLimits: 1...3),
@@ -79,7 +81,42 @@ struct MoneyFormatStyleCodableTests {
         #"{"option":{"maxSignificantDigits":0,"minSignificantDigits":0}}"#,
         #"{"option":{"maxSignificantDigits":3,"minSignificantDigits":null}}"#,
         #"{"option":{"minSignificantDigits":2,"maxSignificantDigits":2,"minFractionalLength":1,"maxFractionalLength":1}}"#,
+        #"{"option":{"minSignificantDigits":null,"maxSignificantDigits":null}}"#,
+        #"{"option":{"minSignificantDigits":null,"maxSignificantDigits":null,"minFractionalLength":2,"maxFractionalLength":2}}"#,
+        #"{"option":{"minIntegerLength":1,"maxIntegerLength":1000}}"#,
+        #"{"option":{"minIntegerLength":1000,"maxIntegerLength":2000}}"#,
+        #"{"option":{"maxIntegerLength":1000}}"#,
+        #"{"option":{"minSignificantDigits":1,"maxSignificantDigits":5000}}"#,
+        #"{"option":{"minIntegerLength":1000,"maxIntegerLength":1000,"minFractionalLength":1,"maxFractionalLength":3}}"#,
         #"{}"#,
+    ]
+
+    // Each row holds a precision at the limit Foundation's range factories clamp to, the same one a
+    // digit inside it, and the same one a digit past it. The decoder refuses anything past the limit.
+    private static let foundationLimits: [(atLimit: Precision, inside: Precision, past: Precision)] = [
+        (.integerLength(1...998), .integerLength(1...997), .integerLength(1...999)),
+        (.fractionLength(1...998), .fractionLength(1...997), .fractionLength(1...999)),
+        (.significantDigits(1...998), .significantDigits(1...997), .significantDigits(1...999)),
+        (.integerLength(999...), .integerLength(998...), .integerLength(1000...)),
+        (.fractionLength(999...), .fractionLength(998...), .fractionLength(1000...)),
+        (.significantDigits(999...), .significantDigits(998...), .significantDigits(1000...)),
+        (.integerLength(...999), .integerLength(...998), .integerLength(...1000)),
+        (.fractionLength(...999), .fractionLength(...998), .fractionLength(...1000)),
+        (
+            .integerAndFractionLength(integerLimits: 998...998, fractionLimits: 1...3),
+            .integerAndFractionLength(integerLimits: 997...997, fractionLimits: 1...3),
+            .integerAndFractionLength(integerLimits: 999...999, fractionLimits: 1...3)
+        ),
+        (
+            .integerAndFractionLength(integerLimits: 1...3, fractionLimits: 998...998),
+            .integerAndFractionLength(integerLimits: 1...3, fractionLimits: 997...997),
+            .integerAndFractionLength(integerLimits: 1...3, fractionLimits: 999...999)
+        ),
+        (
+            .integerAndFractionLength(integerLimits: 1...2, fractionLimits: 999...),
+            .integerAndFractionLength(integerLimits: 1...2, fractionLimits: 998...),
+            .integerAndFractionLength(integerLimits: 1...2, fractionLimits: 1000...)
+        ),
     ]
 
     @Test("A default style survives a round trip through JSON")
@@ -177,6 +214,12 @@ struct MoneyFormatStyleCodableTests {
         #expect(throws: DecodingError.self) {
             try JSONDecoder().decode(GBP.FormatStyle.self, from: Self.styleJSON(precision: json))
         }
+    }
+
+    @Test("Foundation's range factories keep a bound at the limit and clamp one past it", arguments: Self.foundationLimits)
+    func pinsFoundationsLimits(atLimit: Precision, inside: Precision, past: Precision) {
+        #expect(atLimit != inside)
+        #expect(past == atLimit)
     }
 
     @Test("Foundation's own currency style cannot read back a fraction-length precision")
