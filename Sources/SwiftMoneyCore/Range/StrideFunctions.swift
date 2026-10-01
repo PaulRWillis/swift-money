@@ -67,8 +67,9 @@ public func stride<C: CurrencyType>(
 ///   - end: The amount the sequence stops before.
 ///   - stride: The amount each step moves by.
 /// - Returns: The amounts, in `start`'s currency.
-/// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if `end`, or else `stride`, is in another
-///   currency from `start`, with `start`'s currency as `lhs`.
+/// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if `end` or `stride` is in another currency
+///   from `start`. `end` is checked first, then `stride`. `lhs` is `start`'s currency, and `rhs` is
+///   the first currency that differs.
 @inlinable
 public func stride(
     from start: Money,
@@ -92,8 +93,9 @@ public func stride(
 ///   - end: The last amount, if a step lands on it.
 ///   - stride: The amount each step moves by.
 /// - Returns: The amounts, in `start`'s currency.
-/// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if `end`, or else `stride`, is in another
-///   currency from `start`, with `start`'s currency as `lhs`.
+/// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if `end` or `stride` is in another currency
+///   from `start`. `end` is checked first, then `stride`. `lhs` is `start`'s currency, and `rhs` is
+///   the first currency that differs.
 @inlinable
 public func stride(
     from start: Money,
