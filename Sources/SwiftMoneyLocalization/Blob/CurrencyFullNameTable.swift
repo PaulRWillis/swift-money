@@ -22,7 +22,7 @@ package struct CurrencyFullNameTable: Sendable {
 
     private enum Record {
         static let code = 0
-        static let other = code + Localization.CurrencyCode.digitCount
+        static let other = code + Localization.CurrencyCode.fieldWidth
         static let overridesStart = other + BlobDigits.stringRef
         static let overrideCount = overridesStart + BlobDigits.offset
         static let stride = overrideCount + BlobDigits.u8

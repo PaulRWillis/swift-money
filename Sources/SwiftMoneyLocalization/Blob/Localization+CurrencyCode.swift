@@ -18,7 +18,7 @@ extension Localization {
         package let value: UInt64
 
         /// How many ``BlobDigits`` a record's code field takes: 3, one per character.
-        package static let digitCount = 3
+        package static let fieldWidth = 3
 
         /// Creates the code the tables file a currency under, or `nil` if they can't hold it.
         ///

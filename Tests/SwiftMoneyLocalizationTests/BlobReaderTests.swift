@@ -156,7 +156,7 @@ struct BlobReaderTests {
                 return
             }
 
-            let stride = Localization.CurrencyCode.digitCount
+            let stride = Localization.CurrencyCode.fieldWidth
             var builder = BlobTestBuilder()
             builder.currencyCode(gbp)
 
@@ -170,7 +170,7 @@ struct BlobReaderTests {
     func recordSearch() throws {
         let codes = [try tableCode("EUR"), try tableCode("GBP"), try tableCode("JPY"), try tableCode("USD")]
         let hkd = try tableCode("HKD")
-        let stride = Localization.CurrencyCode.digitCount
+        let stride = Localization.CurrencyCode.fieldWidth
         var builder = BlobTestBuilder()
         let start = builder.count
         for code in codes {

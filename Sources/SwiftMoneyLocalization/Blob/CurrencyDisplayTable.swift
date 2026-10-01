@@ -20,7 +20,7 @@ package struct CurrencyDisplayTable: Sendable {
 
     private enum Record {
         static let code = 0
-        static let standardSymbol = code + Localization.CurrencyCode.digitCount
+        static let standardSymbol = code + Localization.CurrencyCode.fieldWidth
         static let standardSpacing = standardSymbol + BlobDigits.stringRef
         static let narrowSymbol = standardSpacing + BlobDigits.u8
         static let narrowSpacing = narrowSymbol + BlobDigits.stringRef

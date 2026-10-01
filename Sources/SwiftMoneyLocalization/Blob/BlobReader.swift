@@ -115,38 +115,20 @@ package struct BlobReader: @unchecked Sendable {
     /// - Returns: The offset of the record whose code is `code`, or `nil` if no record has it.
     /// - Precondition: Every record the search reads must lie inside the packed tables.
     /// - Complexity: O(log *n*), where *n* is `count`.
-    // Forced inline: an outlined copy adds a call to every currency lookup.
+    // Forced inline: left to the optimizer, every currency lookup calls out to this search.
     @inline(__always)
     package func recordOffset(
         of code: Localization.CurrencyCode, start: Int, count: Int, stride: Int
     ) -> Int? {
-        recordOffset(
-            code: code.value, codeWidth: Localization.CurrencyCode.digitCount,
-            start: start, count: count, stride: stride
-        )
-    }
-
-    /// Returns the offset of the record whose leading key equals `code`, or `nil` if there is none.
-    ///
-    /// Searches `count` records of `stride` bytes from `start`, sorted ascending by that key.
-    ///
-    /// - Parameters:
-    ///   - code: The key to find.
-    ///   - codeWidth: How many digits the key takes.
-    ///   - start: The offset of the first record.
-    ///   - count: How many records there are.
-    ///   - stride: How many bytes each record takes.
-    /// - Returns: The offset of the record whose key is `code`, or `nil` if no record has it.
-    /// - Precondition: Every record the search reads must lie inside the packed tables.
-    /// - Complexity: O(log *n*), where *n* is `count`.
-    private func recordOffset(code: UInt64, codeWidth: Int, start: Int, count: Int, stride: Int) -> Int? {
         var low = 0
         var high = count
 
         while low < high {
             let mid = (low + high) / 2
             let offset = start + mid * stride
-            let order = compareCode(at: offset, to: code, width: codeWidth)
+            let order = compareCode(
+                at: offset, to: code.value, width: Localization.CurrencyCode.fieldWidth
+            )
             if order == 0 {
                 return offset
             } else if order < 0 {

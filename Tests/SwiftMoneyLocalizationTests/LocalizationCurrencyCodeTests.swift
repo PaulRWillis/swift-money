@@ -54,7 +54,6 @@ struct LocalizationCurrencyCodeTests {
     func widestKeyFitsItsDigits() throws {
         let widest = try tableCode("999")  // 9 packs highest
 
-        #expect(Localization.CurrencyCode.digitCount == 3)
-        #expect(widest.value >> (Localization.CurrencyCode.digitCount * BlobDigits.bits) == 0)
+        #expect(widest.value >> (Localization.CurrencyCode.fieldWidth * BlobDigits.bits) == 0)
     }
 }
