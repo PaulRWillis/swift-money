@@ -65,20 +65,30 @@ struct MoneyOfAnyCurrencyTests {
         #expect(Money(try GBP(money)) == money)
     }
 
-    @Test("A yen amount survives a round trip both ways", arguments: edgeMinorUnits)
+    @Test(
+        "A yen amount converts to the same amount each way and survives a round trip",
+        arguments: edgeMinorUnits
+    )
     func yenRoundTrip(minorUnits: Int64) throws {
         let typed = JPY(minorUnits: minorUnits)
         let money = Money(minorUnits: minorUnits, currency: .jpy)
 
+        #expect(Money(typed) == money)
+        #expect(try JPY(money) == typed)
         #expect(try JPY(Money(typed)) == typed)
         #expect(Money(try JPY(money)) == money)
     }
 
-    @Test("A custom currency's amount survives a round trip both ways", arguments: edgeMinorUnits)
+    @Test(
+        "A custom currency's amount converts to the same amount each way and survives a round trip",
+        arguments: edgeMinorUnits
+    )
     func customCurrencyRoundTrip(minorUnits: Int64) throws {
         let typed = MoneyOf<Millicredits>(minorUnits: minorUnits)
         let money = Money(minorUnits: minorUnits, currency: Millicredits.currency)
 
+        #expect(Money(typed) == money)
+        #expect(try MoneyOf<Millicredits>(money) == typed)
         #expect(try MoneyOf<Millicredits>(Money(typed)) == typed)
         #expect(Money(try MoneyOf<Millicredits>(money)) == money)
     }
