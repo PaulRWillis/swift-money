@@ -1,5 +1,5 @@
-// No clamp to a half-open range: its upper bound is excluded, so an amount above it has no honest
-// nearest value inside.
+// No clamp to a half-open range: `a..<a` holds no amount, so it would be failable, and failable and
+// throwing for runtime amounts. Converting the range to a closed one first already composes it.
 public extension MoneyOf where C: CurrencyType {
     /// Returns this amount, moved to the nearer bound if it lies outside the given limits.
     ///

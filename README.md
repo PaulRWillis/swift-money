@@ -194,6 +194,10 @@ Once a range is built, a call whose only failure is an amount in another currenc
 A runtime range has no `~=`, because it would have to throw and a `switch` pattern can't be marked
 `try`. Match one with a guard instead: `case _ where try limits.contains(amount):`.
 
+There is no clamp to a half-open range. `a..<a` holds no amount, so the clamp would be failable,
+and a runtime one would be failable and throwing. Convert the range to a closed one first:
+`try ClosedMoneyRange(band).map { try amount.clamped(to: $0) }`.
+
 ## Formatting for display
 
 Formatting is locale-aware and lives in `SwiftMoneyFoundation`:
