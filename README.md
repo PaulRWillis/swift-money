@@ -187,6 +187,9 @@ do throws(MoneyRangeParsingError<AnyCurrency>) {
 }
 ```
 
+Once a range is built, a call whose only failure is an amount in another currency, such as
+`contains` or converting a runtime range to a typed one, throws `MoneyError`, as arithmetic does.
+
 `Money` has no `~=`, so match a range in a `switch` with a guard: `case _ where try limits.contains(amount):`.
 
 ## Formatting for display

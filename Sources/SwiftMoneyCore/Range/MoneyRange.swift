@@ -6,9 +6,12 @@
 /// built, and then holds it:
 ///
 /// ```swift
-/// let band = try floor..<ceiling            // throws on a mismatch or inverted bounds
-/// try band.contains(amount)                 // throws only if `amount` is in another currency
+/// let band = try floor..<ceiling            // throws MoneyRangeParsingError
+/// try band.contains(amount)                 // throws MoneyError
 /// ```
+///
+/// Building one throws ``MoneyRangeParsingError``. A call on a built range whose only failure is an
+/// amount in another currency, such as ``contains(_:)``, throws ``MoneyError``, as arithmetic does.
 ///
 /// Its bounds are never inverted and always share a currency, so neither can be represented wrongly.
 public struct MoneyRange: Equatable, Hashable, Sendable {
