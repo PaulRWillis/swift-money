@@ -87,13 +87,22 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
         packed << bitsPerCharacter | UInt64(value)
     }
 
+    // Forced inline: an outlined copy can't see the count is 3 to 8, so it keeps overflow traps.
     @inline(__always)
     private static func leftAligned(_ packed: UInt64, count: Int) -> UInt64 {
         packed << (bitsPerCharacter * (characterSlots - count))
     }
 
-    private static func value(inSlot slot: Int, of word: UInt64) -> UInt8 {
-        UInt8(truncatingIfNeeded: word >> (bitsPerCharacter * (characterSlots - 1 - slot)) & characterMask)
+    /// Returns the packed character in a slot of a word.
+    ///
+    /// - Parameters:
+    ///   - slot: The slot, counting from 0 at the top.
+    ///   - word: The packed word.
+    /// - Returns: The slot's packed value, ``emptySlot`` when it holds no character.
+    private static func packedCharacter(inSlot slot: Int, of word: UInt64) -> UInt8 {
+        let slotsBelow = characterSlots - 1 - slot
+
+        return UInt8(truncatingIfNeeded: word >> (slotsBelow * bitsPerCharacter) & characterMask)
     }
 
     // Trusts its input: the word must be a valid code's compact value.
@@ -138,28 +147,31 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
     /// The code packed into three character slots, or `nil` unless it is three characters long.
     @inlinable
     package var threeCharacterValue: UInt64? {
-        let emptySlotBits = Self.bitsPerCharacter * (Self.characterSlots - Self.isoCodeLength)
+        let bitsAfterCode = Self.bitsPerCharacter * (Self.characterSlots - Self.isoCodeLength)
 
-        return storage & ((1 << emptySlotBits) - 1) == 0 ? storage >> emptySlotBits : nil
+        return storage.trailingZeroBitCount >= bitsAfterCode ? storage >> bitsAfterCode : nil
     }
 
-    // Validating, unlike `init(unchecked:)`, because the word comes from outside.
+    /// Creates a code from its packed word, or `nil` if the word isn't a valid code.
+    ///
+    /// - Parameter compactValue: A packed word, such as one read back from bytes.
+    /// - Returns: `nil` if the word has fewer than three characters or a slot outside the alphabet.
     @usableFromInline
     package init?(compactValue: UInt64) {
         var packed: UInt64 = 0
         var count = 0
 
         for slot in 0..<Self.characterSlots {
-            let value = Self.value(inSlot: slot, of: compactValue)
+            let character = Self.packedCharacter(inSlot: slot, of: compactValue)
 
-            guard value != Self.emptySlot else {
+            guard character != Self.emptySlot else {
                 break
             }
-            guard UInt8(packedCharacter: value) != nil else {
+            guard UInt8(packedCharacter: character) != nil else {
                 return nil
             }
 
-            packed = Self.appending(value, to: packed)
+            packed = Self.appending(character, to: packed)
             count += 1
         }
 
@@ -173,10 +185,10 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
     // Writes into a buffer the caller sized with `utf8Count`, so a longer string is built in one pass.
     func write(into buffer: UnsafeMutableBufferPointer<UInt8>, at offset: inout Int) {
         for slot in 0..<Self.characterSlots {
-            let value = Self.value(inSlot: slot, of: storage)
+            let character = Self.packedCharacter(inSlot: slot, of: storage)
 
             // Storage holds only validated codes, so every non-empty slot maps to a byte.
-            guard value != Self.emptySlot, let byte = UInt8(packedCharacter: value) else {
+            guard character != Self.emptySlot, let byte = UInt8(packedCharacter: character) else {
                 return
             }
 
@@ -189,7 +201,7 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
     var utf8Count: Int {
         var count = 0
 
-        while count < Self.characterSlots, Self.value(inSlot: count, of: storage) != Self.emptySlot {
+        while count < Self.characterSlots, Self.packedCharacter(inSlot: count, of: storage) != Self.emptySlot {
             count += 1
         }
 
@@ -201,9 +213,9 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
             var count = 0
 
             while count < Self.characterSlots {
-                let value = Self.value(inSlot: count, of: storage)
+                let character = Self.packedCharacter(inSlot: count, of: storage)
 
-                guard value != Self.emptySlot, let byte = UInt8(packedCharacter: value) else {
+                guard character != Self.emptySlot, let byte = UInt8(packedCharacter: character) else {
                     break
                 }
 
