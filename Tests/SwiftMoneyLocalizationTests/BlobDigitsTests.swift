@@ -47,7 +47,7 @@ struct BlobDigitsTests {
 
     @Test("The widest three-character code fits the code field")
     func widestCodeFitsItsField() throws {
-        let widest = try #require(CurrencyCode(string: "999")?.threeCharacterValue)
+        let widest = try #require(CurrencyCode(string: "999")?.threeCharacterValue)  // 9 packs highest
 
         #expect(widest >> (BlobDigits.currencyCode * BlobDigits.bits) == 0)
     }
