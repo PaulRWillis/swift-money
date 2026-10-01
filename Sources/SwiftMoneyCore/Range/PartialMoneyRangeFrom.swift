@@ -34,6 +34,12 @@ public struct PartialMoneyRangeFrom: Equatable, Hashable, Sendable {
         self.init(Money(typed.lowerBound))
     }
 
+    /// The currency the lower bound, and every amount in the range, are denominated in.
+    @inlinable
+    public var currency: Currency {
+        lowerBound.currency
+    }
+
     /// Returns whether an amount lies at or above the lower bound.
     ///
     /// - Parameter amount: The amount to look for.
