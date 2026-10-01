@@ -7,6 +7,8 @@ private let convertedAmounts: [GBP] = samples(
     edges: [.zero, .min, .max, GBP(minorUnits: -1)]
 )
 
+private let edgeMinorUnits: [Int64] = [.min, -1, 0, 1, 4_99, .max]
+
 @Suite("MoneyOf typed and runtime conversions")
 struct MoneyOfAnyCurrencyTests {
 
@@ -42,11 +44,42 @@ struct MoneyOfAnyCurrencyTests {
         #expect(throws: MoneyError.currencyMismatch(lhs: Millicredits.currency, rhs: coarse)) {
             try MoneyOf<Millicredits>(money)
         }
-        #expect(try MoneyOf<Millicredits>(Money(minorUnits: 7, currency: Millicredits.currency)) == MoneyOf<Millicredits>(minorUnits: 7))
+    }
+
+    @Test("A runtime amount at the custom currency's own scale becomes a typed one")
+    func runtimeToTypedCustomScale() throws {
+        let money = Money(minorUnits: 7, currency: Millicredits.currency)
+
+        #expect(try MoneyOf<Millicredits>(money) == MoneyOf<Millicredits>(minorUnits: 7))
     }
 
     @Test("A typed amount survives a round trip through a runtime one", arguments: convertedAmounts)
     func roundTrip(_ amount: GBP) throws {
         #expect(try GBP(Money(amount)) == amount)
+    }
+
+    @Test("A runtime amount survives a round trip through a typed one", arguments: convertedAmounts)
+    func reverseRoundTrip(_ amount: GBP) throws {
+        let money = Money(amount)
+
+        #expect(Money(try GBP(money)) == money)
+    }
+
+    @Test("A yen amount survives a round trip both ways", arguments: edgeMinorUnits)
+    func yenRoundTrip(minorUnits: Int64) throws {
+        let typed = JPY(minorUnits: minorUnits)
+        let money = Money(minorUnits: minorUnits, currency: .jpy)
+
+        #expect(try JPY(Money(typed)) == typed)
+        #expect(Money(try JPY(money)) == money)
+    }
+
+    @Test("A custom currency's amount survives a round trip both ways", arguments: edgeMinorUnits)
+    func customCurrencyRoundTrip(minorUnits: Int64) throws {
+        let typed = MoneyOf<Millicredits>(minorUnits: minorUnits)
+        let money = Money(minorUnits: minorUnits, currency: Millicredits.currency)
+
+        #expect(try MoneyOf<Millicredits>(Money(typed)) == typed)
+        #expect(Money(try MoneyOf<Millicredits>(money)) == money)
     }
 }
