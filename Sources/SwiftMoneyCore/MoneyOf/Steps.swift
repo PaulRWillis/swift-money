@@ -15,7 +15,8 @@ public extension MoneyOf {
     /// `count` and the subscript take constant time however many steps there are, as for any
     /// random-access collection. So do `firstIndex(of:)`, `lastIndex(of:)` and `contains(_:)`, which
     /// work out an amount's position from the bounds and the stride rather than stepping through,
-    /// and `index(approximating:rounding:)`, which rounds an amount between two steps to one of them.
+    /// and `index(approximating:tiesTo:)` and `index(approximating:rounding:)`, which round an
+    /// amount between two steps to one of them.
     ///
     /// Two sets of steps are equal when they hold the same amounts, in the same order and the same
     /// currency. A stride longer than the span gives the same steps as a stride of the span itself, so
@@ -292,100 +293,102 @@ extension MoneyOf.Steps {
             return count &- 1
         }
 
-        // Short of the far bound, the distance from the near one is below the span, so `UInt64` holds
-        // it and a whole number of strides is a step before the last, which `Int` counts.
-        let travelled: UInt64
-        switch direction {
-        case .upward:
-            travelled = UInt64(bitPattern: minorUnits &- span.lowerBound)
-        case .downward:
-            travelled = UInt64(bitPattern: span.upperBound &- minorUnits)
-        }
-        let (steps, remainder) = travelled.quotientAndRemainder(dividingBy: step.rawValue.magnitude)
+        // Short of the far bound, a whole number of strides from the near one is a step before the
+        // last, which `Int` counts.
+        let (steps, remainder) = distanceFromNearBound(to: minorUnits)
+            .quotientAndRemainder(dividingBy: step.rawValue.magnitude)
 
         return remainder == 0 ? Int(truncatingIfNeeded: steps) : nil
     }
 
-    // The offset of the step that an amount in the steps' currency rounds to. Distances are measured
-    // from the near bound toward the far one: strictly between the bounds they are below 2⁶⁴, so
-    // `UInt64` holds them, and a division finds the two steps either side without walking.
+    /// Returns how many steps from the lower bound the step a number of steps from the first is.
+    ///
+    /// - Parameter offset: How many steps the step is from the first, from zero up to `count - 1`.
+    /// - Returns: `offset` for steps that run upward; otherwise its distance from the last step.
     @inlinable
-    func offset(
-        rounding minorUnits: MoneyOf<C>.MinorUnits,
-        _ rule: RoundingRule
-    ) -> Int {
-        let travelled: UInt64
+    func positionFromLowerBound(ofOffset offset: Int) -> Int {
         switch direction {
         case .upward:
-            guard minorUnits > span.lowerBound else {
-                return 0
-            }
-            guard minorUnits < span.upperBound else {
-                return count &- 1
-            }
-            travelled = UInt64(bitPattern: minorUnits &- span.lowerBound)
+            offset
         case .downward:
-            guard minorUnits < span.upperBound else {
-                return 0
-            }
-            guard minorUnits > span.lowerBound else {
-                return count &- 1
-            }
-            travelled = UInt64(bitPattern: span.upperBound &- minorUnits)
+            count - 1 - offset
+        }
+    }
+
+    /// Returns how far an amount is from the near bound, toward the far one.
+    ///
+    /// - Parameter minorUnits: The amount's minor units, from the lowest step to the highest.
+    /// - Returns: The distance in minor units, which is at most the span's width.
+    @inlinable
+    func distanceFromNearBound(to minorUnits: MoneyOf<C>.MinorUnits) -> UInt64 {
+        // The width reaches 2⁶⁴ − 1, which `Int64` cannot hold, but wrapping gives its bit pattern.
+        switch direction {
+        case .upward:
+            UInt64(bitPattern: minorUnits &- span.lowerBound)
+        case .downward:
+            UInt64(bitPattern: span.upperBound &- minorUnits)
+        }
+    }
+
+    /// Returns the steps either side of an amount, and how far the amount is from each.
+    ///
+    /// An amount on a step has that step on both sides, at no distance from either. Otherwise the
+    /// two are neighbors, and the distances add up to the gap between them.
+    ///
+    /// - Parameter minorUnits: The amount's minor units, from the lowest step to the highest.
+    /// - Returns: The offsets of the highest step at or below the amount and the lowest at or
+    ///   above, and the minor units from the amount to each.
+    /// - Complexity: O(1).
+    @inlinable
+    func neighbors(
+        of minorUnits: MoneyOf<C>.MinorUnits
+    ) -> (below: Int, above: Int, toBelow: UInt64, toAbove: UInt64) {
+        guard minorUnits != farBound else {
+            return (count - 1, count - 1, 0, 0)
         }
 
         let gap = step.rawValue.magnitude
-        let extent = UInt64(bitPattern: span.upperBound &- span.lowerBound)
-        let (behind, remainder) = travelled.quotientAndRemainder(dividingBy: gap)
+        let (behind, remainder) = distanceFromNearBound(to: minorUnits).quotientAndRemainder(dividingBy: gap)
+        let offset = Int(truncatingIfNeeded: behind)
         guard remainder != 0 else {
-            return Int(truncatingIfNeeded: behind)
+            return (offset, offset, 0, 0)
         }
 
         // The step ahead is a whole stride on, unless it is the far bound, which may be nearer.
-        let width = Swift.min(gap, extent - behind * gap)
-
-        // The rounding rules work from the step toward zero, as for a quotient: the lower one for a
-        // positive amount, the higher for a negative.
-        let sign = Sign(of: minorUnits)
-        let towardZeroIsBehind: Bool
+        let width = Swift.min(gap, UInt64(bitPattern: span.upperBound &- span.lowerBound) - behind * gap)
         switch direction {
         case .upward:
-            towardZeroIsBehind = sign == .positive
+            return (offset, offset + 1, remainder, width - remainder)
         case .downward:
-            towardZeroIsBehind = sign == .negative
+            return (offset + 1, offset, width - remainder, remainder)
         }
-        let towardZero = Int(truncatingIfNeeded: towardZeroIsBehind ? behind : behind + 1)
-        let awayFromZero = towardZeroIsBehind ? towardZero + 1 : towardZero - 1
-        let dropped = towardZeroIsBehind ? remainder : width - remainder
+    }
 
-        // When the step toward zero lies past it, the neighbors are either side of zero, and
-        // `.towardZero` and `.awayFromZero` take the smaller or the larger in size rather than follow
-        // the sign. Neighbors of equal size give the one on the amount's side of zero.
-        let size = minorUnits.magnitude
-        if size < dropped, rule == .towardZero || rule == .awayFromZero {
-            let pastZero = dropped - size
-            let sameSide = size + (width - dropped)
-            let takesPastZero = rule == .towardZero ? pastZero < sameSide : pastZero > sameSide
-
-            return takesPastZero ? towardZero : awayFromZero
+    /// Returns how many steps from the first the step nearest an amount is.
+    ///
+    /// - Parameters:
+    ///   - minorUnits: The amount's minor units, in the steps' currency.
+    ///   - tie: How to choose between two steps the same distance away.
+    /// - Returns: The offset of the nearest step, the nearer end for an amount beyond the steps.
+    /// - Complexity: O(1).
+    @inlinable
+    func offset(
+        nearest minorUnits: MoneyOf<C>.MinorUnits,
+        tiesTo tie: TieBreakingRule
+    ) -> Int {
+        let beside = neighbors(of: Swift.min(Swift.max(minorUnits, span.lowerBound), span.upperBound))
+        guard beside.toBelow == beside.toAbove else {
+            return beside.toBelow < beside.toAbove ? beside.below : beside.above
         }
 
-        // Parity counts from the lower bound rather than the first step, so the same amounts break a
-        // tie the same way whichever way the steps run.
-        let fromLowerBound: Int
-        switch direction {
-        case .upward:
-            fromLowerBound = towardZero
-        case .downward:
-            fromLowerBound = count &- 1 &- towardZero
+        switch (tie, Sign(of: minorUnits)) {
+        case (.even, _):
+            return Parity(of: positionFromLowerBound(ofOffset: beside.below)) == .even ? beside.below : beside.above
+        case (.awayFromZero, .positive):
+            return beside.above
+        case (.awayFromZero, .negative):
+            return beside.below
         }
-        let rounded = rule.step(
-            dropping: DroppedFraction(remainder: dropped, divisor: width),
-            sign: sign,
-            truncated: Parity(of: fromLowerBound)
-        )
-
-        return rounded == .awayFromZero ? awayFromZero : towardZero
     }
 
     /// Returns how many steps from the first the step an amount rounds to is, if a step satisfies
@@ -393,37 +396,52 @@ extension MoneyOf.Steps {
     ///
     /// - Parameters:
     ///   - minorUnits: The amount's minor units, in the steps' currency.
-    ///   - rule: How to choose between the two steps either side of the amount.
-    /// - Returns: The offset of the step `rule` picks, the nearer end for an amount beyond the steps.
+    ///   - rule: Which side of the amount to take the step from.
+    /// - Returns: The offset of the step `rule` picks.
     /// - Throws: ``MoneyStepsRoundingError/outOfBounds`` if the amount is beyond the steps and `rule`
     ///   rules out the only step beside it.
+    /// - Complexity: O(1).
     @inlinable
     func offset(
         approximating minorUnits: MoneyOf<C>.MinorUnits,
-        rounding rule: RoundingRule
+        rounding rule: DirectedRoundingRule
     ) throws(MoneyStepsRoundingError<C>) -> Int {
-        let isBelow = minorUnits < span.lowerBound
-        if isBelow || minorUnits > span.upperBound {
-            let endIsTowardZero = isBelow == (minorUnits < 0)
-            let reachesEnd: Bool
-            switch rule {
-            case .toNearestOrEven, .toNearestOrAwayFromZero:
-                reachesEnd = true
-            case .up:
-                reachesEnd = isBelow
-            case .down:
-                reachesEnd = !isBelow
-            case .towardZero:
-                reachesEnd = endIsTowardZero
-            case .awayFromZero:
-                reachesEnd = !endIsTowardZero
+        // Beyond the steps there is one neighbor and no second size to compare, so `.towardZero`
+        // and `.awayFromZero` look below or above by the amount's sign.
+        let sign = Sign(of: minorUnits)
+        switch (rule, sign) {
+        case (.down, _), (.towardZero, .positive), (.awayFromZero, .negative):
+            guard minorUnits >= span.lowerBound else {
+                throw .outOfBounds
             }
-            guard reachesEnd else {
+        case (.up, _), (.towardZero, .negative), (.awayFromZero, .positive):
+            guard minorUnits <= span.upperBound else {
                 throw .outOfBounds
             }
         }
 
-        return offset(rounding: minorUnits, rule)
+        let inside = Swift.min(Swift.max(minorUnits, span.lowerBound), span.upperBound)
+        let beside = neighbors(of: inside)
+
+        // Both neighbors are steps, so they fit `Int64` and wrapping lands on them exactly, even
+        // where a distance is too large for `Int64`.
+        let belowSize = (inside &- Int64(bitPattern: beside.toBelow)).magnitude
+        let aboveSize = (inside &+ Int64(bitPattern: beside.toAbove)).magnitude
+        switch (rule, sign) {
+        case (.down, _):
+            return beside.below
+        case (.up, _):
+            return beside.above
+        case (.towardZero, _) where belowSize != aboveSize:
+            return belowSize < aboveSize ? beside.below : beside.above
+        case (.awayFromZero, _) where belowSize != aboveSize:
+            return belowSize > aboveSize ? beside.below : beside.above
+        // Neighbors of equal size, such as −£10 and £10, give the one with the amount's sign.
+        case (.towardZero, .positive), (.awayFromZero, .positive):
+            return beside.above
+        case (.towardZero, .negative), (.awayFromZero, .negative):
+            return beside.below
+        }
     }
 
     /// Creates steps from bounds and a step already known to share a currency, so the typed and
@@ -516,26 +534,35 @@ public extension MoneyOf.Steps where C: CurrencyType {
     /// Returns the position of the step nearest an amount.
     ///
     /// An amount between two steps, such as a saved £123.45 on £10 steps, takes the nearer one,
-    /// measuring the shorter last gap as it is. A tie goes to the step at an even position from the
-    /// lower bound, so it falls the same way whichever way the steps run. An amount beyond the steps
-    /// takes the nearer end, so this never fails:
+    /// measuring the shorter last gap as it is. An amount beyond the steps takes the nearer end, so
+    /// this never fails:
     ///
     /// ```swift
     /// steps.index(approximating: saved)   // the nearest step
     /// ```
     ///
-    /// To choose the step by another rule, use ``index(approximating:rounding:)``. For an exact match
-    /// without rounding, use `firstIndex(of:)`.
+    /// A tie goes by default to the step at an even position from the lower bound, so it falls the
+    /// same way whichever way the steps run. `tiesTo: .awayFromZero` takes the step with the
+    /// amount's sign instead, the larger in size; zero counts as positive.
     ///
-    /// - Parameter amount: The amount to find a step for.
+    /// The nearest step always exists, so this takes a tie-break and can't fail; a rule that names
+    /// a direction can, so ``index(approximating:rounding:)`` throws. For an exact match without
+    /// rounding, use `firstIndex(of:)`.
+    ///
+    /// - Parameters:
+    ///   - amount: The amount to find a step for.
+    ///   - tie: How to choose between two steps the same distance from `amount`.
     /// - Returns: A position in the steps, never `endIndex`.
     /// - Complexity: O(1).
     @inlinable
-    func index(approximating amount: MoneyOf<C>) -> Index {
-        Index(offset: offset(rounding: amount.minorUnits, .toNearestOrEven))
+    func index(
+        approximating amount: MoneyOf<C>,
+        tiesTo tie: TieBreakingRule = .even
+    ) -> Index {
+        Index(offset: offset(nearest: amount.minorUnits, tiesTo: tie))
     }
 
-    /// Returns the position of the step an amount rounds to by a rule.
+    /// Returns the position of the step on one side of an amount, by a rule that names a direction.
     ///
     /// An amount between two steps, such as a saved £123.45 on £10 steps, has to become one of them.
     /// The rule says which:
@@ -548,19 +575,17 @@ public extension MoneyOf.Steps where C: CurrencyType {
     /// takes the neighbor smaller in size and `.awayFromZero` the larger, so when both neighbors share
     /// the amount's sign they act as `.down` or `.up` by that sign. When the neighbors lie either side
     /// of zero, the step can have the other sign: between −£7 and £5, £3 rounds toward zero to £5 and
-    /// away from zero to −£7. The two nearest rules measure the distance to each neighbor, the shorter
-    /// last gap included: `.toNearestOrEven` breaks a tie toward the step at an even position from
-    /// the lower bound, and `.toNearestOrAwayFromZero` toward the step larger in size. Where the
-    /// neighbors are the same size, as −£10 and £10 are, the rules that name zero take the one with
-    /// the amount's sign; zero counts as positive.
+    /// away from zero to −£7. Where the neighbors are the same size, as −£10 and £10 are, both take
+    /// the one with the amount's sign; zero counts as positive.
     ///
-    /// An amount beyond the steps has one neighbor, the nearer end. The nearest rules take it, and so
-    /// does any other rule that allows a step on that side. `.towardZero` and `.awayFromZero` act as
-    /// `.down` or `.up` by the amount's sign there.
+    /// An amount beyond the steps has one neighbor, the nearer end, and a rule takes it only if it
+    /// allows a step on that side. `.towardZero` and `.awayFromZero` act as `.down` or `.up` by the
+    /// amount's sign there. A directed rule can find no step, so this throws; the nearest step
+    /// always exists, so ``index(approximating:tiesTo:)`` doesn't.
     ///
     /// - Parameters:
     ///   - amount: The amount to find a step for.
-    ///   - rule: How to choose between the two steps either side of `amount`.
+    ///   - rule: Which side of `amount` to take the step from.
     /// - Returns: A position in the steps, never `endIndex`.
     /// - Throws: ``MoneyStepsRoundingError/outOfBounds`` if no step satisfies `rule`, such as under
     ///   `.up` for an amount above the highest step, or `.down` for one below the lowest.
@@ -568,7 +593,7 @@ public extension MoneyOf.Steps where C: CurrencyType {
     @inlinable
     func index(
         approximating amount: MoneyOf<C>,
-        rounding rule: RoundingRule
+        rounding rule: DirectedRoundingRule
     ) throws(MoneyStepsRoundingError<C>) -> Index {
         Index(offset: try offset(approximating: amount.minorUnits, rounding: rule))
     }
@@ -633,26 +658,34 @@ public extension MoneyOf.Steps where C == AnyCurrency {
 
     /// Returns the position of the step nearest a runtime amount, if it is in the steps' currency.
     ///
-    /// Rounds as the typed `index(approximating:)` does, so only a currency mismatch fails:
+    /// Rounds as the typed `index(approximating:tiesTo:)` does, so only a currency mismatch fails:
     ///
     /// ```swift
     /// let position = try steps.index(approximating: saved)
     /// ```
     ///
-    /// - Parameter amount: The amount to find a step for.
+    /// The nearest step always exists, so this takes a tie-break; a rule that names a direction can
+    /// find none, so ``index(approximating:rounding:)`` throws ``MoneyStepsRoundingError``.
+    ///
+    /// - Parameters:
+    ///   - amount: The amount to find a step for.
+    ///   - tie: How to choose between two steps the same distance from `amount`.
     /// - Returns: A position in the steps, never `endIndex`.
     /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if `amount` is in another currency, with
     ///   the steps' currency as `lhs`.
     /// - Complexity: O(1).
     @inlinable
-    func index(approximating amount: Money) throws(MoneyError) -> Index {
+    func index(
+        approximating amount: Money,
+        tiesTo tie: TieBreakingRule = .even
+    ) throws(MoneyError) -> Index {
         try AnyCurrency.requireMatch(storage, amount.storage)
 
-        return Index(offset: offset(rounding: amount.minorUnits, .toNearestOrEven))
+        return Index(offset: offset(nearest: amount.minorUnits, tiesTo: tie))
     }
 
-    /// Returns the position of the step a runtime amount rounds to by a rule, if it is in the steps'
-    /// currency.
+    /// Returns the position of the step on one side of a runtime amount, by a rule that names a
+    /// direction, if the amount is in the steps' currency.
     ///
     /// Rounds as the typed `index(approximating:rounding:)` does:
     ///
@@ -660,9 +693,12 @@ public extension MoneyOf.Steps where C == AnyCurrency {
     /// let position = try steps.index(approximating: saved, rounding: .down)
     /// ```
     ///
+    /// A directed rule can find no step, so this can fail on a matching currency too; the nearest
+    /// step always exists, so ``index(approximating:tiesTo:)`` fails only on a mismatch.
+    ///
     /// - Parameters:
     ///   - amount: The amount to find a step for.
-    ///   - rule: How to choose between the two steps either side of `amount`.
+    ///   - rule: Which side of `amount` to take the step from.
     /// - Returns: A position in the steps, never `endIndex`.
     /// - Throws: ``MoneyStepsRoundingError/currencyMismatch(_:)`` with the currency of `amount` if
     ///   it differs from the steps'; otherwise ``MoneyStepsRoundingError/outOfBounds`` if no step
@@ -671,7 +707,7 @@ public extension MoneyOf.Steps where C == AnyCurrency {
     @inlinable
     func index(
         approximating amount: Money,
-        rounding rule: RoundingRule
+        rounding rule: DirectedRoundingRule
     ) throws(MoneyStepsRoundingError<AnyCurrency>) -> Index {
         guard amount.storage == storage else {
             throw .currencyMismatch(amount.currency)

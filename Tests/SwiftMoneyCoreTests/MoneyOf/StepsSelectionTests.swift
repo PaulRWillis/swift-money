@@ -14,9 +14,9 @@ private func tenToTwoFifty() throws -> GBP.Steps {
     try (pounds(10_00) ... pounds(250_00)).steps(by: .majorUnits(100))
 }
 
-private let everyRule: [RoundingRule] = [
-    .down, .up, .towardZero, .awayFromZero, .toNearestOrEven, .toNearestOrAwayFromZero,
-]
+private let everyRule: [DirectedRoundingRule] = [.down, .up, .towardZero, .awayFromZero]
+
+private let everyTie: [TieBreakingRule] = [.even, .awayFromZero]
 
 @Suite("MoneyOf.Steps.Selection")
 struct StepsSelectionTests {
@@ -53,8 +53,8 @@ struct StepsSelectionTests {
         #expect(try runtime.selecting(approximating: Money(pounds(5_00))).amount == Money(pounds(10_00)))
     }
 
-    @Test("Every rule picks the step index(approximating:rounding:) finds", arguments: everyRule)
-    func matchesIndexForAmount(_ rule: RoundingRule) throws {
+    @Test("Every directed rule picks the step index(approximating:rounding:) finds", arguments: everyRule)
+    func matchesIndexForAmount(_ rule: DirectedRoundingRule) throws {
         let steps = try tenToTwoFifty()
         let saved = pounds(123_45)
         let selection = try GBP.Steps.Selection(approximating: saved, in: steps, rounding: rule)
@@ -64,12 +64,43 @@ struct StepsSelectionTests {
         #expect(selection.steps == steps)
     }
 
-    @Test("An amount on a step, such as the upper bound, is kept under every rule", arguments: everyRule)
-    func onAStepIsKept(_ rule: RoundingRule) throws {
+    @Test("Every tie-break picks the step index(approximating:tiesTo:) finds", arguments: everyTie)
+    func matchesNearestIndexForAmount(_ tie: TieBreakingRule) throws {
+        let steps = try tenToTwoFifty()
+        let selection = GBP.Steps.Selection(approximating: pounds(60_00), in: steps, tiesTo: tie)
+
+        #expect(selection.index == steps.index(approximating: pounds(60_00), tiesTo: tie))
+        #expect(selection.selecting(approximating: pounds(160_00), tiesTo: tie).index == 2)
+        #expect(selection.steps == steps)
+    }
+
+    @Test("A tie selects an even position from the lower bound by default, or away from zero")
+    func tieBreaks() throws {
+        let steps = try tenToTwoFifty()
+        let runtime = Money.Steps(steps)
+        let selection = GBP.Steps.Selection(approximating: pounds(60_00), in: steps)
+
+        #expect(selection.amount == pounds(10_00))
+        #expect(GBP.Steps.Selection(approximating: pounds(60_00), in: steps, tiesTo: .awayFromZero).amount == pounds(110_00))
+        #expect(selection.selecting(approximating: pounds(60_00), tiesTo: .awayFromZero).amount == pounds(110_00))
+        #expect(try Money.Steps.Selection(approximating: Money(pounds(60_00)), in: runtime, tiesTo: .awayFromZero).amount == Money(pounds(110_00)))
+        #expect(try Money.Steps.Selection(selection).selecting(approximating: Money(pounds(60_00)), tiesTo: .awayFromZero).index == 1)
+    }
+
+    @Test("An amount on a step, such as the upper bound, is kept under every directed rule", arguments: everyRule)
+    func onAStepIsKept(_ rule: DirectedRoundingRule) throws {
         let steps = try tenToTwoFifty()
 
         #expect(try GBP.Steps.Selection(approximating: pounds(250_00), in: steps, rounding: rule).amount == pounds(250_00))
         #expect(try GBP.Steps.Selection(approximating: pounds(110_00), in: steps, rounding: rule).amount == pounds(110_00))
+    }
+
+    @Test("An amount on a step, such as the upper bound, is kept under every tie-break", arguments: everyTie)
+    func onAStepIsKeptNearest(_ tie: TieBreakingRule) throws {
+        let steps = try tenToTwoFifty()
+
+        #expect(GBP.Steps.Selection(approximating: pounds(250_00), in: steps, tiesTo: tie).amount == pounds(250_00))
+        #expect(GBP.Steps.Selection(approximating: pounds(110_00), in: steps, tiesTo: tie).amount == pounds(110_00))
     }
 
     @Test("Selecting a position in the steps moves there; any other position is nil")
@@ -143,8 +174,8 @@ struct StepsSelectionTests {
         #expect(runtime.selecting(runtime.steps.endIndex) == nil)
     }
 
-    @Test("Without a rule, a runtime amount in another currency throws MoneyError, the steps' currency first")
-    func runtimeMismatchWithoutARule() throws {
+    @Test("To the nearest step, a runtime amount in another currency throws MoneyError, the steps' currency first")
+    func runtimeMismatchNearest() throws {
         let steps = Money.Steps(try tenToTwoFifty())
         let euros = Money(minorUnits: 60_00, currency: .eur)
         let selection = try Money.Steps.Selection(approximating: Money(pounds(60_00)), in: steps)
@@ -154,6 +185,12 @@ struct StepsSelectionTests {
         }
         #expect(throws: MoneyError.currencyMismatch(lhs: .gbp, rhs: .eur)) {
             try selection.selecting(approximating: euros)
+        }
+        #expect(throws: MoneyError.currencyMismatch(lhs: .gbp, rhs: .eur)) {
+            try Money.Steps.Selection(approximating: euros, in: steps, tiesTo: .awayFromZero)
+        }
+        #expect(throws: MoneyError.currencyMismatch(lhs: .gbp, rhs: .eur)) {
+            try selection.selecting(approximating: euros, tiesTo: .awayFromZero)
         }
     }
 

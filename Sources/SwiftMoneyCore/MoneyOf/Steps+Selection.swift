@@ -56,56 +56,71 @@ public extension MoneyOf.Steps {
 public extension MoneyOf.Steps.Selection where C: CurrencyType {
     /// Creates the selection of the step nearest an amount.
     ///
-    /// Rounds as ``MoneyOf/Steps/index(approximating:)`` does, so an amount beyond the steps
-    /// selects the nearer end.
+    /// Rounds as ``MoneyOf/Steps/index(approximating:tiesTo:)`` does, so an amount beyond the steps
+    /// selects the nearer end. The nearest step always exists, so this takes a tie-break and can't
+    /// fail.
     ///
     /// - Parameters:
     ///   - amount: The amount to select, such as a saved one.
     ///   - steps: The steps to choose among.
+    ///   - tie: How to choose between two steps the same distance from `amount`.
     @inlinable
     init(
         approximating amount: MoneyOf<C>,
-        in steps: MoneyOf<C>.Steps
+        in steps: MoneyOf<C>.Steps,
+        tiesTo tie: TieBreakingRule = .even
     ) {
-        self.init(unchecked: steps, index: steps.index(approximating: amount))
+        self.init(unchecked: steps, index: steps.index(approximating: amount, tiesTo: tie))
     }
 
-    /// Creates the selection of the step an amount rounds to by a rule.
+    /// Creates the selection of the step on one side of an amount, by a rule that names a
+    /// direction.
     ///
-    /// Rounds as ``MoneyOf/Steps/index(approximating:rounding:)`` does.
+    /// Rounds as ``MoneyOf/Steps/index(approximating:rounding:)`` does. A directed rule can find no
+    /// step, so this throws.
     ///
     /// - Parameters:
     ///   - amount: The amount to select, such as a saved one.
     ///   - steps: The steps to choose among.
-    ///   - rule: How to choose between the two steps either side of `amount`.
+    ///   - rule: Which side of `amount` to take the step from.
     /// - Throws: ``MoneyStepsRoundingError/outOfBounds`` if no step satisfies `rule`.
     @inlinable
     init(
         approximating amount: MoneyOf<C>,
         in steps: MoneyOf<C>.Steps,
-        rounding rule: RoundingRule
+        rounding rule: DirectedRoundingRule
     ) throws(MoneyStepsRoundingError<C>) {
         self.init(unchecked: steps, index: try steps.index(approximating: amount, rounding: rule))
     }
 
     /// Returns the selection of the step nearest an amount, in the same steps.
     ///
-    /// - Parameter amount: The amount to select.
-    @inlinable
-    func selecting(approximating amount: MoneyOf<C>) -> Self {
-        Self(approximating: amount, in: steps)
-    }
-
-    /// Returns the selection of the step an amount rounds to by a rule, in the same steps.
+    /// The nearest step always exists, so this takes a tie-break and can't fail.
     ///
     /// - Parameters:
     ///   - amount: The amount to select.
-    ///   - rule: How to choose between the two steps either side of `amount`.
+    ///   - tie: How to choose between two steps the same distance from `amount`.
+    @inlinable
+    func selecting(
+        approximating amount: MoneyOf<C>,
+        tiesTo tie: TieBreakingRule = .even
+    ) -> Self {
+        Self(approximating: amount, in: steps, tiesTo: tie)
+    }
+
+    /// Returns the selection of the step on one side of an amount, by a rule that names a
+    /// direction, in the same steps.
+    ///
+    /// A directed rule can find no step, so this throws.
+    ///
+    /// - Parameters:
+    ///   - amount: The amount to select.
+    ///   - rule: Which side of `amount` to take the step from.
     /// - Throws: ``MoneyStepsRoundingError/outOfBounds`` if no step satisfies `rule`.
     @inlinable
     func selecting(
         approximating amount: MoneyOf<C>,
-        rounding rule: RoundingRule
+        rounding rule: DirectedRoundingRule
     ) throws(MoneyStepsRoundingError<C>) -> Self {
         try Self(approximating: amount, in: steps, rounding: rule)
     }
@@ -128,26 +143,32 @@ public extension MoneyOf.Steps.Selection where C == AnyCurrency {
     /// let selection = try Money.Steps.Selection(approximating: saved, in: steps)
     /// ```
     ///
+    /// The nearest step always exists, so this takes a tie-break and fails only on a mismatch.
+    ///
     /// - Parameters:
     ///   - amount: The amount to select, such as a saved one.
     ///   - steps: The steps to choose among.
+    ///   - tie: How to choose between two steps the same distance from `amount`.
     /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if `amount` is in another currency, with
     ///   the steps' currency as `lhs`.
     @inlinable
     init(
         approximating amount: Money,
-        in steps: Money.Steps
+        in steps: Money.Steps,
+        tiesTo tie: TieBreakingRule = .even
     ) throws(MoneyError) {
-        self.init(unchecked: steps, index: try steps.index(approximating: amount))
+        self.init(unchecked: steps, index: try steps.index(approximating: amount, tiesTo: tie))
     }
 
-    /// Creates the selection of the step a runtime amount rounds to by a rule, if it is in the
-    /// steps' currency.
+    /// Creates the selection of the step on one side of a runtime amount, by a rule that names a
+    /// direction, if the amount is in the steps' currency.
+    ///
+    /// A directed rule can find no step, so this can fail on a matching currency too.
     ///
     /// - Parameters:
     ///   - amount: The amount to select, such as a saved one.
     ///   - steps: The steps to choose among.
-    ///   - rule: How to choose between the two steps either side of `amount`.
+    ///   - rule: Which side of `amount` to take the step from.
     /// - Throws: ``MoneyStepsRoundingError/currencyMismatch(_:)`` with the currency of `amount` if
     ///   it differs from the steps'; otherwise ``MoneyStepsRoundingError/outOfBounds`` if no step
     ///   satisfies `rule`.
@@ -155,33 +176,43 @@ public extension MoneyOf.Steps.Selection where C == AnyCurrency {
     init(
         approximating amount: Money,
         in steps: Money.Steps,
-        rounding rule: RoundingRule
+        rounding rule: DirectedRoundingRule
     ) throws(MoneyStepsRoundingError<AnyCurrency>) {
         self.init(unchecked: steps, index: try steps.index(approximating: amount, rounding: rule))
     }
 
     /// Returns the selection of the step nearest a runtime amount, in the same steps.
     ///
-    /// - Parameter amount: The amount to select.
-    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if `amount` is in another currency, with
-    ///   the steps' currency as `lhs`.
-    @inlinable
-    func selecting(approximating amount: Money) throws(MoneyError) -> Self {
-        try Self(approximating: amount, in: steps)
-    }
-
-    /// Returns the selection of the step a runtime amount rounds to by a rule, in the same steps.
+    /// The nearest step always exists, so this takes a tie-break and fails only on a mismatch.
     ///
     /// - Parameters:
     ///   - amount: The amount to select.
-    ///   - rule: How to choose between the two steps either side of `amount`.
+    ///   - tie: How to choose between two steps the same distance from `amount`.
+    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if `amount` is in another currency, with
+    ///   the steps' currency as `lhs`.
+    @inlinable
+    func selecting(
+        approximating amount: Money,
+        tiesTo tie: TieBreakingRule = .even
+    ) throws(MoneyError) -> Self {
+        try Self(approximating: amount, in: steps, tiesTo: tie)
+    }
+
+    /// Returns the selection of the step on one side of a runtime amount, by a rule that names a
+    /// direction, in the same steps.
+    ///
+    /// A directed rule can find no step, so this can fail on a matching currency too.
+    ///
+    /// - Parameters:
+    ///   - amount: The amount to select.
+    ///   - rule: Which side of `amount` to take the step from.
     /// - Throws: ``MoneyStepsRoundingError/currencyMismatch(_:)`` with the currency of `amount` if
     ///   it differs from the steps'; otherwise ``MoneyStepsRoundingError/outOfBounds`` if no step
     ///   satisfies `rule`.
     @inlinable
     func selecting(
         approximating amount: Money,
-        rounding rule: RoundingRule
+        rounding rule: DirectedRoundingRule
     ) throws(MoneyStepsRoundingError<AnyCurrency>) -> Self {
         try Self(approximating: amount, in: steps, rounding: rule)
     }
