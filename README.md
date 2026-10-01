@@ -165,7 +165,7 @@ A range of runtime amounts is built with a throwing `...` or `..<`, which checks
 and the order once. A typed range needs only the order checked, so bounds from a server never trap:
 
 ```swift
-let limits = try minimum...maximum                                      // ClosedMoneyRange
+var limits = try minimum...maximum                                      // ClosedMoneyRange
 let typed = try ClosedRange(checkedBounds: (lower: low, upper: high))   // ClosedRange<GBP>
 
 try limits.contains(amount)
@@ -190,7 +190,8 @@ do throws(MoneyRangeParsingError<AnyCurrency>) {
 Once a range is built, a call whose only failure is an amount in another currency, such as
 `contains` or converting a runtime range to a typed one, throws `MoneyError`, as arithmetic does.
 
-`Money` has no `~=`, so match a range in a `switch` with a guard: `case _ where try limits.contains(amount):`.
+A runtime range has no `~=`, because it would have to throw and a `switch` pattern can't be marked
+`try`. Match one with a guard instead: `case _ where try limits.contains(amount):`.
 
 ## Formatting for display
 
