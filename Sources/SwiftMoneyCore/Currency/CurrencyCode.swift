@@ -183,13 +183,14 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
             count += 1
         }
 
+        let rebuilt = Self.leftAligned(packed, count: count)
+
         // The loop stops at the first empty slot, so this refuses any bit it did not read.
-        guard Self.acceptedLengths.contains(count),
-              Self.leftAligned(packed, count: count) == compactValue else {
+        guard Self.acceptedLengths.contains(count), rebuilt == compactValue else {
             return nil
         }
 
-        self.storage = compactValue
+        self.storage = rebuilt
     }
 
     // Writes into a buffer the caller sized with `utf8Count`, so a longer string is built in one pass.
