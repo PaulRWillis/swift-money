@@ -13,12 +13,12 @@
 /// }
 /// ```
 ///
-/// When both apply, ``currencyMismatch(_:)`` is reported.
+/// When more than one applies, the first in the order of these cases is reported.
 public enum MoneyStepsRoundingError<C: CurrencyRepresentation>: Error, Hashable, Sendable {
+    /// The amount is in another currency than the steps, with the amount's currency.
+    case currencyMismatch(C.Mismatch)
+
     /// No step satisfies the rule: the amount is beyond the steps, and the only step beside it is
     /// on the side the rule rules out, such as an amount above the highest step under `.up`.
     case outOfBounds
-
-    /// The amount is in another currency than the steps, with the amount's currency.
-    case currencyMismatch(C.Mismatch)
 }
