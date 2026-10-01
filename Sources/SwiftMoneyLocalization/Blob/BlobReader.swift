@@ -96,10 +96,50 @@ package struct BlobReader: @unchecked Sendable {
         return String(decoding: slice, as: UTF8.self)
     }
 
-    /// The byte offset of the fixed-`stride` record whose leading `codeWidth`-digit key equals `code`,
-    /// among `count` records from `start`, by binary search; `nil` if none. Records must be sorted
-    /// ascending by that leading code.
-    package func recordOffset(code: UInt64, codeWidth: Int, start: Int, count: Int, stride: Int) -> Int? {
+    /// Returns the offset of the record filed under a currency code, or `nil` if there is none.
+    ///
+    /// Searches `count` records of `stride` bytes from `start`, each opening with its code, and sorted
+    /// in ``Localization/CurrencyCode`` order.
+    ///
+    /// ```swift
+    /// // Two records of a code alone, EUR then GBP; `gbp` and `usd` are Localization.CurrencyCode values.
+    /// reader.recordOffset(of: gbp, start: 0, count: 2, stride: 3)   // 3
+    /// reader.recordOffset(of: usd, start: 0, count: 2, stride: 3)   // nil
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - code: The currency code to find.
+    ///   - start: The offset of the first record.
+    ///   - count: How many records there are.
+    ///   - stride: How many bytes each record takes.
+    /// - Returns: The offset of the record whose code is `code`, or `nil` if no record has it.
+    /// - Precondition: Every record the search reads must lie inside the packed tables.
+    /// - Complexity: O(log *n*), where *n* is `count`.
+    // Forced inline: an outlined copy adds a call to every currency lookup.
+    @inline(__always)
+    package func recordOffset(
+        of code: Localization.CurrencyCode, start: Int, count: Int, stride: Int
+    ) -> Int? {
+        recordOffset(
+            code: code.value, codeWidth: Localization.CurrencyCode.digitCount,
+            start: start, count: count, stride: stride
+        )
+    }
+
+    /// Returns the offset of the record whose leading key equals `code`, or `nil` if there is none.
+    ///
+    /// Searches `count` records of `stride` bytes from `start`, sorted ascending by that key.
+    ///
+    /// - Parameters:
+    ///   - code: The key to find.
+    ///   - codeWidth: How many digits the key takes.
+    ///   - start: The offset of the first record.
+    ///   - count: How many records there are.
+    ///   - stride: How many bytes each record takes.
+    /// - Returns: The offset of the record whose key is `code`, or `nil` if no record has it.
+    /// - Precondition: Every record the search reads must lie inside the packed tables.
+    /// - Complexity: O(log *n*), where *n* is `count`.
+    private func recordOffset(code: UInt64, codeWidth: Int, start: Int, count: Int, stride: Int) -> Int? {
         var low = 0
         var high = count
 

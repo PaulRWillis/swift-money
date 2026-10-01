@@ -7,7 +7,7 @@ import SwiftMoneyCore
 /// it. The section is three runs:
 /// - a **directory** of one entry per locale, holding where that locale's records start and how many
 ///   there are, indexed by ``LocaleIndex``;
-/// - the **records**, per locale, sorted by ``CurrencyCode/compactValue`` so a currency is found by
+/// - the **records**, per locale, sorted by ``Localization/CurrencyCode`` so a currency is found by
 ///   binary search;
 /// - the **overrides** a record points at, one per category that names the currency differently.
 package struct CurrencyFullNameTable: Sendable {
@@ -22,7 +22,7 @@ package struct CurrencyFullNameTable: Sendable {
 
     private enum Record {
         static let code = 0
-        static let other = code + BlobDigits.currencyCode
+        static let other = code + Localization.CurrencyCode.digitCount
         static let overridesStart = other + BlobDigits.stringRef
         static let overrideCount = overridesStart + BlobDigits.offset
         static let stride = overrideCount + BlobDigits.u8
@@ -82,16 +82,14 @@ package struct CurrencyFullNameTable: Sendable {
     }
 
     private func recordOffset(localeIndex: LocaleIndex, code: CurrencyCode) -> Int? {
-        // Only three-letter codes are stored, so a longer one cannot be here and falls back.
-        guard let wire = code.threeCharacterValue else {
+        guard let tableCode = Localization.CurrencyCode(code) else {
             return nil
         }
 
         let entry = directoryOffset + localeIndex.position * Entry.stride
 
         return reader.recordOffset(
-            code: wire,
-            codeWidth: BlobDigits.currencyCode,
+            of: tableCode,
             start: reader.offsetField(at: entry + Entry.recordsStart),
             count: Int(reader.u16(at: entry + Entry.recordCount)),
             stride: Record.stride

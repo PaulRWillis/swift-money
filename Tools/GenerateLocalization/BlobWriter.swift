@@ -28,7 +28,7 @@ struct BlobWriter {
     mutating func u32(_ value: Int) { digits(UInt64(value), width: BlobDigits.u32) }
     mutating func u64(_ value: UInt64) { digits(value, width: BlobDigits.u64) }
     mutating func currencyCode(_ code: Localization.CurrencyCode) {
-        digits(code.value, width: BlobDigits.currencyCode)
+        digits(code.value, width: Localization.CurrencyCode.digitCount)
     }
 
     mutating func offsetField(_ value: Int) {

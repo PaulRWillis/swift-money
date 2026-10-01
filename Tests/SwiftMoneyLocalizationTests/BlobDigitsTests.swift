@@ -1,4 +1,3 @@
-import SwiftMoneyCore
 import SwiftMoneyLocalization
 import Testing
 
@@ -43,12 +42,5 @@ struct BlobDigitsTests {
         #expect(BlobDigits.u16 * BlobDigits.bits >= 16)
         #expect(BlobDigits.u32 * BlobDigits.bits >= 32)
         #expect(BlobDigits.u64 * BlobDigits.bits >= 64)
-    }
-
-    @Test("The widest three-character code fits the code field")
-    func widestCodeFitsItsField() throws {
-        let widest = try #require(CurrencyCode(string: "999")?.threeCharacterValue)  // 9 packs highest
-
-        #expect(widest >> (BlobDigits.currencyCode * BlobDigits.bits) == 0)
     }
 }

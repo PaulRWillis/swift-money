@@ -6,7 +6,7 @@ import SwiftMoneyCore
 ///
 /// Every integer is written as ``BlobDigits``, so a field's position is the width of the fields before
 /// it. The section is a **directory** of one entry per locale, indexed by ``LocaleIndex``, and the
-/// **records** it points at, sorted by ``CurrencyCode/compactValue`` so a currency is found by binary
+/// **records** it points at, sorted by ``Localization/CurrencyCode`` so a currency is found by binary
 /// search.
 package struct CurrencyDisplayTable: Sendable {
     let reader: BlobReader
@@ -20,7 +20,7 @@ package struct CurrencyDisplayTable: Sendable {
 
     private enum Record {
         static let code = 0
-        static let standardSymbol = code + BlobDigits.currencyCode
+        static let standardSymbol = code + Localization.CurrencyCode.digitCount
         static let standardSpacing = standardSymbol + BlobDigits.stringRef
         static let narrowSymbol = standardSpacing + BlobDigits.u8
         static let narrowSpacing = narrowSymbol + BlobDigits.stringRef
@@ -43,8 +43,7 @@ package struct CurrencyDisplayTable: Sendable {
     /// How `code` is displayed in the locale at `localeIndex`, or `nil` if it has no distinct symbol
     /// there (the caller then falls back to the code).
     package func display(localeIndex: LocaleIndex, code: CurrencyCode) -> CurrencyDisplay? {
-        // Only three-letter codes are stored, so a longer one cannot be here and falls back.
-        guard let wire = code.threeCharacterValue else {
+        guard let tableCode = Localization.CurrencyCode(code) else {
             return nil
         }
 
@@ -53,8 +52,7 @@ package struct CurrencyDisplayTable: Sendable {
         let recordCount = Int(reader.u16(at: entry + Entry.recordCount))
 
         guard let record = reader.recordOffset(
-            code: wire, codeWidth: BlobDigits.currencyCode,
-            start: recordsStart, count: recordCount, stride: Record.stride
+            of: tableCode, start: recordsStart, count: recordCount, stride: Record.stride
         ) else {
             return nil
         }

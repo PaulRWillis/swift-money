@@ -49,4 +49,12 @@ struct LocalizationCurrencyCodeTests {
             #expect(Localization.CurrencyCode(currency.code) != nil, "\(currency.code)")
         }
     }
+
+    @Test("The widest key fits its digits")
+    func widestKeyFitsItsDigits() throws {
+        let widest = try tableCode("999")  // 9 packs highest
+
+        #expect(Localization.CurrencyCode.digitCount == 3)
+        #expect(widest.value >> (Localization.CurrencyCode.digitCount * BlobDigits.bits) == 0)
+    }
 }
