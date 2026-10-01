@@ -77,6 +77,12 @@ struct ProportionTests {
         #expect(GBP(minorUnits: -1).proportion(of: GBP(minorUnits: -3)) == "0.333333333333333333")
     }
 
+    @Test("Nothing is none of a negative whole")
+    func zeroOfNegativeWhole() {
+        #expect(GBP.zero.proportion(of: GBP(minorUnits: -3)) == "0")
+        #expect(GBP.zero.proportion(of: GBP(minorUnits: -1)) == "0")
+    }
+
     @Test("The smallest amount over minus one is its positive size")
     func smallestOverMinusOne() {
         #expect(GBP.min.proportion(of: GBP(minorUnits: -1)) == "9223372036854775808")
