@@ -6,8 +6,8 @@ import SwiftMoneyCore
 ///
 /// Every integer is written as ``BlobDigits``, so a field's position is the width of the fields before
 /// it. The section is a **directory** of one entry per locale, indexed by ``LocaleIndex``, and the
-/// **records** it points at, sorted by ``Localization/CurrencyCode`` so a currency is found by binary
-/// search.
+/// **records** it points at, sorted in ``Localization/CurrencyCode`` order so a currency is found
+/// by binary search.
 package struct CurrencyDisplayTable: Sendable {
     let reader: BlobReader
     let directoryOffset: Int
@@ -41,7 +41,7 @@ package struct CurrencyDisplayTable: Sendable {
     }
 
     /// How `code` is displayed in the locale at `localeIndex`, or `nil` if it has no distinct symbol
-    /// there (the caller then falls back to the code).
+    /// there (the caller then falls back to the code) or if the tables can't hold `code`.
     package func display(localeIndex: LocaleIndex, code: CurrencyCode) -> CurrencyDisplay? {
         guard let tableCode = Localization.CurrencyCode(code) else {
             return nil

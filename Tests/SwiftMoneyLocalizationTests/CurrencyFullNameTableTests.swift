@@ -7,7 +7,11 @@ import Testing
 @Suite("Currency Full Name Table Tests")
 struct CurrencyFullNameTableTests {
 
-    // One locale (index 0) naming EUR (no override), GBP and USD (each with a `.one` override).
+    /// Returns a blob of one locale (index 0) naming EUR (no override), GBP and USD (each with a
+    /// `.one` override).
+    ///
+    /// - Returns: The blob's bytes, and the offset of its directory.
+    /// - Throws: The error `#require` throws if the tables can't hold a fixture's code.
     static func makeBlob() throws -> (bytes: [UInt8], directoryOffset: Int) {
         var b = BlobTestBuilder()
         let eur = try tableCode("EUR")
@@ -45,6 +49,10 @@ struct CurrencyFullNameTableTests {
         return (b.bytes, directoryOffset)
     }
 
+    /// Calls `body` with a table over the fixture blob.
+    ///
+    /// - Parameter body: The checks to run against the table.
+    /// - Throws: The error `#require` throws if the fixture can't be built or has no base address.
     static func withTable(_ body: (CurrencyFullNameTable) -> Void) throws {
         let (bytes, directoryOffset) = try makeBlob()
         try bytes.withUnsafeBufferPointer { buffer in

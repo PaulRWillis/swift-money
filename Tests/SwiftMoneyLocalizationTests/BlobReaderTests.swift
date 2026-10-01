@@ -7,6 +7,12 @@ import Testing
 @Suite("Blob Reader Tests")
 struct BlobReaderTests {
 
+    /// Calls `body` with a reader over `bytes`.
+    ///
+    /// - Parameters:
+    ///   - bytes: The packed bytes to read.
+    ///   - body: The checks to run against the reader.
+    /// - Throws: The error `#require` throws if `bytes` has no base address.
     static func withReader(_ bytes: [UInt8], _ body: (BlobReader) -> Void) throws {
         try bytes.withUnsafeBufferPointer { buffer in
             body(BlobReader(base: try #require(buffer.baseAddress), count: buffer.count))
@@ -144,11 +150,10 @@ struct BlobReaderTests {
         }
     }
 
-    // One GBP record searched as four: the middle probe reads past the end.
     @Test("Searching past the packed bytes traps")
     func recordSearchPastBoundsTraps() async {
         await #expect(processExitsWith: .failure) {
-            // Returns rather than traps: a trap here would pass the test without reaching the search.
+            // Returns rather than traps: a trap here would pass without reaching the search.
             guard
                 let currencyCode = CurrencyCode(string: "GBP"),
                 let gbp = Localization.CurrencyCode(currencyCode)
@@ -161,6 +166,7 @@ struct BlobReaderTests {
             builder.currencyCode(gbp)
 
             try Self.withReader(builder.bytes) { reader in
+                // One GBP record searched as four: the middle probe reads past the end.
                 _ = reader.recordOffset(of: gbp, start: 0, count: 4, stride: stride)
             }
         }
@@ -168,7 +174,9 @@ struct BlobReaderTests {
 
     @Test("Finds a record by its currency code, and reports a code it has none for")
     func recordSearch() throws {
-        let codes = [try tableCode("EUR"), try tableCode("GBP"), try tableCode("JPY"), try tableCode("USD")]
+        let codes = [
+            try tableCode("EUR"), try tableCode("GBP"), try tableCode("JPY"), try tableCode("USD"),
+        ]
         let hkd = try tableCode("HKD")
         let stride = Localization.CurrencyCode.fieldWidth
         var builder = BlobTestBuilder()
@@ -179,11 +187,16 @@ struct BlobReaderTests {
 
         try Self.withReader(builder.bytes) { reader in
             for (index, code) in codes.enumerated() {
-                let offset = reader.recordOffset(of: code, start: start, count: codes.count, stride: stride)
+                let offset = reader.recordOffset(
+                    of: code, start: start, count: codes.count, stride: stride
+                )
                 #expect(offset == start + index * stride)
             }
 
-            #expect(reader.recordOffset(of: hkd, start: start, count: codes.count, stride: stride) == nil)
+            let missing = reader.recordOffset(
+                of: hkd, start: start, count: codes.count, stride: stride
+            )
+            #expect(missing == nil)
         }
     }
 }

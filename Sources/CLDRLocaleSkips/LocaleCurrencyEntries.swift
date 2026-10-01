@@ -16,7 +16,7 @@ package struct LocaleCurrencyEntries<Fields> {
     /// The codes the tables can't hold, each with the reason.
     package let unusableCodes: Set<UnusableCurrencyCode>
 
-    /// One currency the tables can hold: the code they file it under, and what CLDR publishes for it.
+    /// One currency the tables can hold, with what CLDR publishes for it.
     package struct Entry {
         /// The code the tables file the currency under.
         package let code: Localization.CurrencyCode
@@ -37,7 +37,8 @@ package struct LocaleCurrencyEntries<Fields> {
 
     /// Creates the split of a locale's entries from Core's currency codes.
     ///
-    /// A code is held only if it has three characters.
+    /// A code is held only if it has three characters. Every other code is listed in
+    /// ``unusableCodes`` as ``UnusableCurrencyCode/longerThanTheTablesHold(_:)``.
     ///
     /// ```swift
     /// let usdt: CurrencyCode = "USDT"
@@ -64,8 +65,8 @@ package struct LocaleCurrencyEntries<Fields> {
 
     /// Creates the split of a locale's entries from codes as CLDR spells them.
     ///
-    /// Each code is read as `CurrencyCode(string:)` reads it, so lowercase is accepted, and is held
-    /// only if it has three characters.
+    /// Parses each code as `CurrencyCode(string:)` does, lowercase included, and holds the
+    /// three-character ones. The rest go in ``unusableCodes``, text that isn't a code as given.
     ///
     /// ```swift
     /// let entries = LocaleCurrencyEntries(parsing: [(code: "G-P", fields: "?")])
@@ -88,7 +89,9 @@ package struct LocaleCurrencyEntries<Fields> {
         }
 
         let narrowed = Self(parsed)
-        self.init(held: narrowed.held, unusableCodes: narrowed.unusableCodes.union(notCurrencyCodes))
+        self.init(
+            held: narrowed.held, unusableCodes: narrowed.unusableCodes.union(notCurrencyCodes)
+        )
     }
 
     /// Creates a split from its parts.

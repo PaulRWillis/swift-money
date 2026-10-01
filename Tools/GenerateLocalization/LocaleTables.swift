@@ -7,8 +7,8 @@ import SwiftMoneyLocalization
 // of the way through. Were they one pass, the strings and patterns of a locale that then failed would
 // already be in the pool with nothing pointing at them, and every pattern index after it would shift.
 //
-// The two currency splits hold their entries in the order their strings should reach the pool, which
-// is not the order they are searched in: `pack` sorts the records afterwards.
+// The two currency splits hold their entries in the order their strings should reach the pool,
+// which is not the order they are searched in: `pack` sorts the records afterwards.
 struct LocaleTables {
     // What a locale calls one currency in symbol form, the gap each form takes beside the digits, and
     // whether a letter touches the number in each.

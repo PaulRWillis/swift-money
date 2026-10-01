@@ -5,14 +5,6 @@ extension Localization {
     ///
     /// The tables key their currency records on this, sorted in its order. To read one from text,
     /// parse Core's code first.
-    ///
-    /// ```swift
-    /// let currencyCode: CurrencyCode = "GBP"
-    /// Localization.CurrencyCode(currencyCode)?.value   // 28816
-    ///
-    /// let tooLong: CurrencyCode = "USDT"
-    /// Localization.CurrencyCode(tooLong)               // nil
-    /// ```
     package struct CurrencyCode: Equatable, Hashable, Sendable {
         /// The code's three characters, packed into the 18 bits a record's code field holds.
         package let value: UInt64
@@ -25,7 +17,7 @@ extension Localization {
         /// ```swift
         /// let gbp: CurrencyCode = "GBP"
         /// let usdt: CurrencyCode = "USDT"
-        /// Localization.CurrencyCode(gbp)?.value   // 28816
+        /// Localization.CurrencyCode(gbp)?.value   // Optional(28816)
         /// Localization.CurrencyCode(usdt)         // nil
         /// ```
         ///
@@ -43,6 +35,8 @@ extension Localization {
 
 extension Localization.CurrencyCode: Comparable {
     /// Returns whether the first code comes before the second in the tables' record order.
+    ///
+    /// Codes compare character by character, with every letter before every digit.
     ///
     /// - Parameters:
     ///   - lhs: A code to compare.

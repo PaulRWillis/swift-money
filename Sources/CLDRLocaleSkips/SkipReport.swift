@@ -80,10 +80,11 @@ package struct SkipReport: Equatable, Sendable {
             return []
         }
 
+        let count = unusableCurrencyCodes.count
         let lines = unusableCurrencyCodes.map(Self.line).sorted()
 
         return ["""
-            ## Currency codes CLDR names that the tables cannot hold (\(unusableCurrencyCodes.count))
+            ## Currency codes CLDR names that the tables cannot hold (\(count))
 
             \(lines.joined(separator: "\n"))
             """]

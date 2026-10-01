@@ -7,8 +7,8 @@ import SwiftMoneyCore
 /// it. The section is three runs:
 /// - a **directory** of one entry per locale, holding where that locale's records start and how many
 ///   there are, indexed by ``LocaleIndex``;
-/// - the **records**, per locale, sorted by ``Localization/CurrencyCode`` so a currency is found by
-///   binary search;
+/// - the **records**, per locale, sorted in ``Localization/CurrencyCode`` order so a currency is
+///   found by binary search;
 /// - the **overrides** a record points at, one per category that names the currency differently.
 package struct CurrencyFullNameTable: Sendable {
     let reader: BlobReader
@@ -39,8 +39,8 @@ package struct CurrencyFullNameTable: Sendable {
         self.directoryOffset = directoryOffset
     }
 
-    /// What `code` is called in the locale at `localeIndex` for one plural category, or `nil` if the blob
-    /// does not name it there.
+    /// What `code` is called in the locale at `localeIndex` for one plural category, or `nil` if
+    /// the blob does not name it there or if the tables can't hold `code`.
     ///
     /// Reads the one name a caller formatting an amount needs, where ``name(localeIndex:code:)`` builds
     /// every form the currency has and a dictionary to hold them.
@@ -58,8 +58,8 @@ package struct CurrencyFullNameTable: Sendable {
         return reader.string(reader.stringRef(at: record + Record.other))
     }
 
-    /// What `code` is called in the locale at `localeIndex`, in every form it has there, or `nil` if the
-    /// blob does not name it.
+    /// What `code` is called in the locale at `localeIndex`, in every form it has there, or `nil`
+    /// if the blob does not name it or if the tables can't hold `code`.
     package func name(localeIndex: LocaleIndex, code: CurrencyCode) -> CurrencyFullName? {
         guard let record = recordOffset(localeIndex: localeIndex, code: code) else {
             return nil

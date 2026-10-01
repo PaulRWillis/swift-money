@@ -98,11 +98,11 @@ package struct BlobReader: @unchecked Sendable {
 
     /// Returns the offset of the record filed under a currency code, or `nil` if there is none.
     ///
-    /// Searches `count` records of `stride` bytes from `start`, each opening with its code, and sorted
-    /// in ``Localization/CurrencyCode`` order.
+    /// Searches `count` records of `stride` bytes from `start`, each opening with its code, and
+    /// sorted in ``Localization/CurrencyCode`` order.
     ///
     /// ```swift
-    /// // Two records of a code alone, EUR then GBP; `gbp` and `usd` are Localization.CurrencyCode values.
+    /// // Two records of a code alone, EUR then GBP; `gbp` and `usd` are table codes.
     /// reader.recordOffset(of: gbp, start: 0, count: 2, stride: 3)   // 3
     /// reader.recordOffset(of: usd, start: 0, count: 2, stride: 3)   // nil
     /// ```

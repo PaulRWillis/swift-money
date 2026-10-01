@@ -19,10 +19,13 @@ struct CLDRBlobTests {
 
     static let gbp: CurrencyCode = "GBP"
 
-    // One locale, "en", naming and displaying GBP alone.
+    /// Returns a whole blob of one locale, "en", naming and displaying GBP alone.
+    ///
+    /// - Returns: The blob's bytes, header first.
+    /// - Throws: The error `#require` throws if the tables can't hold GBP.
     static func makeBlob() throws -> [UInt8] {
         var body = BlobTestBuilder(base: CLDRBlob.headerWidth)
-        let gbp = try #require(Localization.CurrencyCode(Self.gbp))
+        let tableGBP = try #require(Localization.CurrencyCode(Self.gbp))
 
         let key = body.pool("en")
         let decimalSeparator = body.pool(".")
@@ -51,7 +54,7 @@ struct CLDRBlobTests {
         body.ref(minusSign)          // Latin minus sign
 
         let displayRecordsStart = body.count
-        body.currencyCode(gbp)
+        body.currencyCode(tableGBP)
         body.ref(symbol)
         body.u8(Spacing.none.blobCode)
         body.ref(symbol)
@@ -62,7 +65,7 @@ struct CLDRBlobTests {
         body.u16(1)
 
         let fullNameRecordsStart = body.count
-        body.currencyCode(gbp)
+        body.currencyCode(tableGBP)
         body.ref(name)
         body.offsetField(0)
         body.u8(0)
@@ -116,6 +119,10 @@ struct CLDRBlobTests {
         return header.bytes + body.bytes
     }
 
+    /// Calls `body` with the fixture blob.
+    ///
+    /// - Parameter body: The checks to run against the blob.
+    /// - Throws: The error `#require` throws if the fixture can't be built or has no base address.
     static func withBlob(_ body: (CLDRBlob) -> Void) throws {
         try makeBlob().withUnsafeBufferPointer { buffer in
             body(CLDRBlob(

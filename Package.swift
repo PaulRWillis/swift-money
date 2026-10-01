@@ -79,9 +79,9 @@ let package = Package(
         .target(
             name: "CLDRLocaleIdentifiers"
         ),
-        // Dev-only. Names why the generator cannot build tables for a CLDR locale, decides which of a
-        // locale's currency codes the tables can hold, and renders the committed report of what it
-        // left out. Not in any library product.
+        // Dev-only. Names why the generator cannot build tables for a CLDR locale, decides which of
+        // a locale's currency codes the tables can hold, and renders the committed report of what
+        // it left out. Not in any library product.
         .target(
             name: "CLDRLocaleSkips",
             dependencies: ["CLDRCurrencyPatterns", "SwiftMoneyCore", "SwiftMoneyLocalization"]

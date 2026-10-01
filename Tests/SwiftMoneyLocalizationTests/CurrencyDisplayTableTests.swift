@@ -7,8 +7,12 @@ import Testing
 @Suite("Currency Display Table Tests")
 struct CurrencyDisplayTableTests {
 
-    // One locale (index 0) displaying GBP (£, no gap, a glyph both forms) and USD (US$ standard, a
-    // letter-adjacent form as in a locale that takes it through `-alphaNextToNumber`; $ narrow, a glyph).
+    /// Returns a blob of one locale (index 0) displaying GBP (£, no gap, a glyph both forms) and
+    /// USD (US$ standard, a letter-adjacent form as in a locale that takes it through
+    /// `-alphaNextToNumber`; $ narrow, a glyph).
+    ///
+    /// - Returns: The blob's bytes, and the offset of its directory.
+    /// - Throws: The error `#require` throws if the tables can't hold a fixture's code.
     static func makeBlob() throws -> (bytes: [UInt8], directoryOffset: Int) {
         var b = BlobTestBuilder()
         let gbp = try tableCode("GBP")
@@ -37,6 +41,10 @@ struct CurrencyDisplayTableTests {
         return (b.bytes, directoryOffset)
     }
 
+    /// Calls `body` with a table over the fixture blob.
+    ///
+    /// - Parameter body: The checks to run against the table.
+    /// - Throws: The error `#require` throws if the fixture can't be built or has no base address.
     static func withTable(_ body: (CurrencyDisplayTable) -> Void) throws {
         let (bytes, directoryOffset) = try makeBlob()
         try bytes.withUnsafeBufferPointer { buffer in

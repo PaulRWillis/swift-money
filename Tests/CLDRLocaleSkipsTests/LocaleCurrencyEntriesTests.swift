@@ -14,7 +14,7 @@ struct LocaleCurrencyEntriesTests {
         let entries = LocaleCurrencyEntries(parsing: [
             (code: "GBP", fields: "£"),
             (code: "USDT", fields: "₮"),       // a code, too long for the tables
-            (code: "SAFEMOON", fields: "SM"),  // the longest code
+            (code: "SAFEMOON", fields: "SM"),  // eight characters, the most Core accepts
             (code: "G-P", fields: "?"),        // not a code
             (code: "GB", fields: "?"),         // too short to be a code
             (code: "USD", fields: "$"),
@@ -37,7 +37,10 @@ struct LocaleCurrencyEntriesTests {
             (code: "usdt", fields: "₮"),
         ])
 
-        #expect(entries.unusableCodes == [.notACurrencyCode("g-p"), .longerThanTheTablesHold("USDT")])
+        #expect(entries.unusableCodes == [
+            .notACurrencyCode("g-p"),
+            .longerThanTheTablesHold("USDT"),
+        ])
         #expect(entries.held.isEmpty)
     }
 
