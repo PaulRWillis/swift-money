@@ -727,6 +727,47 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         blackHole(hits)
     }
 
+    Benchmark("ClosedMoneyRange currency", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(runtimeClosedPounds[index % runtimeClosedPounds.count].currency)
+            index &+= 1
+        }
+    }
+
+    Benchmark("ClosedMoneyRange lower bound", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(runtimeClosedPounds[index % runtimeClosedPounds.count].lowerBound)
+            index &+= 1
+        }
+    }
+
+    Benchmark("ClosedMoneyRange upper bound", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(runtimeClosedPounds[index % runtimeClosedPounds.count].upperBound)
+            index &+= 1
+        }
+    }
+
+    Benchmark("ClosedMoneyRange is empty", configuration: configuration) { benchmark in
+        var index = 0
+        var empties = 0
+
+        for _ in benchmark.scaledIterations {
+            if runtimeClosedPounds[index % runtimeClosedPounds.count].isEmpty {
+                empties &+= 1
+            }
+            index &+= 1
+        }
+
+        blackHole(empties)
+    }
+
     Benchmark("ClosedMoneyRange description", configuration: configuration) { benchmark in
         var index = 0
 
@@ -860,6 +901,33 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         }
 
         blackHole(hits)
+    }
+
+    Benchmark("MoneyRange currency", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(runtimeHalfOpenPounds[index % runtimeHalfOpenPounds.count].currency)
+            index &+= 1
+        }
+    }
+
+    Benchmark("MoneyRange lower bound", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(runtimeHalfOpenPounds[index % runtimeHalfOpenPounds.count].lowerBound)
+            index &+= 1
+        }
+    }
+
+    Benchmark("MoneyRange upper bound", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(runtimeHalfOpenPounds[index % runtimeHalfOpenPounds.count].upperBound)
+            index &+= 1
+        }
     }
 
     Benchmark("MoneyRange is empty", configuration: configuration) { benchmark in
