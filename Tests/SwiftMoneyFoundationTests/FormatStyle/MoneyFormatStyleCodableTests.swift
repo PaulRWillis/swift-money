@@ -34,6 +34,7 @@ struct MoneyFormatStyleCodableTests {
         .significantDigits(2...4),
         .significantDigits(2...),
         .significantDigits(...4),
+        .significantDigits(...999),
     ]
 
     // Captured from the encoder before the style read its precision itself, so a change to the shape
@@ -105,6 +106,7 @@ struct MoneyFormatStyleCodableTests {
         (.significantDigits(999...), .significantDigits(998...), .significantDigits(1000...)),
         (.integerLength(...999), .integerLength(...998), .integerLength(...1000)),
         (.fractionLength(...999), .fractionLength(...998), .fractionLength(...1000)),
+        (.significantDigits(...999), .significantDigits(...998), .significantDigits(...1000)),
         (
             .integerAndFractionLength(integerLimits: 998...998, fractionLimits: 1...3),
             .integerAndFractionLength(integerLimits: 997...997, fractionLimits: 1...3),

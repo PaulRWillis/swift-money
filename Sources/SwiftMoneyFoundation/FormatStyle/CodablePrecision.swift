@@ -71,16 +71,20 @@ struct CodablePrecision: Codable {
 
     /// The fewest and most significant digits a precision allows.
     ///
-    /// A significant-digits precision always names its fewest digits, so there is no at-most case.
+    /// Foundation writes an at-most limit with a fewest of one digit.
     private enum SignificantDigitLimits {
         /// Exactly the given number of digits.
         case exactly(Int)
 
-        /// A number of digits within the given range, whose bounds differ.
+        /// A number of digits within the given range, whose bounds differ and whose lower bound is
+        /// above one.
         case within(ClosedRange<Int>)
 
         /// At least the given number of digits.
         case atLeast(Int)
+
+        /// At most the given number of digits, which is above one.
+        case atMost(Int)
     }
 
     /// A precision as its JSON states it, before Foundation's factories build it.
@@ -108,6 +112,8 @@ struct CodablePrecision: Codable {
                 .significantDigits(digits)
             case let .significantDigits(.atLeast(digits)):
                 .significantDigits(digits...)
+            case let .significantDigits(.atMost(digits)):
+                .significantDigits(...digits)
             case let .integerLength(.exactly(length)):
                 .integerLength(length)
             case let .integerLength(.within(lengths)):
@@ -261,6 +267,11 @@ struct CodablePrecision: Codable {
                 return .atLeast(try oneSidedBound(fewest, key: .minSignificantDigits, in: option))
             case let (fewest?, most?):
                 guard fewest != most else { return .exactly(fewest) }
+                // Foundation writes `...most` with a fewest of one, and keeps an at-most bound past
+                // the most a closed range keeps, so this has to read as one-sided.
+                if fewest == allowed.lowerBound {
+                    return .atMost(try oneSidedBound(most, key: .maxSignificantDigits, in: option))
+                }
                 let keys = (fewest: OptionKeys.minSignificantDigits, most: OptionKeys.maxSignificantDigits)
                 return .within(try range(fewest, most, keys: keys, in: option))
             }
