@@ -22,6 +22,12 @@ SOURCE = ROOT / "ISO4217" / "list-one.xml"
 OUTPUT = ROOT / "Sources" / "SwiftMoneyCore" / "Currency" / "Currency+ISO4217.swift"
 TEST_OUTPUT = ROOT / "Tests" / "SwiftMoneyCoreTests" / "Currency" / "CurrencyISO4217Tests.swift"
 
+# `CurrencyCode`'s packing, which `CurrencyISO4217Tests` checks against Swift's for every code.
+BITS_PER_CHARACTER = 6
+CHARACTER_SLOTS = 8
+# A character packs as its place in this string counting from 1, because 0 is an empty slot.
+PACKED_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
 # `try` is the only ISO code whose lowercased form Swift reserves.
 SWIFT_KEYWORDS = {"try"}
 
@@ -114,23 +120,20 @@ def types(found):
     return lines + ["}"]
 
 
-def symbol(char):
-    """The six-bit symbol `CurrencyCode` uses: A-Z become 1...26 and 0-9 become 27...36."""
-    if "A" <= char <= "Z":
-        return ord(char) - ord("A") + 1
-    if "0" <= char <= "9":
-        return ord(char) - ord("0") + 27
-    raise ValueError(f"{char!r} is not an uppercase alphanumeric")
+def packed_character(char):
+    if len(char) != 1 or char not in PACKED_ALPHABET:
+        raise ValueError(f"{char!r} is not an uppercase alphanumeric")
+    return PACKED_ALPHABET.index(char) + 1
 
 
 def packed(code):
-    """A code as the single word `CurrencyCode` stores: six bits per symbol, high symbol first."""
+    """A code as the word `CurrencyCode` stores: A-Z pack as 1...26, 0-9 as 27...36."""
     value = 0
 
     for char in code:
-        value = value << 6 | symbol(char)
+        value = value << BITS_PER_CHARACTER | packed_character(char)
 
-    return value << (6 * (8 - len(code)))
+    return value << (BITS_PER_CHARACTER * (CHARACTER_SLOTS - len(code)))
 
 
 def lookup(found):
