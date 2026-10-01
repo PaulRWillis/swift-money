@@ -213,9 +213,9 @@ public struct ClosedMoneyRange: Equatable, Hashable, Sendable {
         }
 
         return try Money.Steps(
-            checking: Money(unchecked: _minorUnits.lowerBound, storage: _currency),
-            through: Money(unchecked: _minorUnits.upperBound, storage: _currency),
-            by: stride
+            checking: _currency,
+            span: _minorUnits,
+            by: NonZeroInt64(unchecked: stride.amount.minorUnits)
         )
     }
 }
