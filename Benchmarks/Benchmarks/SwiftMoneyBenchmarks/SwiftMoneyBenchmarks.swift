@@ -557,7 +557,7 @@ let benchmarks: @Sendable () -> Void = {
         var index = 0
 
         for _ in benchmark.scaledIterations {
-            blackHole(thirds[index % thirds.count].divided(byExactly: 3))
+            blackHole(PartCount(exactly: 3).map(thirds[index % thirds.count].divided(by:)))
             index &+= 1
         }
     }
@@ -609,7 +609,7 @@ let benchmarks: @Sendable () -> Void = {
         var index = 0
 
         for _ in benchmark.scaledIterations {
-            blackHole(carriedThirds[index % carriedThirds.count].divided(byExactly: 4))
+            blackHole(PartCount(exactly: 4).map(carriedThirds[index % carriedThirds.count].divided(by:)))
             index &+= 1
         }
     }

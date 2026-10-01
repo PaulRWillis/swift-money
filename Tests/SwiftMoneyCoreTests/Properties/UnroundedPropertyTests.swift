@@ -133,9 +133,11 @@ struct UnroundedPropertyTests {
     }
 
     @Test("Dividing then multiplying by the same number settles back", arguments: divideCases)
-    private func divideThenMultiply(_ divideCase: DivideCase) {
+    private func divideThenMultiply(_ divideCase: DivideCase) throws {
+        let parts = try #require(PartCount(exactly: divideCase.divisor))
+
         for rule in nearestRoundingRules {
-            let restored = (divideCase.money.unrounded.divided(by: divideCase.divisor) * divideCase.divisor).rounded(rule)
+            let restored = (divideCase.money.unrounded.divided(by: parts) * divideCase.divisor).rounded(rule)
             #expect(restored == divideCase.money)
         }
     }
