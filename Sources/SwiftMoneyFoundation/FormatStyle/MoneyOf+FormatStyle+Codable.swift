@@ -19,6 +19,18 @@ extension MoneyOf.FormatStyle {
         case roundingIncrement
     }
 
+    /// Creates a style by decoding from the given decoder.
+    ///
+    /// ```swift
+    /// let style = try JSONDecoder().decode(GBP.FormatStyle.self, from: json)
+    /// ```
+    ///
+    /// - Parameter decoder: The decoder to read from.
+    /// - Throws: `DecodingError.dataCorrupted` if the precision names no limit, mixes significant
+    ///   digits with lengths, has a length below zero or a significant-digit count below one, puts
+    ///   its fewest digits above its most, leaves out its fewest significant digits, or has a
+    ///   bound Foundation's range factories would clamp, or if the rounding increment is below
+    ///   one. Another `DecodingError` if a field is missing or has the wrong type.
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         locale = try container.decode(Locale.self, forKey: .locale)
@@ -34,6 +46,17 @@ extension MoneyOf.FormatStyle {
         resolvedNumberingSystem = NumberingSystem(locale.numberingSystem)
     }
 
+    /// Encodes this style into the given encoder.
+    ///
+    /// Writes the precision as Foundation's `Precision` writes it, so an encoded precision may not
+    /// decode: `.fractionLength(-1)` and `.significantDigits(0)` encode, and decoding them throws.
+    ///
+    /// ```swift
+    /// let json = try JSONEncoder().encode(GBP.FormatStyle().precision(.fractionLength(2)))
+    /// ```
+    ///
+    /// - Parameter encoder: The encoder to write to.
+    /// - Throws: Any error `encoder` throws.
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(locale, forKey: .locale)

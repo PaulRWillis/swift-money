@@ -216,6 +216,27 @@ struct MoneyFormatStyleCodableTests {
         }
     }
 
+    @Test(
+        "A precision below its fewest digits encodes but does not decode",
+        arguments: [
+            (Precision.fractionLength(-1), "minFractionalLength"),
+            (Precision.significantDigits(0), "minSignificantDigits"),
+        ]
+    )
+    func encodesAPrecisionItRefusesToDecode(precision: Precision, offendingKey: String) throws {
+        let json = try JSONEncoder().encode(GBP.FormatStyle().locale(Self.britishEnglish).precision(precision))
+
+        let error = try #require(throws: DecodingError.self) {
+            try JSONDecoder().decode(GBP.FormatStyle.self, from: json)
+        }
+
+        guard case let .dataCorrupted(context) = error else {
+            Issue.record("Expected DecodingError.dataCorrupted, got \(error)")
+            return
+        }
+        #expect(context.codingPath.last?.stringValue == offendingKey)
+    }
+
     @Test("Foundation's range factories keep a bound at the limit and clamp one past it", arguments: Self.foundationLimits)
     func pinsFoundationsLimits(atLimit: Precision, inside: Precision, past: Precision) {
         #expect(atLimit != inside)
