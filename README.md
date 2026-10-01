@@ -173,6 +173,20 @@ try amount.clamped(to: limits)
 typed.contains(GBP(minorUnits: 50_00))                                  // no try: one currency
 ```
 
+One bound has no order to check, so the partial ranges `minimum...`, `...maximum` and `..<maximum`
+never throw, and each has a `currency`. Every range converts between runtime and typed amounts:
+
+```swift
+let atLeast = minimum...                // PartialMoneyRangeFrom
+atLeast.currency                        // minimum's currency
+
+ClosedMoneyRange(typed)                 // typed to runtime: no try
+PartialMoneyRangeFrom(low...)
+try ClosedRange<GBP>(limits)            // runtime to typed: throws unless limits is in pounds
+try PartialRangeUpTo<GBP>(..<maximum)
+MoneyRange(limits)                      // to half-open: nil if limits holds the largest amount
+```
+
 Each call throws one exact error type, so a `switch` over it can be exhaustive. Building a range
 throws `MoneyRangeParsingError`. Only runtime bounds can be in two currencies, so a typed range's
 `switch` needs no `.currencyMismatch` case:
