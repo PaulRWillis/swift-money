@@ -9,7 +9,7 @@ private func euros(_ minorUnits: Int64) -> Money {
     Money(minorUnits: minorUnits, currency: .eur)
 }
 
-private typealias BuildError = CurrencyCheckedError<InvertedBoundsError<AnyCurrency>>
+private typealias BuildError = MoneyRangeParsingError<AnyCurrency>
 
 @Suite("MoneyRange")
 struct MoneyRangeTests {
@@ -24,32 +24,38 @@ struct MoneyRangeTests {
         #expect(range.isEmpty == false)
     }
 
-    @Test("Bounds in two currencies throw a mismatch, lower bound's currency first")
+    @Test("Bounds in two currencies throw a mismatch with the upper bound's currency")
     func mismatchThrows() {
-        #expect(throws: BuildError.currencyMismatch(lhs: .gbp, rhs: .eur)) {
+        #expect(throws: BuildError.currencyMismatch(.eur)) {
             try pounds(10_00)..<euros(250_00)
         }
     }
 
-    @Test("Inverted bounds throw a failure carrying both bounds")
-    func invertedThrows() {
+    @Test("A switch over a build error binds the upper bound's currency")
+    func mismatchBindsCurrency() {
         do throws(BuildError) {
-            _ = try pounds(250_00)..<pounds(10_00)
-            Issue.record("Expected inverted bounds to throw")
+            _ = try pounds(10_00)..<euros(250_00)
+            Issue.record("Expected a mismatch to throw")
         } catch {
             switch error {
-            case .currencyMismatch:
-                Issue.record("Expected inverted bounds, not a mismatch")
-            case let .failure(inverted):
-                #expect(inverted.lowerBound == pounds(250_00))
-                #expect(inverted.upperBound == pounds(10_00))
+            case .invertedBounds:
+                Issue.record("Expected a mismatch, not inverted bounds")
+            case let .currencyMismatch(currency):
+                #expect(currency == .eur)
             }
+        }
+    }
+
+    @Test("Inverted bounds throw invertedBounds with both bounds as given")
+    func invertedThrows() {
+        #expect(throws: BuildError.invertedBounds(lowerBound: pounds(250_00), upperBound: pounds(10_00))) {
+            try pounds(250_00)..<pounds(10_00)
         }
     }
 
     @Test("Inverted bounds in two currencies report the mismatch")
     func mismatchBeforeInverted() {
-        #expect(throws: BuildError.currencyMismatch(lhs: .gbp, rhs: .eur)) {
+        #expect(throws: BuildError.currencyMismatch(.eur)) {
             try pounds(250_00)..<euros(10_00)
         }
     }
@@ -67,10 +73,10 @@ struct MoneyRangeTests {
         let checked = try MoneyRange(checkedBounds: (lower: pounds(1_00), upper: pounds(2_00)))
 
         #expect(try checked == pounds(1_00)..<pounds(2_00))
-        #expect(throws: BuildError.currencyMismatch(lhs: .eur, rhs: .gbp)) {
+        #expect(throws: BuildError.currencyMismatch(.gbp)) {
             try MoneyRange(checkedBounds: (lower: euros(1_00), upper: pounds(2_00)))
         }
-        #expect(throws: BuildError.self) {
+        #expect(throws: BuildError.invertedBounds(lowerBound: pounds(2_00), upperBound: pounds(1_00))) {
             try MoneyRange(checkedBounds: (lower: pounds(2_00), upper: pounds(1_00)))
         }
     }
@@ -96,6 +102,16 @@ struct MoneyRangeTests {
         let closed = try pounds(0)...pounds(Int64.max)
 
         #expect(MoneyRange(closed) == nil)
+    }
+
+    @Test("Closed ranges at the extremes of Int64 convert while the upper bound has room above it")
+    func fromClosedAtExtremes() throws {
+        let lowest = pounds(Int64.min)
+        let highest = pounds(Int64.max)
+
+        #expect(try MoneyRange(lowest...lowest) == lowest..<pounds(Int64.min + 1))
+        #expect(try MoneyRange(lowest...pounds(Int64.max - 1)) == lowest..<highest)
+        #expect(MoneyRange(try highest...highest) == nil)
     }
 
     @Test("Contains its lower bound but not its upper")
@@ -176,6 +192,29 @@ struct MoneyRangeTests {
         let coarseRange = try Money(minorUnits: 1, currency: coarse)..<Money(minorUnits: 2, currency: coarse)
 
         #expect(fineRange != coarseRange)
+        #expect(throws: MoneyError.currencyMismatch(lhs: fine, rhs: coarse)) {
+            try fineRange.contains(Money(minorUnits: 1, currency: coarse))
+        }
+    }
+
+    @Test("Empty ranges at different bounds are unequal, as the standard library's are")
+    func emptyRangesCompareBounds() throws {
+        #expect((5..<5) != (6..<6))
+        #expect(try pounds(5_00)..<pounds(5_00) != pounds(6_00)..<pounds(6_00))
+    }
+
+    @Test("Bounds at the extremes of Int64 build a range that holds the lower and not the upper")
+    func int64Extremes() throws {
+        let range = try pounds(.min)..<pounds(.max)
+
+        #expect(range.lowerBound == pounds(.min))
+        #expect(range.upperBound == pounds(.max))
+        #expect(try range.contains(pounds(.min)))
+        #expect(try range.contains(pounds(.max - 1)))
+        #expect(try range.contains(pounds(.max)) == false)
+        #expect(throws: BuildError.invertedBounds(lowerBound: pounds(.max), upperBound: pounds(.min))) {
+            try pounds(.max)..<pounds(.min)
+        }
     }
 
     @Test("Equal ranges hash equally, and the same bounds in another currency are unequal")

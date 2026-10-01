@@ -727,6 +727,47 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         blackHole(hits)
     }
 
+    Benchmark("ClosedMoneyRange currency", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(runtimeClosedPounds[index % runtimeClosedPounds.count].currency)
+            index &+= 1
+        }
+    }
+
+    Benchmark("ClosedMoneyRange lower bound", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(runtimeClosedPounds[index % runtimeClosedPounds.count].lowerBound)
+            index &+= 1
+        }
+    }
+
+    Benchmark("ClosedMoneyRange upper bound", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(runtimeClosedPounds[index % runtimeClosedPounds.count].upperBound)
+            index &+= 1
+        }
+    }
+
+    Benchmark("ClosedMoneyRange is empty", configuration: configuration) { benchmark in
+        var index = 0
+        var empties = 0
+
+        for _ in benchmark.scaledIterations {
+            if runtimeClosedPounds[index % runtimeClosedPounds.count].isEmpty {
+                empties &+= 1
+            }
+            index &+= 1
+        }
+
+        blackHole(empties)
+    }
+
     Benchmark("ClosedMoneyRange description", configuration: configuration) { benchmark in
         var index = 0
 
@@ -860,6 +901,33 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         }
 
         blackHole(hits)
+    }
+
+    Benchmark("MoneyRange currency", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(runtimeHalfOpenPounds[index % runtimeHalfOpenPounds.count].currency)
+            index &+= 1
+        }
+    }
+
+    Benchmark("MoneyRange lower bound", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(runtimeHalfOpenPounds[index % runtimeHalfOpenPounds.count].lowerBound)
+            index &+= 1
+        }
+    }
+
+    Benchmark("MoneyRange upper bound", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(runtimeHalfOpenPounds[index % runtimeHalfOpenPounds.count].upperBound)
+            index &+= 1
+        }
     }
 
     Benchmark("MoneyRange is empty", configuration: configuration) { benchmark in
@@ -1065,6 +1133,108 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         blackHole(hits)
     }
 
+    Benchmark("PartialMoneyRangeFrom from a typed range", configuration: configuration) { benchmark in
+        let limits = lowerPounds.map { $0... }
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(PartialMoneyRangeFrom(limits[index % limits.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("PartialMoneyRangeThrough from a typed range", configuration: configuration) { benchmark in
+        let limits = upperPounds.map { ...$0 }
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(PartialMoneyRangeThrough(limits[index % limits.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("PartialMoneyRangeUpTo from a typed range", configuration: configuration) { benchmark in
+        let limits = upperPounds.map { ..<$0 }
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(PartialMoneyRangeUpTo(limits[index % limits.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("PartialRangeFrom from PartialMoneyRangeFrom, throwing", configuration: configuration) { benchmark in
+        let limits = runtimeLowerPounds.map { $0... }
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try PartialRangeFrom<GBP>(limits[index % limits.count]))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these ranges are all in pounds, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("PartialRangeThrough from PartialMoneyRangeThrough, throwing", configuration: configuration) { benchmark in
+        let limits = runtimeUpperPounds.map { ...$0 }
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try PartialRangeThrough<GBP>(limits[index % limits.count]))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these ranges are all in pounds, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("PartialRangeUpTo from PartialMoneyRangeUpTo, throwing", configuration: configuration) { benchmark in
+        let limits = runtimeUpperPounds.map { ..<$0 }
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try PartialRangeUpTo<GBP>(limits[index % limits.count]))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these ranges are all in pounds, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("PartialMoneyRangeFrom currency", configuration: configuration) { benchmark in
+        let limits = runtimeLowerPounds.map { $0... }
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(limits[index % limits.count].currency)
+            index &+= 1
+        }
+    }
+
+    Benchmark("PartialMoneyRangeThrough currency", configuration: configuration) { benchmark in
+        let limits = runtimeUpperPounds.map { ...$0 }
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(limits[index % limits.count].currency)
+            index &+= 1
+        }
+    }
+
+    Benchmark("PartialMoneyRangeUpTo currency", configuration: configuration) { benchmark in
+        let limits = runtimeUpperPounds.map { ..<$0 }
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(limits[index % limits.count].currency)
+            index &+= 1
+        }
+    }
+
     // Each range meets a neighbour three along, so the pairs nest, overlap and sit apart in turn.
     Benchmark("ClosedRange of MoneyOf contains a closed range", configuration: configuration) { benchmark in
         var index = 0
@@ -1094,6 +1264,20 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
             }
         } catch {
             fatalError("these ranges share a currency, so this cannot happen: \(error)")
+        }
+
+        blackHole(hits)
+    }
+
+    Benchmark("ClosedRange of MoneyOf contains a half-open range", configuration: configuration) { benchmark in
+        var index = 0
+        var hits = 0
+
+        for _ in benchmark.scaledIterations {
+            if closedPounds[index % closedPounds.count].contains(halfOpenPounds[(index &+ 3) % halfOpenPounds.count]) {
+                hits &+= 1
+            }
+            index &+= 1
         }
 
         blackHole(hits)
@@ -1792,6 +1976,152 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
             }
         } catch {
             fatalError("these bounds are ordered, in pounds, and the step is not zero, so this cannot happen: \(error)")
+        }
+    }
+
+    // Each `contains` row asks the same ten £250-by-£25 sequences about an amount £100 in (on a step),
+    // £110 in (between steps) or £275 in (past the end), without stepping through them.
+    let poundSequences = lowerPounds.indices.map {
+        stride(from: lowerPounds[$0], through: upperPounds[$0], by: strideByMajorUnits)
+    }
+    let runtimePoundSequences: [MoneyStrideThrough<AnyCurrency>]
+    do {
+        runtimePoundSequences = try runtimeLowerPounds.indices.map {
+            try stride(from: runtimeLowerPounds[$0], through: runtimeUpperPounds[$0], by: runtimeStrideByMajorUnits)
+        }
+    } catch {
+        fatalError("these amounts and the stride share a currency, so this cannot happen: \(error)")
+    }
+    let poundsOnAStep = operands.map { GBP(minorUnits: $0 * 100 + 100_00) }
+    let poundsBetweenSteps = operands.map { GBP(minorUnits: $0 * 100 + 110_00) }
+    let poundsPastTheEnd = operands.map { GBP(minorUnits: $0 * 100 + 275_00) }
+    let runtimePoundsOnAStep = poundsOnAStep.map { Money($0) }
+    let runtimePoundsBetweenSteps = poundsBetweenSteps.map { Money($0) }
+    let runtimePoundsPastTheEnd = poundsPastTheEnd.map { Money($0) }
+    let yenOnAStep = operands.map { Money(minorUnits: $0 * 100 + 100_00, currency: .jpy) }
+
+    Benchmark("stride through MoneyOf contains, on a step", configuration: configuration) { benchmark in
+        var index = 0
+        var hits = 0
+
+        for _ in benchmark.scaledIterations {
+            if poundSequences[index % poundSequences.count].contains(poundsOnAStep[index % poundsOnAStep.count]) {
+                hits &+= 1
+            }
+            index &+= 1
+        }
+
+        blackHole(hits)
+    }
+
+    Benchmark("stride through MoneyOf contains, between steps", configuration: configuration) { benchmark in
+        var index = 0
+        var hits = 0
+
+        for _ in benchmark.scaledIterations {
+            if poundSequences[index % poundSequences.count].contains(poundsBetweenSteps[index % poundsBetweenSteps.count]) {
+                hits &+= 1
+            }
+            index &+= 1
+        }
+
+        blackHole(hits)
+    }
+
+    Benchmark("stride through MoneyOf contains, past the end", configuration: configuration) { benchmark in
+        var index = 0
+        var hits = 0
+
+        for _ in benchmark.scaledIterations {
+            if poundSequences[index % poundSequences.count].contains(poundsPastTheEnd[index % poundsPastTheEnd.count]) {
+                hits &+= 1
+            }
+            index &+= 1
+        }
+
+        blackHole(hits)
+    }
+
+    Benchmark("stride through Money contains, on a step", configuration: configuration) { benchmark in
+        var index = 0
+        var hits = 0
+
+        for _ in benchmark.scaledIterations {
+            if runtimePoundSequences[index % runtimePoundSequences.count]
+                .contains(runtimePoundsOnAStep[index % runtimePoundsOnAStep.count]) {
+                hits &+= 1
+            }
+            index &+= 1
+        }
+
+        blackHole(hits)
+    }
+
+    Benchmark("stride through Money contains, between steps", configuration: configuration) { benchmark in
+        var index = 0
+        var hits = 0
+
+        for _ in benchmark.scaledIterations {
+            if runtimePoundSequences[index % runtimePoundSequences.count]
+                .contains(runtimePoundsBetweenSteps[index % runtimePoundsBetweenSteps.count]) {
+                hits &+= 1
+            }
+            index &+= 1
+        }
+
+        blackHole(hits)
+    }
+
+    Benchmark("stride through Money contains, past the end", configuration: configuration) { benchmark in
+        var index = 0
+        var hits = 0
+
+        for _ in benchmark.scaledIterations {
+            if runtimePoundSequences[index % runtimePoundSequences.count]
+                .contains(runtimePoundsPastTheEnd[index % runtimePoundsPastTheEnd.count]) {
+                hits &+= 1
+            }
+            index &+= 1
+        }
+
+        blackHole(hits)
+    }
+
+    Benchmark("stride through Money contains, in another currency", configuration: configuration) { benchmark in
+        var index = 0
+        var hits = 0
+
+        for _ in benchmark.scaledIterations {
+            if runtimePoundSequences[index % runtimePoundSequences.count].contains(yenOnAStep[index % yenOnAStep.count]) {
+                hits &+= 1
+            }
+            index &+= 1
+        }
+
+        blackHole(hits)
+    }
+
+    // Every pound amount, upward and downward: too many for `Int`, so each reports `Int.max`.
+    let everyPoundSequences = [
+        stride(from: GBP.min, through: .max, by: .minorUnit),
+        stride(from: GBP.max, through: .min, by: .minorUnits(-1)),
+    ]
+
+    Benchmark("stride through MoneyOf underestimatedCount, eleven amounts", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(poundSequences[index % poundSequences.count].underestimatedCount)
+            index &+= 1
+        }
+    }
+
+    Benchmark("stride through MoneyOf underestimatedCount, Int.max", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(everyPoundSequences[index % everyPoundSequences.count].underestimatedCount)
+            index &+= 1
         }
     }
 

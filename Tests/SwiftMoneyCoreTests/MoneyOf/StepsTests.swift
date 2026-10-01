@@ -139,27 +139,27 @@ struct StepsTests {
         #expect(runtime.stride == Money.Stride(typed.stride))
     }
 
-    @Test("A yen range with a stride in pence throws a mismatch, the range's currency first")
+    @Test("A yen range with a stride in pence throws a mismatch with the stride's currency")
     func runtimeMismatch() throws {
         let yen = try Money(minorUnits: 0, currency: .jpy)...Money(minorUnits: 1_000, currency: .jpy)
 
-        #expect(throws: CurrencyCheckedError<MoneyStepsParsingError<AnyCurrency>>.currencyMismatch(lhs: .jpy, rhs: .gbp)) {
+        #expect(throws: MoneyStepsParsingError<AnyCurrency>.currencyMismatch(.gbp)) {
             try yen.steps(by: .minorUnits(1_00, of: .gbp))
         }
     }
 
-    @Test("Runtime steps too many to count throw a failure")
+    @Test("Runtime steps too many to count throw tooManySteps")
     func runtimeTooMany() throws {
         let range = try Money(minorUnits: Int64.min, currency: .gbp)...Money(minorUnits: Int64.max, currency: .gbp)
 
-        do throws(CurrencyCheckedError<MoneyStepsParsingError<AnyCurrency>>) {
+        do throws(MoneyStepsParsingError<AnyCurrency>) {
             _ = try range.steps(by: .minorUnit(of: .gbp))
             Issue.record("Expected too many steps to throw")
         } catch {
             switch error {
-            case .failure(.tooManySteps):
+            case .tooManySteps:
                 break
-            case .currencyMismatch, .failure(.invertedBounds), .failure(.zeroStride):
+            case .currencyMismatch, .invertedBounds, .zeroStride:
                 Issue.record("Expected too many steps, not \(error)")
             }
         }

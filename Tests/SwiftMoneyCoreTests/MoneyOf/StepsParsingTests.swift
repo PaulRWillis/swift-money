@@ -3,7 +3,7 @@ import Testing
 
 private typealias Credits = MoneyOf<Millicredits>
 private typealias TypedStepsError = MoneyStepsParsingError<Currencies.GBP>
-private typealias RuntimeStepsError = CurrencyCheckedError<MoneyStepsParsingError<AnyCurrency>>
+private typealias RuntimeStepsError = MoneyStepsParsingError<AnyCurrency>
 
 private func pounds(_ minorUnits: Int64) -> Money {
     Money(minorUnits: minorUnits, currency: .gbp)
@@ -80,41 +80,41 @@ struct StepsParsingTests {
         #expect(parsed == Money.Steps(try GBP.Steps(from: GBP(minorUnits: 10_00), through: GBP(minorUnits: 250_00), by: GBP(minorUnits: -100_00))))
     }
 
-    @Test("An upper bound, or else a step, in another currency throws a mismatch, the lower bound's first")
+    @Test("An upper bound, or else a step, in another currency throws a mismatch with its currency")
     func runtimeMismatch() {
         let yen = Money(minorUnits: 100, currency: .jpy)
         let euros = Money(minorUnits: 100, currency: .eur)
 
-        #expect(throws: RuntimeStepsError.currencyMismatch(lhs: .gbp, rhs: .jpy)) {
+        #expect(throws: RuntimeStepsError.currencyMismatch(.jpy)) {
             try Money.Steps(from: pounds(0), through: yen, by: pounds(1_00))
         }
-        #expect(throws: RuntimeStepsError.currencyMismatch(lhs: .gbp, rhs: .jpy)) {
+        #expect(throws: RuntimeStepsError.currencyMismatch(.jpy)) {
             try Money.Steps(from: pounds(0), through: pounds(5_00), by: yen)
         }
-        #expect(throws: RuntimeStepsError.currencyMismatch(lhs: .gbp, rhs: .eur)) {
+        #expect(throws: RuntimeStepsError.currencyMismatch(.eur)) {
             try Money.Steps(from: pounds(5_00), through: euros, by: yen)
         }
     }
 
     @Test("A mismatched step is reported before inverted bounds; inverted before a zero step")
     func runtimeOrder() {
-        #expect(throws: RuntimeStepsError.currencyMismatch(lhs: .gbp, rhs: .jpy)) {
+        #expect(throws: RuntimeStepsError.currencyMismatch(.jpy)) {
             try Money.Steps(from: pounds(5_00), through: pounds(0), by: Money(minorUnits: 0, currency: .jpy))
         }
-        #expect(throws: RuntimeStepsError.failure(.invertedBounds(lowerBound: pounds(5_00), upperBound: pounds(0)))) {
+        #expect(throws: RuntimeStepsError.invertedBounds(lowerBound: pounds(5_00), upperBound: pounds(0))) {
             try Money.Steps(from: pounds(5_00), through: pounds(0), by: pounds(0))
         }
     }
 
-    @Test("A runtime zero step or one too fine to count throws a failure naming it")
+    @Test("A runtime zero step or one too fine to count throws the case naming it")
     func runtimeZeroAndTooMany() {
         let lowest = Money(minorUnits: Int64.min, currency: .gbp)
         let highest = Money(minorUnits: Int64.max, currency: .gbp)
 
-        #expect(throws: RuntimeStepsError.failure(.zeroStride)) {
+        #expect(throws: RuntimeStepsError.zeroStride) {
             try Money.Steps(from: pounds(0), through: pounds(1_00), by: pounds(0))
         }
-        #expect(throws: RuntimeStepsError.failure(.tooManySteps)) {
+        #expect(throws: RuntimeStepsError.tooManySteps) {
             try Money.Steps(from: lowest, through: highest, by: pounds(1))
         }
     }
@@ -124,7 +124,7 @@ struct StepsParsingTests {
         let coarse = customCurrency(code: "MCR", unitScale: 1)
         let fine = Millicredits.currency
 
-        #expect(throws: RuntimeStepsError.currencyMismatch(lhs: fine, rhs: coarse)) {
+        #expect(throws: RuntimeStepsError.currencyMismatch(coarse)) {
             try Money.Steps(
                 from: Money(minorUnits: 0, currency: fine),
                 through: Money(minorUnits: 10, currency: coarse),

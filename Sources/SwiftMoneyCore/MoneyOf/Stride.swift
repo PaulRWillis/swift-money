@@ -1,6 +1,9 @@
 public extension MoneyOf {
     /// A non-zero amount to step by.
     ///
+    /// `MoneyOf` isn't meant to be `Strideable`, and this type's name blocks it: `Strideable`
+    /// would take this type as its `Stride`, which must be `SignedNumeric`.
+    ///
     /// A negative stride steps downward, as the standard library's do. A stride of zero would never
     /// reach its end, so it cannot be constructed:
     ///

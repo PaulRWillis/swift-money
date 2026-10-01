@@ -6,9 +6,12 @@
 /// built, and then holds it:
 ///
 /// ```swift
-/// let limits = try minimum...maximum        // throws on a mismatch or inverted bounds
-/// try limits.contains(amount)               // throws only if `amount` is in another currency
+/// let limits = try minimum...maximum        // throws MoneyRangeParsingError
+/// try limits.contains(amount)               // throws MoneyError
 /// ```
+///
+/// Building one throws ``MoneyRangeParsingError``. A call on a built range whose only failure is an
+/// amount in another currency, such as ``contains(_:)``, throws ``MoneyError``, as arithmetic does.
 ///
 /// Its bounds are never inverted and always share a currency, so neither can be represented wrongly.
 public struct ClosedMoneyRange: Equatable, Hashable, Sendable {
@@ -27,23 +30,24 @@ public struct ClosedMoneyRange: Equatable, Hashable, Sendable {
     /// let limits = try ClosedMoneyRange(checkedBounds: (lower: minimum, upper: maximum))
     /// ```
     ///
-    /// - Parameter bounds: The lower and upper bounds, lowest first.
-    /// - Throws: ``CurrencyCheckedError/currencyMismatch(lhs:rhs:)`` if the bounds are in different
-    ///   currencies, with the lower bound's as `lhs`; otherwise ``CurrencyCheckedError/failure(_:)``
-    ///   with both bounds if the lower is above the upper.
+    /// - Parameter bounds: The lower and upper bounds, the intended lower one first.
+    /// - Throws: ``MoneyRangeParsingError/currencyMismatch(_:)`` with the upper bound's currency if
+    ///   the bounds are in different currencies; otherwise
+    ///   ``MoneyRangeParsingError/invertedBounds(lowerBound:upperBound:)`` with both bounds if the
+    ///   lower is above the upper.
     @inlinable
     public init(
         checkedBounds bounds: (lower: Money, upper: Money)
-    ) throws(CurrencyCheckedError<InvertedBoundsError<AnyCurrency>>) {
+    ) throws(MoneyRangeParsingError<AnyCurrency>) {
         let currency = bounds.lower.storage
         guard currency == bounds.upper.storage else {
-            throw .currencyMismatch(lhs: currency, rhs: bounds.upper.storage)
+            throw .currencyMismatch(bounds.upper.currency)
         }
         guard bounds.lower.minorUnits <= bounds.upper.minorUnits else {
-            throw .failure(InvertedBoundsError(lowerBound: bounds.lower, upperBound: bounds.upper))
+            throw .invertedBounds(lowerBound: bounds.lower, upperBound: bounds.upper)
         }
 
-        self.init(unchecked: currency, minorUnits: bounds.lower.minorUnits ... bounds.upper.minorUnits)
+        self.init(currency: currency, minorUnits: bounds.lower.minorUnits ... bounds.upper.minorUnits)
     }
 
     /// Creates a runtime range from a typed one, keeping its bounds and currency.
@@ -51,7 +55,7 @@ public struct ClosedMoneyRange: Equatable, Hashable, Sendable {
     /// - Parameter typed: The range whose currency is fixed by its bounds' type.
     @inlinable
     public init<C: CurrencyType>(_ typed: ClosedRange<MoneyOf<C>>) {
-        self.init(unchecked: C.currency, minorUnits: typed.lowerBound.minorUnits ... typed.upperBound.minorUnits)
+        self.init(currency: C.currency, minorUnits: typed.lowerBound.minorUnits ... typed.upperBound.minorUnits)
     }
 
     /// Creates a closed range holding the same amounts as a half-open one, if it holds any.
@@ -68,15 +72,19 @@ public struct ClosedMoneyRange: Equatable, Hashable, Sendable {
 
         // Not empty, so the upper bound is above the lower and one minor unit less cannot underflow.
         self.init(
-            unchecked: range.currency,
+            currency: range.currency,
             minorUnits: range.lowerBound.minorUnits ... range.upperBound.minorUnits - 1
         )
     }
 
-    // No check: for call sites that already hold ordered bounds in one currency.
+    /// Creates a range of amounts in one currency from a range of minor units.
+    ///
+    /// - Parameters:
+    ///   - currency: The currency of both bounds.
+    ///   - minorUnits: The bounds, in minor units of `currency`.
     @usableFromInline
     init(
-        unchecked currency: Currency,
+        currency: Currency,
         minorUnits: ClosedRange<Money.MinorUnits>
     ) {
         _currency = currency
@@ -181,7 +189,7 @@ public struct ClosedMoneyRange: Equatable, Hashable, Sendable {
     public func clamped(to limits: ClosedMoneyRange) throws(MoneyError) -> ClosedMoneyRange {
         try AnyCurrency.requireMatch(_currency, limits._currency)
 
-        return ClosedMoneyRange(unchecked: _currency, minorUnits: _minorUnits.clamped(to: limits._minorUnits))
+        return ClosedMoneyRange(currency: _currency, minorUnits: _minorUnits.clamped(to: limits._minorUnits))
     }
 
     /// Returns every amount in the range, one stride apart, ending exactly on the far bound.
@@ -195,26 +203,20 @@ public struct ClosedMoneyRange: Equatable, Hashable, Sendable {
     /// A negative stride starts on the upper bound and counts down to the lower.
     ///
     /// - Parameter stride: The gap between neighboring steps. The last gap may be shorter.
-    /// - Throws: ``CurrencyCheckedError/currencyMismatch(lhs:rhs:)`` if `stride` is in another
-    ///   currency, with the range's as `lhs`; otherwise ``CurrencyCheckedError/failure(_:)`` with
-    ///   ``MoneyStepsParsingError/tooManySteps`` if there would be more steps than `Int` can count.
+    /// - Throws: ``MoneyStepsParsingError/currencyMismatch(_:)`` with the currency of `stride` if it
+    ///   differs from the range's; otherwise ``MoneyStepsParsingError/tooManySteps`` if there would
+    ///   be more steps than `Int` can count.
     @inlinable
-    public func steps(
-        by stride: Money.Stride
-    ) throws(CurrencyCheckedError<MoneyStepsParsingError<AnyCurrency>>) -> Money.Steps {
+    public func steps(by stride: Money.Stride) throws(MoneyStepsParsingError<AnyCurrency>) -> Money.Steps {
         guard _currency == stride.amount.storage else {
-            throw .currencyMismatch(lhs: _currency, rhs: stride.amount.storage)
+            throw .currencyMismatch(stride.amount.currency)
         }
 
-        do throws(MoneyStepsParsingError<AnyCurrency>) {
-            return try Money.Steps(
-                checking: Money(unchecked: _minorUnits.lowerBound, storage: _currency),
-                through: Money(unchecked: _minorUnits.upperBound, storage: _currency),
-                by: stride
-            )
-        } catch {
-            throw .failure(error)
-        }
+        return try Money.Steps(
+            checking: Money(unchecked: _minorUnits.lowerBound, storage: _currency),
+            through: Money(unchecked: _minorUnits.upperBound, storage: _currency),
+            by: stride
+        )
     }
 }
 
@@ -236,7 +238,7 @@ extension ClosedMoneyRange: CustomDebugStringConvertible {
     /// String(reflecting: try minimum...maximum)   // "ClosedMoneyRange(GBP 10.00...GBP 250.00)"
     /// ```
     public var debugDescription: String {
-        "ClosedMoneyRange(" + description + ")"
+        rangeDescription(lowerBound, "...", upperBound, opening: "ClosedMoneyRange(", closing: ")")
     }
 }
 
@@ -253,13 +255,15 @@ public extension MoneyOf where C == AnyCurrency {
     /// - Parameters:
     ///   - minimum: The lower bound.
     ///   - maximum: The upper bound, which the range contains.
-    /// - Throws: ``CurrencyCheckedError/currencyMismatch(lhs:rhs:)`` if the bounds are in different
-    ///   currencies; otherwise ``CurrencyCheckedError/failure(_:)`` if `minimum` is above `maximum`.
+    /// - Throws: ``MoneyRangeParsingError/currencyMismatch(_:)`` with the currency of `maximum` if
+    ///   the bounds are in different currencies; otherwise
+    ///   ``MoneyRangeParsingError/invertedBounds(lowerBound:upperBound:)`` if `minimum` is above
+    ///   `maximum`.
     @inlinable
     static func ... (
         minimum: Money,
         maximum: Money
-    ) throws(CurrencyCheckedError<InvertedBoundsError<AnyCurrency>>) -> ClosedMoneyRange {
+    ) throws(MoneyRangeParsingError<AnyCurrency>) -> ClosedMoneyRange {
         try ClosedMoneyRange(checkedBounds: (lower: minimum, upper: maximum))
     }
 }

@@ -1,7 +1,7 @@
 /// Why a set of steps could not be built from two bounds and a stride.
 ///
-/// Typed amounts share a currency by their type, so a `switch` over this error for them has no
-/// currency case:
+/// Typed amounts share a currency by their type, so for them ``currencyMismatch(_:)`` carries
+/// `Never` and a `switch` can leave it out:
 ///
 /// ```swift
 /// do throws(MoneyStepsParsingError<Currencies.GBP>) {
@@ -17,6 +17,10 @@
 ///
 /// When more than one applies, the first in the order of these cases is reported.
 public enum MoneyStepsParsingError<C: CurrencyRepresentation>: Error, Hashable, Sendable {
+    /// The upper bound or the stride is in another currency than the lower bound, with the currency
+    /// it is in.
+    case currencyMismatch(C.Mismatch)
+
     /// The bound given as the lower one is above the one given as the upper, with both as given.
     case invertedBounds(lowerBound: MoneyOf<C>, upperBound: MoneyOf<C>)
 

@@ -330,29 +330,24 @@ public extension MoneyOf.Steps where C == AnyCurrency {
     ///   - lowerBound: The lowest step.
     ///   - upperBound: The highest step.
     ///   - stride: The gap between neighboring steps. The last gap may be shorter.
-    /// - Throws: ``CurrencyCheckedError/currencyMismatch(lhs:rhs:)`` if `upperBound`, or else
-    ///   `stride`, is in another currency, with `lowerBound`'s as `lhs`; otherwise
-    ///   ``CurrencyCheckedError/failure(_:)`` with the ``MoneyStepsParsingError`` the typed parse
+    /// - Throws: ``MoneyStepsParsingError/currencyMismatch(_:)`` with the currency of `upperBound`,
+    ///   or else of `stride`, if it differs from `lowerBound`'s; otherwise the error the typed parse
     ///   would throw.
     @inlinable
     init(
         from lowerBound: Money,
         through upperBound: Money,
         by stride: Money
-    ) throws(CurrencyCheckedError<MoneyStepsParsingError<AnyCurrency>>) {
+    ) throws(MoneyStepsParsingError<AnyCurrency>) {
         let currency = lowerBound.storage
         guard currency == upperBound.storage else {
-            throw .currencyMismatch(lhs: currency, rhs: upperBound.storage)
+            throw .currencyMismatch(upperBound.currency)
         }
         guard currency == stride.storage else {
-            throw .currencyMismatch(lhs: currency, rhs: stride.storage)
+            throw .currencyMismatch(stride.currency)
         }
 
-        do throws(MoneyStepsParsingError<AnyCurrency>) {
-            try self.init(parsing: lowerBound, through: upperBound, by: stride)
-        } catch {
-            throw .failure(error)
-        }
+        try self.init(parsing: lowerBound, through: upperBound, by: stride)
     }
 
     /// Creates runtime steps from typed ones, keeping every step and the currency.
