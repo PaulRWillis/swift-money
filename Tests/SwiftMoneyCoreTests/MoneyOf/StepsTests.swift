@@ -68,6 +68,26 @@ struct StepsTests {
         #expect(down.map(\.minorUnits) == [Int64.max, Int64.max - quarter, -1, -1 - quarter, Int64.min])
     }
 
+    @Test("Typed steps' bounds are the range they were built from, whichever way they run")
+    func typedBounds() throws {
+        let range = GBP(minorUnits: 10_00) ... GBP(minorUnits: 250_00)
+
+        #expect(try range.steps(by: .majorUnits(100)).bounds == range)
+        #expect(try range.steps(by: .majorUnits(-100)).bounds == range)
+        #expect(try (GBP.min ... GBP.max).steps(by: typedStride(1 << 62)).bounds == GBP.min ... GBP.max)
+    }
+
+    @Test("Runtime steps' bounds are the range they were built from, in its currency")
+    func runtimeBounds() throws {
+        let range = try pounds(10_00)...pounds(250_00)
+        let down = try range.steps(by: #require(.majorUnits(-100, of: .gbp)))
+        let yen = try Money(minorUnits: 5, currency: .jpy)...Money(minorUnits: 5, currency: .jpy)
+
+        #expect(try range.steps(by: .minorUnits(100_00, of: .gbp)).bounds == range)
+        #expect(down.bounds == range)
+        #expect(try yen.steps(by: .minorUnit(of: .jpy)).bounds == yen)
+    }
+
     @Test("The stride is the requested one, or the span when that is shorter, in the requested direction")
     func canonicalStride() throws {
         let range = GBP(minorUnits: 10) ... GBP(minorUnits: 250)

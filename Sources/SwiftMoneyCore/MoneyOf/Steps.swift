@@ -348,6 +348,22 @@ public extension MoneyOf.Steps where C: CurrencyType {
         try self.init(parsing: lowerBound, through: upperBound, by: stride)
     }
 
+    /// The lowest step and the highest, as a range, whichever way the steps run.
+    ///
+    /// ```swift
+    /// let limits = GBP(minorUnits: 10_00) ... GBP(minorUnits: 250_00)
+    /// try limits.steps(by: .majorUnits(-100)).bounds   // £10...£250
+    /// ```
+    @inlinable
+    var bounds: ClosedRange<MoneyOf<C>> {
+        ClosedRange(
+            uncheckedBounds: (
+                lower: MoneyOf(unchecked: span.lowerBound, storage: .implied),
+                upper: MoneyOf(unchecked: span.upperBound, storage: .implied)
+            )
+        )
+    }
+
     /// Creates typed steps from runtime ones, if they are in this type's currency.
     ///
     /// - Parameter steps: The steps whose currency is only known at runtime.
@@ -394,6 +410,18 @@ public extension MoneyOf.Steps where C == AnyCurrency {
         }
 
         try self.init(parsing: lowerBound, through: upperBound, by: stride)
+    }
+
+    /// The lowest step and the highest, as a range in the steps' currency, whichever way the steps
+    /// run.
+    ///
+    /// ```swift
+    /// let limits = try pounds(10)...pounds(250)
+    /// try limits.steps(by: .minorUnits(-100_00, of: .gbp)).bounds   // GBP 10.00...GBP 250.00
+    /// ```
+    @inlinable
+    var bounds: ClosedMoneyRange {
+        ClosedMoneyRange(currency: currency, minorUnits: span)
     }
 
     /// Creates runtime steps from typed ones, keeping every step and the currency.
