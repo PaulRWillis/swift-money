@@ -212,11 +212,7 @@ public struct ClosedMoneyRange: Equatable, Hashable, Sendable {
             throw .currencyMismatch(stride.amount.currency)
         }
 
-        return try Money.Steps(
-            checking: _currency,
-            span: _minorUnits,
-            by: NonZeroInt64(unchecked: stride.amount.minorUnits)
-        )
+        return try Money.Steps(storage: _currency, span: _minorUnits, by: stride.step)
     }
 }
 

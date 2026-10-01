@@ -27,9 +27,9 @@ public extension MoneyOf {
         /// The positions of every step, in order.
         public typealias Indices = DefaultIndices<Self>
 
-        /// The currency of every step, as an amount carries it.
+        /// The currency of every step, stored as an amount stores it.
         @usableFromInline
-        let currency: C.Storage
+        let storage: C.Storage
 
         /// The minor units of the lowest step and the highest.
         @usableFromInline
@@ -48,19 +48,19 @@ public extension MoneyOf {
         /// Creates steps without checking that the parts agree.
         ///
         /// - Parameters:
-        ///   - currency: The currency of every step.
+        ///   - storage: The currency of every step, stored as an amount stores it.
         ///   - span: The minor units of the lowest step and the highest.
         ///   - step: The minor units between neighboring steps, no more than the span's width, or one
         ///     upward when the width is zero.
         ///   - count: The number of steps that `span` and `step` give.
         @usableFromInline
         init(
-            unchecked currency: C.Storage,
+            unchecked storage: C.Storage,
             span: ClosedRange<MoneyOf<C>.MinorUnits>,
             step: NonZeroInt64,
             count: Int
         ) {
-            self.currency = currency
+            self.storage = storage
             self.span = span
             self.step = step
             self.count = count
@@ -73,7 +73,7 @@ public extension MoneyOf {
         /// minor unit upward.
         @inlinable
         public var stride: MoneyOf<C>.Stride {
-            MoneyOf.Stride(unchecked: MoneyOf(unchecked: step.rawValue, storage: currency))
+            MoneyOf.Stride(unchecked: MoneyOf(unchecked: step.rawValue, storage: storage))
         }
 
         /// The position of the first step.
@@ -191,14 +191,14 @@ extension MoneyOf.Steps {
     /// minor unit upward, so equal steps compare and hash equal.
     ///
     /// - Parameters:
-    ///   - currency: The currency of every step.
+    ///   - storage: The currency of every step, stored as an amount stores it.
     ///   - span: The minor units of the lowest step and the highest.
     ///   - requested: The minor units between neighboring steps. Negative counts down.
     /// - Throws: ``MoneyStepsParsingError/tooManySteps`` if there would be more steps than `Int` can
     ///   count.
     @inlinable
     init(
-        checking currency: C.Storage,
+        storage: C.Storage,
         span: ClosedRange<MoneyOf<C>.MinorUnits>,
         by requested: NonZeroInt64
     ) throws(MoneyStepsParsingError<C>) {
@@ -207,7 +207,7 @@ extension MoneyOf.Steps {
         let width = UInt64(bitPattern: span.upperBound &- span.lowerBound)
 
         guard width > 0 else {
-            self.init(unchecked: currency, span: span, step: NonZeroInt64(unchecked: 1), count: 1)
+            self.init(unchecked: storage, span: span, step: NonZeroInt64(unchecked: 1), count: 1)
             return
         }
 
@@ -228,7 +228,7 @@ extension MoneyOf.Steps {
             settled = Int64(bitPattern: 0 &- shortened)
         }
 
-        self.init(unchecked: currency, span: span, step: NonZeroInt64(unchecked: settled), count: count)
+        self.init(unchecked: storage, span: span, step: NonZeroInt64(unchecked: settled), count: count)
     }
 
     /// The way the steps run.
@@ -266,14 +266,14 @@ extension MoneyOf.Steps {
     @inlinable
     func amount(at offset: Int) -> MoneyOf<C> {
         guard offset != count &- 1 else {
-            return MoneyOf(unchecked: farBound, storage: currency)
+            return MoneyOf(unchecked: farBound, storage: storage)
         }
 
         // An offset before the last lands from the near bound up to, but not including, the far one,
         // so it fits `Int64` even when the product does not: wrapping modulo 2⁶⁴ lands on it exactly.
         let minorUnits = nearBound &+ Int64(truncatingIfNeeded: offset) &* step.rawValue
 
-        return MoneyOf(unchecked: minorUnits, storage: currency)
+        return MoneyOf(unchecked: minorUnits, storage: storage)
     }
 
     // The offset of the step equal to `element`, or `nil` if it is in another currency or not a step.
@@ -282,7 +282,7 @@ extension MoneyOf.Steps {
     @inlinable
     func offset(of element: MoneyOf<C>) -> Int? {
         let minorUnits = element.minorUnits
-        guard element.storage == currency, span.contains(minorUnits) else {
+        guard element.storage == storage, span.contains(minorUnits) else {
             return nil
         }
         guard minorUnits != farBound else {
@@ -319,14 +319,14 @@ extension MoneyOf.Steps {
         guard bounds.lower.minorUnits <= bounds.upper.minorUnits else {
             throw .invertedBounds(lowerBound: bounds.lower, upperBound: bounds.upper)
         }
-        guard stride.minorUnits != 0 else {
+        guard let step = NonZeroInt64(stride.minorUnits) else {
             throw .zeroStride
         }
 
         try self.init(
-            checking: bounds.lower.storage,
+            storage: bounds.lower.storage,
             span: bounds.lower.minorUnits ... bounds.upper.minorUnits,
-            by: NonZeroInt64(unchecked: stride.minorUnits)
+            by: step
         )
     }
 }
@@ -383,7 +383,7 @@ public extension MoneyOf.Steps where C: CurrencyType {
     ///   this type's currency as `lhs`.
     @inlinable
     init(_ steps: Money.Steps) throws(MoneyError) {
-        try AnyCurrency.requireMatch(C.currency, steps.currency)
+        try AnyCurrency.requireMatch(C.currency, steps.storage)
 
         self.init(unchecked: .implied, span: steps.span, step: steps.step, count: steps.count)
     }
@@ -435,7 +435,7 @@ public extension MoneyOf.Steps where C == AnyCurrency {
     /// ```
     @inlinable
     var bounds: ClosedMoneyRange {
-        ClosedMoneyRange(currency: currency, minorUnits: span)
+        ClosedMoneyRange(currency: storage, minorUnits: span)
     }
 
     /// Creates runtime steps from typed ones, keeping every step and the currency.

@@ -5,6 +5,11 @@ struct NonZeroInt64: Equatable, Hashable, Sendable {
     @usableFromInline
     let rawValue: Int64
 
+    /// Creates a non-zero integer, or `nil` if the value is zero.
+    ///
+    /// - Parameter value: The integer, which may be zero.
+    /// - Returns: `nil` if `value` is zero.
+    @inlinable
     init?(_ value: Int64) {
         guard value != 0 else {
             return nil
