@@ -101,6 +101,27 @@ struct StepsCollectionTests {
         #expect(steps.firstIndex(of: GBP(minorUnits: 1)) == nil)
     }
 
+    @Test("Among Int.max steps, firstIndex(of:), lastIndex(of:) and contains answer without walking them")
+    func lookupsTakeConstantTime() throws {
+        let farBound = Int64(Int.max) - 1
+        let range = GBP.zero ... GBP(minorUnits: farBound)
+        let up = try range.steps(by: .minorUnit)
+        let down = try range.steps(by: .minorUnits(-1))
+        let middle = GBP(minorUnits: Int64(Int.max / 2))
+        let offset = { (steps: GBP.Steps, index: GBP.Steps.Index?) in
+            index.map { steps.distance(from: steps.startIndex, to: $0) }
+        }
+
+        #expect(offset(up, up.firstIndex(of: middle)) == Int.max / 2)
+        #expect(offset(up, up.firstIndex(of: GBP(minorUnits: farBound))) == Int.max - 1)
+        #expect(offset(up, up.lastIndex(of: middle)) == Int.max / 2)
+        #expect(offset(up, up.lastIndex(of: GBP(minorUnits: farBound))) == Int.max - 1)
+        #expect(up.contains(middle))
+        #expect(up.contains(GBP(minorUnits: farBound)))
+        #expect(offset(down, down.lastIndex(of: middle)) == Int.max / 2)
+        #expect(offset(down, down.lastIndex(of: .zero)) == Int.max - 1)
+    }
+
     @Test("A runtime amount in another currency is not a step")
     func runtimeMismatchIsNotFound() throws {
         let steps = try (pounds(10_00)...pounds(250_00)).steps(by: #require(.majorUnits(100, of: .gbp)))
