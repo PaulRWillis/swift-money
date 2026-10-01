@@ -6,6 +6,9 @@
 //     bytes 16 ... 21   UInt48  currency code         (the code packed six bits per character)
 //     byte  22          UInt8   currency scale        (decimal places, 0 ... 18)
 //
+// The code's characters fill the eight six-bit slots from the top, `A` to `Z` as 1 to 26 and
+// `0` to `9` as 27 to 36, and every slot after the last character is zero.
+//
 // The amount is the internal storage of the `Fixed` count of minor units — the count multiplied by
 // 10^18 — so it fills most of the sixteen bytes even for a small settled amount. As with the settled
 // encoding, the scale travels in the bytes, so a custom currency round-trips as faithfully as a

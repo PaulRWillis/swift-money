@@ -494,9 +494,7 @@ struct MoneyTests {
         byWholeNumber *= 3
         #expect(byWholeNumber == sut.unrounded * 3)
 
-        #expect(sut.unrounded.divided(byExactly: 0) == nil)
-        let quarter = try #require(sut.unrounded.divided(byExactly: 4))
-        #expect(quarter.rounded(.toNearestOrEven) == Money(minorUnits: 2_50, currency: .eur))
+        #expect(sut.unrounded.divided(by: 4).rounded(.toNearestOrEven) == Money(minorUnits: 2_50, currency: .eur))
     }
 
     @Test("Scaling an unrounded amount traps on overflow")
