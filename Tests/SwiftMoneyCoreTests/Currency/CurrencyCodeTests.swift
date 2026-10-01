@@ -190,23 +190,74 @@ struct CurrencyCodeTests {
         #expect(CurrencyCode(compactValue: code.compactValue) == code)
     }
 
-    @Test("The compact form uses only its low forty-eight bits")
-    func compactFormFitsSixBytes() throws {
-        let code = try #require(CurrencyCode(string: "SAFEMOON"))
+    @Test(
+        "A code packs six bits per character, first character highest, left aligned in eight slots",
+        arguments: [
+            ("GBP", 0b000111_000010_010000_000000_000000_000000_000000_000000),
+            ("USDT", 0b010101_010011_000100_010100_000000_000000_000000_000000),
+            ("1INCH", 0b011100_001001_001110_000011_001000_000000_000000_000000),
+            ("SAFEMOON", 0b010011_000001_000110_000101_001101_001111_001111_001110),
+            ("99999999", 0b100100_100100_100100_100100_100100_100100_100100_100100),
+        ] as [(String, UInt64)]
+    )
+    func packsEachCharacterIntoItsSlot(_ raw: String, _ word: UInt64) throws {
+        let code = try #require(CurrencyCode(string: raw))
 
-        #expect(code.compactValue >> 48 == 0)
+        #expect(code.compactValue == word)
+        #expect(CurrencyCode(compactValue: word) == code)
     }
 
     @Test(
         "A compact word that is not a valid code is refused",
         arguments: [
-            0,                          // no symbols at all
-            0b000001 << 42,             // one symbol, fewer than three
-            (0b000001 << 42) | (0b000010 << 36),   // two symbols
-            UInt64(0b111111) << 42,     // symbol 63, past the 36 that map to a character
+            0,                                                          // no characters at all
+            0b000001_000000_000000_000000_000000_000000_000000_000000,  // one character, fewer than three
+            0b000001_000010_000000_000000_000000_000000_000000_000000,  // two characters
+            0b111111_000000_000000_000000_000000_000000_000000_000000,  // 63, past the 36 that map to a character
+            0b100101_000001_000001_000000_000000_000000_000000_000000,  // 37, one past the last digit
         ] as [UInt64]
     )
     func refusesAnInvalidCompactWord(_ word: UInt64) {
         #expect(CurrencyCode(compactValue: word) == nil)
+    }
+
+    @Test(
+        "A compact word with a character after an empty slot is refused",
+        arguments: [
+            0b000111_000010_010000_000000_000000_000000_000000_000001,  // "GBP", then "A" in the last slot
+            0b000111_000010_010000_000000_000001_000000_000000_000000,  // "GBP", one empty slot, then "A"
+        ] as [UInt64]
+    )
+    func refusesACharacterAfterAnEmptySlot(_ word: UInt64) {
+        #expect(CurrencyCode(compactValue: word) == nil)
+    }
+
+    @Test(
+        "A compact word with a bit set above its eight slots is refused",
+        arguments: [
+            0b1_000111_000010_010000_000000_000000_000000_000000_000000,                    // "GBP", plus bit 48
+            0b1_000_000000_000000_000111_000010_010000_000000_000000_000000_000000_000000,  // "GBP", plus bit 63
+            0b1_010011_000001_000110_000101_001101_001111_001111_001110,                    // "SAFEMOON", plus bit 48
+        ] as [UInt64]
+    )
+    func refusesABitAboveTheSlots(_ word: UInt64) {
+        #expect(CurrencyCode(compactValue: word) == nil)
+    }
+
+    @Test(
+        "A three-character code's value is its characters, first highest",
+        arguments: [
+            ("GBP", 0b000111_000010_010000),
+            ("EUR", 0b000101_010101_010010),
+            ("999", 0b100100_100100_100100),
+        ] as [(String, UInt64)]
+    )
+    func threeCharacterValue(_ raw: String, _ value: UInt64) throws {
+        #expect(try #require(CurrencyCode(string: raw)).threeCharacterValue == value)
+    }
+
+    @Test("A code longer than three characters has no three-character value")
+    func longerCodeHasNoThreeCharacterValue() throws {
+        #expect(try #require(CurrencyCode(string: "USDT")).threeCharacterValue == nil)
     }
 }
