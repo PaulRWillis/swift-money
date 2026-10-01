@@ -16,7 +16,7 @@
 ///
 /// typealias Points = MoneyOf<LoyaltyPoints>
 /// ```
-public protocol CurrencyType: CurrencyRepresentation where Storage == Currency.Implied {
+public protocol CurrencyType: CurrencyRepresentation where Storage == Currency.Implied, Mismatch == Never {
     /// The currency this type names.
     static var currency: Currency { get }
 }

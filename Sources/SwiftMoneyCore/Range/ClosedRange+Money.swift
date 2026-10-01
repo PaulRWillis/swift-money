@@ -11,14 +11,15 @@ public extension ClosedRange {
     /// let limits = try ClosedRange(checkedBounds: (lower: minimum, upper: maximum))
     /// ```
     ///
-    /// - Parameter bounds: The lower and upper bounds, lowest first.
-    /// - Throws: ``InvertedBoundsError`` with both bounds if the lower is above the upper.
+    /// - Parameter bounds: The lower and upper bounds, the intended lower one first.
+    /// - Throws: ``MoneyRangeParsingError/invertedBounds(lowerBound:upperBound:)`` with both bounds
+    ///   if the lower is above the upper.
     @inlinable
     init<C: CurrencyType>(
         checkedBounds bounds: (lower: MoneyOf<C>, upper: MoneyOf<C>)
-    ) throws(InvertedBoundsError<C>) where Bound == MoneyOf<C> {
+    ) throws(MoneyRangeParsingError<C>) where Bound == MoneyOf<C> {
         guard bounds.lower <= bounds.upper else {
-            throw InvertedBoundsError(lowerBound: bounds.lower, upperBound: bounds.upper)
+            throw .invertedBounds(lowerBound: bounds.lower, upperBound: bounds.upper)
         }
 
         self = bounds.lower ... bounds.upper
@@ -56,5 +57,25 @@ public extension ClosedRange {
 
         // Not empty, so the upper bound is above the lower and one minor unit less cannot underflow.
         self = range.lowerBound ... MoneyOf<C>(unchecked: range.upperBound.minorUnits - 1, storage: .implied)
+    }
+
+    /// Returns whether every amount in a half-open range also lies within this one.
+    ///
+    /// An empty range holds no amounts, so any range contains it. `£0...£1` contains `£0..<£1.01`,
+    /// whose last amount is £1.00.
+    ///
+    /// ```swift
+    /// let limits = GBP.zero ... GBP(minorUnits: 1_00)
+    /// limits.contains(GBP.zero ..< GBP(minorUnits: 1_01))   // true
+    /// limits.contains(GBP.zero ..< GBP(minorUnits: 1_02))   // false
+    /// ```
+    ///
+    /// - Parameter other: The range to look for.
+    /// - Returns: `true` if `other` is empty or every amount in it lies within this range;
+    ///   otherwise, `false`.
+    @inlinable
+    func contains<C: CurrencyType>(_ other: Range<MoneyOf<C>>) -> Bool where Bound == MoneyOf<C> {
+        (lowerBound.minorUnits ... upperBound.minorUnits)
+            .contains(other.lowerBound.minorUnits ..< other.upperBound.minorUnits)
     }
 }

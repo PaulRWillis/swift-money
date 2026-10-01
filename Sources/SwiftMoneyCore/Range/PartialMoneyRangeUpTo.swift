@@ -18,6 +18,25 @@ public struct PartialMoneyRangeUpTo: Equatable, Hashable, Sendable {
         self.upperBound = upperBound
     }
 
+    /// Creates a runtime range from a typed one, keeping its bound and currency.
+    ///
+    /// ```swift
+    /// let underLimit = PartialMoneyRangeUpTo(..<GBP(minorUnits: 250_00))
+    /// underLimit.upperBound   // GBP 250.00
+    /// ```
+    ///
+    /// - Parameter typed: The range whose currency is fixed by its bound's type.
+    @inlinable
+    public init<C: CurrencyType>(_ typed: PartialRangeUpTo<MoneyOf<C>>) {
+        self.init(Money(typed.upperBound))
+    }
+
+    /// The currency the upper bound, and every amount in the range, are denominated in.
+    @inlinable
+    public var currency: Currency {
+        upperBound.currency
+    }
+
     /// Returns whether an amount lies below the upper bound.
     ///
     /// - Parameter amount: The amount to look for.
