@@ -1766,6 +1766,152 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         }
     }
 
+    // Each `contains` row asks the same ten £250-by-£25 sequences about an amount £100 in (on a step),
+    // £110 in (between steps) or £275 in (past the end), without stepping through them.
+    let poundSequences = lowerPounds.indices.map {
+        stride(from: lowerPounds[$0], through: upperPounds[$0], by: strideByMajorUnits)
+    }
+    let runtimePoundSequences: [MoneyStrideThrough<AnyCurrency>]
+    do {
+        runtimePoundSequences = try runtimeLowerPounds.indices.map {
+            try stride(from: runtimeLowerPounds[$0], through: runtimeUpperPounds[$0], by: runtimeStrideByMajorUnits)
+        }
+    } catch {
+        fatalError("these amounts and the stride share a currency, so this cannot happen: \(error)")
+    }
+    let poundsOnAStep = operands.map { GBP(minorUnits: $0 * 100 + 100_00) }
+    let poundsBetweenSteps = operands.map { GBP(minorUnits: $0 * 100 + 110_00) }
+    let poundsPastTheEnd = operands.map { GBP(minorUnits: $0 * 100 + 275_00) }
+    let runtimePoundsOnAStep = poundsOnAStep.map { Money($0) }
+    let runtimePoundsBetweenSteps = poundsBetweenSteps.map { Money($0) }
+    let runtimePoundsPastTheEnd = poundsPastTheEnd.map { Money($0) }
+    let yenOnAStep = operands.map { Money(minorUnits: $0 * 100 + 100_00, currency: .jpy) }
+
+    Benchmark("stride through MoneyOf contains, on a step", configuration: configuration) { benchmark in
+        var index = 0
+        var hits = 0
+
+        for _ in benchmark.scaledIterations {
+            if poundSequences[index % poundSequences.count].contains(poundsOnAStep[index % poundsOnAStep.count]) {
+                hits &+= 1
+            }
+            index &+= 1
+        }
+
+        blackHole(hits)
+    }
+
+    Benchmark("stride through MoneyOf contains, between steps", configuration: configuration) { benchmark in
+        var index = 0
+        var hits = 0
+
+        for _ in benchmark.scaledIterations {
+            if poundSequences[index % poundSequences.count].contains(poundsBetweenSteps[index % poundsBetweenSteps.count]) {
+                hits &+= 1
+            }
+            index &+= 1
+        }
+
+        blackHole(hits)
+    }
+
+    Benchmark("stride through MoneyOf contains, past the end", configuration: configuration) { benchmark in
+        var index = 0
+        var hits = 0
+
+        for _ in benchmark.scaledIterations {
+            if poundSequences[index % poundSequences.count].contains(poundsPastTheEnd[index % poundsPastTheEnd.count]) {
+                hits &+= 1
+            }
+            index &+= 1
+        }
+
+        blackHole(hits)
+    }
+
+    Benchmark("stride through Money contains, on a step", configuration: configuration) { benchmark in
+        var index = 0
+        var hits = 0
+
+        for _ in benchmark.scaledIterations {
+            if runtimePoundSequences[index % runtimePoundSequences.count]
+                .contains(runtimePoundsOnAStep[index % runtimePoundsOnAStep.count]) {
+                hits &+= 1
+            }
+            index &+= 1
+        }
+
+        blackHole(hits)
+    }
+
+    Benchmark("stride through Money contains, between steps", configuration: configuration) { benchmark in
+        var index = 0
+        var hits = 0
+
+        for _ in benchmark.scaledIterations {
+            if runtimePoundSequences[index % runtimePoundSequences.count]
+                .contains(runtimePoundsBetweenSteps[index % runtimePoundsBetweenSteps.count]) {
+                hits &+= 1
+            }
+            index &+= 1
+        }
+
+        blackHole(hits)
+    }
+
+    Benchmark("stride through Money contains, past the end", configuration: configuration) { benchmark in
+        var index = 0
+        var hits = 0
+
+        for _ in benchmark.scaledIterations {
+            if runtimePoundSequences[index % runtimePoundSequences.count]
+                .contains(runtimePoundsPastTheEnd[index % runtimePoundsPastTheEnd.count]) {
+                hits &+= 1
+            }
+            index &+= 1
+        }
+
+        blackHole(hits)
+    }
+
+    Benchmark("stride through Money contains, in another currency", configuration: configuration) { benchmark in
+        var index = 0
+        var hits = 0
+
+        for _ in benchmark.scaledIterations {
+            if runtimePoundSequences[index % runtimePoundSequences.count].contains(yenOnAStep[index % yenOnAStep.count]) {
+                hits &+= 1
+            }
+            index &+= 1
+        }
+
+        blackHole(hits)
+    }
+
+    // Every pound amount, upward and downward: too many for `Int`, so each reports `Int.max`.
+    let everyPoundSequences = [
+        stride(from: GBP.min, through: .max, by: .minorUnit),
+        stride(from: GBP.max, through: .min, by: .minorUnits(-1)),
+    ]
+
+    Benchmark("stride through MoneyOf underestimatedCount, eleven amounts", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(poundSequences[index % poundSequences.count].underestimatedCount)
+            index &+= 1
+        }
+    }
+
+    Benchmark("stride through MoneyOf underestimatedCount, Int.max", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(everyPoundSequences[index % everyPoundSequences.count].underestimatedCount)
+            index &+= 1
+        }
+    }
+
     // MARK: Serialization configuration
 
     Benchmark("MoneyCodingFormat custom fields", configuration: configuration) { benchmark in
