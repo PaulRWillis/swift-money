@@ -54,19 +54,147 @@ struct CodablePrecision: Codable {
         }
     }
 
+    /// A closed range of digit counts whose bounds differ, which Foundation's range factories keep.
+    private struct DigitRange {
+        /// The range, whose upper bound is above its lower and at most ``closedRangeCeiling``.
+        let counts: ClosedRange<Int>
+
+        /// Creates a range from its bounds.
+        ///
+        /// - Parameters:
+        ///   - fewest: The fewest digits.
+        ///   - most: The most digits.
+        ///   - keys: The keys of `fewest` and `most`, which an error names.
+        ///   - option: A precision's option.
+        /// - Throws: `DecodingError.dataCorrupted` if `fewest` isn't below `most`, or `most` is
+        ///   above ``closedRangeCeiling``.
+        init(fewest: Int, most: Int, keys: (fewest: OptionKeys, most: OptionKeys), in option: Option) throws {
+            guard fewest < most else {
+                throw DecodingError.dataCorruptedError(
+                    forKey: keys.fewest,
+                    in: option,
+                    debugDescription: "A precision's lower bound \(fewest) is above its upper bound \(most)."
+                )
+            }
+            guard most <= CodablePrecision.closedRangeCeiling else {
+                throw DecodingError.dataCorruptedError(
+                    forKey: keys.most,
+                    in: option,
+                    debugDescription: """
+                        A range's upper bound \(most) is above the most Foundation keeps, \
+                        \(CodablePrecision.closedRangeCeiling).
+                        """
+                )
+            }
+            counts = fewest...most
+        }
+    }
+
+    /// The bound of a range of digit counts open at one end, which Foundation's range factories keep.
+    private struct OneSidedBound {
+        /// The bound, at most ``oneSidedCeiling``.
+        let count: Int
+
+        /// Creates a one-sided bound.
+        ///
+        /// - Parameters:
+        ///   - count: The bound.
+        ///   - key: The key of `count`, which an error names.
+        ///   - option: A precision's option.
+        /// - Throws: `DecodingError.dataCorrupted` if `count` is above ``oneSidedCeiling``.
+        init(_ count: Int, key: OptionKeys, in option: Option) throws {
+            guard count <= CodablePrecision.oneSidedCeiling else {
+                throw DecodingError.dataCorruptedError(
+                    forKey: key,
+                    in: option,
+                    debugDescription: """
+                        A one-sided bound of \(count) is above the most Foundation keeps, \
+                        \(CodablePrecision.oneSidedCeiling).
+                        """
+                )
+            }
+            self.count = count
+        }
+    }
+
     /// The fewest and most digits one part of a precision allows.
     private enum LengthLimits {
         /// Exactly the given number of digits.
         case exactly(Int)
 
-        /// A number of digits within the given range, whose bounds differ.
-        case within(ClosedRange<Int>)
+        /// A number of digits within the given range.
+        case within(DigitRange)
 
         /// At least the given number of digits.
-        case atLeast(Int)
+        case atLeast(OneSidedBound)
 
         /// At most the given number of digits.
-        case atMost(Int)
+        case atMost(OneSidedBound)
+    }
+
+    /// One part of a precision whose integer and fraction parts aren't both fixed at one length.
+    ///
+    /// Foundation builds such a precision through its range factory, which clamps a part fixed at
+    /// one length as it clamps a closed range.
+    private struct RangedPart {
+        /// The part's limits, fixed at no more than ``closedRangeCeiling`` digits when exact.
+        let limits: LengthLimits
+
+        /// Creates a part from its limits.
+        ///
+        /// - Parameters:
+        ///   - limits: The part's limits.
+        ///   - key: The key an error names.
+        ///   - option: A precision's option.
+        /// - Throws: `DecodingError.dataCorrupted` if `limits` is fixed at more digits than
+        ///   ``closedRangeCeiling``.
+        init(_ limits: LengthLimits, key: OptionKeys, in option: Option) throws {
+            if case let .exactly(length) = limits, length > CodablePrecision.closedRangeCeiling {
+                throw DecodingError.dataCorruptedError(
+                    forKey: key,
+                    in: option,
+                    debugDescription: """
+                        A length of \(length) beside a range is above the most Foundation keeps, \
+                        \(CodablePrecision.closedRangeCeiling).
+                        """
+                )
+            }
+            self.limits = limits
+        }
+
+        /// The precision Foundation's range factory builds from this part as the integer digits.
+        ///
+        /// - Parameter fraction: The fraction digits.
+        /// - Returns: The mixed precision.
+        func precision(fraction: RangedPart) -> Precision {
+            switch limits {
+            case let .exactly(length):
+                fraction.precision(integer: length...length)
+            case let .within(lengths):
+                fraction.precision(integer: lengths.counts)
+            case let .atLeast(length):
+                fraction.precision(integer: length.count...)
+            case let .atMost(length):
+                fraction.precision(integer: ...length.count)
+            }
+        }
+
+        /// The precision Foundation's range factory builds from this part as the fraction digits.
+        ///
+        /// - Parameter integer: The integer digits' range.
+        /// - Returns: The mixed precision.
+        private func precision(integer: some RangeExpression<Int>) -> Precision {
+            switch limits {
+            case let .exactly(length):
+                .integerAndFractionLength(integerLimits: integer, fractionLimits: length...length)
+            case let .within(lengths):
+                .integerAndFractionLength(integerLimits: integer, fractionLimits: lengths.counts)
+            case let .atLeast(length):
+                .integerAndFractionLength(integerLimits: integer, fractionLimits: length.count...)
+            case let .atMost(length):
+                .integerAndFractionLength(integerLimits: integer, fractionLimits: ...length.count)
+            }
+        }
     }
 
     /// The fewest and most significant digits a precision allows.
@@ -76,18 +204,17 @@ struct CodablePrecision: Codable {
         /// Exactly the given number of digits.
         case exactly(Int)
 
-        /// A number of digits within the given range, whose bounds differ and whose lower bound is
-        /// above one.
-        case within(ClosedRange<Int>)
+        /// A number of digits within the given range, whose lower bound is above one.
+        case within(DigitRange)
 
         /// At least the given number of digits.
-        case atLeast(Int)
+        case atLeast(OneSidedBound)
 
         /// At most the given number of digits, which is above one.
-        case atMost(Int)
+        case atMost(OneSidedBound)
     }
 
-    /// A precision as its JSON states it, before Foundation's factories build it.
+    /// A precision as its JSON states it, inside the limits Foundation's factories keep.
     private enum ParsedPrecision: Decodable {
         /// Limits on the significant digits.
         case significantDigits(SignificantDigitLimits)
@@ -98,42 +225,45 @@ struct CodablePrecision: Codable {
         /// Limits on the fraction digits alone.
         case fractionLength(LengthLimits)
 
-        /// Limits on both the integer and the fraction digits.
-        case integerAndFractionLength(integer: LengthLimits, fraction: LengthLimits)
+        /// An exact number of integer digits and an exact number of fraction digits.
+        case fixedLengths(integer: Int, fraction: Int)
+
+        /// Limits on both the integer and the fraction digits, not both fixed at one length.
+        case rangedLengths(integer: RangedPart, fraction: RangedPart)
 
         /// The precision Foundation's factories build from these limits.
         ///
-        /// A part fixed at one length goes through a single-length factory, which keeps any length.
+        /// An exact limit goes through a single-length factory, which keeps any length.
         var precision: Precision {
             switch self {
             case let .significantDigits(.exactly(digits)):
                 .significantDigits(digits)
             case let .significantDigits(.within(digits)):
-                .significantDigits(digits)
+                .significantDigits(digits.counts)
             case let .significantDigits(.atLeast(digits)):
-                .significantDigits(digits...)
+                .significantDigits(digits.count...)
             case let .significantDigits(.atMost(digits)):
-                .significantDigits(...digits)
+                .significantDigits(...digits.count)
             case let .integerLength(.exactly(length)):
                 .integerLength(length)
             case let .integerLength(.within(lengths)):
-                .integerLength(lengths)
+                .integerLength(lengths.counts)
             case let .integerLength(.atLeast(length)):
-                .integerLength(length...)
+                .integerLength(length.count...)
             case let .integerLength(.atMost(length)):
-                .integerLength(...length)
+                .integerLength(...length.count)
             case let .fractionLength(.exactly(length)):
                 .fractionLength(length)
             case let .fractionLength(.within(lengths)):
-                .fractionLength(lengths)
+                .fractionLength(lengths.counts)
             case let .fractionLength(.atLeast(length)):
-                .fractionLength(length...)
+                .fractionLength(length.count...)
             case let .fractionLength(.atMost(length)):
-                .fractionLength(...length)
-            case let .integerAndFractionLength(.exactly(integer), .exactly(fraction)):
+                .fractionLength(...length.count)
+            case let .fixedLengths(integer, fraction):
                 .integerAndFractionLength(integer: integer, fraction: fraction)
-            case let .integerAndFractionLength(integer, fraction):
-                Self.precision(integer: integer, fraction: fraction)
+            case let .rangedLengths(integer, fraction):
+                integer.precision(fraction: fraction)
             }
         }
 
@@ -173,45 +303,14 @@ struct CodablePrecision: Codable {
                 return .integerLength(integer)
             case let (nil, fraction?):
                 return .fractionLength(fraction)
+            case let (.exactly(integer)?, .exactly(fraction)?):
+                return .fixedLengths(integer: integer, fraction: fraction)
             case let (integer?, fraction?):
-                if case .exactly = integer, case .exactly = fraction {
-                    return .integerAndFractionLength(integer: integer, fraction: fraction)
-                }
-                return .integerAndFractionLength(
-                    integer: try rangePart(integer, key: .maxIntegerLength, in: option),
-                    fraction: try rangePart(fraction, key: .maxFractionalLength, in: option)
+                return .rangedLengths(
+                    integer: try RangedPart(integer, key: .maxIntegerLength, in: option),
+                    fraction: try RangedPart(fraction, key: .maxFractionalLength, in: option)
                 )
             }
-        }
-
-        /// Returns one part of a mixed precision whose parts aren't both fixed at one length.
-        ///
-        /// Foundation builds such a precision through its range factory, which clamps a part fixed
-        /// at one length as it clamps a closed range.
-        ///
-        /// - Parameters:
-        ///   - part: The part's limits.
-        ///   - key: The key an error names.
-        ///   - option: A precision's option.
-        /// - Returns: `part`, unchanged.
-        /// - Throws: `DecodingError.dataCorrupted` if `part` is fixed at more digits than
-        ///   ``closedRangeCeiling``.
-        private static func rangePart(
-            _ part: LengthLimits,
-            key: OptionKeys,
-            in option: Option
-        ) throws -> LengthLimits {
-            if case let .exactly(length) = part, length > CodablePrecision.closedRangeCeiling {
-                throw DecodingError.dataCorruptedError(
-                    forKey: key,
-                    in: option,
-                    debugDescription: """
-                        A length of \(length) beside a range is above the most Foundation keeps, \
-                        \(CodablePrecision.closedRangeCeiling).
-                        """
-                )
-            }
-            return part
         }
 
         /// Returns the limits on one part's length, or `nil` if the option names neither bound.
@@ -235,12 +334,12 @@ struct CodablePrecision: Codable {
             case (nil, nil):
                 return nil
             case let (fewest?, nil):
-                return .atLeast(try oneSidedBound(fewest, key: fewestKey, in: option))
+                return .atLeast(try OneSidedBound(fewest, key: fewestKey, in: option))
             case let (nil, most?):
-                return .atMost(try oneSidedBound(most, key: mostKey, in: option))
+                return .atMost(try OneSidedBound(most, key: mostKey, in: option))
             case let (fewest?, most?):
                 guard fewest != most else { return .exactly(fewest) }
-                return .within(try range(fewest, most, keys: (fewestKey, mostKey), in: option))
+                return .within(try DigitRange(fewest: fewest, most: most, keys: (fewestKey, mostKey), in: option))
             }
         }
 
@@ -264,39 +363,17 @@ struct CodablePrecision: Codable {
                     debugDescription: "A significant-digits precision must name its fewest digits."
                 )
             case let (fewest?, nil):
-                return .atLeast(try oneSidedBound(fewest, key: .minSignificantDigits, in: option))
+                return .atLeast(try OneSidedBound(fewest, key: .minSignificantDigits, in: option))
             case let (fewest?, most?):
                 guard fewest != most else { return .exactly(fewest) }
                 // Foundation writes `...most` with a fewest of one, and keeps an at-most bound past
                 // the most a closed range keeps, so this has to read as one-sided.
                 if fewest == allowed.lowerBound {
-                    return .atMost(try oneSidedBound(most, key: .maxSignificantDigits, in: option))
+                    return .atMost(try OneSidedBound(most, key: .maxSignificantDigits, in: option))
                 }
                 let keys = (fewest: OptionKeys.minSignificantDigits, most: OptionKeys.maxSignificantDigits)
-                return .within(try range(fewest, most, keys: keys, in: option))
+                return .within(try DigitRange(fewest: fewest, most: most, keys: keys, in: option))
             }
-        }
-
-        /// Returns the bound of a range open at one end.
-        ///
-        /// - Parameters:
-        ///   - bound: The bound.
-        ///   - key: The key of `bound`, which an error names.
-        ///   - option: A precision's option.
-        /// - Returns: `bound`, unchanged.
-        /// - Throws: `DecodingError.dataCorrupted` if `bound` is above ``oneSidedCeiling``.
-        private static func oneSidedBound(_ bound: Int, key: OptionKeys, in option: Option) throws -> Int {
-            guard bound <= CodablePrecision.oneSidedCeiling else {
-                throw DecodingError.dataCorruptedError(
-                    forKey: key,
-                    in: option,
-                    debugDescription: """
-                        A one-sided bound of \(bound) is above the most Foundation keeps, \
-                        \(CodablePrecision.oneSidedCeiling).
-                        """
-                )
-            }
-            return bound
         }
 
         /// Returns the digit count at the given key, or `nil` if the key is absent or `null`.
@@ -322,80 +399,6 @@ struct CodablePrecision: Codable {
                 )
             }
             return count
-        }
-
-        /// Returns the range between two different bounds.
-        ///
-        /// - Parameters:
-        ///   - fewest: The fewest digits.
-        ///   - most: The most digits, which must differ from `fewest`.
-        ///   - keys: The keys of `fewest` and `most`, which an error names.
-        ///   - option: A precision's option.
-        /// - Returns: `fewest...most`.
-        /// - Throws: `DecodingError.dataCorrupted` if `fewest` is above `most`, or `most` is above
-        ///   ``closedRangeCeiling``.
-        private static func range(
-            _ fewest: Int,
-            _ most: Int,
-            keys: (fewest: OptionKeys, most: OptionKeys),
-            in option: Option
-        ) throws -> ClosedRange<Int> {
-            guard fewest < most else {
-                throw DecodingError.dataCorruptedError(
-                    forKey: keys.fewest,
-                    in: option,
-                    debugDescription: "A precision's lower bound \(fewest) is above its upper bound \(most)."
-                )
-            }
-            guard most <= CodablePrecision.closedRangeCeiling else {
-                throw DecodingError.dataCorruptedError(
-                    forKey: keys.most,
-                    in: option,
-                    debugDescription: """
-                        A range's upper bound \(most) is above the most Foundation keeps, \
-                        \(CodablePrecision.closedRangeCeiling).
-                        """
-                )
-            }
-            return fewest...most
-        }
-
-        /// Returns a mixed precision whose parts are not both fixed at one length.
-        ///
-        /// - Parameters:
-        ///   - integer: The integer digits' limits.
-        ///   - fraction: The fraction digits' limits.
-        /// - Returns: The precision Foundation's range factory builds from both parts.
-        private static func precision(integer: LengthLimits, fraction: LengthLimits) -> Precision {
-            switch integer {
-            case let .exactly(length):
-                precision(integer: length...length, fraction: fraction)
-            case let .within(lengths):
-                precision(integer: lengths, fraction: fraction)
-            case let .atLeast(length):
-                precision(integer: length..., fraction: fraction)
-            case let .atMost(length):
-                precision(integer: ...length, fraction: fraction)
-            }
-        }
-
-        /// Returns a mixed precision from the integer digits' range and the fraction's limits.
-        ///
-        /// - Parameters:
-        ///   - integer: The integer digits' range.
-        ///   - fraction: The fraction digits' limits.
-        /// - Returns: The precision Foundation's range factory builds from both parts.
-        private static func precision(integer: some RangeExpression<Int>, fraction: LengthLimits) -> Precision {
-            switch fraction {
-            case let .exactly(length):
-                .integerAndFractionLength(integerLimits: integer, fractionLimits: length...length)
-            case let .within(lengths):
-                .integerAndFractionLength(integerLimits: integer, fractionLimits: lengths)
-            case let .atLeast(length):
-                .integerAndFractionLength(integerLimits: integer, fractionLimits: length...)
-            case let .atMost(length):
-                .integerAndFractionLength(integerLimits: integer, fractionLimits: ...length)
-            }
         }
     }
 
