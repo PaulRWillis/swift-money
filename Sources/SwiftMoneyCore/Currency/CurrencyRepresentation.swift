@@ -7,6 +7,10 @@ public protocol CurrencyRepresentation: Sendable {
     /// What an amount carries in order to know its currency.
     associatedtype Storage: Hashable & Sendable
 
+    /// What an error reports when two amounts' currencies differ, or `Never` where this
+    /// representation fixes one currency, so they never can.
+    associatedtype Mismatch: Hashable & Sendable
+
     /// The currency an amount is denominated in, given what it carries.
     static func currency(for storage: Storage) -> Currency
 

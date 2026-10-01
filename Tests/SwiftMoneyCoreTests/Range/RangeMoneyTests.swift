@@ -18,14 +18,17 @@ struct RangeMoneyTests {
         #expect(range.isEmpty)
     }
 
-    @Test("Inverted bounds throw only InvertedBoundsError, so a catch needs no mismatch branch")
+    @Test("Inverted bounds throw invertedBounds, and a switch over the error needs no mismatch case")
     func invertedThrowsExactly() {
-        do throws(InvertedBoundsError<Currencies.GBP>) {
+        do throws(MoneyRangeParsingError<Currencies.GBP>) {
             _ = try Range(checkedBounds: (lower: GBP(minorUnits: 250_00), upper: GBP(minorUnits: 10_00)))
             Issue.record("Expected inverted bounds to throw")
         } catch {
-            #expect(error.lowerBound == GBP(minorUnits: 250_00))
-            #expect(error.upperBound == GBP(minorUnits: 10_00))
+            switch error {
+            case let .invertedBounds(lowerBound, upperBound):
+                #expect(lowerBound == GBP(minorUnits: 250_00))
+                #expect(upperBound == GBP(minorUnits: 10_00))
+            }
         }
     }
 
@@ -54,7 +57,10 @@ struct RangeMoneyTests {
 
     @Test("Inverted bounds in yen report both bounds")
     func invertedYen() {
-        #expect(throws: InvertedBoundsError<Currencies.JPY>.self) {
+        #expect(throws: MoneyRangeParsingError<Currencies.JPY>.invertedBounds(
+            lowerBound: JPY(minorUnits: 2),
+            upperBound: JPY(minorUnits: 1)
+        )) {
             try Range(checkedBounds: (lower: JPY(minorUnits: 2), upper: JPY(minorUnits: 1)))
         }
     }

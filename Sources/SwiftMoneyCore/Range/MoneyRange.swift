@@ -28,19 +28,20 @@ public struct MoneyRange: Equatable, Hashable, Sendable {
     /// ```
     ///
     /// - Parameter bounds: The lower and upper bounds, lowest first.
-    /// - Throws: ``CurrencyCheckedError/currencyMismatch(lhs:rhs:)`` if the bounds are in different
-    ///   currencies, with the lower bound's as `lhs`; otherwise ``CurrencyCheckedError/failure(_:)``
-    ///   with both bounds if the lower is above the upper.
+    /// - Throws: ``MoneyRangeParsingError/currencyMismatch(_:)`` with the upper bound's currency if
+    ///   the bounds are in different currencies; otherwise
+    ///   ``MoneyRangeParsingError/invertedBounds(lowerBound:upperBound:)`` with both bounds if the
+    ///   lower is above the upper.
     @inlinable
     public init(
         checkedBounds bounds: (lower: Money, upper: Money)
-    ) throws(CurrencyCheckedError<InvertedBoundsError<AnyCurrency>>) {
+    ) throws(MoneyRangeParsingError<AnyCurrency>) {
         let currency = bounds.lower.storage
         guard currency == bounds.upper.storage else {
-            throw .currencyMismatch(lhs: currency, rhs: bounds.upper.storage)
+            throw .currencyMismatch(bounds.upper.currency)
         }
         guard bounds.lower.minorUnits <= bounds.upper.minorUnits else {
-            throw .failure(InvertedBoundsError(lowerBound: bounds.lower, upperBound: bounds.upper))
+            throw .invertedBounds(lowerBound: bounds.lower, upperBound: bounds.upper)
         }
 
         self.init(unchecked: currency, minorUnits: bounds.lower.minorUnits ..< bounds.upper.minorUnits)
@@ -132,13 +133,15 @@ public extension MoneyOf where C == AnyCurrency {
     /// - Parameters:
     ///   - minimum: The lower bound.
     ///   - maximum: The upper bound, which the range does not contain.
-    /// - Throws: ``CurrencyCheckedError/currencyMismatch(lhs:rhs:)`` if the bounds are in different
-    ///   currencies; otherwise ``CurrencyCheckedError/failure(_:)`` if `minimum` is above `maximum`.
+    /// - Throws: ``MoneyRangeParsingError/currencyMismatch(_:)`` with the currency of `maximum` if
+    ///   the bounds are in different currencies; otherwise
+    ///   ``MoneyRangeParsingError/invertedBounds(lowerBound:upperBound:)`` if `minimum` is above
+    ///   `maximum`.
     @inlinable
     static func ..< (
         minimum: Money,
         maximum: Money
-    ) throws(CurrencyCheckedError<InvertedBoundsError<AnyCurrency>>) -> MoneyRange {
+    ) throws(MoneyRangeParsingError<AnyCurrency>) -> MoneyRange {
         try MoneyRange(checkedBounds: (lower: minimum, upper: maximum))
     }
 }

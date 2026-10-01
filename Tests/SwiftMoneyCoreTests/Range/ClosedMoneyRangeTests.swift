@@ -9,6 +9,8 @@ private func euros(_ minorUnits: Int64) -> Money {
     Money(minorUnits: minorUnits, currency: .eur)
 }
 
+private typealias BuildError = MoneyRangeParsingError<AnyCurrency>
+
 @Suite("ClosedMoneyRange")
 struct ClosedMoneyRangeTests {
 
@@ -22,32 +24,38 @@ struct ClosedMoneyRangeTests {
         #expect(range.isEmpty == false)
     }
 
-    @Test("Bounds in two currencies throw a mismatch, lower bound's currency first")
+    @Test("Bounds in two currencies throw a mismatch with the upper bound's currency")
     func mismatchThrows() {
-        #expect(throws: CurrencyCheckedError<InvertedBoundsError<AnyCurrency>>.currencyMismatch(lhs: .gbp, rhs: .eur)) {
+        #expect(throws: BuildError.currencyMismatch(.eur)) {
             try pounds(10_00)...euros(250_00)
         }
     }
 
-    @Test("Inverted bounds throw a failure carrying both bounds")
-    func invertedThrows() {
-        do throws(CurrencyCheckedError<InvertedBoundsError<AnyCurrency>>) {
-            _ = try pounds(250_00)...pounds(10_00)
-            Issue.record("Expected inverted bounds to throw")
+    @Test("A switch over a build error binds the upper bound's currency")
+    func mismatchBindsCurrency() {
+        do throws(BuildError) {
+            _ = try pounds(10_00)...euros(250_00)
+            Issue.record("Expected a mismatch to throw")
         } catch {
             switch error {
-            case .currencyMismatch:
-                Issue.record("Expected inverted bounds, not a mismatch")
-            case let .failure(inverted):
-                #expect(inverted.lowerBound == pounds(250_00))
-                #expect(inverted.upperBound == pounds(10_00))
+            case .invertedBounds:
+                Issue.record("Expected a mismatch, not inverted bounds")
+            case let .currencyMismatch(currency):
+                #expect(currency == .eur)
             }
+        }
+    }
+
+    @Test("Inverted bounds throw invertedBounds with both bounds as given")
+    func invertedThrows() {
+        #expect(throws: BuildError.invertedBounds(lowerBound: pounds(250_00), upperBound: pounds(10_00))) {
+            try pounds(250_00)...pounds(10_00)
         }
     }
 
     @Test("Inverted bounds in two currencies report the mismatch")
     func mismatchBeforeInverted() {
-        #expect(throws: CurrencyCheckedError<InvertedBoundsError<AnyCurrency>>.currencyMismatch(lhs: .gbp, rhs: .eur)) {
+        #expect(throws: BuildError.currencyMismatch(.eur)) {
             try pounds(250_00)...euros(10_00)
         }
     }
@@ -69,13 +77,11 @@ struct ClosedMoneyRangeTests {
     }
 
     @Test("init(checkedBounds:) throws as the operator does")
-    func checkedBoundsThrows() throws {
-        let expected = try #require(invertedError(lower: pounds(2_00), upper: pounds(1_00)))
-
-        #expect(throws: CurrencyCheckedError<InvertedBoundsError<AnyCurrency>>.failure(expected)) {
+    func checkedBoundsThrows() {
+        #expect(throws: BuildError.invertedBounds(lowerBound: pounds(2_00), upperBound: pounds(1_00))) {
             try ClosedMoneyRange(checkedBounds: (lower: pounds(2_00), upper: pounds(1_00)))
         }
-        #expect(throws: CurrencyCheckedError<InvertedBoundsError<AnyCurrency>>.currencyMismatch(lhs: .eur, rhs: .gbp)) {
+        #expect(throws: BuildError.currencyMismatch(.gbp)) {
             try ClosedMoneyRange(checkedBounds: (lower: euros(1_00), upper: pounds(2_00)))
         }
     }
@@ -171,19 +177,5 @@ struct ClosedMoneyRangeTests {
 
         #expect(try band(pounds(100_00)) == "within")
         #expect(try band(pounds(1_00)) == "outside")
-    }
-}
-
-// The failure payload the builder reports for an inverted pair, taken from the builder itself so the
-// test never needs the error's non-public initializer.
-private func invertedError(lower: Money, upper: Money) -> InvertedBoundsError<AnyCurrency>? {
-    do throws(CurrencyCheckedError<InvertedBoundsError<AnyCurrency>>) {
-        _ = try lower...upper
-        return nil
-    } catch {
-        guard case let .failure(inverted) = error else {
-            return nil
-        }
-        return inverted
     }
 }

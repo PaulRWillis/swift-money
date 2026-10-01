@@ -172,16 +172,17 @@ try limits.contains(amount)
 typed.contains(GBP(minorUnits: 50_00))                                  // no try: one currency
 ```
 
-Each call throws one exact error type, so a `switch` over it can be exhaustive. A runtime range
-wraps the typed error in a `.failure` case beside the currency mismatch:
+Each call throws one exact error type, so a `switch` over it can be exhaustive. Building a range
+throws `MoneyRangeParsingError`. Only runtime bounds can be in two currencies, so a typed range's
+`switch` needs no `.currencyMismatch` case:
 
 ```swift
-do throws(CurrencyCheckedError<InvertedBoundsError<AnyCurrency>>) {
+do throws(MoneyRangeParsingError<AnyCurrency>) {
     limits = try minimum...maximum
 } catch {
     switch error {
-    case .currencyMismatch(let lhs, let rhs): …                    // the currencies differed
-    case .failure(let inverted): …                                 // minimum was above maximum
+    case .invertedBounds(let lower, let upper): …                  // minimum was above maximum
+    case .currencyMismatch(let currency): …                        // maximum's currency differed
     }
 }
 ```

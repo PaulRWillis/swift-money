@@ -12,13 +12,14 @@ public extension Range {
     /// ```
     ///
     /// - Parameter bounds: The lower and upper bounds, lowest first.
-    /// - Throws: ``InvertedBoundsError`` with both bounds if the lower is above the upper.
+    /// - Throws: ``MoneyRangeParsingError/invertedBounds(lowerBound:upperBound:)`` with both bounds
+    ///   if the lower is above the upper.
     @inlinable
     init<C: CurrencyType>(
         checkedBounds bounds: (lower: MoneyOf<C>, upper: MoneyOf<C>)
-    ) throws(InvertedBoundsError<C>) where Bound == MoneyOf<C> {
+    ) throws(MoneyRangeParsingError<C>) where Bound == MoneyOf<C> {
         guard bounds.lower <= bounds.upper else {
-            throw InvertedBoundsError(lowerBound: bounds.lower, upperBound: bounds.upper)
+            throw .invertedBounds(lowerBound: bounds.lower, upperBound: bounds.upper)
         }
 
         self = bounds.lower ..< bounds.upper
