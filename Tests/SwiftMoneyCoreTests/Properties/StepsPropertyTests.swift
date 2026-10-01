@@ -172,7 +172,8 @@ private func probes(around steps: Money.Steps) -> [Int64] {
 // a positive amount, so beyond every step `towardZero` acts as `down` for it and `awayFromZero` as
 // `up`. When the two neighbors lie either side of zero, `towardZero` takes the one smaller in size and
 // `awayFromZero` the larger, and neighbors of equal size give the one with the amount's sign under
-// both. The nearest rules take the only neighbor when there is one.
+// both. The nearest rules take the only neighbor when there is one, and `toNearestOrEven` breaks a tie
+// toward the step at an even position counted from the lowest.
 private func searchedIndex(for probe: Int64, in steps: Money.Steps, rounding rule: RoundingRule) -> Money.Steps.Index? {
     let indices = Array(steps.indices)
     let below = indices.filter { steps[$0].minorUnits <= probe }.max { steps[$0].minorUnits < steps[$1].minorUnits }
@@ -213,7 +214,8 @@ private func searchedIndex(
     let positive = probe >= 0
     let toBelow = (Int128(probe) - Int128(steps[below].minorUnits)).magnitude
     let toAbove = (Int128(steps[above].minorUnits) - Int128(probe)).magnitude
-    let even = steps.distance(from: steps.startIndex, to: below).isMultiple(of: 2) ? below : above
+    let belowPosition = steps.filter { $0.minorUnits < steps[below].minorUnits }.count
+    let even = belowPosition.isMultiple(of: 2) ? below : above
     let belowSize = Int128(steps[below].minorUnits).magnitude
     let aboveSize = Int128(steps[above].minorUnits).magnitude
     let acrossZero = steps[below].minorUnits < 0 && steps[above].minorUnits > 0

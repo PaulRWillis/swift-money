@@ -141,7 +141,7 @@ struct StepsIndexForAmountTests {
         #expect(try steps.index(approximating: nearerUpper, rounding: .toNearestOrAwayFromZero) == 2)
     }
 
-    @Test("Without a rule, the nearest step is taken, ties to the even index")
+    @Test("Without a rule, the nearest step is taken, ties to an even position from the lower bound")
     func withoutARuleIsToNearestOrEven() throws {
         let steps = try tenToTwoFifty()
 
@@ -150,7 +150,7 @@ struct StepsIndexForAmountTests {
         #expect(steps.index(approximating: pounds(90_00)) == 1)
     }
 
-    @Test("A tie goes to the even index, or with toNearestOrAwayFromZero to the step farther from zero")
+    @Test("Ties go to an even position from the lower bound, or with toNearestOrAwayFromZero away from zero")
     func ties() throws {
         let steps = try tenToTwoFifty()
         let negative = try (pounds(-250_00) ... pounds(-10_00)).steps(by: .majorUnits(100))
@@ -249,16 +249,45 @@ struct StepsIndexForAmountTests {
         #expect(try rounded(Money(pounds(-3_00)), onto: straddling, by: .awayFromZero) == Money(pounds(-7_00)))
     }
 
-    // An odd count keeps an index's parity when the order reverses, so even ties agree too.
+    @Test("A tie goes to the step at an even position from the lower bound, whichever way the steps run")
+    func tiesCountFromTheLowerBound() throws {
+        let even = pounds(0) ... pounds(300_00)
+        let evenDown = try even.steps(by: .majorUnits(-100))
+        let oddDown = try (pounds(0) ... pounds(400_00)).steps(by: .majorUnits(-100))
+        let shorterLastGapDown = try (pounds(10_00) ... pounds(250_00)).steps(by: .majorUnits(-100))
+        let acrossZeroDown = try (pounds(-50_00) ... pounds(50_00)).steps(by: .majorUnits(-20))
+
+        #expect(rounded(pounds(50_00), onto: try even.steps(by: .majorUnits(100)), by: .toNearestOrEven) == pounds(0))
+        #expect(rounded(pounds(50_00), onto: evenDown, by: .toNearestOrEven) == pounds(0))
+        #expect(rounded(pounds(150_00), onto: evenDown, by: .toNearestOrEven) == pounds(200_00))
+        #expect(evenDown[evenDown.index(approximating: pounds(250_00))] == pounds(200_00))
+        #expect(rounded(pounds(50_00), onto: oddDown, by: .toNearestOrEven) == pounds(0))
+        #expect(rounded(pounds(150_00), onto: oddDown, by: .toNearestOrEven) == pounds(200_00))
+        #expect(shorterLastGapDown.map(\.minorUnits) == [250_00, 150_00, 50_00, 10_00])
+        #expect(rounded(pounds(100_00), onto: shorterLastGapDown, by: .toNearestOrEven) == pounds(150_00))
+        #expect(rounded(.zero, onto: acrossZeroDown, by: .toNearestOrEven) == pounds(-10_00))
+    }
+
     @Test("Descending steps on the same amounts pick the same amount as ascending ones", arguments: everyRule)
     func descendingPicksTheSameAmount(_ rule: RoundingRule) throws {
-        let range = pounds(0) ... pounds(400_00)
-        let up = try range.steps(by: .majorUnits(100))
-        let down = try range.steps(by: .majorUnits(-100))
-        let probes = [-1_00, 0, 30_00, 50_00, 70_00, 150_00, 250_00, 399_99, 500_00].map(pounds)
+        let odd = pounds(0) ... pounds(400_00)
+        let even = pounds(0) ... pounds(300_00)
+        let oddAcrossZero = pounds(-40_00) ... pounds(40_00)
+        let evenAcrossZero = pounds(-50_00) ... pounds(50_00)
+        let pairs = [
+            (try odd.steps(by: .majorUnits(100)), try odd.steps(by: .majorUnits(-100))),
+            (try even.steps(by: .majorUnits(100)), try even.steps(by: .majorUnits(-100))),
+            (try oddAcrossZero.steps(by: .majorUnits(20)), try oddAcrossZero.steps(by: .majorUnits(-20))),
+            (try evenAcrossZero.steps(by: .majorUnits(20)), try evenAcrossZero.steps(by: .majorUnits(-20))),
+        ]
+        let probes = [-60_00, -50_00, -40_00, -30_00, -20_00, -10_00, -3_00, -1_00, 0, 1_00, 3_00, 10_00, 20_00,
+                      30_00, 50_00, 70_00, 150_00, 250_00, 299_99, 399_99, 500_00].map(pounds)
 
-        for probe in probes {
-            #expect(rounded(probe, onto: down, by: rule) == rounded(probe, onto: up, by: rule))
+        for (up, down) in pairs {
+            #expect(Array(up) == Array(down.reversed()))
+            for probe in probes {
+                #expect(rounded(probe, onto: down, by: rule) == rounded(probe, onto: up, by: rule), "\(probe)")
+            }
         }
     }
 

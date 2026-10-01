@@ -356,10 +356,13 @@ extension MoneyOf.Steps {
             return takesPastZero ? towardZero : awayFromZero
         }
 
+        // Parity counts from the lower bound rather than the first step, so the same amounts break a
+        // tie the same way whichever way the steps run.
+        let fromLowerBound = ascending ? towardZero : count &- 1 &- towardZero
         let rounded = rule.step(
             dropping: DroppedFraction(remainder: dropped, divisor: width),
             sign: sign,
-            truncated: Parity(of: towardZero)
+            truncated: Parity(of: fromLowerBound)
         )
 
         return rounded == .awayFromZero ? awayFromZero : towardZero
@@ -493,8 +496,9 @@ public extension MoneyOf.Steps where C: CurrencyType {
     /// Returns the position of the step nearest an amount.
     ///
     /// An amount between two steps, such as a saved £123.45 on £10 steps, takes the nearer one,
-    /// measuring the shorter last gap as it is. A tie goes to the even index. An amount beyond the
-    /// steps takes the nearer end, so this never fails:
+    /// measuring the shorter last gap as it is. A tie goes to the step at an even position from the
+    /// lower bound, so it falls the same way whichever way the steps run. An amount beyond the steps
+    /// takes the nearer end, so this never fails:
     ///
     /// ```swift
     /// steps.index(approximating: saved)   // the nearest step
@@ -525,10 +529,10 @@ public extension MoneyOf.Steps where C: CurrencyType {
     /// the amount's sign they act as `.down` or `.up` by that sign. When the neighbors lie either side
     /// of zero, the step can have the other sign: between −£7 and £5, £3 rounds toward zero to £5 and
     /// away from zero to −£7. The two nearest rules measure the distance to each neighbor, the shorter
-    /// last gap included: `.toNearestOrEven` breaks a tie toward the even index, and
-    /// `.toNearestOrAwayFromZero` toward the step larger in size. Where the neighbors are the same
-    /// size, as −£10 and £10 are, the rules that name zero take the one with the amount's sign; zero
-    /// counts as positive.
+    /// last gap included: `.toNearestOrEven` breaks a tie toward the step at an even position from
+    /// the lower bound, and `.toNearestOrAwayFromZero` toward the step larger in size. Where the
+    /// neighbors are the same size, as −£10 and £10 are, the rules that name zero take the one with
+    /// the amount's sign; zero counts as positive.
     ///
     /// An amount beyond the steps has one neighbor, the nearer end. The nearest rules take it, and so
     /// does any other rule that allows a step on that side. `.towardZero` and `.awayFromZero` act as

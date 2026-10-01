@@ -253,8 +253,9 @@ try limits.steps(by: .majorUnits(100))    // GBP 10.00, 110.00, 210.00, 250.00
 try limits.steps(by: .majorUnits(-100))   // GBP 250.00, 150.00, 50.00, 10.00
 ```
 
-An amount between two steps is rounded onto one. Without a rule it takes the nearest step, ties to
-the even index, as elsewhere in the library, and an amount beyond the steps takes the nearer end.
+An amount between two steps is rounded onto one. Without a rule it takes the nearest step, and a tie
+goes to the step at an even position from the lower bound, whichever way the steps run. An amount
+beyond the steps takes the nearer end.
 A rule such as `.down` throws `MoneyStepsRoundingError.outOfBounds` when no step satisfies it:
 
 ```swift
