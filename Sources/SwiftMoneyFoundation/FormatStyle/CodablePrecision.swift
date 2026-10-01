@@ -54,10 +54,79 @@ struct CodablePrecision: Codable {
         }
     }
 
+    /// A number of digits a precision's bound names, at or above its own floor.
+    private protocol DigitBound {
+        /// The number of digits.
+        var digits: Int { get }
+    }
+
+    /// A number of integer or fraction digits, never below zero.
+    private struct DigitCount: DigitBound {
+        /// The fewest digits a length allows: 0.
+        static let fewest = 0
+
+        /// The number of digits, at least ``fewest``.
+        let digits: Int
+
+        /// Creates a count already known to be at least ``fewest``.
+        ///
+        /// - Parameter digits: The number of digits.
+        private init(checked digits: Int) {
+            self.digits = digits
+        }
+
+        /// Returns the length at the given key, or `nil` if the key is absent or `null`.
+        ///
+        /// - Parameters:
+        ///   - key: The key to read.
+        ///   - option: A precision's option.
+        /// - Returns: The count, or `nil` if `key` holds no value.
+        /// - Throws: `DecodingError` as ``CodablePrecision/digits(at:fewest:in:)`` does.
+        static func decode(_ key: OptionKeys, in option: Option) throws -> DigitCount? {
+            try CodablePrecision.digits(at: key, fewest: fewest, in: option).map(DigitCount.init(checked:))
+        }
+    }
+
+    /// A number of significant digits, never below one.
+    private struct SignificantDigitCount: DigitBound {
+        /// The fewest significant digits a precision allows: 1.
+        static let fewest = 1
+
+        /// The number of digits, at least ``fewest``.
+        let digits: Int
+
+        /// Creates a count already known to be at least ``fewest``.
+        ///
+        /// - Parameter digits: The number of digits.
+        private init(checked digits: Int) {
+            self.digits = digits
+        }
+
+        /// Returns the significant-digit count at the given key, or `nil` if the key is absent or
+        /// `null`.
+        ///
+        /// - Parameters:
+        ///   - key: The key to read.
+        ///   - option: A precision's option.
+        /// - Returns: The count, or `nil` if `key` holds no value.
+        /// - Throws: `DecodingError` as ``CodablePrecision/digits(at:fewest:in:)`` does.
+        static func decode(_ key: OptionKeys, in option: Option) throws -> SignificantDigitCount? {
+            try CodablePrecision.digits(at: key, fewest: fewest, in: option).map(SignificantDigitCount.init(checked:))
+        }
+    }
+
     /// A closed range of digit counts whose bounds differ, which Foundation's range factories keep.
-    private struct DigitRange {
-        /// The range, whose upper bound is above its lower and at most ``closedRangeCeiling``.
-        let counts: ClosedRange<Int>
+    private struct DigitRange<Count: DigitBound> {
+        /// The fewest digits, below ``most``.
+        let fewest: Count
+
+        /// The most digits, at most ``closedRangeCeiling``.
+        let most: Count
+
+        /// The range from ``fewest`` to ``most``.
+        var counts: ClosedRange<Int> {
+            fewest.digits...most.digits
+        }
 
         /// Creates a range from its bounds.
         ///
@@ -68,32 +137,40 @@ struct CodablePrecision: Codable {
         ///   - option: A precision's option.
         /// - Throws: `DecodingError.dataCorrupted` if `fewest` isn't below `most`, or `most` is
         ///   above ``closedRangeCeiling``.
-        init(fewest: Int, most: Int, keys: (fewest: OptionKeys, most: OptionKeys), in option: Option) throws {
-            guard fewest < most else {
+        init(fewest: Count, most: Count, keys: (fewest: OptionKeys, most: OptionKeys), in option: Option) throws {
+            guard fewest.digits < most.digits else {
                 throw DecodingError.dataCorruptedError(
                     forKey: keys.fewest,
                     in: option,
-                    debugDescription: "A precision's lower bound \(fewest) is above its upper bound \(most)."
+                    debugDescription: """
+                        A precision's lower bound \(fewest.digits) is above its upper bound \(most.digits).
+                        """
                 )
             }
-            guard most <= CodablePrecision.closedRangeCeiling else {
+            guard most.digits <= CodablePrecision.closedRangeCeiling else {
                 throw DecodingError.dataCorruptedError(
                     forKey: keys.most,
                     in: option,
                     debugDescription: """
-                        A range's upper bound \(most) is above the most Foundation keeps, \
+                        A range's upper bound \(most.digits) is above the most Foundation keeps, \
                         \(CodablePrecision.closedRangeCeiling).
                         """
                 )
             }
-            counts = fewest...most
+            self.fewest = fewest
+            self.most = most
         }
     }
 
     /// The bound of a range of digit counts open at one end, which Foundation's range factories keep.
-    private struct OneSidedBound {
+    private struct OneSidedBound<Count: DigitBound> {
         /// The bound, at most ``oneSidedCeiling``.
-        let count: Int
+        let count: Count
+
+        /// The bound's number of digits.
+        var digits: Int {
+            count.digits
+        }
 
         /// Creates a one-sided bound.
         ///
@@ -102,13 +179,13 @@ struct CodablePrecision: Codable {
         ///   - key: The key of `count`, which an error names.
         ///   - option: A precision's option.
         /// - Throws: `DecodingError.dataCorrupted` if `count` is above ``oneSidedCeiling``.
-        init(_ count: Int, key: OptionKeys, in option: Option) throws {
-            guard count <= CodablePrecision.oneSidedCeiling else {
+        init(_ count: Count, key: OptionKeys, in option: Option) throws {
+            guard count.digits <= CodablePrecision.oneSidedCeiling else {
                 throw DecodingError.dataCorruptedError(
                     forKey: key,
                     in: option,
                     debugDescription: """
-                        A one-sided bound of \(count) is above the most Foundation keeps, \
+                        A one-sided bound of \(count.digits) is above the most Foundation keeps, \
                         \(CodablePrecision.oneSidedCeiling).
                         """
                 )
@@ -120,16 +197,16 @@ struct CodablePrecision: Codable {
     /// The fewest and most digits one part of a precision allows.
     private enum LengthLimits {
         /// Exactly the given number of digits.
-        case exactly(Int)
+        case exactly(DigitCount)
 
         /// A number of digits within the given range.
-        case within(DigitRange)
+        case within(DigitRange<DigitCount>)
 
         /// At least the given number of digits.
-        case atLeast(OneSidedBound)
+        case atLeast(OneSidedBound<DigitCount>)
 
         /// At most the given number of digits.
-        case atMost(OneSidedBound)
+        case atMost(OneSidedBound<DigitCount>)
     }
 
     /// One part of a precision whose integer and fraction parts aren't both fixed at one length.
@@ -149,12 +226,12 @@ struct CodablePrecision: Codable {
         /// - Throws: `DecodingError.dataCorrupted` if `limits` is fixed at more digits than
         ///   ``closedRangeCeiling``.
         init(_ limits: LengthLimits, key: OptionKeys, in option: Option) throws {
-            if case let .exactly(length) = limits, length > CodablePrecision.closedRangeCeiling {
+            if case let .exactly(length) = limits, length.digits > CodablePrecision.closedRangeCeiling {
                 throw DecodingError.dataCorruptedError(
                     forKey: key,
                     in: option,
                     debugDescription: """
-                        A length of \(length) beside a range is above the most Foundation keeps, \
+                        A length of \(length.digits) beside a range is above the most Foundation keeps, \
                         \(CodablePrecision.closedRangeCeiling).
                         """
                 )
@@ -169,13 +246,13 @@ struct CodablePrecision: Codable {
         func precision(fraction: RangedPart) -> Precision {
             switch limits {
             case let .exactly(length):
-                fraction.precision(integer: length...length)
+                fraction.precision(integer: length.digits...length.digits)
             case let .within(lengths):
                 fraction.precision(integer: lengths.counts)
             case let .atLeast(length):
-                fraction.precision(integer: length.count...)
+                fraction.precision(integer: length.digits...)
             case let .atMost(length):
-                fraction.precision(integer: ...length.count)
+                fraction.precision(integer: ...length.digits)
             }
         }
 
@@ -186,32 +263,32 @@ struct CodablePrecision: Codable {
         private func precision(integer: some RangeExpression<Int>) -> Precision {
             switch limits {
             case let .exactly(length):
-                .integerAndFractionLength(integerLimits: integer, fractionLimits: length...length)
+                .integerAndFractionLength(integerLimits: integer, fractionLimits: length.digits...length.digits)
             case let .within(lengths):
                 .integerAndFractionLength(integerLimits: integer, fractionLimits: lengths.counts)
             case let .atLeast(length):
-                .integerAndFractionLength(integerLimits: integer, fractionLimits: length.count...)
+                .integerAndFractionLength(integerLimits: integer, fractionLimits: length.digits...)
             case let .atMost(length):
-                .integerAndFractionLength(integerLimits: integer, fractionLimits: ...length.count)
+                .integerAndFractionLength(integerLimits: integer, fractionLimits: ...length.digits)
             }
         }
     }
 
-    /// The fewest and most significant digits a precision allows.
+    /// The fewest and most significant digits a precision allows, each at least one.
     ///
     /// Foundation writes an at-most limit with a fewest of one digit.
     private enum SignificantDigitLimits {
         /// Exactly the given number of digits.
-        case exactly(Int)
+        case exactly(SignificantDigitCount)
 
-        /// A number of digits within the given range, whose lower bound is above one.
-        case within(DigitRange)
+        /// A number of digits within the given range.
+        case within(DigitRange<SignificantDigitCount>)
 
         /// At least the given number of digits.
-        case atLeast(OneSidedBound)
+        case atLeast(OneSidedBound<SignificantDigitCount>)
 
-        /// At most the given number of digits, which is above one.
-        case atMost(OneSidedBound)
+        /// At most the given number of digits.
+        case atMost(OneSidedBound<SignificantDigitCount>)
     }
 
     /// A precision as its JSON states it, inside the limits Foundation's factories keep.
@@ -226,7 +303,7 @@ struct CodablePrecision: Codable {
         case fractionLength(LengthLimits)
 
         /// An exact number of integer digits and an exact number of fraction digits.
-        case fixedLengths(integer: Int, fraction: Int)
+        case fixedLengths(integer: DigitCount, fraction: DigitCount)
 
         /// Limits on both the integer and the fraction digits, not both fixed at one length.
         case rangedLengths(integer: RangedPart, fraction: RangedPart)
@@ -237,31 +314,31 @@ struct CodablePrecision: Codable {
         var precision: Precision {
             switch self {
             case let .significantDigits(.exactly(digits)):
-                .significantDigits(digits)
+                .significantDigits(digits.digits)
             case let .significantDigits(.within(digits)):
                 .significantDigits(digits.counts)
             case let .significantDigits(.atLeast(digits)):
-                .significantDigits(digits.count...)
+                .significantDigits(digits.digits...)
             case let .significantDigits(.atMost(digits)):
-                .significantDigits(...digits.count)
+                .significantDigits(...digits.digits)
             case let .integerLength(.exactly(length)):
-                .integerLength(length)
+                .integerLength(length.digits)
             case let .integerLength(.within(lengths)):
                 .integerLength(lengths.counts)
             case let .integerLength(.atLeast(length)):
-                .integerLength(length.count...)
+                .integerLength(length.digits...)
             case let .integerLength(.atMost(length)):
-                .integerLength(...length.count)
+                .integerLength(...length.digits)
             case let .fractionLength(.exactly(length)):
-                .fractionLength(length)
+                .fractionLength(length.digits)
             case let .fractionLength(.within(lengths)):
                 .fractionLength(lengths.counts)
             case let .fractionLength(.atLeast(length)):
-                .fractionLength(length.count...)
+                .fractionLength(length.digits...)
             case let .fractionLength(.atMost(length)):
-                .fractionLength(...length.count)
+                .fractionLength(...length.digits)
             case let .fixedLengths(integer, fraction):
-                .integerAndFractionLength(integer: integer, fraction: fraction)
+                .integerAndFractionLength(integer: integer.digits, fraction: fraction.digits)
             case let .rangedLengths(integer, fraction):
                 integer.precision(fraction: fraction)
             }
@@ -327,8 +404,8 @@ struct CodablePrecision: Codable {
             _ mostKey: OptionKeys,
             in option: Option
         ) throws -> LengthLimits? {
-            let fewest = try count(fewestKey, allowed: CodablePrecision.validLengths, in: option)
-            let most = try count(mostKey, allowed: CodablePrecision.validLengths, in: option)
+            let fewest = try DigitCount.decode(fewestKey, in: option)
+            let most = try DigitCount.decode(mostKey, in: option)
 
             switch (fewest, most) {
             case (nil, nil):
@@ -338,7 +415,7 @@ struct CodablePrecision: Codable {
             case let (nil, most?):
                 return .atMost(try OneSidedBound(most, key: mostKey, in: option))
             case let (fewest?, most?):
-                guard fewest != most else { return .exactly(fewest) }
+                guard fewest.digits != most.digits else { return .exactly(fewest) }
                 return .within(try DigitRange(fewest: fewest, most: most, keys: (fewestKey, mostKey), in: option))
             }
         }
@@ -351,9 +428,8 @@ struct CodablePrecision: Codable {
         ///   digits are missing, the fewest are above the most, or a bound is one Foundation's
         ///   range factories would clamp.
         private static func significantDigitLimits(in option: Option) throws -> SignificantDigitLimits {
-            let allowed = CodablePrecision.validSignificantDigits
-            let fewest = try count(.minSignificantDigits, allowed: allowed, in: option)
-            let most = try count(.maxSignificantDigits, allowed: allowed, in: option)
+            let fewest = try SignificantDigitCount.decode(.minSignificantDigits, in: option)
+            let most = try SignificantDigitCount.decode(.maxSignificantDigits, in: option)
 
             switch (fewest, most) {
             case (nil, _):
@@ -365,10 +441,10 @@ struct CodablePrecision: Codable {
             case let (fewest?, nil):
                 return .atLeast(try OneSidedBound(fewest, key: .minSignificantDigits, in: option))
             case let (fewest?, most?):
-                guard fewest != most else { return .exactly(fewest) }
+                guard fewest.digits != most.digits else { return .exactly(fewest) }
                 // Foundation writes `...most` with a fewest of one, and keeps an at-most bound past
                 // the most a closed range keeps, so this has to read as one-sided.
-                if fewest == allowed.lowerBound {
+                if fewest.digits == SignificantDigitCount.fewest {
                     return .atMost(try OneSidedBound(most, key: .maxSignificantDigits, in: option))
                 }
                 let keys = (fewest: OptionKeys.minSignificantDigits, most: OptionKeys.maxSignificantDigits)
@@ -376,40 +452,12 @@ struct CodablePrecision: Codable {
             }
         }
 
-        /// Returns the digit count at the given key, or `nil` if the key is absent or `null`.
-        ///
-        /// - Parameters:
-        ///   - key: The key to read.
-        ///   - allowed: The counts a precision accepts.
-        ///   - option: A precision's option.
-        /// - Returns: The count, or `nil` if `key` holds no value.
-        /// - Throws: `DecodingError.typeMismatch` if the value isn't a number; the decoder's error
-        ///   for a number that isn't whole, which from `JSONDecoder` is `DecodingError.dataCorrupted`
-        ///   with an empty coding path; `DecodingError.dataCorrupted` if the count is outside
-        ///   `allowed`.
-        private static func count(
-            _ key: OptionKeys,
-            allowed: PartialRangeFrom<Int>,
-            in option: Option
-        ) throws -> Int? {
-            guard let count = try option.decodeIfPresent(Int.self, forKey: key) else { return nil }
-            guard allowed.contains(count) else {
-                throw DecodingError.dataCorruptedError(
-                    forKey: key,
-                    in: option,
-                    debugDescription: "Not a valid digit count: \(count). The fewest allowed is \(allowed.lowerBound)."
-                )
-            }
-            return count
-        }
     }
 
     private static let significantDigitKeys: [OptionKeys] = [.minSignificantDigits, .maxSignificantDigits]
     private static let lengthKeys: [OptionKeys] = [
         .minIntegerLength, .maxIntegerLength, .minFractionalLength, .maxFractionalLength,
     ]
-    private static let validLengths: PartialRangeFrom<Int> = 0...
-    private static let validSignificantDigits: PartialRangeFrom<Int> = 1...
 
     /// The most digits Foundation's range factories keep in a closed range's upper bound: 998.
     ///
@@ -437,6 +485,28 @@ struct CodablePrecision: Codable {
 
     func encode(to encoder: any Encoder) throws {
         try precision.encode(to: encoder)
+    }
+
+    /// Returns the digit count at the given key, or `nil` if the key is absent or `null`.
+    ///
+    /// - Parameters:
+    ///   - key: The key to read.
+    ///   - fewest: The fewest digits the count allows.
+    ///   - option: A precision's option.
+    /// - Returns: The count, or `nil` if `key` holds no value.
+    /// - Throws: `DecodingError.typeMismatch` if the value isn't a number; the decoder's error for
+    ///   a number that isn't whole, which from `JSONDecoder` is `DecodingError.dataCorrupted` with
+    ///   an empty coding path; `DecodingError.dataCorrupted` if the count is below `fewest`.
+    private static func digits(at key: OptionKeys, fewest: Int, in option: Option) throws -> Int? {
+        guard let digits = try option.decodeIfPresent(Int.self, forKey: key) else { return nil }
+        guard digits >= fewest else {
+            throw DecodingError.dataCorruptedError(
+                forKey: key,
+                in: option,
+                debugDescription: "Not a valid digit count: \(digits). The fewest allowed is \(fewest)."
+            )
+        }
+        return digits
     }
 
     private static func corrupted(_ option: Option, _ description: String) -> DecodingError {
