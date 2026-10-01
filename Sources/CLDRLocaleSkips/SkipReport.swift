@@ -10,7 +10,7 @@ package struct SkipReport: Equatable, Sendable {
     private let cldrVersion: String
     private let candidates: Int
     private let skipped: [SkippedLocale]
-    private let unusableCurrencyCodes: Set<String>
+    private let unusableCurrencyCodes: Set<UnusableCurrencyCode>
 
     /// - Parameters:
     ///   - cldrVersion: The release the tables were built from.
@@ -21,7 +21,7 @@ package struct SkipReport: Equatable, Sendable {
         cldrVersion: String,
         candidates: Int,
         skipped: [SkippedLocale],
-        unusableCurrencyCodes: Set<String> = []
+        unusableCurrencyCodes: Set<UnusableCurrencyCode> = []
     ) {
         self.cldrVersion = cldrVersion
         self.candidates = candidates
@@ -80,11 +80,26 @@ package struct SkipReport: Equatable, Sendable {
             return []
         }
 
+        let lines = unusableCurrencyCodes.map(Self.line).sorted()
+
         return ["""
             ## Currency codes CLDR names that the tables cannot hold (\(unusableCurrencyCodes.count))
 
-            \(unusableCurrencyCodes.sorted().joined(separator: ", "))
+            \(lines.joined(separator: "\n"))
             """]
+    }
+
+    /// Returns one unusable code as a list item: the code, then why the tables can't hold it.
+    ///
+    /// - Parameter code: The unusable code.
+    /// - Returns: The list item, such as `- USDT: longer than the tables hold`.
+    private static func line(_ code: UnusableCurrencyCode) -> String {
+        switch code {
+        case .notACurrencyCode(let text):
+            "- \(text): not a currency code"
+        case .longerThanTheTablesHold(let currencyCode):
+            "- \(currencyCode): longer than the tables hold"
+        }
     }
 
     private static func entry(_ skipped: SkippedLocale) -> String {

@@ -20,9 +20,25 @@ struct LocaleCurrencyEntriesTests {
             (code: "USD", fields: "$"),
         ])
 
-        #expect(entries.unusableCodes == ["USDT", "SAFEMOON", "G-P", "GB"])
+        #expect(entries.unusableCodes == [
+            .longerThanTheTablesHold("USDT"),
+            .longerThanTheTablesHold("SAFEMOON"),
+            .notACurrencyCode("G-P"),
+            .notACurrencyCode("GB"),
+        ])
         #expect(entries.held.map(\.code) == [gbp, usd])
         #expect(entries.held.map(\.fields) == ["£", "$"])
+    }
+
+    @Test("Text that isn't a currency code is listed as given, and a long code as Core reads it")
+    func listsEachUnusableCodeByItsKind() {
+        let entries = LocaleCurrencyEntries(parsing: [
+            (code: "g-p", fields: "?"),
+            (code: "usdt", fields: "₮"),
+        ])
+
+        #expect(entries.unusableCodes == [.notACurrencyCode("g-p"), .longerThanTheTablesHold("USDT")])
+        #expect(entries.held.isEmpty)
     }
 
     @Test("A code is held under the currency it spells, in any case")
@@ -58,7 +74,7 @@ struct LocaleCurrencyEntriesTests {
             (code: usd, fields: "$"),
         ])
 
-        #expect(entries.unusableCodes == ["USDT"])
+        #expect(entries.unusableCodes == [.longerThanTheTablesHold(usdt)])
         #expect(entries.held.map(\.code) == [try tableCode("GBP"), try tableCode("USD")])
         #expect(entries.held.map(\.fields) == ["£", "$"])
     }
@@ -73,7 +89,7 @@ struct LocaleCurrencyEntriesTests {
 
         let mapped = entries.map { $0 * 10 }
 
-        #expect(mapped.unusableCodes == ["USDT"])
+        #expect(mapped.unusableCodes == [.longerThanTheTablesHold("USDT")])
         #expect(mapped.held.map(\.code) == entries.held.map(\.code))
         #expect(mapped.held.map(\.fields) == [10, 30])
     }

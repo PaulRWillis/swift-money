@@ -7,14 +7,14 @@ import SwiftMoneyLocalization
 /// let published = [(code: "GBP", fields: "£"), (code: "USDT", fields: "₮")]
 /// let entries = LocaleCurrencyEntries(parsing: published)
 /// entries.held.map(\.fields)   // ["£"]
-/// entries.unusableCodes        // ["USDT"]
+/// entries.unusableCodes        // [.longerThanTheTablesHold("USDT")]
 /// ```
 package struct LocaleCurrencyEntries<Fields> {
     /// The entries whose code the tables can hold, in the order they were given.
     package let held: [Entry]
 
-    /// The codes, as CLDR spells them, that the tables can't hold.
-    package let unusableCodes: Set<String>
+    /// The codes the tables can't hold, each with the reason.
+    package let unusableCodes: Set<UnusableCurrencyCode>
 
     /// One currency the tables can hold: the code they file it under, and what CLDR publishes for it.
     package struct Entry {
@@ -41,17 +41,18 @@ package struct LocaleCurrencyEntries<Fields> {
     ///
     /// ```swift
     /// let usdt: CurrencyCode = "USDT"
-    /// LocaleCurrencyEntries([(code: usdt, fields: "₮")]).unusableCodes   // ["USDT"]
+    /// let entries = LocaleCurrencyEntries([(code: usdt, fields: "₮")])
+    /// entries.unusableCodes   // [.longerThanTheTablesHold("USDT")]
     /// ```
     ///
     /// - Parameter published: Each currency's code with its fields, in the order to keep.
     package init(_ published: some Sequence<(code: CurrencyCode, fields: Fields)>) {
         var held: [Entry] = []
-        var unusableCodes: Set<String> = []
+        var unusableCodes: Set<UnusableCurrencyCode> = []
 
         for (currencyCode, fields) in published {
             guard let tableCode = Localization.CurrencyCode(currencyCode) else {
-                unusableCodes.insert(currencyCode.description)
+                unusableCodes.insert(.longerThanTheTablesHold(currencyCode))
                 continue
             }
 
@@ -67,18 +68,19 @@ package struct LocaleCurrencyEntries<Fields> {
     /// only if it has three characters.
     ///
     /// ```swift
-    /// LocaleCurrencyEntries(parsing: [(code: "G-P", fields: "?")]).unusableCodes   // ["G-P"]
+    /// let entries = LocaleCurrencyEntries(parsing: [(code: "G-P", fields: "?")])
+    /// entries.unusableCodes   // [.notACurrencyCode("G-P")]
     /// ```
     ///
     /// - Parameter published: Each currency's code as CLDR spells it, with its fields, in the order
     ///   to keep.
     package init(parsing published: some Sequence<(code: String, fields: Fields)>) {
         var parsed: [(code: CurrencyCode, fields: Fields)] = []
-        var notCurrencyCodes: Set<String> = []
+        var notCurrencyCodes: Set<UnusableCurrencyCode> = []
 
         for (text, fields) in published {
             guard let currencyCode = CurrencyCode(string: text) else {
-                notCurrencyCodes.insert(text)
+                notCurrencyCodes.insert(.notACurrencyCode(text))
                 continue
             }
 
@@ -94,7 +96,7 @@ package struct LocaleCurrencyEntries<Fields> {
     /// - Parameters:
     ///   - held: The entries whose code the tables can hold.
     ///   - unusableCodes: The codes the tables can't hold.
-    private init(held: [Entry], unusableCodes: Set<String>) {
+    private init(held: [Entry], unusableCodes: Set<UnusableCurrencyCode>) {
         self.held = held
         self.unusableCodes = unusableCodes
     }
@@ -107,7 +109,7 @@ package struct LocaleCurrencyEntries<Fields> {
     /// let entries = LocaleCurrencyEntries(parsing: published)
     /// let scaled = entries.map { $0 * 10 }
     /// scaled.held.map(\.fields)   // [10]
-    /// scaled.unusableCodes        // ["USDT"]
+    /// scaled.unusableCodes        // [.longerThanTheTablesHold("USDT")]
     /// ```
     ///
     /// - Parameter transform: The transform applied to each held entry's fields, in order.

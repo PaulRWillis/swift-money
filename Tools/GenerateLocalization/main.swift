@@ -1600,7 +1600,9 @@ let report = SkipReport(
     cldrVersion: cldrVersion,
     candidates: candidates.count,
     skipped: skipped,
-    unusableCurrencyCodes: emitted.reduce(into: Set<String>()) { $0.formUnion($1.tables.unusableCurrencyCodes) }
+    unusableCurrencyCodes: emitted.reduce(into: Set<UnusableCurrencyCode>()) {
+        $0.formUnion($1.tables.unusableCurrencyCodes)
+    }
 )
 
 // MARK: - Swift emission

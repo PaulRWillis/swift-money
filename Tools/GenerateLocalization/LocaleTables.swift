@@ -69,7 +69,7 @@ struct LocaleTables {
     let fullNames: LocaleCurrencyEntries<FullName>
 
     // Codes this locale gives a distinct symbol or a shipped name for that the tables can't hold.
-    var unusableCurrencyCodes: Set<String> {
+    var unusableCurrencyCodes: Set<UnusableCurrencyCode> {
         displays.unusableCodes.union(fullNames.unusableCodes)
     }
 
