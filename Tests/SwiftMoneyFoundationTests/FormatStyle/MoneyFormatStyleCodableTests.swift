@@ -73,26 +73,96 @@ struct MoneyFormatStyleCodableTests {
         (#"{"option":{"maxSignificantDigits":null,"minSignificantDigits":2}}"#, .significantDigits(2...)),
     ]
 
-    private static let invalidPrecisions = [
-        #"{"option":{"maxFractionalLength":1,"maxIntegerLength":null,"minFractionalLength":3,"minIntegerLength":null}}"#,
-        #"{"option":{"maxFractionalLength":null,"maxIntegerLength":1,"minFractionalLength":null,"minIntegerLength":2}}"#,
-        #"{"option":{"maxFractionalLength":-2,"maxIntegerLength":null,"minFractionalLength":-2,"minIntegerLength":null}}"#,
-        #"{"option":{"maxIntegerLength":-1}}"#,
-        #"{"option":{"maxFractionalLength":null,"maxIntegerLength":null,"minFractionalLength":null,"minIntegerLength":null}}"#,
-        #"{"option":{}}"#,
-        #"{"option":{"minFractionalLength":"two","maxFractionalLength":2}}"#,
-        #"{"option":{"maxSignificantDigits":2,"minSignificantDigits":4}}"#,
-        #"{"option":{"maxSignificantDigits":0,"minSignificantDigits":0}}"#,
-        #"{"option":{"maxSignificantDigits":3,"minSignificantDigits":null}}"#,
-        #"{"option":{"minSignificantDigits":2,"maxSignificantDigits":2,"minFractionalLength":1,"maxFractionalLength":1}}"#,
-        #"{"option":{"minSignificantDigits":null,"maxSignificantDigits":null}}"#,
-        #"{"option":{"minSignificantDigits":null,"maxSignificantDigits":null,"minFractionalLength":2,"maxFractionalLength":2}}"#,
-        #"{"option":{"minIntegerLength":1,"maxIntegerLength":1000}}"#,
-        #"{"option":{"minIntegerLength":1000,"maxIntegerLength":2000}}"#,
-        #"{"option":{"maxIntegerLength":1000}}"#,
-        #"{"option":{"minSignificantDigits":1,"maxSignificantDigits":5000}}"#,
-        #"{"option":{"minIntegerLength":1000,"maxIntegerLength":1000,"minFractionalLength":1,"maxFractionalLength":3}}"#,
-        #"{}"#,
+    /// How a decoder refuses a precision, and the key it names.
+    enum Refusal: Equatable, Sendable {
+        /// A value that breaks a precision's rules, at the given key, or `nil` at the top level.
+        case dataCorrupted(at: String?)
+
+        /// A value of the wrong type, at the given key, or `nil` at the top level.
+        case typeMismatch(at: String?)
+
+        /// A missing key.
+        case keyNotFound(String)
+
+        /// Creates the refusal a decoding error reports, or `nil` for any other kind of error.
+        ///
+        /// - Parameter error: The error a decoder threw.
+        init?(_ error: DecodingError) {
+            switch error {
+            case let .dataCorrupted(context):
+                self = .dataCorrupted(at: context.codingPath.last?.stringValue)
+            case let .typeMismatch(_, context):
+                self = .typeMismatch(at: context.codingPath.last?.stringValue)
+            case let .keyNotFound(key, _):
+                self = .keyNotFound(key.stringValue)
+            case .valueNotFound:
+                return nil
+            @unknown default:
+                return nil
+            }
+        }
+    }
+
+    // A refusal names "option" when the option as a whole is wrong.
+    private static let invalidPrecisions: [(json: String, refusal: Refusal)] = [
+        (
+            #"{"option":{"maxFractionalLength":1,"maxIntegerLength":null,"minFractionalLength":3,"minIntegerLength":null}}"#,
+            .dataCorrupted(at: "minFractionalLength")
+        ),
+        (
+            #"{"option":{"maxFractionalLength":null,"maxIntegerLength":1,"minFractionalLength":null,"minIntegerLength":2}}"#,
+            .dataCorrupted(at: "minIntegerLength")
+        ),
+        (
+            #"{"option":{"maxFractionalLength":-2,"maxIntegerLength":null,"minFractionalLength":-2,"minIntegerLength":null}}"#,
+            .dataCorrupted(at: "minFractionalLength")
+        ),
+        (#"{"option":{"maxIntegerLength":-1}}"#, .dataCorrupted(at: "maxIntegerLength")),
+        (
+            #"{"option":{"maxFractionalLength":null,"maxIntegerLength":null,"minFractionalLength":null,"minIntegerLength":null}}"#,
+            .dataCorrupted(at: "option")
+        ),
+        (#"{"option":{}}"#, .dataCorrupted(at: "option")),
+        (#"{"option":{"minFractionalLength":"two","maxFractionalLength":2}}"#, .typeMismatch(at: "minFractionalLength")),
+        // `JSONDecoder` reports a number that isn't whole as data that isn't JSON, with no key.
+        (#"{"option":{"minFractionalLength":2.5,"maxFractionalLength":3}}"#, .dataCorrupted(at: nil)),
+        (#"{"option":{"maxSignificantDigits":2,"minSignificantDigits":4}}"#, .dataCorrupted(at: "minSignificantDigits")),
+        (#"{"option":{"maxSignificantDigits":0,"minSignificantDigits":0}}"#, .dataCorrupted(at: "minSignificantDigits")),
+        (#"{"option":{"maxSignificantDigits":3,"minSignificantDigits":null}}"#, .dataCorrupted(at: "minSignificantDigits")),
+        (
+            #"{"option":{"minSignificantDigits":2,"maxSignificantDigits":2,"minFractionalLength":1,"maxFractionalLength":1}}"#,
+            .dataCorrupted(at: "option")
+        ),
+        // A key whose value is null still names its family: these two pick significant digits.
+        (#"{"option":{"minSignificantDigits":null,"maxSignificantDigits":null}}"#, .dataCorrupted(at: "minSignificantDigits")),
+        (
+            #"{"option":{"minSignificantDigits":null,"maxSignificantDigits":null,"minFractionalLength":2,"maxFractionalLength":2}}"#,
+            .dataCorrupted(at: "option")
+        ),
+        (#"{"option":{"minIntegerLength":1,"maxIntegerLength":999}}"#, .dataCorrupted(at: "maxIntegerLength")),
+        (#"{"option":{"minFractionalLength":1,"maxFractionalLength":999}}"#, .dataCorrupted(at: "maxFractionalLength")),
+        (#"{"option":{"minIntegerLength":1000,"maxIntegerLength":2000}}"#, .dataCorrupted(at: "maxIntegerLength")),
+        (#"{"option":{"minSignificantDigits":2,"maxSignificantDigits":999}}"#, .dataCorrupted(at: "maxSignificantDigits")),
+        (#"{"option":{"minIntegerLength":1000}}"#, .dataCorrupted(at: "minIntegerLength")),
+        (#"{"option":{"minFractionalLength":1000}}"#, .dataCorrupted(at: "minFractionalLength")),
+        (#"{"option":{"minSignificantDigits":1000}}"#, .dataCorrupted(at: "minSignificantDigits")),
+        (#"{"option":{"maxIntegerLength":1000}}"#, .dataCorrupted(at: "maxIntegerLength")),
+        (#"{"option":{"maxFractionalLength":1000}}"#, .dataCorrupted(at: "maxFractionalLength")),
+        (#"{"option":{"minSignificantDigits":1,"maxSignificantDigits":1000}}"#, .dataCorrupted(at: "maxSignificantDigits")),
+        (#"{"option":{"minSignificantDigits":1,"maxSignificantDigits":5000}}"#, .dataCorrupted(at: "maxSignificantDigits")),
+        (
+            #"{"option":{"minIntegerLength":999,"maxIntegerLength":999,"minFractionalLength":1,"maxFractionalLength":3}}"#,
+            .dataCorrupted(at: "maxIntegerLength")
+        ),
+        (
+            #"{"option":{"minIntegerLength":1,"maxIntegerLength":3,"minFractionalLength":999,"maxFractionalLength":999}}"#,
+            .dataCorrupted(at: "maxFractionalLength")
+        ),
+        (
+            #"{"option":{"minIntegerLength":1,"maxIntegerLength":2,"minFractionalLength":1000}}"#,
+            .dataCorrupted(at: "minFractionalLength")
+        ),
+        (#"{}"#, .keyNotFound("option")),
     ]
 
     // Each row holds a precision at the limit Foundation's range factories clamp to, the same one a
@@ -101,6 +171,7 @@ struct MoneyFormatStyleCodableTests {
         (.integerLength(1...998), .integerLength(1...997), .integerLength(1...999)),
         (.fractionLength(1...998), .fractionLength(1...997), .fractionLength(1...999)),
         (.significantDigits(1...998), .significantDigits(1...997), .significantDigits(1...999)),
+        (.significantDigits(2...998), .significantDigits(2...997), .significantDigits(2...999)),
         (.integerLength(999...), .integerLength(998...), .integerLength(1000...)),
         (.fractionLength(999...), .fractionLength(998...), .fractionLength(1000...)),
         (.significantDigits(999...), .significantDigits(998...), .significantDigits(1000...)),
@@ -121,6 +192,16 @@ struct MoneyFormatStyleCodableTests {
             .integerAndFractionLength(integerLimits: 1...2, fractionLimits: 999...),
             .integerAndFractionLength(integerLimits: 1...2, fractionLimits: 998...),
             .integerAndFractionLength(integerLimits: 1...2, fractionLimits: 1000...)
+        ),
+        (
+            .integerAndFractionLength(integerLimits: 1...998, fractionLimits: 1...3),
+            .integerAndFractionLength(integerLimits: 1...997, fractionLimits: 1...3),
+            .integerAndFractionLength(integerLimits: 1...999, fractionLimits: 1...3)
+        ),
+        (
+            .integerAndFractionLength(integerLimits: ...999, fractionLimits: 1...3),
+            .integerAndFractionLength(integerLimits: ...998, fractionLimits: 1...3),
+            .integerAndFractionLength(integerLimits: ...1000, fractionLimits: 1...3)
         ),
     ]
 
@@ -224,11 +305,23 @@ struct MoneyFormatStyleCodableTests {
         #expect(decoded == GBP.FormatStyle().locale(Self.britishEnglish))
     }
 
-    @Test("An invalid precision is refused, decoded data being data", arguments: Self.invalidPrecisions)
-    func refusesAnInvalidPrecision(json: String) throws {
-        #expect(throws: DecodingError.self) {
+    @Test("An invalid precision is refused at the key that breaks it", arguments: Self.invalidPrecisions)
+    func refusesAnInvalidPrecision(json: String, refusal: Refusal) throws {
+        let error = try #require(throws: DecodingError.self) {
             try JSONDecoder().decode(GBP.FormatStyle.self, from: Self.styleJSON(precision: json))
         }
+
+        #expect(Refusal(error) == refusal, "\(error)")
+    }
+
+    @Test(
+        "A precision at Foundation's limit survives a round trip through JSON",
+        arguments: Self.foundationLimits.map(\.atLimit)
+    )
+    func roundTripsAPrecisionAtFoundationsLimit(atLimit: Precision) throws {
+        let sut = GBP.FormatStyle().locale(Self.britishEnglish).precision(atLimit)
+
+        #expect(try Self.decoded(sut) == sut)
     }
 
     @Test(
