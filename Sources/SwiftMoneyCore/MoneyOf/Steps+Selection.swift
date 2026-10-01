@@ -5,8 +5,8 @@ public extension MoneyOf.Steps {
     /// step, and change it by selecting another step:
     ///
     /// ```swift
-    /// let selection = GBP.Steps.Selection(saved, in: steps)    // the nearest step to `saved`
-    /// let top = selection.selecting(3)                          // the fourth step, or nil if none
+    /// let selection = GBP.Steps.Selection(approximating: saved, in: steps)   // the nearest step
+    /// let top = selection.selecting(3)   // the fourth step, or nil if none
     /// ```
     ///
     /// A selection is immutable: selecting returns a new one, which a binding assigns.
@@ -56,8 +56,8 @@ public extension MoneyOf.Steps {
 public extension MoneyOf.Steps.Selection where C: CurrencyType {
     /// Creates the selection of the step an amount rounds to.
     ///
-    /// Rounds as ``MoneyOf/Steps/index(for:rounding:)`` does: to the nearest step by default, or by
-    /// the rule given.
+    /// Rounds as ``MoneyOf/Steps/index(approximating:rounding:)`` does: to the nearest step by
+    /// default, or by the rule given.
     ///
     /// - Parameters:
     ///   - amount: The amount to select, such as a saved one.
@@ -65,11 +65,11 @@ public extension MoneyOf.Steps.Selection where C: CurrencyType {
     ///   - rule: How to choose between the two steps either side of `amount`.
     @inlinable
     init(
-        _ amount: MoneyOf<C>,
+        approximating amount: MoneyOf<C>,
         in steps: MoneyOf<C>.Steps,
         rounding rule: RoundingRule = .toNearestOrEven
     ) {
-        self.init(unchecked: steps, index: steps.index(for: amount, rounding: rule))
+        self.init(unchecked: steps, index: steps.index(approximating: amount, rounding: rule))
     }
 
     /// Returns the selection of the step an amount rounds to, in the same steps.
@@ -79,10 +79,10 @@ public extension MoneyOf.Steps.Selection where C: CurrencyType {
     ///   - rule: How to choose between the two steps either side of `amount`.
     @inlinable
     func selecting(
-        _ amount: MoneyOf<C>,
+        approximating amount: MoneyOf<C>,
         rounding rule: RoundingRule = .toNearestOrEven
     ) -> Self {
-        Self(amount, in: steps, rounding: rule)
+        Self(approximating: amount, in: steps, rounding: rule)
     }
 
     /// Creates a typed selection from a runtime one, if it is in this type's currency.
@@ -100,7 +100,7 @@ public extension MoneyOf.Steps.Selection where C == AnyCurrency {
     /// Creates the selection of the step a runtime amount rounds to, if it is in the steps' currency.
     ///
     /// ```swift
-    /// let selection = try Money.Steps.Selection(saved, in: steps)
+    /// let selection = try Money.Steps.Selection(approximating: saved, in: steps)
     /// ```
     ///
     /// - Parameters:
@@ -111,11 +111,11 @@ public extension MoneyOf.Steps.Selection where C == AnyCurrency {
     ///   the steps' currency as `lhs`.
     @inlinable
     init(
-        _ amount: Money,
+        approximating amount: Money,
         in steps: Money.Steps,
         rounding rule: RoundingRule = .toNearestOrEven
     ) throws(MoneyError) {
-        self.init(unchecked: steps, index: try steps.index(for: amount, rounding: rule))
+        self.init(unchecked: steps, index: try steps.index(approximating: amount, rounding: rule))
     }
 
     /// Returns the selection of the step a runtime amount rounds to, in the same steps.
@@ -127,10 +127,10 @@ public extension MoneyOf.Steps.Selection where C == AnyCurrency {
     ///   the steps' currency as `lhs`.
     @inlinable
     func selecting(
-        _ amount: Money,
+        approximating amount: Money,
         rounding rule: RoundingRule = .toNearestOrEven
     ) throws(MoneyError) -> Self {
-        try Self(amount, in: steps, rounding: rule)
+        try Self(approximating: amount, in: steps, rounding: rule)
     }
 
     /// Creates a runtime selection from a typed one, keeping its steps and position.

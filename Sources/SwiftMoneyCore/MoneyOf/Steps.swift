@@ -15,7 +15,7 @@ public extension MoneyOf {
     /// `count` and the subscript take constant time however many steps there are, as for any
     /// random-access collection. So do `firstIndex(of:)`, `lastIndex(of:)` and `contains(_:)`, which
     /// work out an amount's position from the bounds and the stride rather than stepping through,
-    /// and `index(for:rounding:)`, which rounds an amount between two steps to one of them.
+    /// and `index(approximating:rounding:)`, which rounds an amount between two steps to one of them.
     ///
     /// Two sets of steps are equal when they hold the same amounts, in the same order and the same
     /// currency. A stride longer than the span gives the same steps as a stride of the span itself, so
@@ -458,8 +458,8 @@ public extension MoneyOf.Steps where C: CurrencyType {
     /// The rule says which:
     ///
     /// ```swift
-    /// steps.index(for: saved)                     // the nearest step, ties to the even index
-    /// steps.index(for: saved, rounding: .down)    // the highest step at or below `saved`
+    /// steps.index(approximating: saved)                    // the nearest step
+    /// steps.index(approximating: saved, rounding: .down)   // the highest step at or below `saved`
     /// ```
     ///
     /// `.down` takes the step at or below the amount and `.up` the one at or above. `.towardZero`
@@ -480,7 +480,7 @@ public extension MoneyOf.Steps where C: CurrencyType {
     /// - Complexity: O(1).
     @inlinable
     func index(
-        for amount: MoneyOf<C>,
+        approximating amount: MoneyOf<C>,
         rounding rule: RoundingRule = .toNearestOrEven
     ) -> Index {
         Index(offset: offset(rounding: amount.minorUnits, rule))
@@ -546,10 +546,10 @@ public extension MoneyOf.Steps where C == AnyCurrency {
 
     /// Returns the position of the step a runtime amount rounds to, if it is in the steps' currency.
     ///
-    /// Rounds as the typed `index(for:rounding:)` does:
+    /// Rounds as the typed `index(approximating:rounding:)` does:
     ///
     /// ```swift
-    /// let position = try steps.index(for: saved, rounding: .down)
+    /// let position = try steps.index(approximating: saved, rounding: .down)
     /// ```
     ///
     /// - Parameters:
@@ -561,7 +561,7 @@ public extension MoneyOf.Steps where C == AnyCurrency {
     /// - Complexity: O(1).
     @inlinable
     func index(
-        for amount: Money,
+        approximating amount: Money,
         rounding rule: RoundingRule = .toNearestOrEven
     ) throws(MoneyError) -> Index {
         try AnyCurrency.requireMatch(storage, amount.storage)

@@ -114,7 +114,7 @@ struct StepsPropertyTests {
         #expect(first == (try runtimeSteps(sample, by: sample.stride)))
     }
 
-    @Test("index(for:rounding:) picks the step a search of every step picks, under every rule", arguments: stepsCases)
+    @Test("index(approximating:rounding:) picks the step a search of every step picks, under every rule", arguments: stepsCases)
     private func indexForAmountMatchesSearch(_ sample: StepsCase) throws {
         let steps = try runtimeSteps(sample, by: sample.stride)
         let rules: [RoundingRule] = [.down, .up, .towardZero, .awayFromZero, .toNearestOrEven, .toNearestOrAwayFromZero]
@@ -122,7 +122,7 @@ struct StepsPropertyTests {
         for probe in probes(around: steps) {
             let amount = Money(minorUnits: probe, currency: sample.currency)
             for rule in rules {
-                let found = try steps.index(for: amount, rounding: rule)
+                let found = try steps.index(approximating: amount, rounding: rule)
                 #expect(found == searchedIndex(for: probe, in: steps, rounding: rule), "\(probe) by \(rule)")
             }
         }
@@ -133,7 +133,7 @@ struct StepsPropertyTests {
         let steps = try runtimeSteps(sample, by: sample.stride)
 
         for probe in probes(around: steps) {
-            let selection = try Money.Steps.Selection(Money(minorUnits: probe, currency: sample.currency), in: steps)
+            let selection = try Money.Steps.Selection(approximating: Money(minorUnits: probe, currency: sample.currency), in: steps)
             #expect(selection.amount == steps[selection.index])
             #expect(selection.selecting(selection.index) == selection)
         }

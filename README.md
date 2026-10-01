@@ -169,7 +169,7 @@ var steps = try Money.Steps(
 )
 
 // The saved amount, rounded onto the nearest step
-let selection = try Money.Steps.Selection(saved, in: steps)
+let selection = try Money.Steps.Selection(approximating: saved, in: steps)
 selection.amount
 selection.selecting(0)   // the first step, or nil for a position not in the steps
 ```
@@ -260,9 +260,9 @@ is visible. It defaults to the nearest step, ties to the even index, as elsewher
 let steps = try limits.steps(by: .majorUnits(10))
 let saved = GBP(minorUnits: 123_45)
 
-steps.index(for: saved)                    // the nearest step
-steps.index(for: saved, rounding: .down)   // never above the saved amount
-steps.firstIndex(of: saved)                // an exact match only, or nil
+steps.index(approximating: saved)                    // the nearest step
+steps.index(approximating: saved, rounding: .down)   // never above the saved amount
+steps.firstIndex(of: saved)                          // an exact match only, or nil
 ```
 
 `stride(from:through:by:)` and `stride(from:to:by:)` work too, with the standard library's behavior

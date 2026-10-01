@@ -2011,7 +2011,7 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         var index = 0
 
         for _ in benchmark.scaledIterations {
-            blackHole(typedSteps[index % typedSteps.count].index(for: offStepProbes[(index / 10) % offStepProbes.count]))
+            blackHole(typedSteps[index % typedSteps.count].index(approximating: offStepProbes[(index / 10) % offStepProbes.count]))
             index &+= 1
         }
     }
@@ -2021,7 +2021,7 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
 
         do {
             for _ in benchmark.scaledIterations {
-                blackHole(try runtimeSteps[index % runtimeSteps.count].index(for: runtimeOffStepProbes[(index / 10) % runtimeOffStepProbes.count]))
+                blackHole(try runtimeSteps[index % runtimeSteps.count].index(approximating: runtimeOffStepProbes[(index / 10) % runtimeOffStepProbes.count]))
                 index &+= 1
             }
         } catch {
@@ -2033,7 +2033,7 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         var index = 0
 
         for _ in benchmark.scaledIterations {
-            blackHole(typedSteps[index % typedSteps.count].index(for: offStepProbes[(index / 10) % offStepProbes.count], rounding: .down))
+            blackHole(typedSteps[index % typedSteps.count].index(approximating: offStepProbes[(index / 10) % offStepProbes.count], rounding: .down))
             index &+= 1
         }
     }
@@ -2043,7 +2043,7 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
 
         do {
             for _ in benchmark.scaledIterations {
-                blackHole(try runtimeSteps[index % runtimeSteps.count].index(for: runtimeOffStepProbes[(index / 10) % runtimeOffStepProbes.count], rounding: .down))
+                blackHole(try runtimeSteps[index % runtimeSteps.count].index(approximating: runtimeOffStepProbes[(index / 10) % runtimeOffStepProbes.count], rounding: .down))
                 index &+= 1
             }
         } catch {
@@ -2051,14 +2051,14 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         }
     }
 
-    let typedSelections = zip(typedSteps, offStepProbes).map { GBP.Steps.Selection($1, in: $0) }
+    let typedSelections = zip(typedSteps, offStepProbes).map { GBP.Steps.Selection(approximating: $1, in: $0) }
     let runtimeSelections = typedSelections.map { Money.Steps.Selection($0) }
 
     Benchmark("MoneyOf.Steps.Selection from an amount", configuration: configuration) { benchmark in
         var index = 0
 
         for _ in benchmark.scaledIterations {
-            blackHole(GBP.Steps.Selection(offStepProbes[(index / 10) % offStepProbes.count], in: typedSteps[index % typedSteps.count]))
+            blackHole(GBP.Steps.Selection(approximating: offStepProbes[(index / 10) % offStepProbes.count], in: typedSteps[index % typedSteps.count]))
             index &+= 1
         }
     }
@@ -2068,7 +2068,7 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
 
         do {
             for _ in benchmark.scaledIterations {
-                blackHole(try Money.Steps.Selection(runtimeOffStepProbes[(index / 10) % runtimeOffStepProbes.count], in: runtimeSteps[index % runtimeSteps.count]))
+                blackHole(try Money.Steps.Selection(approximating: runtimeOffStepProbes[(index / 10) % runtimeOffStepProbes.count], in: runtimeSteps[index % runtimeSteps.count]))
                 index &+= 1
             }
         } catch {
@@ -2118,7 +2118,7 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         var index = 0
 
         for _ in benchmark.scaledIterations {
-            blackHole(typedSelections[index % typedSelections.count].selecting(offStepProbes[(index / 10) % offStepProbes.count], rounding: .down))
+            blackHole(typedSelections[index % typedSelections.count].selecting(approximating: offStepProbes[(index / 10) % offStepProbes.count], rounding: .down))
             index &+= 1
         }
     }
@@ -2128,7 +2128,7 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
 
         do {
             for _ in benchmark.scaledIterations {
-                blackHole(try runtimeSelections[index % runtimeSelections.count].selecting(runtimeOffStepProbes[(index / 10) % runtimeOffStepProbes.count], rounding: .down))
+                blackHole(try runtimeSelections[index % runtimeSelections.count].selecting(approximating: runtimeOffStepProbes[(index / 10) % runtimeOffStepProbes.count], rounding: .down))
                 index &+= 1
             }
         } catch {
