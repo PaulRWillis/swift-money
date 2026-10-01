@@ -13,6 +13,10 @@
 ///     }
 /// }
 /// ```
+///
+/// - Note: Building a range and calling a runtime range's `contains` in one `do` widens the
+///   thrown type to `any Error`, because building throws this type and `contains` throws
+///   ``MoneyError``.
 public enum MoneyRangeParsingError<C: CurrencyRepresentation>: Error, Hashable, Sendable {
     /// The bound given as the lower one is above the one given as the upper, with both as given.
     case invertedBounds(lowerBound: MoneyOf<C>, upperBound: MoneyOf<C>)
