@@ -103,12 +103,16 @@ struct SkipReportTests {
         let rendered = Self.report(unusableCurrencyCodes: [
             .longerThanTheTablesHold("USDT"),
             .notACurrencyCode("G-P"),
+            .longerThanTheTablesHold("SAFEMOON"),
+            .notACurrencyCode("GB"),
         ]).rendered
 
         #expect(rendered.hasSuffix("""
-            ## Currency codes CLDR names that the tables cannot hold (2)
+            ## Currency codes CLDR names that the tables cannot hold (4)
 
             - G-P: not a currency code
+            - GB: not a currency code
+            - SAFEMOON: longer than the tables hold
             - USDT: longer than the tables hold
 
             """))

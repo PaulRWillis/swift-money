@@ -40,8 +40,8 @@ package struct CurrencyDisplayTable: Sendable {
         self.directoryOffset = directoryOffset
     }
 
-    /// How `code` is displayed in the locale at `localeIndex`, or `nil` if it has no distinct symbol
-    /// there (the caller then falls back to the code) or if the tables can't hold `code`.
+    /// How `code` is displayed in the locale at `localeIndex`, or `nil` if it has no distinct
+    /// symbol there (the caller then falls back to the code) or if the tables can't hold `code`.
     package func display(localeIndex: LocaleIndex, code: CurrencyCode) -> CurrencyDisplay? {
         guard let tableCode = Localization.CurrencyCode(code) else {
             return nil

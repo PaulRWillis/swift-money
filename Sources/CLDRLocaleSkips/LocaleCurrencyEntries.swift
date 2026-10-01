@@ -66,7 +66,8 @@ package struct LocaleCurrencyEntries<Fields> {
     /// Creates the split of a locale's entries from codes as CLDR spells them.
     ///
     /// Parses each code as `CurrencyCode(string:)` does, lowercase included, and holds the
-    /// three-character ones. The rest go in ``unusableCodes``, text that isn't a code as given.
+    /// three-character ones. Lists the rest in ``unusableCodes``; text that isn't a currency code
+    /// keeps its spelling.
     ///
     /// ```swift
     /// let entries = LocaleCurrencyEntries(parsing: [(code: "G-P", fields: "?")])

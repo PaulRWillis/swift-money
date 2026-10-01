@@ -96,4 +96,23 @@ struct LocaleCurrencyEntriesTests {
         #expect(mapped.held.map(\.code) == entries.held.map(\.code))
         #expect(mapped.held.map(\.fields) == [10, 30])
     }
+
+    @Test("A map whose transform throws on one entry throws that entry's error")
+    func mapThrowsTheTransformsError() {
+        let entries = LocaleCurrencyEntries(parsing: [
+            (code: "GBP", fields: "£"),
+            (code: "USD", fields: "$"),
+            (code: "EUR", fields: "€"),
+        ])
+
+        #expect(throws: LocaleSkip.unrepresentableGap("\t", symbol: "$")) {
+            try entries.map { (symbol: String) throws(LocaleSkip) -> String in
+                guard symbol != "$" else {
+                    throw .unrepresentableGap("\t", symbol: symbol)
+                }
+
+                return symbol
+            }
+        }
+    }
 }

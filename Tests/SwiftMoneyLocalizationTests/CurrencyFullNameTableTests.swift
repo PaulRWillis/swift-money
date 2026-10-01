@@ -11,7 +11,7 @@ struct CurrencyFullNameTableTests {
     /// `.one` override).
     ///
     /// - Returns: The blob's bytes, and the offset of its directory.
-    /// - Throws: The error `#require` throws if the tables can't hold a fixture's code.
+    /// - Throws: The error `#require` throws if a fixture's code isn't one the tables hold.
     static func makeBlob() throws -> (bytes: [UInt8], directoryOffset: Int) {
         var b = BlobTestBuilder()
         let eur = try tableCode("EUR")
