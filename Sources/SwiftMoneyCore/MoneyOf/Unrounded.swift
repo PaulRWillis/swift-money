@@ -95,7 +95,7 @@ public extension MoneyOf.Unrounded where C: CurrencyType {
     ///
     /// - Parameter parts: The number of equal parts to divide this amount into.
     @inlinable func divided(by parts: PartCount) -> Self {
-        Self(minorUnits.divided(by: Int128(Int(parts))), storage: .implied)
+        Self(minorUnits.divided(by: Fixed.Divisor(parts)), storage: .implied)
     }
 
     /// Returns this amount settled to a whole number of the currency's smallest unit, within one of the
@@ -240,7 +240,7 @@ public extension MoneyOf.Unrounded where C == AnyCurrency {
     ///
     /// - Parameter parts: The number of equal parts to divide this amount into.
     @inlinable func divided(by parts: PartCount) -> Self {
-        Self(minorUnits.divided(by: Int128(Int(parts))), storage: storage)
+        Self(minorUnits.divided(by: Fixed.Divisor(parts)), storage: storage)
     }
 
     /// Returns the sum of two unrounded amounts, keeping both fractions.

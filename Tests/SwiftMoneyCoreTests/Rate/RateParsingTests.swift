@@ -28,7 +28,7 @@ struct RateParsingTests {
     }
 
     @Test("Malformed strings return nil", arguments: [
-        "", "abc", "1.2.3", "1e3", "1/0", "1/2/3", "1/3%", ".", "-", "%",
+        "", "abc", "1.2.3", "1e3", "1/0", "1/-3", "1/2/3", "1/3%", ".", "-", "%",
     ])
     func malformedReturnsNil(_ text: String) {
         #expect(Rate(string: text) == nil)
