@@ -47,7 +47,7 @@ public struct MoneyRange: Equatable, Hashable, Sendable {
             throw .invertedBounds(lowerBound: bounds.lower, upperBound: bounds.upper)
         }
 
-        self.init(unchecked: currency, minorUnits: bounds.lower.minorUnits ..< bounds.upper.minorUnits)
+        self.init(currency: currency, minorUnits: bounds.lower.minorUnits ..< bounds.upper.minorUnits)
     }
 
     /// Creates a runtime range from a typed one, keeping its bounds and currency.
@@ -55,13 +55,17 @@ public struct MoneyRange: Equatable, Hashable, Sendable {
     /// - Parameter typed: The range whose currency is fixed by its bounds' type.
     @inlinable
     public init<C: CurrencyType>(_ typed: Range<MoneyOf<C>>) {
-        self.init(unchecked: C.currency, minorUnits: typed.lowerBound.minorUnits ..< typed.upperBound.minorUnits)
+        self.init(currency: C.currency, minorUnits: typed.lowerBound.minorUnits ..< typed.upperBound.minorUnits)
     }
 
-    // No check: for call sites that already hold ordered bounds in one currency.
+    /// Creates a half-open range of amounts in one currency from a range of minor units.
+    ///
+    /// - Parameters:
+    ///   - currency: The currency of both bounds.
+    ///   - minorUnits: The bounds, in minor units of `currency`.
     @usableFromInline
     init(
-        unchecked currency: Currency,
+        currency: Currency,
         minorUnits: Range<Money.MinorUnits>
     ) {
         _currency = currency
