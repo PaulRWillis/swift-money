@@ -526,6 +526,19 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         }
     }
 
+    Benchmark("CurrencyType storage for a field", configuration: configuration) { benchmark in
+        let fields: [CurrencyField] = [
+            .custom(code: "GBP", rawScale: 2), .code("GBP"), .custom(code: "GBP", rawScale: 3),
+            .none, .custom(code: "USD", rawScale: 2),
+        ]
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Currencies.GBP.storage(for: fields[index % fields.count]))
+            index &+= 1
+        }
+    }
+
     Benchmark("UnitScale from decimal places", configuration: configuration) { benchmark in
         var places = 0
 

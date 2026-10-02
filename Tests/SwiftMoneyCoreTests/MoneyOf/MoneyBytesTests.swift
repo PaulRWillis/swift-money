@@ -130,6 +130,32 @@ struct MoneyBytesTests {
         #expect(Money(bytes: Self.bytes(raw)) == nil)
     }
 
+    @Test("A runtime amount refuses a code with a character after an empty slot")
+    func runtimeRefusesACharacterAfterAnEmptySlot() {
+        guard #available(macOS 26, iOS 26, watchOS 26, tvOS 26, visionOS 26, *) else { return }
+
+        let raw: [UInt8] = [
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0xF3,  // Int64 499, big-endian
+            0x1C, 0x24, 0x00, 0x00, 0x00, 0x01,              // "GBP", empty slots, then "A" in the last
+            0x02,                                            // two decimal places
+        ]
+
+        #expect(Money(bytes: Self.bytes(raw)) == nil)
+    }
+
+    @Test("A typed amount refuses a code with a character after an empty slot")
+    func typedRefusesACharacterAfterAnEmptySlot() {
+        guard #available(macOS 26, iOS 26, watchOS 26, tvOS 26, visionOS 26, *) else { return }
+
+        let raw: [UInt8] = [
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0xF3,  // Int64 499, big-endian
+            0x1C, 0x24, 0x00, 0x00, 0x00, 0x01,              // "GBP", empty slots, then "A" in the last
+            0x02,                                            // two decimal places
+        ]
+
+        #expect(GBP(bytes: Self.bytes(raw)) == nil)
+    }
+
     // A shipped code carries its own scale, so bytes pairing it with a different scale are corrupt: the
     // scale is a valid number of places, but not this currency's. The runtime decoder must reject them
     // rather than mint a second, incompatible sterling.

@@ -35,7 +35,7 @@ public struct ExchangeRate<From: CurrencyType, To: CurrencyType>: Sendable, Equa
         // divide that follows only shrinks an already-representable value, so it cannot.
         guard let scaled = marketRate.value
             .multipliedIfRepresentable(by: Int128(Int64(To.currency.unitScale)))?
-            .divided(by: Int128(Int64(From.currency.unitScale))) else {
+            .divided(by: Fixed.Divisor(From.currency.unitScale)) else {
             return nil
         }
 
