@@ -173,4 +173,113 @@ struct SplitTests {
         #expect(Array(split.amounts) == [GBP(minorUnits: -4), GBP(minorUnits: -3), GBP(minorUnits: -3),])
     }
 
+    @Test("A zero split into the most parts reports that count")
+    func zeroIntoMostParts() throws {
+        let maxParts = try #require(PartCount(exactly: .max))
+
+        let split = GBP(minorUnits: 0).split(into: maxParts)
+
+        #expect(split.count == maxParts)
+        guard case let .even(group) = split else {
+            Issue.record("Expected an even split")
+            return
+        }
+        #expect(group.count == maxParts)
+        #expect(group.amount == GBP(minorUnits: 0))
+    }
+
+    @Test("A one-unit refund into the most parts has one part of -1 and the rest zero")
+    func refundIntoMostParts() throws {
+        let maxParts = try #require(PartCount(exactly: .max))
+        let smallerCount = try #require(PartCount(exactly: .max - 1))
+
+        let split = GBP(minorUnits: -1).split(into: maxParts)
+
+        #expect(split.count == maxParts)
+        var iterator = split.amounts.makeIterator()
+        #expect(iterator.next() == GBP(minorUnits: -1))
+        #expect(iterator.next() == GBP(minorUnits: 0))
+        guard case let .uneven(larger, smaller) = split else {
+            Issue.record("Expected an uneven split")
+            return
+        }
+        #expect(larger.count == 1)
+        #expect(larger.amount == GBP(minorUnits: -1))
+        #expect(smaller.count == smallerCount)
+        #expect(smaller.amount == GBP(minorUnits: 0))
+    }
+
+    #if _pointerBitWidth(_64)
+    @Test("The smallest amount into the most parts has one part of -2 and the rest -1")
+    func smallestAmountIntoMostParts() throws {
+        let maxParts = try #require(PartCount(exactly: .max))
+        let smallerCount = try #require(PartCount(exactly: .max - 1))
+
+        let split = GBP.min.split(into: maxParts)
+
+        #expect(split.count == maxParts)
+        var iterator = split.amounts.makeIterator()
+        #expect(iterator.next() == GBP(minorUnits: -2))
+        #expect(iterator.next() == GBP(minorUnits: -1))
+        guard case let .uneven(larger, smaller) = split else {
+            Issue.record("Expected an uneven split")
+            return
+        }
+        #expect(larger.count == 1)
+        #expect(larger.amount == GBP(minorUnits: -2))
+        #expect(smaller.count == smallerCount)
+        #expect(smaller.amount == GBP(minorUnits: -1))
+        #expect(Int(larger.count) + Int(smaller.count) == Int.max)
+    }
+
+    @Test("The largest amount into the most parts is even")
+    func largestAmountIntoMostPartsIsEven() throws {
+        let maxParts = try #require(PartCount(exactly: .max))
+
+        let split = GBP.max.split(into: maxParts)
+
+        guard case let .even(group) = split else {
+            Issue.record("Expected an even split")
+            return
+        }
+        #expect(group.count == maxParts)
+        #expect(group.amount == GBP(minorUnits: 1))
+    }
+    #endif
+
+    @Test("The smallest amount into three")
+    func smallestAmountIntoThree() {
+        let split = GBP.min.split(into: 3)
+
+        #expect(split.amounts.reduce(GBP.zero, +) == GBP.min)
+        guard case let .uneven(larger, smaller) = split else {
+            Issue.record("Expected an uneven split")
+            return
+        }
+        #expect(larger.count == 2)
+        #expect(larger.amount == GBP(minorUnits: -3_074_457_345_618_258_603))
+        #expect(smaller.count == 1)
+        #expect(smaller.amount == GBP(minorUnits: -3_074_457_345_618_258_602))
+    }
+
+    @Test("The largest amount into three")
+    func largestAmountIntoThree() {
+        let split = GBP.max.split(into: 3)
+
+        #expect(split.amounts.reduce(GBP.zero, +) == GBP.max)
+        guard case let .uneven(larger, smaller) = split else {
+            Issue.record("Expected an uneven split")
+            return
+        }
+        #expect(larger.count == 1)
+        #expect(larger.amount == GBP(minorUnits: 3_074_457_345_618_258_603))
+        #expect(smaller.count == 2)
+        #expect(smaller.amount == GBP(minorUnits: 3_074_457_345_618_258_602))
+    }
+
+    @Test("An uneven refund reports its part count")
+    func unevenRefundReportsItsPartCount() {
+        #expect(GBP(minorUnits: -10).split(into: 3).count == 3)
+    }
+
 }
