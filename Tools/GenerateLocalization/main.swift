@@ -841,7 +841,7 @@ func fullNameLayout(_ patterns: [String: String], locale: String) throws(LocaleS
 // What a locale calls one currency: the name CLDR always publishes, and any form that differs from
 // it. A form equal to `other` is left out, since it resolves to `other` anyway.
 struct FullName {
-    let code: String
+    let code: CurrencyCode
     let other: String
     let byCategory: [PluralCategory: String]
 }
@@ -850,8 +850,8 @@ struct FullName {
 // out, and the runtime falls back for it.
 func fullNames(_ currencies: [String: [String: String]]) -> [FullName] {
     Currency.allISO4217.compactMap { currency in
-        let code = String(currency.code)
-        guard let fields = currencies[code], let other = fields["displayName-count-other"] else {
+        guard let fields = currencies[String(currency.code)],
+              let other = fields["displayName-count-other"] else {
             return nil
         }
 
@@ -862,7 +862,7 @@ func fullNames(_ currencies: [String: [String: String]]) -> [FullName] {
             names[category] = name
         }
 
-        return FullName(code: code, other: other, byCategory: byCategory)
+        return FullName(code: currency.code, other: other, byCategory: byCategory)
     }
 }
 
@@ -1164,9 +1164,8 @@ func tables(for locale: String, unusableLanguages: [String: LocaleSkip]) throws(
                 negative: .defaultLeadingSign, accounting: alpha.accounting
             )
         },
-        displays: symbolForms.records,
-        fullNames: names.records,
-        unusableCurrencyCodes: symbolForms.unusableCodes.union(names.unusableCodes),
+        displays: symbolForms,
+        fullNames: names,
         numberingOverrides: numberingOverrides(of: n, locale: locale)
     )
 }
@@ -1297,65 +1296,51 @@ func displays(
     of locale: String,
     parsed: ParsedPattern,
     insertBetween: String
-) throws(LocaleSkip) -> (records: [LocaleTables.Display], unusableCodes: Set<String>) {
-    var records: [LocaleTables.Display] = []
-    var unusableCodes: Set<String> = []
-
-    for (code, fields) in currencies(locale).sorted(by: { $0.key < $1.key }) {
+) throws(LocaleSkip) -> LocaleCurrencyEntries<LocaleTables.Display> {
+    let sorted = currencies(locale).sorted { $0.key < $1.key }
+    let distinct = sorted.compactMap { code, fields -> (code: String, fields: CurrencySymbols)? in
         let symbol = fields["symbol"] ?? code
         let narrow = fields["symbol-alt-narrow"] ?? symbol
         guard symbol != code || narrow != code else {
-            continue   // neither form is distinct; the runtime falls back to the code
-        }
-        guard let currencyCode = CurrencyCode(string: code) else {
-            unusableCodes.insert(code)
-            continue
+            return nil   // neither form is distinct; the runtime falls back to the code
         }
 
-        let gap = { (form: String) throws(LocaleSkip) -> Spacing in
-            try spacingCode(
-                for: form,
-                side: parsed.side,
-                patternSpacing: parsed.patternSpacing,
-                insertBetween: insertBetween
-            )
-        }
-
-        records.append(LocaleTables.Display(
-            code: currencyCode,
-            standardSymbol: symbol,
-            standardSpacing: try gap(symbol),
-            standardForm: symbolForm(for: symbol, side: parsed.side),
-            narrowSymbol: narrow,
-            narrowSpacing: try gap(narrow),
-            narrowForm: symbolForm(for: narrow, side: parsed.side)
-        ))
+        return (code, CurrencySymbols(symbol: symbol, narrow: narrow))
     }
 
-    return (records, unusableCodes)
+    let gap = { (form: String) throws(LocaleSkip) -> Spacing in
+        try spacingCode(
+            for: form,
+            side: parsed.side,
+            patternSpacing: parsed.patternSpacing,
+            insertBetween: insertBetween
+        )
+    }
+
+    return try LocaleCurrencyEntries(parsing: distinct).map { symbols throws(LocaleSkip) in
+        LocaleTables.Display(
+            standardSymbol: symbols.symbol,
+            standardSpacing: try gap(symbols.symbol),
+            standardForm: symbolForm(for: symbols.symbol, side: parsed.side),
+            narrowSymbol: symbols.narrow,
+            narrowSpacing: try gap(symbols.narrow),
+            narrowForm: symbolForm(for: symbols.narrow, side: parsed.side)
+        )
+    }
 }
 
 // What a locale calls each currency in words, in the order `Currency.allISO4217` lists them.
-func fullNameRecords(of locale: String) -> (records: [LocaleTables.FullName], unusableCodes: Set<String>) {
-    var records: [LocaleTables.FullName] = []
-    var unusableCodes: Set<String> = []
+func fullNameRecords(of locale: String) -> LocaleCurrencyEntries<LocaleTables.FullName> {
+    let names = fullNames(currencies(locale)).map { (code: $0.code, fields: $0) }
 
-    for name in fullNames(currencies(locale)) {
-        guard let code = CurrencyCode(string: name.code) else {
-            unusableCodes.insert(name.code)
-            continue
-        }
-
-        records.append(LocaleTables.FullName(
-            code: code,
+    return LocaleCurrencyEntries(names).map { name in
+        LocaleTables.FullName(
             other: name.other,
             overrides: PluralCategory.allCases.compactMap { category in
                 name.byCategory[category].map { (category, $0) }
             }
-        ))
+        )
     }
-
-    return (records, unusableCodes)
 }
 
 // The script each language implies, so that a locale's data is filed under the identifier a caller
@@ -1456,23 +1441,23 @@ func pack(
         latnMinusSign: pool.insert(tables.latnMinusSign)
     )
 
-    let displays = tables.displays.map { display in
+    let displays = tables.displays.held.map { entry in
         PackedLocale.Display(
-            code: display.code,
-            standardSymbol: pool.insert(display.standardSymbol),
-            standardSpacing: display.standardSpacing,
-            standardForm: display.standardForm,
-            narrowSymbol: pool.insert(display.narrowSymbol),
-            narrowSpacing: display.narrowSpacing,
-            narrowForm: display.narrowForm
+            code: entry.code,
+            standardSymbol: pool.insert(entry.fields.standardSymbol),
+            standardSpacing: entry.fields.standardSpacing,
+            standardForm: entry.fields.standardForm,
+            narrowSymbol: pool.insert(entry.fields.narrowSymbol),
+            narrowSpacing: entry.fields.narrowSpacing,
+            narrowForm: entry.fields.narrowForm
         )
     }
 
-    let names = tables.fullNames.map { name in
+    let names = tables.fullNames.held.map { entry in
         PackedLocale.FullName(
-            code: name.code,
-            other: pool.insert(name.other),
-            overrides: name.overrides.map { ($0.category, pool.insert($0.name)) }
+            code: entry.code,
+            other: pool.insert(entry.fields.other),
+            overrides: entry.fields.overrides.map { ($0.category, pool.insert($0.name)) }
         )
     }
 
@@ -1480,8 +1465,8 @@ func pack(
     return PackedLocale(
         key: pool.insert(locale),
         numberFormat: numberFormat,
-        displays: displays.sorted { $0.code.compactValue < $1.code.compactValue },
-        fullNames: names.sorted { $0.code.compactValue < $1.code.compactValue }
+        displays: displays.sorted { $0.code < $1.code },
+        fullNames: names.sorted { $0.code < $1.code }
     )
 }
 
@@ -1615,7 +1600,9 @@ let report = SkipReport(
     cldrVersion: cldrVersion,
     candidates: candidates.count,
     skipped: skipped,
-    unusableCurrencyCodes: emitted.reduce(into: Set<String>()) { $0.formUnion($1.tables.unusableCurrencyCodes) }
+    unusableCurrencyCodes: emitted.reduce(into: Set<UnusableCurrencyCode>()) {
+        $0.formUnion($1.tables.unusableCurrencyCodes)
+    }
 )
 
 // MARK: - Swift emission

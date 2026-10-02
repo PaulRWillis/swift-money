@@ -131,6 +131,34 @@ struct UnroundedBytesTests {
         #expect(Money.Unrounded(bytes: Self.bytes(raw)) == nil)
     }
 
+    @Test("A runtime amount refuses a code with a character after an empty slot")
+    func runtimeRefusesACharacterAfterAnEmptySlot() {
+        guard #available(macOS 26, iOS 26, watchOS 26, tvOS 26, visionOS 26, *) else { return }
+
+        let raw: [UInt8] = [
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // one minor unit, widened to 10^18
+            0x0D, 0xE0, 0xB6, 0xB3, 0xA7, 0x64, 0x00, 0x00,
+            0x1C, 0x24, 0x00, 0x00, 0x00, 0x01,              // "GBP", empty slots, then "A" in the last
+            0x02,                                            // two decimal places
+        ]
+
+        #expect(Money.Unrounded(bytes: Self.bytes(raw)) == nil)
+    }
+
+    @Test("A typed amount refuses a code with a character after an empty slot")
+    func typedRefusesACharacterAfterAnEmptySlot() {
+        guard #available(macOS 26, iOS 26, watchOS 26, tvOS 26, visionOS 26, *) else { return }
+
+        let raw: [UInt8] = [
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // one minor unit, widened to 10^18
+            0x0D, 0xE0, 0xB6, 0xB3, 0xA7, 0x64, 0x00, 0x00,
+            0x1C, 0x24, 0x00, 0x00, 0x00, 0x01,              // "GBP", empty slots, then "A" in the last
+            0x02,                                            // two decimal places
+        ]
+
+        #expect(GBP.Unrounded(bytes: Self.bytes(raw)) == nil)
+    }
+
     @Test("A shipped code at a scale it is not shipped at is refused")
     func shippedCodeAtWrongScaleIsRefused() {
         guard #available(macOS 26, iOS 26, watchOS 26, tvOS 26, visionOS 26, *) else { return }

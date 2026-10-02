@@ -1,4 +1,3 @@
-import SwiftMoneyCore
 import SwiftMoneyLocalization
 
 // One locale's data in the shape the packed tables hold it: strings already pooled, patterns already
@@ -38,7 +37,7 @@ struct PackedLocale {
     // One currency's symbols in this locale, each with the spacing CLDR resolves for it and whether a
     // letter touches the number in each.
     struct Display {
-        let code: CurrencyCode
+        let code: Localization.CurrencyCode
         let standardSymbol: StringRef
         let standardSpacing: Spacing
         let standardForm: SymbolForm
@@ -50,7 +49,7 @@ struct PackedLocale {
     // What this locale calls one currency: the name it always publishes, and any category that names it
     // differently.
     struct FullName {
-        let code: CurrencyCode
+        let code: Localization.CurrencyCode
         let other: StringRef
         let overrides: [(category: PluralCategory, name: StringRef)]
     }

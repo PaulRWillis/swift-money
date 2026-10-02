@@ -170,6 +170,15 @@ extension MoneyOf: Codable {
         let rawScale = try container.decodeIfPresent(Int.self, forKey: Self.scaleKey)
         let field = CurrencyField(code: code, rawScale: rawScale)
 
+        if let rawScale, let expected = currencyCheckingScale(forCode: code),
+           UnitScale(decimalPlaces: rawScale) != expected.unitScale {
+            throw DecodingError.dataCorruptedError(
+                forKey: Self.scaleKey,
+                in: container,
+                debugDescription: Self.refusal(ofScale: rawScale, for: expected)
+            )
+        }
+
         guard let storage = C.storage(for: field) else {
             throw DecodingError.dataCorruptedError(
                 forKey: keys.currency,
@@ -307,6 +316,37 @@ extension MoneyOf: Codable {
             Expected \(implied.code) but read "\(code)"\(place). \
             Leave the currency out, or name the one this type holds.
             """
+    }
+
+    /// Returns the currency a scale read beside `code` must belong to, or `nil` where the code
+    /// alone resolves none.
+    ///
+    /// - Parameter code: The code read beside the scale, or `nil` where none was.
+    /// - Returns: The currency `code` resolves alone, or with no code, the one this type implies;
+    ///   `nil` where there is neither.
+    private static func currencyCheckingScale(forCode code: CurrencyCode?) -> Currency? {
+        guard let code else {
+            return impliedCurrency
+        }
+
+        return C.currency(resolvedFromCodeAlone: code)
+    }
+
+    /// Returns why a scale read for a currency is refused, naming both scales.
+    ///
+    /// - Parameters:
+    ///   - rawScale: The scale as it was read.
+    ///   - currency: The currency the scale was read for.
+    /// - Returns: What was wrong with the scale, and how to fix it.
+    private static func refusal(
+        ofScale rawScale: Int,
+        for currency: Currency
+    ) -> String {
+        """
+        Expected \(currency.code) with a scale of \(currency.unitScale.decimalPlaces) but read \
+        \(rawScale) in the "\(scaleKey.stringValue)" field. \
+        Leave the scale out, or write the one \(currency.code) has.
+        """
     }
 }
 
