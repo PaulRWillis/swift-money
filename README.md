@@ -156,6 +156,43 @@ throwing comparison instead:
 let ordered = try prices.sorted { try $0.isLessThan($1) }
 ```
 
+## Ranges
+
+Limits usually arrive from a server. Parse them once, when you decode the response, into a range
+whose currency and order are already checked.
+
+A range of runtime amounts is built with a throwing `...` or `..<`, which checks the currencies
+and the order once. A typed range needs only the order checked, so bounds from a server never trap:
+
+```swift
+var limits = try minimum...maximum                                      // ClosedMoneyRange
+let typed = try ClosedRange(checkedBounds: (lower: low, upper: high))   // ClosedRange<GBP>
+
+try limits.contains(amount)
+typed.contains(GBP(minorUnits: 50_00))                                  // no try: one currency
+```
+
+Each call throws one exact error type, so a `switch` over it can be exhaustive. Building a range
+throws `MoneyRangeParsingError`. Only runtime bounds can be in two currencies, so a typed range's
+`switch` needs no `.currencyMismatch` case:
+
+```swift
+do throws(MoneyRangeParsingError<AnyCurrency>) {
+    limits = try minimum...maximum
+} catch {
+    switch error {
+    case .invertedBounds(let lower, let upper): …                  // minimum was above maximum
+    case .currencyMismatch(let currency): …                        // maximum's currency differed
+    }
+}
+```
+
+Once a range is built, a call whose only failure is an amount in another currency, such as
+`contains` or converting a runtime range to a typed one, throws `MoneyError`, as arithmetic does.
+
+A runtime range has no `~=`, because it would have to throw and a `switch` pattern can't be marked
+`try`. Match one with a guard instead: `case _ where try limits.contains(amount):`.
+
 ## Formatting for display
 
 Formatting is locale-aware and lives in `SwiftMoneyFoundation`:

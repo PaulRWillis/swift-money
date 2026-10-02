@@ -4,6 +4,9 @@
 public enum AnyCurrency: CurrencyRepresentation {
     public typealias Storage = Currency
 
+    /// A mismatch reports a currency, since amounts can arrive in any one.
+    public typealias Mismatch = Currency
+
     @inlinable
     public static func currency(for storage: Currency) -> Currency { storage }
 

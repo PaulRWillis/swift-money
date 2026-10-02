@@ -1,6 +1,6 @@
 /// Why an operation on monetary amounts, such as arithmetic or a conversion, could not produce a
 /// result.
-public enum MoneyError: Error, Equatable, Sendable {
+public enum MoneyError: Error, Equatable, Hashable, Sendable {
     /// Two currencies that must match differ. The error carries both.
     ///
     /// For two amounts, `lhs` is the left-hand amount's currency, or the receiver's for a method,
