@@ -76,6 +76,8 @@ fi
 #     wrapping its executable at Contents/MacOS/<name>.
 #   - Linux native: a bare `*.xctest` executable file.
 #   - Linux swiftbuild: no `.xctest` at all, a bare executable per test target named for the target.
+#     From Swift 6.4 that executable is `<target>-test-runner`, holding only the generated entry point,
+#     and the tests and the library are in the `<target>.so` beside it, which the runner loads.
 TEST_BINARIES=()
 while IFS= read -r -d '' bundle; do
     name="$(basename "$bundle" .xctest)"
@@ -96,6 +98,9 @@ done < <(find "$BIN_DIR" -maxdepth 1 -name '*.xctest' -print0)
 if [[ ${#TEST_BINARIES[@]} -eq 0 ]]; then
     while IFS= read -r -d '' binary; do
         TEST_BINARIES+=("$binary")
+        if [[ "$binary" == *-test-runner && -f "${binary%-test-runner}.so" ]]; then
+            TEST_BINARIES+=("${binary%-test-runner}.so")
+        fi
     done < <(
         find "$BIN_DIR" -maxdepth 3 -type f -perm -u+x -iname '*test*' \
             ! -name '*.so' ! -name '*.so.*' ! -name '*.dylib' -print0
@@ -139,6 +144,23 @@ if [[ ${#SOURCES[@]} -eq 0 ]]; then
     exit 1
 fi
 
+LCOV="$(mktemp)"
+trap 'rm -f "$LCOV"' EXIT
+llvm_cov export -format=lcov "${COV_OBJECTS[@]}" -instr-profile "$PROFDATA" "${SOURCES[@]}" > "$LCOV"
+
+# llvm-cov drops each requested source that no binary maps, and with none left it reports every file
+# it knows instead: binaries without the library's mapping give a passing report on the wrong files.
+OUTSIDE="$(
+    awk -v prefix="SF:$TARGET_SOURCES/" '/^SF:/ && index($0, prefix) != 1 { print "  " substr($0, 4) }' "$LCOV"
+)"
+if [[ -n "$OUTSIDE" ]]; then
+    echo "Error: the coverage report covers files outside $TARGET_SOURCES:" >&2
+    echo "$OUTSIDE" >&2
+    echo "None of these test binaries carries the library's coverage mapping:" >&2
+    printf '  %s\n' "${TEST_BINARIES[@]}" >&2
+    exit 1
+fi
+
 echo
 SUMMARY="$(llvm_cov report "${COV_OBJECTS[@]}" -instr-profile "$PROFDATA" "${SOURCES[@]}")"
 echo "$SUMMARY"
@@ -150,10 +172,6 @@ read -r REGIONS FUNCTIONS LINES <<< "$(
 )"
 
 if [[ -n "$DIFF_BASE" ]]; then
-    LCOV="$(mktemp)"
-    trap 'rm -f "$LCOV"' EXIT
-    llvm_cov export -format=lcov "${COV_OBJECTS[@]}" -instr-profile "$PROFDATA" "${SOURCES[@]}" > "$LCOV"
-
     echo
     echo "Coverage of the lines this branch adds, against $DIFF_BASE:"
     echo
