@@ -76,6 +76,8 @@ fi
 #     wrapping its executable at Contents/MacOS/<name>.
 #   - Linux native: a bare `*.xctest` executable file.
 #   - Linux swiftbuild: no `.xctest` at all, a bare executable per test target named for the target.
+#     From Swift 6.4 that executable is `<target>-test-runner`, holding only the generated entry point,
+#     and the tests and the library are in the `<target>.so` beside it, which the runner loads.
 TEST_BINARIES=()
 while IFS= read -r -d '' bundle; do
     name="$(basename "$bundle" .xctest)"
@@ -96,6 +98,9 @@ done < <(find "$BIN_DIR" -maxdepth 1 -name '*.xctest' -print0)
 if [[ ${#TEST_BINARIES[@]} -eq 0 ]]; then
     while IFS= read -r -d '' binary; do
         TEST_BINARIES+=("$binary")
+        if [[ "$binary" == *-test-runner && -f "${binary%-test-runner}.so" ]]; then
+            TEST_BINARIES+=("${binary%-test-runner}.so")
+        fi
     done < <(
         find "$BIN_DIR" -maxdepth 3 -type f -perm -u+x -iname '*test*' \
             ! -name '*.so' ! -name '*.so.*' ! -name '*.dylib' -print0
