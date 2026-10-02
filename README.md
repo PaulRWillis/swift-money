@@ -214,6 +214,24 @@ There is no clamp to a half-open range, `a..<b` or `..<b`. Either can hold no am
 throwing. To clamp to a `band` built with `..<` between two amounts, convert it to a closed range
 first: `try ClosedMoneyRange(band).map { try amount.clamped(to: $0) }`.
 
+### Strides
+
+A stride is a non-zero amount to step by. A single unit reads the currency's scale for you, so a
+pound is never mistaken for a hundred yen:
+
+```swift
+GBP.Stride.majorUnit                  // GBP 1.00
+JPY.Stride.majorUnit                  // JPY 1
+GBP.Stride.minorUnits(50)             // GBP 0.50
+Money.Stride.majorUnit(of: amount)    // one major unit in the amount's currency
+Money.Stride(exactly: serverStep)     // nil when the step is zero
+```
+
+`stride(from:through:by:)` and `stride(from:to:by:)` take amounts, with the standard library's
+behavior for integers: 10 through 250 by 100 stops at 210 and leaves out 250.
+
+A minor unit is still a minor unit: `Money(minorUnits: 1_00, currency: .jpy)` is JPY 100.
+
 ## Formatting for display
 
 Formatting is locale-aware and lives in `SwiftMoneyFoundation`:

@@ -1,4 +1,8 @@
+/// A 64-bit signed integer that is never zero.
+@usableFromInline
 struct NonZeroInt64: Equatable, Hashable, Sendable {
+    /// The integer, never zero.
+    @usableFromInline
     let rawValue: Int64
 
     init?(_ value: Int64) {
@@ -6,6 +10,14 @@ struct NonZeroInt64: Equatable, Hashable, Sendable {
             return nil
         }
 
+        self.rawValue = value
+    }
+
+    /// Creates a non-zero integer without checking it.
+    ///
+    /// - Parameter value: The integer, which the caller already knows is not zero.
+    @inlinable
+    init(unchecked value: Int64) {
         self.rawValue = value
     }
 
