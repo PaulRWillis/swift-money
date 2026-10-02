@@ -87,7 +87,7 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
         packed << bitsPerCharacter | UInt64(character)
     }
 
-    // Forced inline: an outlined copy can't see the count is 3 to 8, so it keeps overflow traps.
+    // Forced inline: an outlined copy can't see the count is at most 8, so it keeps overflow traps.
     @inline(__always)
     private static func leftAligned(_ packed: UInt64, count: Int) -> UInt64 {
         packed << (bitsPerCharacter * (characterSlots - count))
@@ -140,7 +140,7 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
         return nil
     }
 
-    // The stored word: the form the byte serializer writes and the packed tables key on.
+    /// The stored word, as the byte serializer writes it.
     @inlinable
     package var compactValue: UInt64 { storage }
 
@@ -152,11 +152,20 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
         return storage.trailingZeroBitCount >= bitsAfterCode ? storage >> bitsAfterCode : nil
     }
 
-    /// Creates a code from the characters a packed word starts with, or `nil` if they aren't one.
+    /// Creates a code from its packed word, or `nil` unless the word is exactly a code's own.
+    ///
+    /// A code's word holds three to eight characters, each packed as 1 to 36, left-aligned, with
+    /// every slot after the last character empty and no bit set above the eight slots.
+    ///
+    /// ```swift
+    /// let gbp: CurrencyCode = "GBP"
+    /// CurrencyCode(compactValue: gbp.compactValue)      // Optional(GBP)
+    /// CurrencyCode(compactValue: gbp.compactValue | 1)  // nil: "A" after empty slots
+    /// ```
     ///
     /// - Parameter compactValue: A packed word, such as one read back from bytes.
-    /// - Returns: `nil` if fewer than three characters come before the first empty slot, or if a
-    ///   slot before it isn't a character.
+    /// - Returns: The code whose ``CurrencyCode/compactValue`` is `compactValue`, or `nil` if no
+    ///   code has it.
     @usableFromInline
     package init?(compactValue: UInt64) {
         var packed: UInt64 = 0
@@ -176,11 +185,14 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
             count += 1
         }
 
-        guard Self.acceptedLengths.contains(count) else {
+        let rebuilt = Self.leftAligned(packed, count: count)
+
+        // The loop stops at the first empty slot, so the compare refuses any set bit left unread.
+        guard Self.acceptedLengths.contains(count), rebuilt == compactValue else {
             return nil
         }
 
-        self.storage = Self.leftAligned(packed, count: count)
+        self.storage = rebuilt
     }
 
     // Writes into a buffer the caller sized with `utf8Count`, so a longer string is built in one pass.
