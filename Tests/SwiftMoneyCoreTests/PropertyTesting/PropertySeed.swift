@@ -19,4 +19,5 @@ enum PropertySeed {
     static let amountConversion: UInt64 = 0x500B
     static let ranges: UInt64 = 0x600C
     static let stride: UInt64 = 0x700D
+    static let steps: UInt64 = 0x800E
 }

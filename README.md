@@ -158,8 +158,16 @@ let ordered = try prices.sorted { try $0.isLessThan($1) }
 
 ## Ranges
 
-Limits usually arrive from a server. Parse them once, when you decode the response, into a range
-whose currency and order are already checked.
+Limits and slider settings usually arrive from a server. Parse them once, when you decode the
+response, into a value whose currency is already checked. After that, most uses need no `try`.
+
+```swift
+// A slider's bounds and step, parsed in one call that throws one error
+var steps = try Money.Steps(
+    checkedBounds: (lower: response.minimum, upper: response.maximum),
+    by: response.step
+)
+```
 
 A range of runtime amounts is built with a throwing `...` or `..<`, which checks the currencies
 and the order once. A typed range needs only the order checked, so bounds from a server never trap:
@@ -203,6 +211,20 @@ do throws(MoneyRangeParsingError<AnyCurrency>) {
 }
 ```
 
+Building steps throws `MoneyStepsParsingError`, which adds a zero stride and too many steps to
+count:
+
+```swift
+do throws(MoneyStepsParsingError<AnyCurrency>) {
+    steps = try Money.Steps(checkedBounds: (lower: minimum, upper: maximum), by: step)
+} catch {
+    switch error {
+    case .currencyMismatch(let currency): …       // maximum's, or else step's, currency differed
+    case .invertedBounds, .zeroStride, .tooManySteps: …
+    }
+}
+```
+
 Once a range is built, a call whose only failure is an amount in another currency, such as
 `contains` or converting a runtime range to a typed one, throws `MoneyError`, as arithmetic does.
 
@@ -213,6 +235,22 @@ There is no clamp to a half-open range, `a..<b` or `..<b`. Either can hold no am
 `..<` the smallest amount), so the clamp would be failable, and a runtime one would be failable and
 throwing. To clamp to a `band` built with `..<` between two amounts, convert it to a closed range
 first: `try ClosedMoneyRange(band).map { try amount.clamped(to: $0) }`.
+
+### Steps
+
+Steps always end exactly on the far bound, so the largest amount allowed can always be chosen.
+They are never empty. A negative stride counts down from the upper bound:
+
+```swift
+let limits = GBP(minorUnits: 10_00)...GBP(minorUnits: 250_00)
+
+try limits.steps(by: .majorUnits(100))    // GBP 10.00, 110.00, 210.00, 250.00
+try limits.steps(by: .majorUnits(-100))   // GBP 250.00, 150.00, 50.00, 10.00
+```
+
+`stride(from:through:by:)` and `stride(from:to:by:)` work too, with the standard library's behavior
+for integers: they stop at the last step that fits, so 10 through 250 by 100 leaves out 250. Use
+steps for a slider.
 
 ### Strides
 
@@ -226,9 +264,6 @@ GBP.Stride.minorUnits(50)             // GBP 0.50
 Money.Stride.majorUnit(of: amount)    // one major unit in the amount's currency
 Money.Stride(exactly: serverStep)     // nil when the step is zero
 ```
-
-`stride(from:through:by:)` and `stride(from:to:by:)` take amounts, with the standard library's
-behavior for integers: 10 through 250 by 100 stops at 210 and leaves out 250.
 
 A minor unit is still a minor unit: `Money(minorUnits: 1_00, currency: .jpy)` is JPY 100.
 

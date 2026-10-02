@@ -33,8 +33,7 @@ public struct MoneyStrideTo<C: CurrencyRepresentation>: Sequence, Sendable {
         by stride: MoneyOf<C>.Stride
     ) {
         let first = start.minorUnits
-        // A stride is never zero.
-        let step = NonZeroInt64(unchecked: stride.amount.minorUnits)
+        let step = stride.step
         let ascending = step.rawValue > 0
 
         // Before the end, the distance is at least one and below 2⁶⁴, so `UInt64` holds it, and a

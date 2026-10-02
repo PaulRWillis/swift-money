@@ -38,6 +38,13 @@ public extension MoneyOf {
         init(unchecked amount: MoneyOf<C>) {
             self.amount = amount
         }
+
+        /// The minor units each step moves by, never zero. Negative steps downward.
+        @inlinable
+        var step: NonZeroInt64 {
+            // Every initializer either rejects a zero amount or builds a non-zero one.
+            NonZeroInt64(unchecked: amount.minorUnits)
+        }
     }
 }
 

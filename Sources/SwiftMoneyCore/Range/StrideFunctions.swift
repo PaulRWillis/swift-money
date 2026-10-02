@@ -8,7 +8,8 @@
 /// ```
 ///
 /// A negative stride counts down. A stride that points away from `end` gives no amounts, and a step
-/// beyond the largest or smallest amount ends the sequence rather than trapping.
+/// beyond the largest or smallest amount ends the sequence rather than trapping. For the stops of a
+/// slider, which should always end exactly on the far bound, use `steps(by:)` instead.
 ///
 /// - Parameters:
 ///   - start: The first amount, unless it is already at or past `end`.
@@ -36,7 +37,8 @@ public func stride<C: CurrencyType>(
 /// ```
 ///
 /// A negative stride counts down. A stride that points away from `end` gives no amounts, and a step
-/// beyond the largest or smallest amount ends the sequence rather than trapping.
+/// beyond the largest or smallest amount ends the sequence rather than trapping. For the stops of a
+/// slider, which should always end exactly on the far bound, use `steps(by:)` instead.
 ///
 /// - Parameters:
 ///   - start: The first amount, unless it is already past `end`.
@@ -60,7 +62,8 @@ public func stride<C: CurrencyType>(
 /// for amount in try stride(from: minimum, to: maximum, by: .majorUnit(of: minimum)) { … }
 /// ```
 ///
-/// Behaves as the standard library's `stride(from:to:by:)` does for integers.
+/// Behaves as the standard library's `stride(from:to:by:)` does for integers. For the stops of a
+/// slider, which should always end exactly on the far bound, use `steps(by:)` instead.
 ///
 /// - Parameters:
 ///   - start: The first amount, unless it is already at or past `end`.
@@ -86,7 +89,8 @@ public func stride(
 /// if a step lands on it.
 ///
 /// The currencies are checked once, here, so iterating never throws. Behaves as the standard
-/// library's `stride(from:through:by:)` does for integers.
+/// library's `stride(from:through:by:)` does for integers. For the stops of a slider, which should
+/// always end exactly on the far bound, use `steps(by:)` instead.
 ///
 /// - Parameters:
 ///   - start: The first amount, unless it is already past `end`.

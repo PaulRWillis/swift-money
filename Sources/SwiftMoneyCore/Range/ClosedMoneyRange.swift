@@ -191,6 +191,29 @@ public struct ClosedMoneyRange: Equatable, Hashable, Sendable {
 
         return ClosedMoneyRange(currency: _currency, minorUnits: _minorUnits.clamped(to: limits._minorUnits))
     }
+
+    /// Returns every amount in the range, one stride apart, ending exactly on the far bound.
+    ///
+    /// The stops of a slider. The currency is checked once, here, so using the steps never throws:
+    ///
+    /// ```swift
+    /// let steps = try limits.steps(by: .majorUnit(of: limits.currency))
+    /// ```
+    ///
+    /// A negative stride starts on the upper bound and counts down to the lower.
+    ///
+    /// - Parameter stride: The gap between neighboring steps. The last gap may be shorter.
+    /// - Throws: ``MoneyStepsParsingError/currencyMismatch(_:)`` with the currency of `stride` if it
+    ///   differs from the range's; otherwise ``MoneyStepsParsingError/tooManySteps`` if there would
+    ///   be more steps than `Int` can count.
+    @inlinable
+    public func steps(by stride: Money.Stride) throws(MoneyStepsParsingError<AnyCurrency>) -> Money.Steps {
+        guard _currency == stride.amount.storage else {
+            throw .currencyMismatch(stride.amount.currency)
+        }
+
+        return try Money.Steps(storage: _currency, span: _minorUnits, by: stride.step)
+    }
 }
 
 extension ClosedMoneyRange: CustomStringConvertible {
