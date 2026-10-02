@@ -140,7 +140,7 @@ public struct CurrencyCode: Equatable, Hashable, Sendable {
         return nil
     }
 
-    // The stored word: the form the byte serializer writes and the packed tables key on.
+    /// The stored word, as the byte serializer writes it.
     @inlinable
     package var compactValue: UInt64 { storage }
 

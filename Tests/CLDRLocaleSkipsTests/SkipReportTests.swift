@@ -15,7 +15,7 @@ struct SkipReportTests {
     private static func report(
         skipped: [SkippedLocale] = skipped,
         candidates: Int = 10,
-        unusableCurrencyCodes: Set<String> = []
+        unusableCurrencyCodes: Set<UnusableCurrencyCode> = []
     ) -> SkipReport {
         SkipReport(
             cldrVersion: "48.2.0",
@@ -91,9 +91,31 @@ struct SkipReportTests {
     func currencyCodeSectionIsConditional() {
         #expect(!Self.report().rendered.contains("Currency codes CLDR names"))
 
-        let listed = Self.report(unusableCurrencyCodes: ["XBB", "XBA"]).rendered
-        #expect(listed.contains("## Currency codes CLDR names that a currency cannot carry (2)"))
-        #expect(listed.contains("XBA, XBB"))
+        let listed = Self.report(unusableCurrencyCodes: [
+            .longerThanTheTablesHold("USDT"),
+            .notACurrencyCode("G-P"),
+        ]).rendered
+        #expect(listed.contains("## Currency codes CLDR names that the tables cannot hold (2)"))
+    }
+
+    @Test("Each unusable currency code gets its own line, saying why, ordered by code")
+    func eachUnusableCodeSaysWhy() {
+        let rendered = Self.report(unusableCurrencyCodes: [
+            .longerThanTheTablesHold("USDT"),
+            .notACurrencyCode("G-P"),
+            .longerThanTheTablesHold("SAFEMOON"),
+            .notACurrencyCode("GB"),
+        ]).rendered
+
+        #expect(rendered.hasSuffix("""
+            ## Currency codes CLDR names that the tables cannot hold (4)
+
+            - G-P: not a currency code
+            - GB: not a currency code
+            - SAFEMOON: longer than the tables hold
+            - USDT: longer than the tables hold
+
+            """))
     }
 
     @Test("A report with no skips says so rather than heading an empty list")
