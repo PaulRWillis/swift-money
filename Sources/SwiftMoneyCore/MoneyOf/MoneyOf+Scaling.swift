@@ -1,15 +1,17 @@
 public extension MoneyOf where C: CurrencyType {
     /// Returns this monetary amount split into `parts`, as evenly as possible.
     ///
+    /// The parts always sum to the original amount, and no two differ by more than one minor unit.
+    ///
     /// ```swift
     /// GBP(minorUnits: 100_00).split(into: 3)   // one part of £33.34, two of £33.33
     /// ```
     ///
-    /// The parts always sum to the original amount, and no two differ by more than one minor unit.
+    /// - Parameter parts: The number of parts to split into.
+    /// - Returns: The split.
     @inlinable
-    func split(into parts: PartCount) -> Split<Self> {
-        SwiftMoneyCore.split(minorUnits, into: parts)
-            .map { Self(unchecked: $0, storage: .implied) }
+    func split(into parts: PartCount) -> Split<C> {
+        Split(SwiftMoneyCore.split(minorUnits, into: parts), storage: .implied)
     }
 }
 
@@ -17,12 +19,17 @@ public extension MoneyOf where C == AnyCurrency {
     /// Returns this monetary amount split into `parts`, as evenly as possible.
     ///
     /// The parts always sum to the original amount, and no two differ by more than one minor unit.
+    /// Every part carries this amount's currency.
+    ///
+    /// ```swift
+    /// Money(minorUnits: 100_00, currency: .gbp).split(into: 3)   // one of £33.34, two of £33.33
+    /// ```
+    ///
+    /// - Parameter parts: The number of parts to split into.
+    /// - Returns: The split.
     @inlinable
-    func split(into parts: PartCount) -> Split<Self> {
-        let currency = storage
-
-        return SwiftMoneyCore.split(minorUnits, into: parts)
-            .map { Self(unchecked: $0, storage: currency) }
+    func split(into parts: PartCount) -> Split<C> {
+        Split(SwiftMoneyCore.split(minorUnits, into: parts), storage: storage)
     }
 }
 

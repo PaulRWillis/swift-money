@@ -451,6 +451,19 @@ struct MoneyTests {
         #expect(Array(result.amounts) == [Money(minorUnits: 2, currency: .gbp), Money(minorUnits: 1, currency: .gbp),])
     }
 
+    @Test("A runtime split names AnyCurrency")
+    func runtimeSplitNamesAnyCurrency() {
+        let split: Split<AnyCurrency> = Money(minorUnits: 100_00, currency: .gbp).split(into: 3)
+
+        #expect(
+            Array(split.amounts) == [
+                Money(minorUnits: 33_34, currency: .gbp),
+                Money(minorUnits: 33_33, currency: .gbp),
+                Money(minorUnits: 33_33, currency: .gbp),
+            ]
+        )
+    }
+
     // The chaining itself is covered by UnroundedTests, which drives it through GBP. These check the
     // steps unique to Money: keeping the currency, and throwing where MoneyOf traps.
 

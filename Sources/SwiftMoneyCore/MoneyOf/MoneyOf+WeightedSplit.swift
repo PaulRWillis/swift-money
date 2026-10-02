@@ -13,8 +13,9 @@ public extension MoneyOf where C: CurrencyType {
     /// its exact share by a whole minor unit or more.
     ///
     /// - Parameter weights: The weight of each part, in part order.
+    /// - Returns: The weighted split.
     @inlinable
-    func split(by weights: Weights) -> WeightedSplit<Self> {
+    func split(by weights: Weights) -> WeightedSplit<C> {
         weightedSplit(over: weights, storage: .implied)
     }
 }
@@ -30,8 +31,9 @@ public extension MoneyOf where C == AnyCurrency {
     /// its exact share by a whole minor unit or more.
     ///
     /// - Parameter weights: The weight of each part, in part order.
+    /// - Returns: The weighted split.
     @inlinable
-    func split(by weights: Weights) -> WeightedSplit<Self> {
+    func split(by weights: Weights) -> WeightedSplit<C> {
         weightedSplit(over: weights, storage: storage)
     }
 }
@@ -41,11 +43,11 @@ extension MoneyOf where C: CurrencyRepresentation {
     // The engine returns one part per weight in order, so the two zip one-to-one.
     //
     // `@inlinable` so a concretely-typed amount specializes it at the call site rather than paying the
-    // generic path, which for `MoneyOf<GBP>` measured far dearer than the runtime-currency `Money`.
+    // generic path, which for `GBP` measured far dearer than the runtime-currency `Money`.
     @inlinable
-    func weightedSplit(over weights: Weights, storage: C.Storage) -> WeightedSplit<Self> {
+    func weightedSplit(over weights: Weights, storage: C.Storage) -> WeightedSplit<C> {
         let parts = zip(weights.values, SwiftMoneyCore.split(minorUnits, by: weights)).map { weight, share in
-            WeightedSplit<Self>.Part(
+            WeightedSplit<C>.Part(
                 weight: weight,
                 amount: Self(unchecked: share, storage: storage)
             )
