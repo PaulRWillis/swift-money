@@ -2,7 +2,7 @@ extension RoundingRule {
     // The step settling takes from the truncated magnitude. `sign` gives the direction for the directed
     // rules; the truncated magnitude's parity breaks a tie for half-to-even.
     // Returning an enum left this out of line in its callers, costing every settle about 30 instructions.
-    @inlinable @inline(__always)
+    @inline(__always)
     func step(dropping dropped: DroppedFraction, sign: Sign, truncated parity: Parity) -> RoundingStep {
         if dropped == .zero {
             return .keep
