@@ -1,4 +1,5 @@
 // What a division left over, measured against half the divisor: the input to a rounding rule.
+@usableFromInline
 enum DroppedFraction {
     case zero
     case lessThanHalf
@@ -6,6 +7,7 @@ enum DroppedFraction {
     case moreThanHalf
 
     // Compares against `divisor - remainder` rather than doubling the remainder, which could overflow.
+    @inlinable
     init(remainder: UInt64, divisor: UInt64) {
         guard remainder != 0 else {
             self = .zero

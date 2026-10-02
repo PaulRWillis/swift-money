@@ -167,6 +167,11 @@ var steps = try Money.Steps(
     checkedBounds: (lower: response.minimum, upper: response.maximum),
     by: response.step
 )
+
+// The saved amount, rounded onto the nearest step
+let selection = try Money.Steps.Selection(approximating: saved, in: steps)
+selection.amount
+selection.selecting(0)   // the first step, or nil for a position not in the steps
 ```
 
 A range of runtime amounts is built with a throwing `...` or `..<`, which checks the currencies
@@ -246,6 +251,22 @@ let limits = GBP(minorUnits: 10_00)...GBP(minorUnits: 250_00)
 
 try limits.steps(by: .majorUnits(100))    // GBP 10.00, 110.00, 210.00, 250.00
 try limits.steps(by: .majorUnits(-100))   // GBP 250.00, 150.00, 50.00, 10.00
+```
+
+An amount between two steps is rounded onto one. By default it takes the nearest step, which never
+fails: an amount beyond the steps takes the nearer end, and a tie goes to the step at an even
+position from the lower bound, or with `tiesTo: .awayFromZero` to the one larger in size. A rule
+that names a direction, such as `.down`, throws `MoneyStepsRoundingError.outOfBounds` when no step
+satisfies it:
+
+```swift
+let steps = try limits.steps(by: .majorUnits(10))
+let saved = GBP(minorUnits: 123_45)
+
+steps.index(approximating: saved)                          // the nearest step
+steps.index(approximating: saved, tiesTo: .awayFromZero)   // the nearest, a tie away from zero
+try steps.index(approximating: saved, rounding: .down)     // never above the saved amount
+steps.firstIndex(of: saved)                                // an exact match only, or nil
 ```
 
 `stride(from:through:by:)` and `stride(from:to:by:)` work too, with the standard library's behavior

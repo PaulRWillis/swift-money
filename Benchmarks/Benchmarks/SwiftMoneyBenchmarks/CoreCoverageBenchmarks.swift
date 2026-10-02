@@ -2015,6 +2015,288 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         }
     }
 
+    // Amounts inside every set of steps and mostly off their steps, so most lookups round, each by
+    // a different remainder.
+    let offStepProbes = operands.map { GBP(minorUnits: $0 * 100 + 132_00) }
+    let runtimeOffStepProbes = offStepProbes.map { Money($0) }
+    // Halfway between each set's sixth and seventh steps. Read with the steps' own index, so every
+    // tie-break row lands on a tie.
+    let tieProbes = stepProbes.map { $0 + GBP(minorUnits: 12_50) }
+    let runtimeTieProbes = tieProbes.map { Money($0) }
+
+    Benchmark("MoneyOf.Steps index for an amount", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(typedSteps[index % typedSteps.count].index(approximating: offStepProbes[(index / 10) % offStepProbes.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money.Steps index for an amount, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try runtimeSteps[index % runtimeSteps.count].index(approximating: runtimeOffStepProbes[(index / 10) % runtimeOffStepProbes.count]))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts are in the steps' currency, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("MoneyOf.Steps index for an amount, ties away from zero", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(typedSteps[index % typedSteps.count].index(approximating: tieProbes[index % tieProbes.count], tiesTo: .awayFromZero))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money.Steps index for an amount, ties away from zero, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try runtimeSteps[index % runtimeSteps.count].index(approximating: runtimeTieProbes[index % runtimeTieProbes.count], tiesTo: .awayFromZero))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts are in the steps' currency, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("MoneyOf.Steps index for an amount, rounding down, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try typedSteps[index % typedSteps.count].index(approximating: offStepProbes[(index / 10) % offStepProbes.count], rounding: .down))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts are inside the steps, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("Money.Steps index for an amount, rounding down, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try runtimeSteps[index % runtimeSteps.count].index(approximating: runtimeOffStepProbes[(index / 10) % runtimeOffStepProbes.count], rounding: .down))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts are in the steps' currency and inside them, so this cannot happen: \(error)")
+        }
+    }
+
+    let typedSelections = zip(typedSteps, offStepProbes).map { GBP.Steps.Selection(approximating: $1, in: $0) }
+    let runtimeSelections = typedSelections.map { Money.Steps.Selection($0) }
+
+    Benchmark("MoneyOf.Steps.Selection from an amount", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(GBP.Steps.Selection(approximating: offStepProbes[(index / 10) % offStepProbes.count], in: typedSteps[index % typedSteps.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money.Steps.Selection from an amount, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try Money.Steps.Selection(approximating: runtimeOffStepProbes[(index / 10) % runtimeOffStepProbes.count], in: runtimeSteps[index % runtimeSteps.count]))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts are in the steps' currency, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("MoneyOf.Steps.Selection from an amount, ties away from zero", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(GBP.Steps.Selection(approximating: tieProbes[index % tieProbes.count], in: typedSteps[index % typedSteps.count], tiesTo: .awayFromZero))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money.Steps.Selection from an amount, ties away from zero, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try Money.Steps.Selection(approximating: runtimeTieProbes[index % runtimeTieProbes.count], in: runtimeSteps[index % runtimeSteps.count], tiesTo: .awayFromZero))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts are in the steps' currency, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("MoneyOf.Steps.Selection from an amount, rounding down, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try GBP.Steps.Selection(approximating: offStepProbes[(index / 10) % offStepProbes.count], in: typedSteps[index % typedSteps.count], rounding: .down))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts are inside the steps, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("Money.Steps.Selection from an amount, rounding down, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try Money.Steps.Selection(approximating: runtimeOffStepProbes[(index / 10) % runtimeOffStepProbes.count], in: runtimeSteps[index % runtimeSteps.count], rounding: .down))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts are in the steps' currency and inside them, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("MoneyOf.Steps.Selection amount", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(typedSelections[index % typedSelections.count].amount)
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money.Steps.Selection amount", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(runtimeSelections[index % runtimeSelections.count].amount)
+            index &+= 1
+        }
+    }
+
+    Benchmark("MoneyOf.Steps.Selection selecting an index", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            let selection = typedSelections[index % typedSelections.count]
+            blackHole(selection.selecting(selection.steps.index(selection.steps.startIndex, offsetBy: index % 12)))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money.Steps.Selection selecting an index", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            let selection = runtimeSelections[index % runtimeSelections.count]
+            blackHole(selection.selecting(selection.steps.index(selection.steps.startIndex, offsetBy: index % 12)))
+            index &+= 1
+        }
+    }
+
+    Benchmark("MoneyOf.Steps.Selection selecting an amount", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(typedSelections[index % typedSelections.count].selecting(approximating: offStepProbes[(index / 10) % offStepProbes.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money.Steps.Selection selecting an amount, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try runtimeSelections[index % runtimeSelections.count].selecting(approximating: runtimeOffStepProbes[(index / 10) % runtimeOffStepProbes.count]))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts are in the steps' currency, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("MoneyOf.Steps.Selection selecting an amount, ties away from zero", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(typedSelections[index % typedSelections.count].selecting(approximating: tieProbes[index % tieProbes.count], tiesTo: .awayFromZero))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money.Steps.Selection selecting an amount, ties away from zero, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try runtimeSelections[index % runtimeSelections.count].selecting(approximating: runtimeTieProbes[index % runtimeTieProbes.count], tiesTo: .awayFromZero))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts are in the steps' currency, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("MoneyOf.Steps.Selection selecting an amount, rounding down, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try typedSelections[index % typedSelections.count].selecting(approximating: offStepProbes[(index / 10) % offStepProbes.count], rounding: .down))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts are inside the steps, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("Money.Steps.Selection selecting an amount, rounding down, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try runtimeSelections[index % runtimeSelections.count].selecting(approximating: runtimeOffStepProbes[(index / 10) % runtimeOffStepProbes.count], rounding: .down))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts are in the steps' currency and inside them, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("Money.Steps.Selection from a typed selection", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(Money.Steps.Selection(typedSelections[index % typedSelections.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("MoneyOf.Steps.Selection from a runtime selection, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try GBP.Steps.Selection(runtimeSelections[index % runtimeSelections.count]))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these selections are in pounds, so this cannot happen: \(error)")
+        }
+    }
+
     // Each `contains` row asks the same ten £250-by-£25 sequences about an amount £100 in (on a step),
     // £110 in (between steps) or £275 in (past the end), without stepping through them.
     let poundSequences = lowerPounds.indices.map {

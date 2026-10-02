@@ -10,7 +10,7 @@ package enum Sign: Equatable {
 
     // Zero counts as positive. It has no sign of its own, but nothing here needs one: a zero magnitude
     // is the same value whichever sign is applied to it.
-    @usableFromInline
+    @inlinable
     package init(of value: some SignedInteger) {
         self = value < 0 ? .negative : .positive
     }
