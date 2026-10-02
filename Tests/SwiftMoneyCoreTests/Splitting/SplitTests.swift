@@ -282,4 +282,13 @@ struct SplitTests {
         #expect(GBP(minorUnits: -10).split(into: 3).count == 3)
     }
 
+    @Test("A typed split names its currency")
+    func typedSplitNamesItsCurrency() {
+        let split: Split<Currencies.GBP> = GBP(minorUnits: 100_00).split(into: 3)
+
+        #expect(Array(split.amounts) == [
+            GBP(minorUnits: 33_34), GBP(minorUnits: 33_33), GBP(minorUnits: 33_33),
+        ])
+    }
+
 }
