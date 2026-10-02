@@ -96,17 +96,39 @@ package struct BlobReader: @unchecked Sendable {
         return String(decoding: slice, as: UTF8.self)
     }
 
-    /// The byte offset of the fixed-`stride` record whose leading `codeWidth`-digit key equals `code`,
-    /// among `count` records from `start`, by binary search; `nil` if none. Records must be sorted
-    /// ascending by that leading code.
-    package func recordOffset(code: UInt64, codeWidth: Int, start: Int, count: Int, stride: Int) -> Int? {
+    /// Returns the offset of the record filed under a currency code, or `nil` if there is none.
+    ///
+    /// Searches `count` records of `stride` bytes from `start`, each opening with its code, and
+    /// sorted in ``Localization/CurrencyCode`` order.
+    ///
+    /// ```swift
+    /// // Two records of a code alone, EUR then GBP; `gbp` and `usd` are table codes.
+    /// reader.recordOffset(of: gbp, start: 0, count: 2, stride: 3)   // 3
+    /// reader.recordOffset(of: usd, start: 0, count: 2, stride: 3)   // nil
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - code: The currency code to find.
+    ///   - start: The offset of the first record.
+    ///   - count: How many records there are.
+    ///   - stride: How many bytes each record takes.
+    /// - Returns: The offset of the record whose code is `code`, or `nil` if no record has it.
+    /// - Precondition: Every record the search reads must lie inside the packed tables.
+    /// - Complexity: O(log *n*), where *n* is `count`.
+    // Forced inline: left to the optimizer, every currency lookup calls out to this search.
+    @inline(__always)
+    package func recordOffset(
+        of code: Localization.CurrencyCode, start: Int, count: Int, stride: Int
+    ) -> Int? {
         var low = 0
         var high = count
 
         while low < high {
             let mid = (low + high) / 2
             let offset = start + mid * stride
-            let order = compareCode(at: offset, to: code, width: codeWidth)
+            let order = compareCode(
+                at: offset, to: code.value, width: Localization.CurrencyCode.fieldWidth
+            )
             if order == 0 {
                 return offset
             } else if order < 0 {

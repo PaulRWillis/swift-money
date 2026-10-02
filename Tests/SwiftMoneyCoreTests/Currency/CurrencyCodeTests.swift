@@ -222,6 +222,29 @@ struct CurrencyCodeTests {
     }
 
     @Test(
+        "A compact word with a character after an empty slot is refused",
+        arguments: [
+            0b000111_000010_010000_000000_000000_000000_000000_000001,  // "GBP", then "A" in the last slot
+            0b000111_000010_010000_000000_000001_000000_000000_000000,  // "GBP", one empty slot, then "A"
+        ] as [UInt64]
+    )
+    func refusesACharacterAfterAnEmptySlot(_ word: UInt64) {
+        #expect(CurrencyCode(compactValue: word) == nil)
+    }
+
+    @Test(
+        "A compact word with a bit set above its eight slots is refused",
+        arguments: [
+            0b1_000111_000010_010000_000000_000000_000000_000000_000000,                    // "GBP", plus bit 48
+            0b1_000_000000_000000_000111_000010_010000_000000_000000_000000_000000_000000,  // "GBP", plus bit 63
+            0b1_010011_000001_000110_000101_001101_001111_001111_001110,                    // "SAFEMOON", plus bit 48
+        ] as [UInt64]
+    )
+    func refusesABitAboveTheSlots(_ word: UInt64) {
+        #expect(CurrencyCode(compactValue: word) == nil)
+    }
+
+    @Test(
         "A three-character code's value is its characters, first highest",
         arguments: [
             ("GBP", 0b000111_000010_010000),
