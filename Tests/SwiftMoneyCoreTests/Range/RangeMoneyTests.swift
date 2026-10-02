@@ -55,6 +55,17 @@ struct RangeMoneyTests {
         #expect(try Range<JPY>(MoneyRange(typed)) == typed)
     }
 
+    @Test("A closed range becomes the half-open range ending one minor unit higher")
+    func fromClosed() {
+        #expect(Range(GBP(minorUnits: 1_00) ... GBP(minorUnits: 1_99)) == GBP(minorUnits: 1_00) ..< GBP(minorUnits: 2_00))
+        #expect(Range(JPY.min ... JPY(minorUnits: Int64.max - 1)) == JPY.min ..< JPY.max)
+    }
+
+    @Test("A closed range ending at the largest amount has no half-open equivalent")
+    func fromClosedAtMaximum() {
+        #expect(Range(GBP.zero ... GBP.max) == nil)
+    }
+
     @Test("Bounds at the extremes of Int64 build, and survive a round trip through a runtime range")
     func int64Extremes() throws {
         let typed = try Range(checkedBounds: (lower: GBP.min, upper: GBP.max))

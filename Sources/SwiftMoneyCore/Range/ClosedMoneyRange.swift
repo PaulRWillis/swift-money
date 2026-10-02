@@ -58,6 +58,25 @@ public struct ClosedMoneyRange: Equatable, Hashable, Sendable {
         self.init(currency: C.currency, minorUnits: typed.lowerBound.minorUnits ... typed.upperBound.minorUnits)
     }
 
+    /// Creates a closed range holding the same amounts as a half-open one, if it holds any.
+    ///
+    /// The upper bound moves down by one minor unit, the gap between neighboring amounts. Where the
+    /// standard library traps on an empty range, this is `nil`.
+    ///
+    /// - Parameter range: The half-open range to convert.
+    /// - Returns: `nil` if `range` is empty, since a closed range always holds its bounds.
+    public init?(_ range: MoneyRange) {
+        guard !range.isEmpty else {
+            return nil
+        }
+
+        // Not empty, so the upper bound is above the lower and one minor unit less cannot underflow.
+        self.init(
+            currency: range.currency,
+            minorUnits: range.lowerBound.minorUnits ... range.upperBound.minorUnits - 1
+        )
+    }
+
     /// Creates a range of amounts in one currency from a range of minor units.
     ///
     /// - Parameters:
@@ -103,6 +122,74 @@ public struct ClosedMoneyRange: Equatable, Hashable, Sendable {
         try AnyCurrency.requireMatch(_currency, amount.storage)
 
         return _minorUnits.contains(amount.minorUnits)
+    }
+
+    /// Returns whether every amount in another closed range also lies within this one.
+    ///
+    /// - Parameter other: The range to look for.
+    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if `other` is in another currency, with
+    ///   this range's currency as `lhs`.
+    public func contains(_ other: ClosedMoneyRange) throws(MoneyError) -> Bool {
+        try AnyCurrency.requireMatch(_currency, other._currency)
+
+        return _minorUnits.contains(other._minorUnits)
+    }
+
+    /// Returns whether every amount in a half-open range also lies within this one.
+    ///
+    /// An empty range holds no amounts, so any range in its currency contains it. `£0...£1` contains
+    /// `£0..<£1.01`, whose last amount is £1.00.
+    ///
+    /// - Parameter other: The range to look for.
+    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if `other` is in another currency, with
+    ///   this range's currency as `lhs`.
+    public func contains(_ other: MoneyRange) throws(MoneyError) -> Bool {
+        try AnyCurrency.requireMatch(_currency, other.currency)
+
+        return _minorUnits.contains(other.lowerBound.minorUnits ..< other.upperBound.minorUnits)
+    }
+
+    /// Returns whether this range and another closed range share at least one amount.
+    ///
+    /// - Parameter other: The range to compare with.
+    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if `other` is in another currency, with
+    ///   this range's currency as `lhs`.
+    public func overlaps(_ other: ClosedMoneyRange) throws(MoneyError) -> Bool {
+        try AnyCurrency.requireMatch(_currency, other._currency)
+
+        return _minorUnits.overlaps(other._minorUnits)
+    }
+
+    /// Returns whether this range and a half-open range share at least one amount.
+    ///
+    /// An empty range shares no amount with any range.
+    ///
+    /// - Parameter other: The range to compare with.
+    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if `other` is in another currency, with
+    ///   this range's currency as `lhs`.
+    public func overlaps(_ other: MoneyRange) throws(MoneyError) -> Bool {
+        try AnyCurrency.requireMatch(_currency, other.currency)
+
+        return _minorUnits.overlaps(other.lowerBound.minorUnits ..< other.upperBound.minorUnits)
+    }
+
+    /// Returns this range narrowed to lie within the given limits.
+    ///
+    /// ```swift
+    /// let requested = try pounds(5)...pounds(500)
+    /// try requested.clamped(to: allowed)   // £10...£250 when `allowed` is £10...£250
+    /// ```
+    ///
+    /// A range entirely outside the limits collapses onto the nearer limit, as the standard library's
+    /// does.
+    ///
+    /// - Parameter limits: The range to clamp to.
+    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if `limits` is in another currency, with
+    ///   this range's currency as `lhs`.
+    public func clamped(to limits: ClosedMoneyRange) throws(MoneyError) -> ClosedMoneyRange {
+        try AnyCurrency.requireMatch(_currency, limits._currency)
+
+        return ClosedMoneyRange(currency: _currency, minorUnits: _minorUnits.clamped(to: limits._minorUnits))
     }
 }
 

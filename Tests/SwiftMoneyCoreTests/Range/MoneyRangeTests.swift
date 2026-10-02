@@ -89,6 +89,31 @@ struct MoneyRangeTests {
         #expect(MoneyRange(JPY(minorUnits: 1) ..< JPY(minorUnits: 9)).currency == .jpy)
     }
 
+    @Test("A closed range becomes the half-open range ending one minor unit higher")
+    func fromClosed() throws {
+        let closed = try pounds(1_00)...pounds(1_99)
+
+        #expect(try MoneyRange(closed) == pounds(1_00)..<pounds(2_00))
+        #expect(MoneyRange(closed)?.currency == .gbp)
+    }
+
+    @Test("A closed range ending at the largest amount has no half-open equivalent")
+    func fromClosedAtMaximum() throws {
+        let closed = try pounds(0)...pounds(Int64.max)
+
+        #expect(MoneyRange(closed) == nil)
+    }
+
+    @Test("Closed ranges at the extremes of Int64 convert while the upper bound has room above it")
+    func fromClosedAtExtremes() throws {
+        let lowest = pounds(Int64.min)
+        let highest = pounds(Int64.max)
+
+        #expect(try MoneyRange(lowest...lowest) == lowest..<pounds(Int64.min + 1))
+        #expect(try MoneyRange(lowest...pounds(Int64.max - 1)) == lowest..<highest)
+        #expect(MoneyRange(try highest...highest) == nil)
+    }
+
     @Test("Contains its lower bound but not its upper")
     func containsLowerNotUpper() throws {
         let range = try pounds(10_00)..<pounds(250_00)
@@ -106,6 +131,57 @@ struct MoneyRangeTests {
         #expect(throws: MoneyError.currencyMismatch(lhs: .gbp, rhs: .eur)) {
             try range.contains(euros(100_00))
         }
+    }
+
+    @Test("Contains a nested half-open range, itself and any empty one, but not one reaching past")
+    func containsHalfOpenRange() throws {
+        let range = try pounds(10_00)..<pounds(250_00)
+
+        #expect(try range.contains(pounds(20_00)..<pounds(250_00)))
+        #expect(try range.contains(range))
+        #expect(try range.contains(pounds(500_00)..<pounds(500_00)))
+        #expect(try range.contains(pounds(20_00)..<pounds(250_01)) == false)
+    }
+
+    @Test("Contains a closed range only when its upper bound is below this one's")
+    func containsClosedRange() throws {
+        let range = try pounds(0)..<pounds(1_01)
+
+        #expect(try range.contains(pounds(0)...pounds(1_00)))
+        #expect(try range.contains(pounds(0)...pounds(1_01)) == false)
+    }
+
+    @Test("Overlaps what shares an amount, not a range it only touches or an empty one")
+    func overlaps() throws {
+        let range = try pounds(10_00)..<pounds(20_00)
+
+        #expect(try range.overlaps(pounds(19_99)..<pounds(30_00)))
+        #expect(try range.overlaps(pounds(20_00)..<pounds(30_00)) == false)
+        #expect(try range.overlaps(pounds(15_00)..<pounds(15_00)) == false)
+        #expect(try range.overlaps(pounds(5_00)...pounds(10_00)))
+        #expect(try range.overlaps(pounds(20_00)...pounds(30_00)) == false)
+    }
+
+    @Test("Clamping narrows to the limits, and collapses to an empty range when disjoint")
+    func clampedToRange() throws {
+        let limits = try pounds(10_00)..<pounds(250_00)
+
+        #expect(try (pounds(5_00)..<pounds(500_00)).clamped(to: limits) == limits)
+        #expect(try (pounds(300_00)..<pounds(400_00)).clamped(to: limits).isEmpty)
+    }
+
+    @Test("Comparing with a range in another currency throws a mismatch, receiver's currency first")
+    func rangeOperationsMismatch() throws {
+        let range = try pounds(10_00)..<pounds(20_00)
+        let closedEuros = try euros(10_00)...euros(20_00)
+        let halfOpenEuros = try euros(10_00)..<euros(20_00)
+        let mismatch = MoneyError.currencyMismatch(lhs: .gbp, rhs: .eur)
+
+        #expect(throws: mismatch) { try range.contains(closedEuros) }
+        #expect(throws: mismatch) { try range.contains(halfOpenEuros) }
+        #expect(throws: mismatch) { try range.overlaps(closedEuros) }
+        #expect(throws: mismatch) { try range.overlaps(halfOpenEuros) }
+        #expect(throws: mismatch) { try range.clamped(to: halfOpenEuros) }
     }
 
     @Test("A range in a custom currency differs from one at the same code and another scale")

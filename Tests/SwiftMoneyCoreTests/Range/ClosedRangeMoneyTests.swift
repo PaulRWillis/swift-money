@@ -55,6 +55,34 @@ struct ClosedRangeMoneyTests {
         #expect(try ClosedRange<JPY>(ClosedMoneyRange(typed)) == typed)
     }
 
+    @Test("A half-open range becomes the closed range ending one minor unit lower")
+    func fromHalfOpen() {
+        #expect(ClosedRange(GBP(minorUnits: 1_00) ..< GBP(minorUnits: 2_00)) == GBP(minorUnits: 1_00) ... GBP(minorUnits: 1_99))
+        #expect(ClosedRange(JPY.min ..< JPY.max) == JPY.min ... JPY(minorUnits: Int64.max - 1))
+    }
+
+    @Test("An empty half-open range has no closed equivalent")
+    func fromEmptyHalfOpen() {
+        #expect(ClosedRange(GBP(minorUnits: 1_00) ..< GBP(minorUnits: 1_00)) == nil)
+    }
+
+    @Test("A closed range contains a half-open one whose last amount it holds")
+    func containsHalfOpen() {
+        let limits = GBP.zero ... GBP(minorUnits: 1_00)
+
+        #expect(limits.contains(GBP.zero ..< GBP(minorUnits: 1_01)))
+        #expect(limits.contains(GBP.zero ..< GBP(minorUnits: 1_02)) == false)
+        #expect(limits.contains(GBP(minorUnits: -1) ..< GBP(minorUnits: 50)) == false)
+    }
+
+    @Test("A closed range contains any empty half-open range, even one outside its bounds")
+    func containsEmptyHalfOpen() {
+        let limits = GBP.zero ... GBP(minorUnits: 1_00)
+
+        #expect(limits.contains(GBP(minorUnits: 5_00) ..< GBP(minorUnits: 5_00)))
+        #expect((GBP.max ... GBP.max).contains(GBP.min ..< GBP.min))
+    }
+
     @Test("Bounds at the extremes of Int64 build, and survive a round trip through a runtime range")
     func int64Extremes() throws {
         let typed = try ClosedRange(checkedBounds: (lower: GBP.min, upper: GBP.max))

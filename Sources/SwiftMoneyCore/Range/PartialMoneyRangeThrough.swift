@@ -1,0 +1,63 @@
+/// Every runtime amount up to and including an upper bound, in the bound's currency.
+///
+/// The runtime counterpart of `PartialRangeThrough<GBP>`, written with the prefix `...` operator:
+///
+/// ```swift
+/// let withinLimit = ...limit
+/// try withinLimit.contains(amount)   // throws only if `amount` is in another currency
+/// ```
+public struct PartialMoneyRangeThrough: Equatable, Hashable, Sendable {
+    /// The range's upper bound, which the range contains.
+    public let upperBound: Money
+
+    /// Creates a range of every amount up to and including an upper bound.
+    ///
+    /// - Parameter upperBound: The upper bound, which the range contains.
+    @inlinable
+    public init(_ upperBound: Money) {
+        self.upperBound = upperBound
+    }
+
+    /// Creates a runtime range from a typed one, keeping its bound and currency.
+    ///
+    /// ```swift
+    /// let withinLimit = PartialMoneyRangeThrough(...GBP(minorUnits: 250_00))
+    /// withinLimit.upperBound   // GBP 250.00
+    /// ```
+    ///
+    /// - Parameter typed: The range whose currency is fixed by its bound's type.
+    @inlinable
+    public init<C: CurrencyType>(_ typed: PartialRangeThrough<MoneyOf<C>>) {
+        self.init(Money(typed.upperBound))
+    }
+
+    /// The currency the upper bound, and every amount in the range, are denominated in.
+    @inlinable
+    public var currency: Currency {
+        upperBound.currency
+    }
+
+    /// Returns whether an amount lies at or below the upper bound.
+    ///
+    /// - Parameter amount: The amount to look for.
+    /// - Throws: ``MoneyError/currencyMismatch(lhs:rhs:)`` if `amount` is in another currency, with
+    ///   the bound's currency as `lhs`.
+    @inlinable
+    public func contains(_ amount: Money) throws(MoneyError) -> Bool {
+        try AnyCurrency.requireMatch(upperBound.storage, amount.storage)
+
+        return amount.minorUnits <= upperBound.minorUnits
+    }
+}
+
+public extension MoneyOf where C == AnyCurrency {
+    /// Returns the range of every amount up to and including an upper bound.
+    ///
+    /// One bound has no order to check, so unlike `...` between two amounts this cannot fail.
+    ///
+    /// - Parameter maximum: The upper bound, which the range contains.
+    @inlinable
+    static prefix func ... (maximum: Money) -> PartialMoneyRangeThrough {
+        PartialMoneyRangeThrough(maximum)
+    }
+}
