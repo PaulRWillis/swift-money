@@ -3,7 +3,8 @@
 The reference performance work is measured against. Every change is a diff against these numbers, so a
 regression or a win is measured, not impressioned. It covers every public `SwiftMoneyCore` operation that
 does work, common and edge cases, grouped by the type that owns it. Stored-property reads and constants
-(`currency`, `min`, `max`, `zero`, `Split.Group`'s fields, the coding-key literals) have no row of their own.
+(`currency`, `min`, `max`, `zero`, `EvenSplit`'s and `UnevenSplit`'s stored fields, the coding-key
+literals) have no row of their own.
 
 **Read the instruction column.** Wall-clock is noisy (CI gates it at 20% for that reason) and malloc is
 near-zero across the arithmetic. The p50 **instruction count** is the stable signal, and no CI runner

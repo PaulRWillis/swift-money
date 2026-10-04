@@ -5,49 +5,16 @@
 ///
 /// ```swift
 /// switch GBP(minorUnits: 100_00).split(into: 3) {    // a Split<Currencies.GBP>
-/// case let .even(group): …                 // group.count parts of group.amount each
-/// case let .uneven(larger, smaller): …     // 1 part of £33.34, then 2 parts of £33.33
+/// case let .even(even): …        // even.count parts of even.amount each
+/// case let .uneven(uneven): …    // 1 part of £33.34, then 2 parts of £33.33
 /// }
 /// ```
 public enum Split<C: CurrencyRepresentation> {
-    /// Every part receives the same amount.
-    case even(Group)
+    /// An even split, holding its part count and the amount each part receives.
+    case even(EvenSplit<C>)
 
-    /// Some parts receive one more minor unit than the others.
-    ///
-    /// `larger` and `smaller` compare by *magnitude*, not numerically: splitting a refund of
-    /// `-10` into three gives `larger` of one part at `-4` and `smaller` of two parts at `-3`.
-    case uneven(
-        larger: Group,
-        smaller: Group
-    )
-}
-
-extension Split {
-    /// A number of parts that each receive the same amount.
-    public struct Group: Equatable {
-        /// The number of parts in this group, which for an uneven split is fewer than the number
-        /// of parts the amount was split into.
-        public let count: PartCount
-
-        /// The amount each part in this group receives, not the group's total.
-        public let amount: MoneyOf<C>
-
-        /// Creates a group of parts that each receive the same amount.
-        ///
-        /// - Parameters:
-        ///   - count: The number of parts in the group.
-        ///   - amount: The amount each part receives.
-        @inlinable
-        init(
-            count: PartCount,
-            amount: MoneyOf<C>
-        ) {
-            // Not public: a caller could pair a count with any amount.
-            self.count = count
-            self.amount = amount
-        }
-    }
+    /// An uneven split, holding the counts and amounts of its larger and smaller parts.
+    case uneven(UnevenSplit<C>)
 }
 
 extension Split {
@@ -55,18 +22,16 @@ extension Split {
     @inlinable
     public var count: PartCount {
         switch self {
-        case let .even(group):
-            return group.count
-        case let .uneven(larger, smaller):
-            return PartCount(unchecked: Int(larger.count) + Int(smaller.count))
+        case let .even(even):
+            return even.count
+        case let .uneven(uneven):
+            return uneven.count
         }
     }
 
     /// Every part's amount, one element per part, larger amounts first.
     ///
-    /// A `Split` stores each group of equal parts as a single ``Split/Group``, so splitting into a
-    /// million parts holds two counts and two amounts. Iterating expands that on demand and
-    /// allocates nothing.
+    /// Iterating allocates nothing, however many parts the split has.
     ///
     /// ```swift
     /// let split = GBP(minorUnits: 100_00).split(into: 3)
@@ -116,16 +81,16 @@ extension Split {
 
             @inlinable init(_ split: Split) {
                 switch split {
-                case let .even(group):
-                    larger = group.amount
-                    smaller = group.amount
-                    largerCount = Int(group.count)
+                case let .even(even):
+                    larger = even.amount
+                    smaller = even.amount
+                    largerCount = Int(even.count)
                     count = largerCount
-                case let .uneven(largerGroup, smallerGroup):
-                    larger = largerGroup.amount
-                    smaller = smallerGroup.amount
-                    largerCount = Int(largerGroup.count)
-                    count = largerCount + Int(smallerGroup.count)
+                case let .uneven(uneven):
+                    larger = uneven.largerAmount
+                    smaller = uneven.smallerAmount
+                    largerCount = Int(uneven.largerCount)
+                    count = largerCount + Int(uneven.smallerCount)
                 }
             }
 
@@ -146,8 +111,6 @@ extension Split: Equatable {}
 
 extension Split: Sendable {}
 
-extension Split.Group: Sendable {}
-
 extension Split {
     /// Creates a split from one in minor units, giving every part the same currency.
     ///
@@ -164,20 +127,18 @@ extension Split {
         switch split {
         case let .even(count, minorUnits):
             self = .even(
-                Group(
+                EvenSplit(
                     count: count,
                     amount: MoneyOf(unchecked: minorUnits, storage: storage)
                 )
             )
         case let .uneven(largerCount, largerMinorUnits, smallerCount, smallerMinorUnits):
             self = .uneven(
-                larger: Group(
-                    count: largerCount,
-                    amount: MoneyOf(unchecked: largerMinorUnits, storage: storage)
-                ),
-                smaller: Group(
-                    count: smallerCount,
-                    amount: MoneyOf(unchecked: smallerMinorUnits, storage: storage)
+                UnevenSplit(
+                    largerCount: largerCount,
+                    largerAmount: MoneyOf(unchecked: largerMinorUnits, storage: storage),
+                    smallerCount: smallerCount,
+                    smallerAmount: MoneyOf(unchecked: smallerMinorUnits, storage: storage)
                 )
             )
         }

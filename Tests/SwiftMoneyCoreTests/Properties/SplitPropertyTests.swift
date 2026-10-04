@@ -57,8 +57,8 @@ struct SplitPropertyTests {
         switch split.money.split(into: split.parts) {
         case .even:
             break   // Every part is equal, so there is no spread to check.
-        case let .uneven(larger, smaller):
-            let spread = larger.amount - smaller.amount
+        case let .uneven(uneven):
+            let spread = uneven.largerAmount - uneven.smallerAmount
             #expect(spread == GBP(minorUnits: 1) || spread == GBP(minorUnits: -1))
         }
     }
@@ -78,41 +78,42 @@ struct SplitPropertyTests {
         #expect(isEven == split.money.isMultiple(of: divisor))
     }
 
-    @Test("The groups' counts sum to the part count", arguments: splitCases)
-    private func groupCountsSumToPartCount(_ split: SplitCase) {
+    @Test("A split's counts sum to the part count", arguments: splitCases)
+    private func countsSumToPartCount(_ split: SplitCase) {
         switch split.money.split(into: split.parts) {
-        case let .even(group):
-            #expect(group.count == split.parts)
-        case let .uneven(larger, smaller):
-            #expect(Int(larger.count) + Int(smaller.count) == Int(split.parts))
+        case let .even(even):
+            #expect(even.count == split.parts)
+        case let .uneven(uneven):
+            #expect(Int(uneven.largerCount) + Int(uneven.smallerCount) == Int(split.parts))
+            #expect(uneven.count == split.parts)
         }
     }
 
-    @Test("Each part's amount is its group's amount", arguments: splitCases)
-    private func eachPartIsItsGroupsAmount(_ split: SplitCase) {
+    @Test("Each amount appears as many times as its count", arguments: splitCases)
+    private func eachAmountAppearsAsManyTimesAsItsCount(_ split: SplitCase) {
         let parts = split.money.split(into: split.parts)
 
         let expected: [GBP]
         switch parts {
-        case let .even(group):
-            expected = Array(repeating: group.amount, count: Int(group.count))
-        case let .uneven(larger, smaller):
-            expected = Array(repeating: larger.amount, count: Int(larger.count))
-                + Array(repeating: smaller.amount, count: Int(smaller.count))
+        case let .even(even):
+            expected = Array(repeating: even.amount, count: Int(even.count))
+        case let .uneven(uneven):
+            expected = Array(repeating: uneven.largerAmount, count: Int(uneven.largerCount))
+                + Array(repeating: uneven.smallerAmount, count: Int(uneven.smallerCount))
         }
 
         #expect(Array(parts.amounts) == expected)
     }
 
-    @Test("The larger group is one unit further from zero", arguments: splitCases)
-    private func largerGroupIsOneUnitFurtherFromZero(_ split: SplitCase) {
+    @Test("The larger amount is one unit further from zero", arguments: splitCases)
+    private func largerAmountIsOneUnitFurtherFromZero(_ split: SplitCase) {
         switch split.money.split(into: split.parts) {
         case .even:
-            break   // An even split has no larger group.
-        case let .uneven(larger, smaller):
+            break   // An even split has no larger amount.
+        case let .uneven(uneven):
             // Zero always splits evenly, so an uneven split's amount is positive or negative.
             let oneUnitAway = split.money.isPositive ? GBP(minorUnits: 1) : GBP(minorUnits: -1)
-            #expect(larger.amount - smaller.amount == oneUnitAway)
+            #expect(uneven.largerAmount - uneven.smallerAmount == oneUnitAway)
         }
     }
 }
