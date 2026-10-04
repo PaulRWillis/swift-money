@@ -200,9 +200,9 @@ A typed row should cost no more than its `Money.Unrounded` twin, which also comp
 | Money split hashing | 354 | 0 | 21 |
 | Money split into 1000, materialized | 6,188 | 1 | 248 |
 | Money split into 3 | 63 | 0 | 2 |
-| MoneyOf split by 10 weights | 5,682 | 4 | 191 |
-| MoneyOf split by weights | 4,007 | 4 | 132 |
-| MoneyOf split by weights that divide exactly | 3,036 | 3 | 98 |
+| MoneyOf split by 10 weights | 5,685 | 4 | 188 |
+| MoneyOf split by weights | 4,009 | 4 | 139 |
+| MoneyOf split by weights that divide exactly | 3,039 | 3 | 95 |
 | MoneyOf split into 1000, materialized | 3,983 | 1 | 158 |
 | MoneyOf split into 3 | 58 | 0 | 2 |
 | MoneyOf split, iterating the parts | 88 | 0 | 4 |
