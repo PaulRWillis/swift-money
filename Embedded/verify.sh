@@ -27,7 +27,33 @@ PACKAGE="swift-money"
 # Embedded-facing modules, in dependency order: each emits a module the next compiles against.
 MODULES=(SwiftMoneyCore SwiftMoneyLocalization)
 
-# Locates a swiftc whose toolchain carries the Embedded standard library. Prints its path, or nothing.
+# Prints the swift.org toolchain bundles in the standard directories, one per line: releases newest
+# first, then any others (snapshots, a `swift-latest` link) in glob order, oldest first.
+list_swift_org_toolchains() {
+    local dirs=("$HOME/Library/Developer/Toolchains" "/Library/Developer/Toolchains")
+    local dir bundle
+
+    # Ranks on the bundle name, not the path, so both directories form one list. `-V` ranks 6.10
+    # above 6.4, which a plain `sort -r` does not; `-s` keeps the home copy first on a tie.
+    for dir in "${dirs[@]}"; do
+        for bundle in "$dir"/swift-*-RELEASE.xctoolchain; do
+            if [[ -d "$bundle" ]]; then
+                printf '%s\t%s\n' "${bundle##*/}" "$bundle"
+            fi
+        done
+    done | sort -t $'\t' -k1,1Vr -s | cut -f2-
+
+    for dir in "${dirs[@]}"; do
+        for bundle in "$dir"/swift-*.xctoolchain; do
+            if [[ -d "$bundle" && "$bundle" != *-RELEASE.xctoolchain ]]; then
+                echo "$bundle"
+            fi
+        done
+    done
+}
+
+# Locates a swiftc whose toolchain carries the Embedded standard library. Prints its path, or nothing,
+# on stdout; each skipped candidate gets a note on stderr.
 find_embedded_swiftc() {
     local candidates=()
 
@@ -38,19 +64,20 @@ find_embedded_swiftc() {
         [[ -n "$location" ]] && candidates+=("$location/usr/bin/swiftc")
     fi
 
-    # swift.org toolchains installed into the standard directories, newest last.
-    local dir
-    for dir in "$HOME/Library/Developer/Toolchains"/swift-*.xctoolchain \
-               "/Library/Developer/Toolchains"/swift-*.xctoolchain; do
-        [[ -d "$dir" ]] && candidates+=("$dir/usr/bin/swiftc")
-    done
+    local bundle
+    while IFS= read -r bundle; do
+        candidates+=("$bundle/usr/bin/swiftc")
+    done < <(list_swift_org_toolchains)
 
     # Whatever `swiftc` resolves to, tried last so an explicit toolchain wins.
     command -v swiftc >/dev/null 2>&1 && candidates+=("$(command -v swiftc)")
 
     local swiftc
     for swiftc in "${candidates[@]}"; do
-        [[ -x "$swiftc" ]] || continue
+        if [[ ! -x "$swiftc" ]]; then
+            echo "note: skipping $swiftc: no executable swiftc" >&2
+            continue
+        fi
         # The embedded stdlib lives under lib/swift/embedded; only such a toolchain can do this.
         local root
         root="$(cd "$(dirname "$swiftc")/.." && pwd)"
@@ -58,6 +85,7 @@ find_embedded_swiftc() {
             echo "$swiftc"
             return 0
         fi
+        echo "note: skipping $swiftc: no Embedded standard library" >&2
     done
 
     return 1
