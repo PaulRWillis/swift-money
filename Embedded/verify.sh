@@ -73,7 +73,8 @@ find_embedded_swiftc() {
     command -v swiftc >/dev/null 2>&1 && candidates+=("$(command -v swiftc)")
 
     local swiftc
-    for swiftc in "${candidates[@]}"; do
+    # bash 3.2 treats an empty array as unbound under `set -u`; the `+` form expands it to nothing.
+    for swiftc in ${candidates[@]+"${candidates[@]}"}; do
         if [[ ! -x "$swiftc" ]]; then
             echo "note: skipping $swiftc: no executable swiftc" >&2
             continue
