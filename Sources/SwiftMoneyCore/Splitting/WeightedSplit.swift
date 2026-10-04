@@ -65,4 +65,8 @@ public extension WeightedSplit {
 
 extension WeightedSplit: Sendable {}
 
+extension WeightedSplit: Hashable {}
+
 extension WeightedSplit.Part: Sendable {}
+
+extension WeightedSplit.Part: Hashable {}

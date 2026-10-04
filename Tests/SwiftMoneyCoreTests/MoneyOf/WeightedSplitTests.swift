@@ -70,6 +70,25 @@ struct WeightedSplitTests {
         #expect(split.amounts == [GBP(minorUnits: 60), GBP(minorUnits: 30), GBP(minorUnits: 10)])
     }
 
+    @Test("A set holds one copy of equal weighted splits")
+    func setHoldsOneCopyOfEqualWeightedSplits() {
+        let splits = Set([
+            GBP(minorUnits: 100).split(by: [60, 30, 10]),
+            GBP(minorUnits: 100).split(by: [60, 30, 10]),
+            GBP(minorUnits: 101).split(by: [60, 30, 10]),
+        ])
+
+        #expect(splits.count == 2)
+    }
+
+    @Test("A set keeps distinct parts apart")
+    func setKeepsDistinctPartsApart() {
+        // Every part receives zero, so only the weights tell them apart.
+        let parts = Set(GBP(minorUnits: 0).split(by: [1, 2, 3]).parts)
+
+        #expect(parts.count == 3)
+    }
+
     @Test("Weights that divide exactly give each part its exact share")
     func exactShares() {
         let amounts = GBP(minorUnits: 100).split(by: [60, 30, 10]).amounts

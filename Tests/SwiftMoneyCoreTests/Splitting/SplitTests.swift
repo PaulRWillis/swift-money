@@ -316,4 +316,57 @@ struct SplitTests {
         let _: EvenSplit<Currencies.GBP> = even
     }
 
+    @Test("Equal splits hash equally")
+    func equalSplitsHashEqually() {
+        #expect(
+            GBP(minorUnits: 11).split(into: 3).hashValue
+                == GBP(minorUnits: 11).split(into: 3).hashValue
+        )
+        #expect(
+            GBP(minorUnits: 12).split(into: 3).hashValue
+                == GBP(minorUnits: 12).split(into: 3).hashValue
+        )
+    }
+
+    @Test("A set holds one copy of equal splits")
+    func setHoldsOneCopyOfEqualSplits() {
+        let splits = Set([
+            GBP(minorUnits: 11).split(into: 3),
+            GBP(minorUnits: 11).split(into: 3),
+            GBP(minorUnits: 0).split(into: 3),
+        ])
+
+        #expect(splits.count == 2)
+    }
+
+    @Test("Splits of the same minor units in two runtime currencies are distinct")
+    func splitsInDifferentRuntimeCurrenciesAreDistinct() {
+        let gbpSplit: Split<AnyCurrency> = Money(minorUnits: 100, currency: .gbp).split(into: 3)
+        let usdSplit: Split<AnyCurrency> = Money(minorUnits: 100, currency: .usd).split(into: 3)
+
+        #expect(gbpSplit != usdSplit)
+        #expect(Set([gbpSplit, usdSplit]).count == 2)
+    }
+
+    @Test("Equal payloads hash equally")
+    func equalPayloadsHashEqually() {
+        guard
+            case let .even(even) = GBP(minorUnits: 12).split(into: 3),
+            case let .even(sameEven) = GBP(minorUnits: 12).split(into: 3)
+        else {
+            Issue.record("Expected even splits")
+            return
+        }
+        guard
+            case let .uneven(uneven) = GBP(minorUnits: 11).split(into: 3),
+            case let .uneven(sameUneven) = GBP(minorUnits: 11).split(into: 3)
+        else {
+            Issue.record("Expected uneven splits")
+            return
+        }
+
+        #expect(even.hashValue == sameEven.hashValue)
+        #expect(uneven.hashValue == sameUneven.hashValue)
+    }
+
 }

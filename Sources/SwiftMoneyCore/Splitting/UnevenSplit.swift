@@ -7,7 +7,7 @@
 /// guard case let .uneven(uneven) = GBP(minorUnits: -10).split(into: 3) else { return }
 /// uneven.largerAmount   // GBP -0.04, and uneven.smallerAmount is GBP -0.03
 /// ```
-public struct UnevenSplit<C: CurrencyRepresentation>: Equatable, Sendable {
+public struct UnevenSplit<C: CurrencyRepresentation>: Equatable, Hashable, Sendable {
     /// The number of parts that receive ``largerAmount``, fewer than ``count``.
     public let largerCount: PartCount
 

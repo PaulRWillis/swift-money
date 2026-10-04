@@ -6,7 +6,7 @@
 /// guard case let .even(even) = GBP(minorUnits: 9).split(into: 3) else { return }
 /// even.amount   // GBP 0.03, and even.count is 3
 /// ```
-public struct EvenSplit<C: CurrencyRepresentation>: Equatable, Sendable {
+public struct EvenSplit<C: CurrencyRepresentation>: Equatable, Hashable, Sendable {
     /// The number of parts the amount was split into.
     public let count: PartCount
 

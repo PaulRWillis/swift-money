@@ -111,6 +111,8 @@ extension Split: Equatable {}
 
 extension Split: Sendable {}
 
+extension Split: Hashable {}
+
 extension Split {
     /// Creates a split from one in minor units, giving every part the same currency.
     ///
