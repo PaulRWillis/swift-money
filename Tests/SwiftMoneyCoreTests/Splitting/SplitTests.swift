@@ -69,12 +69,20 @@ struct SplitTests {
         #expect(a == a)
     }
 
-    @Test("Non-equatable cases return false")
-    func nonEquatableCasesNotEqual() {
+    @Test("An even split is not equal to an uneven split")
+    func evenSplitNotEqualToUnevenSplit() {
         let even = GBP(minorUnits: 1).split(into: 1)
         let uneven = GBP(minorUnits: 9).split(into: 2)
 
         #expect(even != uneven)
+    }
+
+    @Test("An uneven split is not equal to an even split")
+    func unevenSplitNotEqualToEvenSplit() {
+        let uneven = GBP(minorUnits: 9).split(into: 2)
+        let even = GBP(minorUnits: 1).split(into: 1)
+
+        #expect(uneven != even)
     }
 
     @Test("Zero amount produces one zero amount per part")

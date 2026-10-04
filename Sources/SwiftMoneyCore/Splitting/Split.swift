@@ -107,7 +107,34 @@ extension Split {
     }
 }
 
-extension Split: Equatable {}
+extension Split: Equatable {
+    /// Returns whether two splits are equal.
+    ///
+    /// Splits are equal when both are even or both uneven, and their counts and amounts match.
+    ///
+    /// ```swift
+    /// GBP(minorUnits: 9).split(into: 3) == GBP(minorUnits: 9).split(into: 3)    // true
+    /// GBP(minorUnits: 9).split(into: 3) == GBP(minorUnits: 10).split(into: 3)   // false
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - lhs: A split to compare.
+    ///   - rhs: Another split to compare.
+    /// - Returns: `true` if the splits are equal; otherwise, `false`.
+    @inlinable
+    public static func == (lhs: Split, rhs: Split) -> Bool {
+        // Hand-written because the synthesized `==` on this enum doesn't specialize across modules;
+        // the synthesized `hash(into:)` and the payloads' `==` do.
+        switch (lhs, rhs) {
+        case let (.even(left), .even(right)):
+            return left == right
+        case let (.uneven(left), .uneven(right)):
+            return left == right
+        case (.even, .uneven), (.uneven, .even):
+            return false
+        }
+    }
+}
 
 extension Split: Sendable {}
 
