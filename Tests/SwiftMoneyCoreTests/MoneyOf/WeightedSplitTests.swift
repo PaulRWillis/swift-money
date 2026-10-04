@@ -61,6 +61,15 @@ struct WeightedSplitTests {
         #expect(amounts == [GBP(minorUnits: 10), GBP(minorUnits: 30), GBP(minorUnits: 61)])
     }
 
+    @Test("A weighted split names its currency")
+    func weightedSplitNamesItsCurrency() {
+        let split: WeightedSplit<Currencies.GBP> = GBP(minorUnits: 100).split(by: [60, 30, 10])
+        let parts: [WeightedSplit<Currencies.GBP>.Part] = split.parts
+
+        #expect(parts.count == 3)
+        #expect(split.amounts == [GBP(minorUnits: 60), GBP(minorUnits: 30), GBP(minorUnits: 10)])
+    }
+
     @Test("Weights that divide exactly give each part its exact share")
     func exactShares() {
         let amounts = GBP(minorUnits: 100).split(by: [60, 30, 10]).amounts

@@ -2,7 +2,14 @@
 ///
 /// The parts always sum to the original amount, and no two parts differ by more than one minor
 /// unit: a split does not lose or invent money.
-public enum Split<Amount: Equatable> {
+///
+/// ```swift
+/// switch GBP(minorUnits: 100_00).split(into: 3) {    // a Split<Currencies.GBP>
+/// case let .even(group): …                 // group.count parts of group.amount each
+/// case let .uneven(larger, smaller): …     // 1 part of £33.34, then 2 parts of £33.33
+/// }
+/// ```
+public enum Split<C: CurrencyRepresentation> {
     /// Every part receives the same amount.
     case even(Group)
 
@@ -24,15 +31,19 @@ extension Split {
         public let count: PartCount
 
         /// The amount each part in this group receives, not the group's total.
-        public let amount: Amount
+        public let amount: MoneyOf<C>
 
-        // Not public, so a `Split` can only come from `split(_:into:)`, which is what guarantees
-        // the invariants that the type documents.
+        /// Creates a group of parts that each receive the same amount.
+        ///
+        /// - Parameters:
+        ///   - count: The number of parts in the group.
+        ///   - amount: The amount each part receives.
         @inlinable
         init(
             count: PartCount,
-            amount: Amount
+            amount: MoneyOf<C>
         ) {
+            // Not public: a caller could pair a count with any amount.
             self.count = count
             self.amount = amount
         }
@@ -74,7 +85,7 @@ extension Split {
     /// - Note: Iterating does not consume the sequence (it can be traversed repeatedly), though
     ///   `Sequence` does not promise that to generic code.
     @inlinable
-    public var amounts: some Sequence<Amount> {
+    public var amounts: some Sequence<MoneyOf<C>> {
         Amounts(self)
     }
 
@@ -97,8 +108,8 @@ extension Split {
         // per element meant recomputing `count` (itself a switch, two conversions and an addition)
         // on every call to `next()`, for a value that cannot change while iterating.
         @usableFromInline struct Iterator: IteratorProtocol {
-            @usableFromInline let larger: Amount
-            @usableFromInline let smaller: Amount
+            @usableFromInline let larger: MoneyOf<C>
+            @usableFromInline let smaller: MoneyOf<C>
             @usableFromInline let largerCount: Int
             @usableFromInline let count: Int
             @usableFromInline var position = 0
@@ -118,7 +129,7 @@ extension Split {
                 }
             }
 
-            @inlinable mutating func next() -> Amount? {
+            @inlinable mutating func next() -> MoneyOf<C>? {
                 guard position < count else {
                     return nil
                 }
@@ -133,69 +144,78 @@ extension Split {
 
 extension Split: Equatable {}
 
-extension Split: Sendable where Amount: Sendable {}
+extension Split: Sendable {}
 
-extension Split.Group: Sendable where Amount: Sendable {}
+extension Split.Group: Sendable {}
 
 extension Split {
-    // Inlinable so a split specializes into the caller instead of building this enum through
-    // runtime metadata, which cost 112ns against 2ns.
+    /// Creates a split from one in minor units, giving every part the same currency.
+    ///
+    /// - Parameters:
+    ///   - split: The split, in minor units.
+    ///   - storage: What every part carries to know its currency.
     @inlinable
-    func map<NewAmount>(
-        _ transform: (Amount) -> NewAmount
-    ) -> Split<NewAmount> {
-        switch self {
-        case let .even(group):
-            return .even(
-                .init(
-                    count: group.count,
-                    amount: transform(group.amount)
+    init(
+        _ split: MinorUnitSplit,
+        storage: C.Storage
+    ) {
+        // Inlinable so a split specializes into the caller instead of building this enum through
+        // runtime metadata.
+        switch split {
+        case let .even(count, minorUnits):
+            self = .even(
+                Group(
+                    count: count,
+                    amount: MoneyOf(unchecked: minorUnits, storage: storage)
                 )
             )
-        case let .uneven(larger, smaller):
-            return .uneven(
-                larger: .init(
-                    count: larger.count,
-                    amount: transform(larger.amount)
+        case let .uneven(largerCount, largerMinorUnits, smallerCount, smallerMinorUnits):
+            self = .uneven(
+                larger: Group(
+                    count: largerCount,
+                    amount: MoneyOf(unchecked: largerMinorUnits, storage: storage)
                 ),
-                smaller: .init(
-                    count: smaller.count,
-                    amount: transform(smaller.amount)
+                smaller: Group(
+                    count: smallerCount,
+                    amount: MoneyOf(unchecked: smallerMinorUnits, storage: storage)
                 )
             )
         }
     }
 }
 
-// Not inlinable: the result is already concrete, so there is nothing for a caller to specialize.
+/// Returns an amount in minor units split into a number of parts, as evenly as possible.
+///
+/// - Parameters:
+///   - amount: The minor units to split.
+///   - parts: The number of parts to split into.
+/// - Returns: The split, with larger parts one minor unit further from zero.
 @usableFromInline
 func split(
     _ amount: Int64,
     into parts: PartCount
-) -> Split<Int64> {
+) -> MinorUnitSplit {
+    // Not inlinable: the result is already concrete, so there is nothing for a caller to
+    // specialize.
     guard let amount = NonZeroInt64(amount) else {
-        return .even(.init(count: parts, amount: 0))
+        return .even(count: parts, minorUnits: 0)
     }
 
     let (quotient, remainder) = amount.quotientAndRemainder(dividingBy: parts)
 
     switch remainder {
     case .zero:
-        return .even(.init(count: parts, amount: quotient))
+        return .even(count: parts, minorUnits: quotient)
     case .nonZero(let nonZeroRemainder):
         // The remainder's magnitude is always less than the divisor, so `largerCount` is fewer than
         // `parts` and the subtraction below leaves at least one smaller part.
         let largerCount = abs(nonZeroRemainder)
 
         return .uneven(
-            larger: .init(
-                count: largerCount,
-                amount: quotient + amount.signum
-            ),
-            smaller: .init(
-                count: parts - largerCount,
-                amount: quotient
-            )
+            largerCount: largerCount,
+            largerMinorUnits: quotient + amount.signum,
+            smallerCount: parts - largerCount,
+            smallerMinorUnits: quotient
         )
     }
 }
