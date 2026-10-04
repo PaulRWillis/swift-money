@@ -207,7 +207,7 @@ A typed row should cost no more than its `Money.Unrounded` twin, which also comp
 | MoneyOf split into 3 | 58 | 0 | 2 |
 | MoneyOf split, iterating the parts | 88 | 0 | 4 |
 | PartCount construction | 25 | 0 | 1 |
-| Split counting the parts | 13 | 0 | 1 |
+| Split counting the parts | 19 | 0 | 1 |
 | Split equality | 2,566 | 0 | 77 |
 | Split hashing | 285 | 0 | 18 |
 | Weight construction | 25 | 0 | 1 |
