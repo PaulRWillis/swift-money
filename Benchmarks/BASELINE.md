@@ -196,6 +196,8 @@ A typed row should cost no more than its `Money.Unrounded` twin, which also comp
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
 | Money split by weights | 4,018 | 4 | 133 |
+| Money split equality | 2,594 | 0 | 85 |
+| Money split hashing | 354 | 0 | 21 |
 | Money split into 1000, materialized | 6,188 | 1 | 248 |
 | Money split into 3 | 63 | 0 | 2 |
 | MoneyOf split by 10 weights | 5,682 | 4 | 191 |
@@ -206,9 +208,12 @@ A typed row should cost no more than its `Money.Unrounded` twin, which also comp
 | MoneyOf split, iterating the parts | 88 | 0 | 4 |
 | PartCount construction | 25 | 0 | 1 |
 | Split counting the parts | 13 | 0 | 1 |
+| Split equality | 2,566 | 0 | 77 |
+| Split hashing | 285 | 0 | 18 |
 | Weight construction | 25 | 0 | 1 |
 | WeightedSplit amounts | 946 | 1 | 30 |
 | WeightedSplit count | 15 | 0 | 1 |
+| WeightedSplit hashing | 414 | 0 | 27 |
 | WeightedSplit weights | 946 | 1 | 29 |
 | Weights construction | 777 | 1 | 23 |
 
