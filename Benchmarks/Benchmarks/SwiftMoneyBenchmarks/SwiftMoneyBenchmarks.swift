@@ -5,8 +5,10 @@ import SwiftMoneyCore
 import SwiftMoneyFoundation
 import SwiftMoneyLocalization
 
-// Five baselines, because one number on its own says nothing. `Int` is what the type safety costs,
+// Six baselines, because one number on its own says nothing. `Int` is what the type safety costs,
 // `Double` is the fast answer that is wrong at scale, and `Decimal` is the exact answer that is slow.
+// `NSDecimalNumber` is `Decimal` as a class, the form older Objective-C-era code uses, so every
+// result it returns is a new object on the heap.
 // `Int128` is the same storage width the scaling engine works in, so the gap to it is the cost of
 // renormalizing after a multiply rather than of the wider arithmetic. `FixedPointDecimal` (ordo-one's
 // Int64-backed, 8-fraction-digit type) is the closest published peer — same class of type, same
@@ -86,6 +88,7 @@ let benchmarks: @Sendable () -> Void = {
     let operands = [1, 2, 3, 5, 7, 10, 13, 17, 19, 23]
     let doubleOperands: [Double] = operands.map(Double.init)
     let decimalOperands: [Decimal] = operands.map { Decimal($0) }
+    let nsDecimalOperands: [NSDecimalNumber] = operands.map { NSDecimalNumber(value: $0) }
     let moneyOperands: [GBP] = operands.map { GBP(minorUnits: $0) }
     let int128Operands: [Int128] = operands.map { Int128($0) }
     let int64Operands: [Int64] = operands.map { Int64($0) }
@@ -134,6 +137,17 @@ let benchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations {
             blackHole(accumulated)
             accumulated = accumulated + decimalOperands[index % decimalOperands.count]
+            index &+= 1
+        }
+    }
+
+    Benchmark("NSDecimalNumber addition", configuration: defaultConfiguration) { benchmark in
+        var accumulated = NSDecimalNumber.zero
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(accumulated)
+            accumulated = accumulated.adding(nsDecimalOperands[index % nsDecimalOperands.count])
             index &+= 1
         }
     }
@@ -709,6 +723,16 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    Benchmark("NSDecimalNumber comparison", configuration: defaultConfiguration) { benchmark in
+        let threshold = NSDecimalNumber(value: 10)
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(nsDecimalOperands[index % nsDecimalOperands.count].compare(threshold) == .orderedAscending)
+            index &+= 1
+        }
+    }
+
     Benchmark("Int128 comparison", configuration: defaultConfiguration) { benchmark in
         let threshold: Int128 = 10
         var index = 0
@@ -850,6 +874,20 @@ let benchmarks: @Sendable () -> Void = {
 
         for _ in benchmark.scaledIterations {
             blackHole(Decimal(string: bareStrings[index % bareStrings.count]) != nil)
+            index &+= 1
+        }
+    }
+
+    // `NSDecimalNumber(string:)` never returns nil, so a bad fixture shows up only as NaN, and the
+    // row would then time the failure path.
+    precondition(bareStrings.allSatisfy { !NSDecimalNumber(string: $0).decimalValue.isNaN },
+                 "the bare amount fixtures must parse")
+
+    Benchmark("NSDecimalNumber parsing", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(!NSDecimalNumber(string: bareStrings[index % bareStrings.count]).decimalValue.isNaN)
             index &+= 1
         }
     }
@@ -2138,6 +2176,17 @@ let benchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations {
             blackHole(amount * rate)
             amount += 1
+        }
+    }
+
+    Benchmark("NSDecimalNumber multiplied by a rate", configuration: defaultConfiguration) { benchmark in
+        let rate = NSDecimalNumber(string: "0.8765262907")
+        var amount = NSDecimalNumber.one
+
+        for _ in benchmark.scaledIterations {
+            blackHole(amount.multiplying(by: rate))
+            // Advancing the amount is a second new object, so each iteration allocates twice.
+            amount = amount.adding(.one)
         }
     }
 
