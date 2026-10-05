@@ -377,4 +377,88 @@ struct SplitTests {
         #expect(uneven.hashValue == sameUneven.hashValue)
     }
 
+    @Test("An uneven split prints its counts and amounts")
+    func unevenSplitPrintsItsCountsAndAmounts() throws {
+        guard case let .uneven(uneven) = GBP(minorUnits: 11).split(into: 3) else {
+            Issue.record("Expected an uneven split")
+            return
+        }
+
+        let mirror = Mirror(reflecting: uneven)
+        let children = Array(mirror.children)
+
+        #expect(mirror.displayStyle == .struct)
+        try #require(children.count == 4)
+        #expect(
+            children.map(\.label)
+                == ["largerCount", "largerAmount", "smallerCount", "smallerAmount"]
+        )
+        #expect(children[0].value as? PartCount == 2)
+        #expect(children[1].value as? GBP == GBP(minorUnits: 4))
+        #expect(children[2].value as? PartCount == 1)
+        #expect(children[3].value as? GBP == GBP(minorUnits: 3))
+    }
+
+    @Test("A small amount into more parts has smaller parts of zero")
+    func smallAmountIntoMorePartsHasZeroSmallerParts() {
+        guard case let .uneven(uneven) = GBP(minorUnits: 2).split(into: 3) else {
+            Issue.record("Expected an uneven split")
+            return
+        }
+
+        #expect(uneven.largerCount == 2)
+        #expect(uneven.largerAmount == GBP(minorUnits: 1))
+        #expect(uneven.smallerCount == 1)
+        #expect(uneven.smallerAmount == GBP(minorUnits: 0))
+    }
+
+    @Test("A small refund into more parts has smaller parts of zero")
+    func smallRefundIntoMorePartsHasZeroSmallerParts() {
+        guard case let .uneven(uneven) = GBP(minorUnits: -2).split(into: 3) else {
+            Issue.record("Expected an uneven split")
+            return
+        }
+
+        #expect(uneven.largerCount == 2)
+        #expect(uneven.largerAmount == GBP(minorUnits: -1))
+        #expect(uneven.smallerCount == 1)
+        #expect(uneven.smallerAmount == GBP(minorUnits: 0))
+    }
+
+    @Test("A runtime uneven split gives both amounts its currency")
+    func runtimeUnevenSplitGivesBothAmountsItsCurrency() {
+        let split = Money(minorUnits: 100, currency: .usd).split(into: 3)
+
+        guard case let .uneven(uneven) = split else {
+            Issue.record("Expected an uneven split")
+            return
+        }
+
+        #expect(uneven.largerAmount == Money(minorUnits: 34, currency: .usd))
+        #expect(uneven.smallerAmount == Money(minorUnits: 33, currency: .usd))
+    }
+
+    @Test("A runtime uneven split prints its counts and amounts")
+    func runtimeUnevenSplitPrintsItsCountsAndAmounts() throws {
+        guard case let .uneven(uneven) = Money(minorUnits: 100, currency: .usd).split(into: 3)
+        else {
+            Issue.record("Expected an uneven split")
+            return
+        }
+
+        let mirror = Mirror(reflecting: uneven)
+        let children = Array(mirror.children)
+
+        #expect(mirror.displayStyle == .struct)
+        try #require(children.count == 4)
+        #expect(
+            children.map(\.label)
+                == ["largerCount", "largerAmount", "smallerCount", "smallerAmount"]
+        )
+        #expect(children[0].value as? PartCount == 1)
+        #expect(children[1].value as? Money == Money(minorUnits: 34, currency: .usd))
+        #expect(children[2].value as? PartCount == 2)
+        #expect(children[3].value as? Money == Money(minorUnits: 33, currency: .usd))
+    }
+
 }
