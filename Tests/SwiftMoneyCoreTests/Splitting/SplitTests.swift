@@ -461,4 +461,51 @@ struct SplitTests {
         #expect(children[3].value as? Money == Money(minorUnits: 33, currency: .usd))
     }
 
+    @Test("Uneven splits differing only in their larger count are not equal")
+    func unevenSplitsDifferingInLargerCountAreNotEqual() {
+        guard
+            case let .uneven(a) = GBP(minorUnits: 3).split(into: 2),
+            case let .uneven(b) = GBP(minorUnits: 5).split(into: 3)
+        else {
+            Issue.record("Expected uneven splits")
+            return
+        }
+
+        #expect(a.smallerCount == b.smallerCount)
+        #expect(a.largerAmount == b.largerAmount)
+        #expect(a.smallerAmount == b.smallerAmount)
+        #expect(a != b)
+    }
+
+    @Test("Uneven splits differing only in their smaller count are not equal")
+    func unevenSplitsDifferingInSmallerCountAreNotEqual() {
+        guard
+            case let .uneven(a) = GBP(minorUnits: 3).split(into: 2),
+            case let .uneven(b) = GBP(minorUnits: 4).split(into: 3)
+        else {
+            Issue.record("Expected uneven splits")
+            return
+        }
+
+        #expect(a.largerCount == b.largerCount)
+        #expect(a.largerAmount == b.largerAmount)
+        #expect(a.smallerAmount == b.smallerAmount)
+        #expect(a != b)
+    }
+
+    @Test("Uneven splits differing only in their amounts are not equal")
+    func unevenSplitsDifferingInAmountsAreNotEqual() {
+        guard
+            case let .uneven(a) = GBP(minorUnits: 4).split(into: 3),
+            case let .uneven(b) = GBP(minorUnits: 7).split(into: 3)
+        else {
+            Issue.record("Expected uneven splits")
+            return
+        }
+
+        #expect(a.largerCount == b.largerCount)
+        #expect(a.smallerCount == b.smallerCount)
+        #expect(a != b)
+    }
+
 }

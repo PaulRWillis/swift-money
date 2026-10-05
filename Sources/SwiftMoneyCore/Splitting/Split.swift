@@ -165,9 +165,10 @@ extension Split {
             self = .uneven(
                 UnevenSplit(
                     largerCount: largerCount,
-                    largerAmount: MoneyOf(unchecked: largerMinorUnits, storage: storage),
+                    largerMinorUnits: largerMinorUnits,
                     smallerCount: smallerCount,
-                    smallerAmount: MoneyOf(unchecked: smallerMinorUnits, storage: storage)
+                    smallerMinorUnits: smallerMinorUnits,
+                    storage: storage
                 )
             )
         }
