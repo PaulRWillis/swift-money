@@ -2217,11 +2217,14 @@ let benchmarks: @Sendable () -> Void = {
     // the hot path, but a regression in any of them would otherwise go unseen.
 
     // `Split.count` switches on the split shape and converts, unlike the trivial stored count elsewhere.
-    let unevenSplit = GBP(minorUnits: 100_00).split(into: 3)
-
+    // A different split each pass, of both shapes, so the count can't be hoisted out of the loop.
     Benchmark("Split counting the parts", configuration: defaultConfiguration) { benchmark in
+        let splits = [100_00, 99_99, 10, 12, -10, -12].map { GBP(minorUnits: $0).split(into: 3) }
+        var index = 0
+
         for _ in benchmark.scaledIterations {
-            blackHole(unevenSplit.count)
+            blackHole(splits[index % splits.count].count)
+            index &+= 1
         }
     }
 

@@ -636,6 +636,84 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         }
     }
 
+    // Even and uneven splits alternate, so the hashing rows take both shapes' paths.
+    let amountsOfBothShapes: [Int64] = [100_00, 99_99, 10, 12, -10, -12]
+
+    Benchmark("Split hashing", configuration: configuration) { benchmark in
+        let splits = amountsOfBothShapes.map { GBP(minorUnits: $0).split(into: 3) }
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            var hasher = Hasher()
+            hasher.combine(splits[index % splits.count])
+            blackHole(hasher.finalize())
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money split hashing", configuration: configuration) { benchmark in
+        let splits = amountsOfBothShapes.map {
+            Money(minorUnits: $0, currency: .gbp).split(into: 3)
+        }
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            var hasher = Hasher()
+            hasher.combine(splits[index % splits.count])
+            blackHole(hasher.finalize())
+            index &+= 1
+        }
+    }
+
+    // Half the pairs are equal, two of each shape, and the rest differ in amount or in shape, so
+    // `==` is measured returning both results.
+    let lhsSplitAmounts: [Int64] = [100_00, 99_99, -10, -12, 10, 12, 10, 12]
+    let rhsSplitAmounts: [Int64] = [100_00, 99_99, -10, -12, 13, 15, 12, 10]
+
+    Benchmark("Split equality", configuration: configuration) { benchmark in
+        let lhs = lhsSplitAmounts.map { GBP(minorUnits: $0).split(into: 3) }
+        let rhs = rhsSplitAmounts.map { GBP(minorUnits: $0).split(into: 3) }
+        var index = 0
+        var equal = 0
+
+        for _ in benchmark.scaledIterations {
+            if lhs[index % lhs.count] == rhs[index % rhs.count] {
+                equal &+= 1
+            }
+            index &+= 1
+        }
+
+        blackHole(equal)
+    }
+
+    Benchmark("Money split equality", configuration: configuration) { benchmark in
+        let lhs = lhsSplitAmounts.map { Money(minorUnits: $0, currency: .gbp).split(into: 3) }
+        let rhs = rhsSplitAmounts.map { Money(minorUnits: $0, currency: .gbp).split(into: 3) }
+        var index = 0
+        var equal = 0
+
+        for _ in benchmark.scaledIterations {
+            if lhs[index % lhs.count] == rhs[index % rhs.count] {
+                equal &+= 1
+            }
+            index &+= 1
+        }
+
+        blackHole(equal)
+    }
+
+    Benchmark("WeightedSplit hashing", configuration: configuration) { benchmark in
+        let splits = operands.map { GBP(minorUnits: $0 * 100).split(by: [60, 30, 10]) }
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            var hasher = Hasher()
+            hasher.combine(splits[index % splits.count])
+            blackHole(hasher.finalize())
+            index &+= 1
+        }
+    }
+
     Benchmark("WeightedSplit count", configuration: configuration) { benchmark in
         let splits = operands.map { GBP(minorUnits: $0 * 100).split(by: [60, 30, 10]) }
         var index = 0

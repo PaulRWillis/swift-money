@@ -69,12 +69,20 @@ struct SplitTests {
         #expect(a == a)
     }
 
-    @Test("Non-equatable cases return false")
-    func nonEquatableCasesNotEqual() {
+    @Test("An even split is not equal to an uneven split")
+    func evenSplitNotEqualToUnevenSplit() {
         let even = GBP(minorUnits: 1).split(into: 1)
         let uneven = GBP(minorUnits: 9).split(into: 2)
 
         #expect(even != uneven)
+    }
+
+    @Test("An uneven split is not equal to an even split")
+    func unevenSplitNotEqualToEvenSplit() {
+        let uneven = GBP(minorUnits: 9).split(into: 2)
+        let even = GBP(minorUnits: 1).split(into: 1)
+
+        #expect(uneven != even)
     }
 
     @Test("Zero amount produces one zero amount per part")
@@ -116,8 +124,8 @@ struct SplitTests {
         case .even:
             // One amount for every part, so there is no spread to check.
             break
-        case let .uneven(larger, smaller):
-            let spread = larger.amount - smaller.amount
+        case let .uneven(uneven):
+            let spread = uneven.largerAmount - uneven.smallerAmount
 
             #expect(spread == GBP(minorUnits: 1) || spread == GBP(minorUnits: -1))
         }
@@ -151,18 +159,19 @@ struct SplitTests {
         #expect(Array(split.amounts) == [GBP(minorUnits: -3), GBP(minorUnits: -3), GBP(minorUnits: -3),])
     }
 
-    @Test("For a refund, the larger group holds the larger refund")
+    @Test("For a refund, the larger amount is the more negative one")
     func negativeSplitComparesByMagnitude() {
         let split = GBP(minorUnits: -10).split(into: 3)
 
         switch split {
         case .even:
             Issue.record("Expected an uneven split")
-        case let .uneven(larger, smaller):
-            #expect(larger.count == 1)
-            #expect(larger.amount == GBP(minorUnits: -4))
-            #expect(smaller.count == 2)
-            #expect(smaller.amount == GBP(minorUnits: -3))
+        case let .uneven(uneven):
+            #expect(uneven.largerCount == 1)
+            #expect(uneven.largerAmount == GBP(minorUnits: -4))
+            #expect(uneven.smallerCount == 2)
+            #expect(uneven.smallerAmount == GBP(minorUnits: -3))
+            #expect(uneven.count == 3)
         }
     }
 
@@ -180,12 +189,12 @@ struct SplitTests {
         let split = GBP(minorUnits: 0).split(into: maxParts)
 
         #expect(split.count == maxParts)
-        guard case let .even(group) = split else {
+        guard case let .even(even) = split else {
             Issue.record("Expected an even split")
             return
         }
-        #expect(group.count == maxParts)
-        #expect(group.amount == GBP(minorUnits: 0))
+        #expect(even.count == maxParts)
+        #expect(even.amount == GBP(minorUnits: 0))
     }
 
     @Test("A one-unit refund into the most parts has one part of -1 and the rest zero")
@@ -199,14 +208,15 @@ struct SplitTests {
         var iterator = split.amounts.makeIterator()
         #expect(iterator.next() == GBP(minorUnits: -1))
         #expect(iterator.next() == GBP(minorUnits: 0))
-        guard case let .uneven(larger, smaller) = split else {
+        guard case let .uneven(uneven) = split else {
             Issue.record("Expected an uneven split")
             return
         }
-        #expect(larger.count == 1)
-        #expect(larger.amount == GBP(minorUnits: -1))
-        #expect(smaller.count == smallerCount)
-        #expect(smaller.amount == GBP(minorUnits: 0))
+        #expect(uneven.largerCount == 1)
+        #expect(uneven.largerAmount == GBP(minorUnits: -1))
+        #expect(uneven.smallerCount == smallerCount)
+        #expect(uneven.smallerAmount == GBP(minorUnits: 0))
+        #expect(uneven.count == maxParts)
     }
 
     #if _pointerBitWidth(_64)
@@ -221,15 +231,16 @@ struct SplitTests {
         var iterator = split.amounts.makeIterator()
         #expect(iterator.next() == GBP(minorUnits: -2))
         #expect(iterator.next() == GBP(minorUnits: -1))
-        guard case let .uneven(larger, smaller) = split else {
+        guard case let .uneven(uneven) = split else {
             Issue.record("Expected an uneven split")
             return
         }
-        #expect(larger.count == 1)
-        #expect(larger.amount == GBP(minorUnits: -2))
-        #expect(smaller.count == smallerCount)
-        #expect(smaller.amount == GBP(minorUnits: -1))
-        #expect(Int(larger.count) + Int(smaller.count) == Int.max)
+        #expect(uneven.largerCount == 1)
+        #expect(uneven.largerAmount == GBP(minorUnits: -2))
+        #expect(uneven.smallerCount == smallerCount)
+        #expect(uneven.smallerAmount == GBP(minorUnits: -1))
+        #expect(Int(uneven.largerCount) + Int(uneven.smallerCount) == Int.max)
+        #expect(uneven.count == maxParts)
     }
 
     @Test("The largest amount into the most parts is even")
@@ -238,12 +249,12 @@ struct SplitTests {
 
         let split = GBP.max.split(into: maxParts)
 
-        guard case let .even(group) = split else {
+        guard case let .even(even) = split else {
             Issue.record("Expected an even split")
             return
         }
-        #expect(group.count == maxParts)
-        #expect(group.amount == GBP(minorUnits: 1))
+        #expect(even.count == maxParts)
+        #expect(even.amount == GBP(minorUnits: 1))
     }
     #endif
 
@@ -252,14 +263,14 @@ struct SplitTests {
         let split = GBP.min.split(into: 3)
 
         #expect(split.amounts.reduce(GBP.zero, +) == GBP.min)
-        guard case let .uneven(larger, smaller) = split else {
+        guard case let .uneven(uneven) = split else {
             Issue.record("Expected an uneven split")
             return
         }
-        #expect(larger.count == 2)
-        #expect(larger.amount == GBP(minorUnits: -3_074_457_345_618_258_603))
-        #expect(smaller.count == 1)
-        #expect(smaller.amount == GBP(minorUnits: -3_074_457_345_618_258_602))
+        #expect(uneven.largerCount == 2)
+        #expect(uneven.largerAmount == GBP(minorUnits: -3_074_457_345_618_258_603))
+        #expect(uneven.smallerCount == 1)
+        #expect(uneven.smallerAmount == GBP(minorUnits: -3_074_457_345_618_258_602))
     }
 
     @Test("The largest amount into three")
@@ -267,14 +278,14 @@ struct SplitTests {
         let split = GBP.max.split(into: 3)
 
         #expect(split.amounts.reduce(GBP.zero, +) == GBP.max)
-        guard case let .uneven(larger, smaller) = split else {
+        guard case let .uneven(uneven) = split else {
             Issue.record("Expected an uneven split")
             return
         }
-        #expect(larger.count == 1)
-        #expect(larger.amount == GBP(minorUnits: 3_074_457_345_618_258_603))
-        #expect(smaller.count == 2)
-        #expect(smaller.amount == GBP(minorUnits: 3_074_457_345_618_258_602))
+        #expect(uneven.largerCount == 1)
+        #expect(uneven.largerAmount == GBP(minorUnits: 3_074_457_345_618_258_603))
+        #expect(uneven.smallerCount == 2)
+        #expect(uneven.smallerAmount == GBP(minorUnits: 3_074_457_345_618_258_602))
     }
 
     @Test("An uneven refund reports its part count")
@@ -289,6 +300,81 @@ struct SplitTests {
         #expect(Array(split.amounts) == [
             GBP(minorUnits: 33_34), GBP(minorUnits: 33_33), GBP(minorUnits: 33_33),
         ])
+    }
+
+    @Test("An uneven split holds an UnevenSplit")
+    func unevenSplitHoldsAnUnevenSplit() {
+        let split = GBP(minorUnits: 11).split(into: 3)
+
+        guard case let .uneven(uneven) = split else {
+            Issue.record("Expected an uneven split")
+            return
+        }
+        let _: UnevenSplit<Currencies.GBP> = uneven
+    }
+
+    @Test("An even split holds an EvenSplit")
+    func evenSplitHoldsAnEvenSplit() {
+        let split = GBP(minorUnits: 12).split(into: 3)
+
+        guard case let .even(even) = split else {
+            Issue.record("Expected an even split")
+            return
+        }
+        let _: EvenSplit<Currencies.GBP> = even
+    }
+
+    @Test("Equal splits hash equally")
+    func equalSplitsHashEqually() {
+        #expect(
+            GBP(minorUnits: 11).split(into: 3).hashValue
+                == GBP(minorUnits: 11).split(into: 3).hashValue
+        )
+        #expect(
+            GBP(minorUnits: 12).split(into: 3).hashValue
+                == GBP(minorUnits: 12).split(into: 3).hashValue
+        )
+    }
+
+    @Test("A set holds one copy of equal splits")
+    func setHoldsOneCopyOfEqualSplits() {
+        let splits = Set([
+            GBP(minorUnits: 11).split(into: 3),
+            GBP(minorUnits: 11).split(into: 3),
+            GBP(minorUnits: 0).split(into: 3),
+        ])
+
+        #expect(splits.count == 2)
+    }
+
+    @Test("Splits of the same minor units in two runtime currencies are distinct")
+    func splitsInDifferentRuntimeCurrenciesAreDistinct() {
+        let gbpSplit: Split<AnyCurrency> = Money(minorUnits: 100, currency: .gbp).split(into: 3)
+        let usdSplit: Split<AnyCurrency> = Money(minorUnits: 100, currency: .usd).split(into: 3)
+
+        #expect(gbpSplit != usdSplit)
+        #expect(Set([gbpSplit, usdSplit]).count == 2)
+    }
+
+    @Test("Equal payloads hash equally")
+    func equalPayloadsHashEqually() {
+        guard
+            case let .even(even) = GBP(minorUnits: 12).split(into: 3),
+            case let .even(sameEven) = GBP(minorUnits: 12).split(into: 3)
+        else {
+            Issue.record("Expected even splits")
+            return
+        }
+        guard
+            case let .uneven(uneven) = GBP(minorUnits: 11).split(into: 3),
+            case let .uneven(sameUneven) = GBP(minorUnits: 11).split(into: 3)
+        else {
+            Issue.record("Expected uneven splits")
+            return
+        }
+
+        #expect(even.hashValue == sameEven.hashValue)
+        #expect(uneven.hashValue == sameUneven.hashValue)
     }
 
 }

@@ -3,7 +3,8 @@
 The reference performance work is measured against. Every change is a diff against these numbers, so a
 regression or a win is measured, not impressioned. It covers every public `SwiftMoneyCore` operation that
 does work, common and edge cases, grouped by the type that owns it. Stored-property reads and constants
-(`currency`, `min`, `max`, `zero`, `Split.Group`'s fields, the coding-key literals) have no row of their own.
+(`currency`, `min`, `max`, `zero`, `EvenSplit`'s and `UnevenSplit`'s stored fields, the coding-key
+literals) have no row of their own.
 
 **Read the instruction column.** Wall-clock is noisy (CI gates it at 20% for that reason) and malloc is
 near-zero across the arithmetic. The p50 **instruction count** is the stable signal, and no CI runner
@@ -195,19 +196,24 @@ A typed row should cost no more than its `Money.Unrounded` twin, which also comp
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
 | Money split by weights | 4,018 | 4 | 133 |
+| Money split equality | 28 | 0 | 1 |
+| Money split hashing | 354 | 0 | 21 |
 | Money split into 1000, materialized | 6,188 | 1 | 248 |
 | Money split into 3 | 63 | 0 | 2 |
-| MoneyOf split by 10 weights | 5,682 | 4 | 191 |
-| MoneyOf split by weights | 4,007 | 4 | 132 |
-| MoneyOf split by weights that divide exactly | 3,036 | 3 | 98 |
+| MoneyOf split by 10 weights | 5,685 | 4 | 188 |
+| MoneyOf split by weights | 4,009 | 4 | 139 |
+| MoneyOf split by weights that divide exactly | 3,039 | 3 | 95 |
 | MoneyOf split into 1000, materialized | 3,983 | 1 | 158 |
 | MoneyOf split into 3 | 58 | 0 | 2 |
 | MoneyOf split, iterating the parts | 88 | 0 | 4 |
 | PartCount construction | 25 | 0 | 1 |
-| Split counting the parts | 13 | 0 | 1 |
+| Split counting the parts | 19 | 0 | 1 |
+| Split equality | 24 | 0 | 1 |
+| Split hashing | 285 | 0 | 18 |
 | Weight construction | 25 | 0 | 1 |
 | WeightedSplit amounts | 946 | 1 | 30 |
 | WeightedSplit count | 15 | 0 | 1 |
+| WeightedSplit hashing | 414 | 0 | 27 |
 | WeightedSplit weights | 946 | 1 | 29 |
 | Weights construction | 777 | 1 | 23 |
 
