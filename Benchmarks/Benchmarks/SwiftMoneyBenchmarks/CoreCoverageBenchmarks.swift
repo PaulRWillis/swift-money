@@ -702,6 +702,26 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         blackHole(equal)
     }
 
+    Benchmark("UnevenSplit smaller amount", configuration: configuration) { benchmark in
+        let amounts = [
+            GBP(minorUnits: 100_00), GBP(minorUnits: 10), GBP(minorUnits: -10),
+            GBP(minorUnits: 11), GBP(minorUnits: -11), GBP.min, GBP.max,
+        ]
+        let splits = amounts.map { amount -> UnevenSplit<Currencies.GBP> in
+            guard case let .uneven(uneven) = amount.split(into: 3) else {
+                preconditionFailure("\(amount) splits evenly into 3")
+            }
+
+            return uneven
+        }
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(splits[index % splits.count].smallerAmount)
+            index &+= 1
+        }
+    }
+
     Benchmark("WeightedSplit hashing", configuration: configuration) { benchmark in
         let splits = operands.map { GBP(minorUnits: $0 * 100).split(by: [60, 30, 10]) }
         var index = 0
