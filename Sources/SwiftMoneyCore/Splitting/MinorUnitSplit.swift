@@ -4,11 +4,11 @@ enum MinorUnitSplit: Hashable, Sendable {
     /// An even split: the part count and each part's minor units.
     case even(count: PartCount, minorUnits: Int64)
 
-    /// An uneven split: each group's part count and minor units, the larger further from zero.
+    /// An uneven split: each group's part count, and the larger group's minor units, which are
+    /// never zero. The smaller group's are one unit nearer zero.
     case uneven(
         largerCount: PartCount,
-        largerMinorUnits: Int64,
-        smallerCount: PartCount,
-        smallerMinorUnits: Int64
+        largerMinorUnits: NonZeroInt64,
+        smallerCount: PartCount
     )
 }

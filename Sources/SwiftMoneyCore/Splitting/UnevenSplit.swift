@@ -14,12 +14,8 @@ public struct UnevenSplit<C: CurrencyRepresentation>: Equatable, Hashable, Senda
     /// The number of parts that receive ``smallerAmount``, fewer than ``count``.
     public let smallerCount: PartCount
 
-    /// The minor units each larger part receives, one further from zero than
-    /// ``smallerMinorUnits``.
-    @usableFromInline let largerMinorUnits: Int64
-
-    /// The minor units each smaller part receives.
-    @usableFromInline let smallerMinorUnits: Int64
+    /// The minor units each larger part receives, never zero.
+    @usableFromInline let largerMinorUnits: NonZeroInt64
 
     /// The currency storage both amounts are built from.
     @usableFromInline let storage: C.Storage
@@ -28,13 +24,14 @@ public struct UnevenSplit<C: CurrencyRepresentation>: Equatable, Hashable, Senda
     /// ``smallerAmount``.
     @inlinable
     public var largerAmount: MoneyOf<C> {
-        MoneyOf(unchecked: largerMinorUnits, storage: storage)
+        MoneyOf(unchecked: largerMinorUnits.rawValue, storage: storage)
     }
 
     /// The amount each smaller part receives.
     @inlinable
     public var smallerAmount: MoneyOf<C> {
-        MoneyOf(unchecked: smallerMinorUnits, storage: storage)
+        // Moving a non-zero `Int64` one unit toward zero can't overflow.
+        MoneyOf(unchecked: largerMinorUnits.rawValue &- largerMinorUnits.signum, storage: storage)
     }
 
     /// The number of parts the amount was split into.
@@ -46,29 +43,25 @@ public struct UnevenSplit<C: CurrencyRepresentation>: Equatable, Hashable, Senda
 
     /// Creates the parts of an uneven split.
     ///
-    /// `largerMinorUnits` is one minor unit further from zero than `smallerMinorUnits`. The
-    /// counts sum to the number of parts the amount was split into, at most `Int.max`. The
+    /// The counts sum to the number of parts the amount was split into, at most `Int.max`. The
     /// amounts times their counts sum to the amount that was split, so the total fits in `Int64`.
     ///
     /// - Parameters:
     ///   - largerCount: The number of parts that receive the larger amount.
     ///   - largerMinorUnits: The minor units each larger part receives.
     ///   - smallerCount: The number of parts that receive the smaller amount.
-    ///   - smallerMinorUnits: The minor units each smaller part receives.
     ///   - storage: The currency storage both amounts are built from.
     @inlinable
     init(
         largerCount: PartCount,
-        largerMinorUnits: Int64,
+        largerMinorUnits: NonZeroInt64,
         smallerCount: PartCount,
-        smallerMinorUnits: Int64,
         storage: C.Storage
     ) {
         // Not public: a caller could pair counts and amounts from different splits.
         self.largerCount = largerCount
         self.largerMinorUnits = largerMinorUnits
         self.smallerCount = smallerCount
-        self.smallerMinorUnits = smallerMinorUnits
         self.storage = storage
     }
 
@@ -93,7 +86,6 @@ public struct UnevenSplit<C: CurrencyRepresentation>: Equatable, Hashable, Senda
         lhs.largerCount == rhs.largerCount
             && lhs.smallerCount == rhs.smallerCount
             && lhs.largerMinorUnits == rhs.largerMinorUnits
-            && lhs.smallerMinorUnits == rhs.smallerMinorUnits
             && lhs.storage == rhs.storage
     }
 }

@@ -35,17 +35,14 @@ struct CurrencyLayoutTests {
         #expect(MemoryLayout<WeightedSplit<AnyCurrency>.Part>.stride == Self.words(3))
     }
 
-    @Test("A split of a typed amount is five words")
-    func typedSplitIsFiveWords() {
-        #expect(MemoryLayout<Split<Currencies.GBP>>.stride == Self.words(5))
+    @Test("A split of a typed amount is four words")
+    func typedSplitIsFourWords() {
+        #expect(MemoryLayout<Split<Currencies.GBP>>.stride == Self.words(4))
     }
 
-    @Test("A split of a runtime amount is six words")
-    func runtimeSplitIsSixWords() {
-        #expect(
-            MemoryLayout<Split<AnyCurrency>>.stride == Self.words(6),
-            "shrinking to five words is welcome; update this count"
-        )
+    @Test("A split of a runtime amount is five words")
+    func runtimeSplitIsFiveWords() {
+        #expect(MemoryLayout<Split<AnyCurrency>>.stride == Self.words(5))
     }
 
     @Test("A money error is two machine words")

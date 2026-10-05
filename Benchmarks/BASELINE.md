@@ -195,26 +195,27 @@ A typed row should cost no more than its `Money.Unrounded` twin, which also comp
 ### Splitting: Split, WeightedSplit, Weights, PartCount, Weight
 
 `UnevenSplit smaller amount` hands the harness a computed amount, which is stored to the stack
-first: 2 instructions more than handing over a stored field.
+first: 2 instructions more than handing over a stored field. Deriving the smaller amount from the
+larger adds 3 more, so the row's 33 is a stored field's 28, plus 2, plus 3.
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
 | Money split by weights | 4,018 | 4 | 133 |
-| Money split equality | 28 | 0 | 1 |
-| Money split hashing | 332 | 0 | 22 |
+| Money split equality | 25 | 0 | 1 |
+| Money split hashing | 307 | 0 | 21 |
 | Money split into 1000, materialized | 4,444 | 1 | 242 |
-| Money split into 3 | 60 | 0 | 2 |
+| Money split into 3 | 55 | 0 | 2 |
 | MoneyOf split by 10 weights | 5,685 | 4 | 188 |
 | MoneyOf split by weights | 4,009 | 4 | 139 |
 | MoneyOf split by weights that divide exactly | 3,039 | 3 | 95 |
-| MoneyOf split into 1000, materialized | 3,232 | 1 | 153 |
-| MoneyOf split into 3 | 58 | 0 | 2 |
-| MoneyOf split, iterating the parts | 88 | 0 | 4 |
+| MoneyOf split into 1000, materialized | 3,234 | 1 | 160 |
+| MoneyOf split into 3 | 53 | 0 | 2 |
+| MoneyOf split, iterating the parts | 91 | 0 | 4 |
 | PartCount construction | 25 | 0 | 1 |
 | Split counting the parts | 19 | 0 | 1 |
-| Split equality | 24 | 0 | 1 |
-| Split hashing | 285 | 0 | 18 |
-| UnevenSplit smaller amount | 30 | 0 | 1 |
+| Split equality | 22 | 0 | 1 |
+| Split hashing | 262 | 0 | 17 |
+| UnevenSplit smaller amount | 33 | 0 | 1 |
 | Weight construction | 25 | 0 | 1 |
 | WeightedSplit amounts | 946 | 1 | 30 |
 | WeightedSplit count | 15 | 0 | 1 |
