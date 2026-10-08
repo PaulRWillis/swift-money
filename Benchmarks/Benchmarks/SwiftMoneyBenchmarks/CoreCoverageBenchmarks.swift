@@ -2767,6 +2767,149 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         }
     }
 
+    // The same ten £250-by-£25 sequences up to the end, which leaves out the eleventh amount.
+    let poundSequencesUpTo = lowerPounds.indices.map {
+        stride(from: lowerPounds[$0], to: upperPounds[$0], by: strideByMajorUnits)
+    }
+    let runtimePoundSequencesUpTo: [MoneyStrideTo<AnyCurrency>]
+    do {
+        runtimePoundSequencesUpTo = try runtimeLowerPounds.indices.map {
+            try stride(from: runtimeLowerPounds[$0], to: runtimeUpperPounds[$0], by: runtimeStrideByMajorUnits)
+        }
+    } catch {
+        fatalError("these amounts and the stride share a currency, so this cannot happen: \(error)")
+    }
+
+    Benchmark("stride to MoneyOf contains, on a step", configuration: configuration) { benchmark in
+        var index = 0
+        var hits = 0
+
+        for _ in benchmark.scaledIterations {
+            if poundSequencesUpTo[index % poundSequencesUpTo.count].contains(poundsOnAStep[index % poundsOnAStep.count]) {
+                hits &+= 1
+            }
+            index &+= 1
+        }
+
+        blackHole(hits)
+    }
+
+    Benchmark("stride to MoneyOf contains, past the end", configuration: configuration) { benchmark in
+        var index = 0
+        var hits = 0
+
+        for _ in benchmark.scaledIterations {
+            if poundSequencesUpTo[index % poundSequencesUpTo.count].contains(poundsPastTheEnd[index % poundsPastTheEnd.count]) {
+                hits &+= 1
+            }
+            index &+= 1
+        }
+
+        blackHole(hits)
+    }
+
+    Benchmark("stride to Money contains, on a step", configuration: configuration) { benchmark in
+        var index = 0
+        var hits = 0
+
+        for _ in benchmark.scaledIterations {
+            if runtimePoundSequencesUpTo[index % runtimePoundSequencesUpTo.count]
+                .contains(runtimePoundsOnAStep[index % runtimePoundsOnAStep.count]) {
+                hits &+= 1
+            }
+            index &+= 1
+        }
+
+        blackHole(hits)
+    }
+
+    Benchmark("stride to MoneyOf underestimatedCount, ten amounts", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(poundSequencesUpTo[index % poundSequencesUpTo.count].underestimatedCount)
+            index &+= 1
+        }
+    }
+
+    // Each row walks 10,000 or 20,000 amounts 1p apart. A sample's fixed cost, such as reading the
+    // counters, cancels in the 20,000 row minus the 10,000 row, which leaves 10,000 steps.
+    var longStrideConfiguration = configuration
+    longStrideConfiguration.scalingFactor = .one
+    let longStrideStarts = lowerPounds
+    let runtimeLongStrideStarts = runtimeLowerPounds
+    let runtimeMinorUnit = Money.Stride.minorUnit(of: .gbp)
+    // Each step folds its amount into a polynomial hash. The optimizer can work out a walk's last
+    // amount without walking it, but not this hash, so the rows measure every step.
+    let hashMultiplier: Int64 = 31
+
+    for amountCount in [10_000, 20_000] {
+        let throughEnds = longStrideStarts.map { $0 + GBP(minorUnits: amountCount - 1) }
+        let upToEnds = longStrideStarts.map { $0 + GBP(minorUnits: amountCount) }
+        let runtimeThroughEnds = throughEnds.map { Money($0) }
+        let runtimeUpToEnds = upToEnds.map { Money($0) }
+
+        Benchmark("stride through MoneyOf, \(amountCount) amounts", configuration: longStrideConfiguration) { benchmark in
+            var index = 0
+
+            for _ in benchmark.scaledIterations {
+                var hash: Int64 = 0
+                for amount in stride(from: longStrideStarts[index % longStrideStarts.count], through: throughEnds[index % throughEnds.count], by: .minorUnit) {
+                    hash = hash &* hashMultiplier &+ (Int64(minorUnitsOf: amount) ?? 0)
+                }
+                blackHole(hash)
+                index &+= 1
+            }
+        }
+
+        Benchmark("stride through Money, \(amountCount) amounts, throwing", configuration: longStrideConfiguration) { benchmark in
+            var index = 0
+
+            do {
+                for _ in benchmark.scaledIterations {
+                    var hash: Int64 = 0
+                    for amount in try stride(from: runtimeLongStrideStarts[index % runtimeLongStrideStarts.count], through: runtimeThroughEnds[index % runtimeThroughEnds.count], by: runtimeMinorUnit) {
+                        hash = hash &* hashMultiplier &+ (Int64(minorUnitsOf: amount) ?? 0)
+                    }
+                    blackHole(hash)
+                    index &+= 1
+                }
+            } catch {
+                fatalError("these amounts and the stride share a currency, so this cannot happen: \(error)")
+            }
+        }
+
+        Benchmark("stride to MoneyOf, \(amountCount) amounts", configuration: longStrideConfiguration) { benchmark in
+            var index = 0
+
+            for _ in benchmark.scaledIterations {
+                var hash: Int64 = 0
+                for amount in stride(from: longStrideStarts[index % longStrideStarts.count], to: upToEnds[index % upToEnds.count], by: .minorUnit) {
+                    hash = hash &* hashMultiplier &+ (Int64(minorUnitsOf: amount) ?? 0)
+                }
+                blackHole(hash)
+                index &+= 1
+            }
+        }
+
+        Benchmark("stride to Money, \(amountCount) amounts, throwing", configuration: longStrideConfiguration) { benchmark in
+            var index = 0
+
+            do {
+                for _ in benchmark.scaledIterations {
+                    var hash: Int64 = 0
+                    for amount in try stride(from: runtimeLongStrideStarts[index % runtimeLongStrideStarts.count], to: runtimeUpToEnds[index % runtimeUpToEnds.count], by: runtimeMinorUnit) {
+                        hash = hash &* hashMultiplier &+ (Int64(minorUnitsOf: amount) ?? 0)
+                    }
+                    blackHole(hash)
+                    index &+= 1
+                }
+            } catch {
+                fatalError("these amounts and the stride share a currency, so this cannot happen: \(error)")
+            }
+        }
+    }
+
     // MARK: Serialization configuration
 
     Benchmark("MoneyCodingFormat custom fields", configuration: configuration) { benchmark in
