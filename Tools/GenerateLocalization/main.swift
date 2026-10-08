@@ -1343,8 +1343,8 @@ func fullNameRecords(of locale: String) -> LocaleCurrencyEntries<LocaleTables.Fu
     }
 }
 
-// The script each language implies, so that a locale's data is filed under the identifier a caller
-// will really ask for rather than the one its directory happens to be named.
+// The scripts CLDR's likely subtags imply, which give each folder its short name. A likelySubtags.json
+// in any other shape stops the run.
 func likelyScripts() -> LikelyScripts {
     let root = json("\(cldrSupplemental)/likelySubtags.json")
     guard let supplemental = root["supplemental"] as? [String: Any],
@@ -1461,7 +1461,7 @@ checkEveryLanguageAgainstItsSamples(ruleText)
 let candidates = publishedLocales()
 let pluralRules = pluralRuleSets(among: candidates, in: ruleText)
 
-var emitted: [(key: String, tables: LocaleTables)] = []
+var built: [(key: String, tables: LocaleTables)] = []
 var skipped: [SkippedLocale] = []
 
 let scripts = likelyScripts()
@@ -1473,14 +1473,7 @@ for group in scripts.groups(of: candidates) {
 
     switch resolution {
     case .built(let tables):
-        emitted.append((group.shortName, tables))
-
-        // The folder named for the short name defines it, or the only folder when none is; the rest
-        // carry the same data and are reported as duplicates.
-        let defining = group.folders.first(where: { $0 == group.shortName }) ?? group.folders.first
-        for folder in group.folders where folder != defining {
-            skipped.append(SkippedLocale(locale: folder, skip: .duplicateOfShorterIdentifier(group.shortName)))
-        }
+        built += group.names.map { (key: $0, tables: tables) }
 
     case .skipped(let skips):
         skipped += skips.map { SkippedLocale(locale: $0.folder, skip: $0.error) }
@@ -1493,6 +1486,15 @@ for group in scripts.groups(of: candidates) {
     case .conflicting(let first, let second):
         fatalError("\(first) and \(second) are one locale to CLDR but build different tables")
     }
+}
+
+// In the byte order the runtime's binary search assumes.
+let emitted = built.sorted { $0.key.utf8.lexicographicallyPrecedes($1.key.utf8) }
+
+// A repeated key would make the binary search return either row without saying so.
+for (earlier, later) in zip(emitted, emitted.dropFirst())
+where !earlier.key.utf8.lexicographicallyPrecedes(later.key.utf8) {
+    fatalError("\(later.key) is filed more than once")
 }
 
 // Derived from what was emitted rather than from the candidates, so the tables carry rules only for

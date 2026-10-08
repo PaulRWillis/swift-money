@@ -9,7 +9,8 @@ struct LocaleGroupTests {
     private static let scripts = LikelyScripts(likelySubtags: [
         "ff": "ff-Latn-SN",
         "en": "en-Latn-US",
-        "sr": "sr-Cyrl-RS",
+        "ku": "ku-Latn-TR",
+        "ku-IR": "ku-Arab-IR",
     ])
 
     /// A fake builder's failure, naming the folder it failed on.
@@ -49,10 +50,10 @@ struct LocaleGroupTests {
 
     @Test("The short name comes first even when a folder sorts before it")
     func shortNameComesFirst() {
-        let groups = Self.scripts.groups(of: ["sr-Cyrl-ME"])
+        let groups = Self.scripts.groups(of: ["ku-Arab-IR"])
 
-        #expect(groups.map(\.shortName) == ["sr-ME"])
-        #expect(groups.map { Array($0.names) } == [["sr-ME", "sr-Cyrl-ME"]])
+        #expect(groups.map(\.shortName) == ["ku-IR"])
+        #expect(groups.map { Array($0.names) } == [["ku-IR", "ku-Arab-IR"]])
     }
 
     @Test("Groups come out in byte order of their short names")

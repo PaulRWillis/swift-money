@@ -111,11 +111,16 @@ struct LocaleSkipTests {
         #expect(withoutDetail.description == withoutDetail.reason)
     }
 
+    @Test("The platform rewrite map sends sr-Cyrl-ME to sr-ME and shi-Latn to shi")
+    func platformRewriteMapNamesEachTarget() {
+        #expect(LocaleSkip.unreliablePlatformResolution["sr-Cyrl-ME"] == "sr-ME")
+        #expect(LocaleSkip.unreliablePlatformResolution["shi-Latn"] == "shi")
+    }
+
     // Kept deliberately exhaustive: a new case added without a reason would otherwise go unnoticed
     // until it appeared unlabelled in the committed report.
     static let oneOfEachCase: [LocaleSkip] = [
         .unrepresentableNumberFormat(.nonLatinDigits(numberingSystem: "arab")),
-        .duplicateOfShorterIdentifier("ff"),
         .unsupportedPluralRule(language: "bem", relation: "within"),
         .unrepresentablePattern(.currencyMovesForLetterSymbols, field: .standard),
         .unrepresentablePattern(.groupingChangesForLetterSymbols, field: .standard),

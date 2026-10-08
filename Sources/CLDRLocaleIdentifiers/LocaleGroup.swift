@@ -31,7 +31,7 @@ package struct LocaleGroup: Equatable, Hashable, Sendable {
     /// from it, in UTF-8 byte order.
     ///
     /// ```swift
-    /// Array(scripts.groups(of: ["sr-Cyrl-ME"])[0].names)  // ["sr-ME", "sr-Cyrl-ME"]
+    /// Array(scripts.groups(of: ["ku-Arab-IR"])[0].names)  // ["ku-IR", "ku-Arab-IR"]
     /// ```
     package var names: NonEmpty<String> {
         NonEmpty(shortName, folders.filter { $0 != shortName })

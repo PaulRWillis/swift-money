@@ -3,7 +3,7 @@
 Generated from CLDR 48.2.0 by GenerateSwiftMoneyLocalization. Do not edit by hand.
 Regenerate with: (cd Tools/cldr && npm ci) && swift run GenerateSwiftMoneyLocalization
 
-The engine formats 661 of the 766 CLDR locales this build reads. The 105 below are left out, each because it writes something the packed tables have no shape for. They keep the ICU fallback, and rejoin the list on their own once that shape exists.
+The engine formats 683 of the 766 CLDR locales this build reads. The 83 below are left out, each because it writes something the packed tables have no shape for. They keep the ICU fallback, and rejoin the list on their own once that shape exists.
 
 ## arranges a currency written with letters in a way this tool does not model, in its accounting pattern (33)
 - an: \u{A4}\u{A0}#,##0.00 against \u{A4}\u{A0}#,##0.00;(\u{A4}\u{A0}#,##0.00)
@@ -67,31 +67,6 @@ The engine formats 661 of the 766 CLDR locales this build reads. The 105 below a
 - nn: #,##0.00\u{A0}\u{A4};-#,##0.00\u{A0}\u{A4} against #,##0.00\u{A0}\u{A4}
 - no: #,##0.00\u{A0}\u{A4};-#,##0.00\u{A0}\u{A4} against #,##0.00\u{A0}\u{A4}
 
-## shortens to an identifier another locale already uses (23)
-- az-Latn: az
-- bal-Arab: bal
-- bs-Latn: bs
-- ff-Latn: ff
-- hnj-Hmnp: hnj
-- kaa-Cyrl: kaa
-- kk-Cyrl: kk
-- kok-Deva: kok
-- ks-Arab: ks
-- ku-Latn: ku
-- kxv-Latn: kxv
-- mni-Beng: mni
-- mww-Hmnp: mww
-- pi-Latn: pi
-- rhg-Rohg: rhg
-- sat-Olck: sat
-- sd-Arab: sd
-- shi-Tfng: shi
-- sr-Cyrl: sr
-- su-Latn: su
-- suz-Deva: suz
-- yue-Hant: yue
-- zh-Hans: zh
-
 ## the currency moves to the other side of the digits in the accounting pattern (2)
 - uz
 - uz-Latn
@@ -121,5 +96,6 @@ The engine formats 661 of the 766 CLDR locales this build reads. The 105 below a
 - ta-MY
 - ta-SG
 
-## the platform's own Locale type does not reliably resolve this identifier (1)
+## the platform's own Locale type does not reliably resolve this identifier (2)
 - shi-Latn: resolves to shi on at least one supported platform
+- sr-Cyrl-ME: resolves to sr-ME on at least one supported platform
