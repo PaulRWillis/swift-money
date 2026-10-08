@@ -27,6 +27,7 @@ struct NonZeroInt64: Equatable, Hashable, Sendable {
     }
 
     /// Returns `-1` if this value is negative and `1` if it's positive.
+    @inlinable
     var signum: Int64 {
         rawValue < 0 ? -1 : 1
     }

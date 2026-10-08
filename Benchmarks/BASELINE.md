@@ -3,8 +3,9 @@
 The reference performance work is measured against. Every change is a diff against these numbers, so a
 regression or a win is measured, not impressioned. It covers every public `SwiftMoneyCore` operation that
 does work, common and edge cases, grouped by the type that owns it. Stored-property reads and constants
-(`currency`, `min`, `max`, `zero`, `EvenSplit`'s and `UnevenSplit`'s stored fields, the coding-key
-literals) have no row of their own.
+(`currency`, `min`, `max`, `zero`, `EvenSplit`'s fields, `UnevenSplit`'s counts, the coding-key
+literals) have no row of their own. Nor does `UnevenSplit.largerAmount`: it is computed, but its
+getter is a bare return.
 
 **Read the instruction column.** Wall-clock is noisy (CI gates it at 20% for that reason) and malloc is
 near-zero across the arithmetic. The p50 **instruction count** is the stable signal, and no CI runner
@@ -193,23 +194,28 @@ A typed row should cost no more than its `Money.Unrounded` twin, which also comp
 
 ### Splitting: Split, WeightedSplit, Weights, PartCount, Weight
 
+`UnevenSplit smaller amount` hands the harness a computed amount, which is stored to the stack
+first: 2 instructions more than handing over a stored field. Deriving the smaller amount from the
+larger adds 3 more, so the row's 33 is a stored field's 28, plus 2, plus 3.
+
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
 | Money split by weights | 4,018 | 4 | 133 |
-| Money split equality | 28 | 0 | 1 |
-| Money split hashing | 354 | 0 | 21 |
-| Money split into 1000, materialized | 6,188 | 1 | 248 |
-| Money split into 3 | 63 | 0 | 2 |
+| Money split equality | 25 | 0 | 1 |
+| Money split hashing | 307 | 0 | 21 |
+| Money split into 1000, materialized | 4,444 | 1 | 242 |
+| Money split into 3 | 55 | 0 | 2 |
 | MoneyOf split by 10 weights | 5,685 | 4 | 188 |
 | MoneyOf split by weights | 4,009 | 4 | 139 |
 | MoneyOf split by weights that divide exactly | 3,039 | 3 | 95 |
-| MoneyOf split into 1000, materialized | 3,983 | 1 | 158 |
-| MoneyOf split into 3 | 58 | 0 | 2 |
-| MoneyOf split, iterating the parts | 88 | 0 | 4 |
+| MoneyOf split into 1000, materialized | 3,234 | 1 | 160 |
+| MoneyOf split into 3 | 53 | 0 | 2 |
+| MoneyOf split, iterating the parts | 91 | 0 | 4 |
 | PartCount construction | 25 | 0 | 1 |
 | Split counting the parts | 19 | 0 | 1 |
-| Split equality | 24 | 0 | 1 |
-| Split hashing | 285 | 0 | 18 |
+| Split equality | 22 | 0 | 1 |
+| Split hashing | 262 | 0 | 17 |
+| UnevenSplit smaller amount | 33 | 0 | 1 |
 | Weight construction | 25 | 0 | 1 |
 | WeightedSplit amounts | 946 | 1 | 30 |
 | WeightedSplit count | 15 | 0 | 1 |

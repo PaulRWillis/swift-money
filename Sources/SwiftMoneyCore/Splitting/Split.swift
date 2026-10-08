@@ -161,13 +161,13 @@ extension Split {
                     amount: MoneyOf(unchecked: minorUnits, storage: storage)
                 )
             )
-        case let .uneven(largerCount, largerMinorUnits, smallerCount, smallerMinorUnits):
+        case let .uneven(largerCount, largerMinorUnits, smallerCount):
             self = .uneven(
                 UnevenSplit(
                     largerCount: largerCount,
-                    largerAmount: MoneyOf(unchecked: largerMinorUnits, storage: storage),
+                    largerMinorUnits: largerMinorUnits,
                     smallerCount: smallerCount,
-                    smallerAmount: MoneyOf(unchecked: smallerMinorUnits, storage: storage)
+                    storage: storage
                 )
             )
         }
@@ -203,9 +203,10 @@ func split(
 
         return .uneven(
             largerCount: largerCount,
-            largerMinorUnits: quotient + amount.signum,
-            smallerCount: parts - largerCount,
-            smallerMinorUnits: quotient
+            // The quotient is zero or has the amount's sign, so adding the sign moves it away
+            // from zero. Two or more parts keep it at most half the amount, so it can't overflow.
+            largerMinorUnits: NonZeroInt64(unchecked: quotient + amount.signum),
+            smallerCount: parts - largerCount
         )
     }
 }
