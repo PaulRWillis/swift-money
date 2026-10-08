@@ -9,7 +9,7 @@ struct ConversionTests {
         let rate = try #require(Rate(string: "0.87"))
         let eurGbp = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(rate))
 
-        let gbp = EUR(minorUnits: 100_00).converted(using: eurGbp).rounded(.toNearestOrEven)
+        let gbp = try EUR(minorUnits: 100_00).converted(using: eurGbp).rounded(.toNearestOrEven)
 
         #expect(gbp == GBP(minorUnits: 87_00))
     }
@@ -20,7 +20,7 @@ struct ConversionTests {
         let eurGbp = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(rate))
 
         // 100.00 EUR × 0.8765262907 = 87.65262907 GBP, settled once to 87.65.
-        let gbp = EUR(minorUnits: 100_00).converted(using: eurGbp).rounded(.toNearestOrEven)
+        let gbp = try EUR(minorUnits: 100_00).converted(using: eurGbp).rounded(.toNearestOrEven)
 
         #expect(gbp == GBP(minorUnits: 87_65))
     }
@@ -31,8 +31,8 @@ struct ConversionTests {
         let eurGbp = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(rate))
         let margin = try #require(FX.Margin(.basisPoints(5)))
 
-        let mid = EUR(minorUnits: 100_00).converted(using: eurGbp).rounded(.toNearestOrEven)
-        let customer = EUR(minorUnits: 100_00).converted(using: eurGbp.applyingMargin(margin)).rounded(.toNearestOrEven)
+        let mid = try EUR(minorUnits: 100_00).converted(using: eurGbp).rounded(.toNearestOrEven)
+        let customer = try EUR(minorUnits: 100_00).converted(using: eurGbp.applyingMargin(margin)).rounded(.toNearestOrEven)
 
         #expect(customer < mid)
     }
@@ -45,7 +45,7 @@ struct ConversionTests {
         let mid = try #require(FX.ExchangeRate<Currencies.GBP, Currencies.EUR>(midRate))
         let margin = try #require(FX.Margin(.percent(20)))
 
-        let euros = GBP(minorUnits: 1_00).converted(using: mid.applyingMargin(margin)).rounded(.toNearestOrEven)
+        let euros = try GBP(minorUnits: 1_00).converted(using: mid.applyingMargin(margin)).rounded(.toNearestOrEven)
 
         #expect(euros == EUR(minorUnits: 1_20))
     }
@@ -59,8 +59,8 @@ struct ConversionTests {
         let directRate = try #require(Rate(string: "0.88"))
         let eurGbp = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(directRate))
 
-        let viaCross = EUR(minorUnits: 100_00).converted(using: eurUsd.crossed(with: usdGbp)).rounded(.toNearestOrEven)
-        let direct = EUR(minorUnits: 100_00).converted(using: eurGbp).rounded(.toNearestOrEven)
+        let viaCross = try EUR(minorUnits: 100_00).converted(using: eurUsd.crossed(with: usdGbp)).rounded(.toNearestOrEven)
+        let direct = try EUR(minorUnits: 100_00).converted(using: eurGbp).rounded(.toNearestOrEven)
 
         #expect(viaCross == direct)
         #expect(viaCross == GBP(minorUnits: 88_00))
@@ -78,7 +78,7 @@ struct ConversionTests {
         let eurUsd = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.USD>(eurUsdRate)).applyingMargin(margin)
         let usdGbp = try #require(FX.ExchangeRate<Currencies.USD, Currencies.GBP>(usdGbpRate)).applyingMargin(margin)
 
-        let gbp = EUR(minorUnits: 100_00).converted(using: eurUsd.crossed(with: usdGbp)).rounded(.toNearestOrEven)
+        let gbp = try EUR(minorUnits: 100_00).converted(using: eurUsd.crossed(with: usdGbp)).rounded(.toNearestOrEven)
 
         #expect(gbp == GBP(minorUnits: 120_00))
     }
@@ -89,7 +89,7 @@ struct ConversionTests {
         let eurGbp = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(rate))
         let third = try #require(Rate(string: "1/3"))
 
-        let gbp = (EUR(minorUnits: 300_00).unrounded * third).converted(using: eurGbp).rounded(.toNearestOrEven)
+        let gbp = try (EUR(minorUnits: 300_00).unrounded * third).converted(using: eurGbp).rounded(.toNearestOrEven)
 
         #expect(gbp == GBP(minorUnits: 87_00))   // 300.00 × 1/3 = 100.00 EUR, × 0.87 = 87.00 GBP
     }
@@ -101,8 +101,28 @@ struct ConversionTests {
         let rate = try #require(Rate(string: "149.5"))               // $1 = ¥149.5, quoted per major unit
         let usdJpy = try #require(FX.ExchangeRate<Currencies.USD, Currencies.JPY>(rate))
 
-        let yen = USD(minorUnits: 1_00).converted(using: usdJpy).rounded(.toNearestOrEven)
+        let yen = try USD(minorUnits: 1_00).converted(using: usdJpy).rounded(.toNearestOrEven)
 
         #expect(yen == JPY(minorUnits: 150))   // ¥149.5 → ¥150, not ¥14,950
+    }
+
+    @Test("Converting to an amount too large to represent throws")
+    func convertingToTooLargeAnAmountThrows() throws {
+        let rate = try #require(Rate(string: "100"))
+        let eurGbp = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(rate))
+
+        #expect(throws: FX.ExchangeError.overflow) {
+            try EUR.max.converted(using: eurGbp)
+        }
+    }
+
+    @Test("Converting an unrounded amount to one too large to represent throws")
+    func convertingAnUnroundedAmountToTooLargeAnAmountThrows() throws {
+        let rate = try #require(Rate(string: "100"))
+        let eurGbp = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(rate))
+
+        #expect(throws: FX.ExchangeError.overflow) {
+            try EUR.max.unrounded.converted(using: eurGbp)
+        }
     }
 }

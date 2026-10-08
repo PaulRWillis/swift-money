@@ -47,13 +47,24 @@ public extension FX {
         /// Returns the customer rate for this mid-market rate: the rate less the provider's margin.
         ///
         /// The customer keeps the fraction of the mid rate the margin does not take, so the result is
-        /// always positive and never larger than the mid rate.
-        public func applyingMargin(_ margin: Margin) -> Self {
-            // margin is in [0, 1), so the kept fraction is in (0, 1] and the product stays positive and
-            // no larger than the rate, so it cannot leave the range or the positive invariant.
+        /// never larger than the mid rate.
+        ///
+        /// ```swift
+        /// let mid = FX.ExchangeRate<Currencies.EUR, Currencies.GBP>("1.5")!
+        /// let margin = FX.Margin(.percent(20))!
+        /// let customer = try mid.applyingMargin(margin)   // 1.2
+        /// ```
+        ///
+        /// - Parameter margin: The provider's margin.
+        /// - Returns: The mid rate less `margin`.
+        /// - Throws: ``FX/ExchangeError/roundsToZero`` if the customer rate is too close to zero to
+        ///   represent.
+        public func applyingMargin(_ margin: Margin) throws(ExchangeError) -> Self {
+            // margin is in [0, 1), so the kept fraction is in (0, 1] and the product is no larger than
+            // the rate: it can't overflow, only round to zero.
             guard let customer = minorPerMinorRate.multiplied(by: margin.rate.subtracted(from: .par)),
                   let result = Self(minorPerMinor: customer) else {
-                preconditionFailure("Applying a margin left the representable range")  // coverage:ignore — exit-test trap
+                throw .roundsToZero
             }
 
             return result
@@ -64,15 +75,26 @@ public extension FX {
         /// The shared currency is enforced by the types: this rate's `To` must be `other`'s `From`, so
         /// `EUR→GBP` is `EUR→USD` crossed with `USD→GBP`.
         ///
-        /// - Precondition: the composed rate is representable, which any realistic pair of rates is.
+        /// ```swift
+        /// let eurUsd = FX.ExchangeRate<Currencies.EUR, Currencies.USD>("1.1")!
+        /// let usdGbp = FX.ExchangeRate<Currencies.USD, Currencies.GBP>("0.8")!
+        /// let eurGbp = try eurUsd.crossed(with: usdGbp)   // 0.88
+        /// ```
+        ///
+        /// - Parameter other: The rate from this rate's `To` currency onward.
+        /// - Returns: The product of this rate and `other`.
+        /// - Throws: ``FX/ExchangeError/overflow`` if the product is too large to represent;
+        ///   ``FX/ExchangeError/roundsToZero`` if it is too close to zero to represent.
         public func crossed<Onward>(
             with other: ExchangeRate<To, Onward>
-        ) -> ExchangeRate<From, Onward> {
+        ) throws(ExchangeError) -> ExchangeRate<From, Onward> {
             // Both are minor-per-minor, so the shared `To` minor unit cancels and the product is
             // already `Onward` minor units per one `From` minor unit, with no scale adjustment needed.
-            guard let composed = minorPerMinorRate.multiplied(by: other.minorPerMinorRate),
-                  let result = ExchangeRate<From, Onward>(minorPerMinor: composed) else {
-                preconditionFailure("Crossing two rates left the representable range")  // coverage:ignore — exit-test trap
+            guard let composed = minorPerMinorRate.multiplied(by: other.minorPerMinorRate) else {
+                throw .overflow
+            }
+            guard let result = ExchangeRate<From, Onward>(minorPerMinor: composed) else {
+                throw .roundsToZero
             }
 
             return result

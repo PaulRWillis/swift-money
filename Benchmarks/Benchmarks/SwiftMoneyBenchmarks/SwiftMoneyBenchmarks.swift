@@ -2117,7 +2117,7 @@ let benchmarks: @Sendable () -> Void = {
         var amount: Int64 = 1
 
         for _ in benchmark.scaledIterations {
-            blackHole(EUR(minorUnits: amount).converted(using: eurGbp))
+            blackHole(try EUR(minorUnits: amount).converted(using: eurGbp))
             amount &+= 1
         }
     }
@@ -2131,7 +2131,7 @@ let benchmarks: @Sendable () -> Void = {
 
     Benchmark("ExchangeRate crossed", configuration: defaultConfiguration) { benchmark in
         for _ in benchmark.scaledIterations {
-            blackHole(eurUsd.crossed(with: usdGbp))
+            blackHole(try eurUsd.crossed(with: usdGbp))
         }
     }
 
@@ -2143,7 +2143,7 @@ let benchmarks: @Sendable () -> Void = {
 
     Benchmark("ExchangeRate applying a margin", configuration: defaultConfiguration) { benchmark in
         for _ in benchmark.scaledIterations {
-            blackHole(eurGbp.applyingMargin(providerMargin))
+            blackHole(try eurGbp.applyingMargin(providerMargin))
         }
     }
 
