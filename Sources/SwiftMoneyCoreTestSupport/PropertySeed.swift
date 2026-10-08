@@ -24,4 +24,5 @@ package enum PropertySeed {
     package static let exchangeRateCrossing: UInt64 = 0xA010
     package static let exchangeRateCoding: UInt64 = 0xB011
     package static let unsignedWords: UInt64 = 0xC012
+    package static let signedWords: UInt64 = 0xD013
 }

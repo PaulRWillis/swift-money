@@ -422,3 +422,29 @@ extension UInt128Words {
         Parity(of: low)
     }
 }
+
+extension UInt128Words {
+    /// Returns this value times ten plus a digit, or `nil` if that overflows: one step of reading a
+    /// decimal number.
+    ///
+    /// ```swift
+    /// UInt128Words(12).multipliedByTenAdding(3)    // 123
+    /// UInt128Words.max.multipliedByTenAdding(0)    // nil
+    /// ```
+    ///
+    /// - Parameter digit: The value to add after multiplying by ten, a decimal digit's `0...9`.
+    /// - Returns: `self × 10 + digit`, or `nil` if it doesn't fit 128 bits.
+    package func multipliedByTenAdding(_ digit: UInt8) -> UInt128Words? {
+        let (lowCarry, shiftedLow) = low.multipliedFullWidth(by: 10)
+        let (highProduct, highOverflow) = high.multipliedReportingOverflow(by: 10)
+        let (shiftedHigh, carryOverflow) = highProduct.addingReportingOverflow(lowCarry)
+        let (sumLow, digitCarry) = shiftedLow.addingReportingOverflow(UInt64(digit))
+        let (sumHigh, digitOverflow) = shiftedHigh.addingReportingOverflow(digitCarry ? 1 : 0)
+
+        guard !highOverflow, !carryOverflow, !digitOverflow else {
+            return nil
+        }
+
+        return UInt128Words(high: sumHigh, low: sumLow)
+    }
+}

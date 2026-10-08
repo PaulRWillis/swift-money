@@ -15,6 +15,17 @@ package enum Sign: Equatable {
         self = value < 0 ? .negative : .positive
     }
 
+    /// Creates the sign of a 128-bit value, counting zero as positive.
+    ///
+    /// ```swift
+    /// Sign(of: Int128Words.min)   // .negative
+    /// ```
+    ///
+    /// - Parameter value: The value whose sign to take.
+    package init(of value: Int128Words) {
+        self = value._storage.high >> 63 == 0 ? .positive : .negative
+    }
+
     // A product is negative when exactly one of its operands is.
     static func * (
         lhs: Sign,
