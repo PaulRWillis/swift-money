@@ -69,17 +69,28 @@ extension Split {
             Iterator(split)
         }
 
-        // Everything about the split is settled once, in the initializer. Reading it out of the enum
-        // per element meant recomputing `count` (itself a switch, two conversions and an addition)
-        // on every call to `next()`, for a value that cannot change while iterating.
+        /// An iterator over a split's amounts, larger amounts first.
         @usableFromInline struct Iterator: IteratorProtocol {
+            /// The amount of each larger part.
             @usableFromInline let larger: MoneyOf<C>
+
+            /// The amount of each smaller part, equal to ``larger`` for an even split.
             @usableFromInline let smaller: MoneyOf<C>
+
+            /// The number of parts that receive ``larger``.
             @usableFromInline let largerCount: Int
+
+            /// The number of parts, which is the number of amounts the iterator returns.
             @usableFromInline let count: Int
+
+            /// The number of amounts returned so far.
             @usableFromInline var position = 0
 
+            /// Creates an iterator over a split's amounts.
+            ///
+            /// - Parameter split: The split to iterate.
             @inlinable init(_ split: Split) {
+                // Settled once here, so `next()` does no switch or count arithmetic per element.
                 switch split {
                 case let .even(even):
                     larger = even.amount
@@ -94,6 +105,9 @@ extension Split {
                 }
             }
 
+            /// Returns the next amount, or `nil` once every part has been returned.
+            ///
+            /// - Returns: The next part's amount, or `nil` if there are no more.
             @inlinable mutating func next() -> MoneyOf<C>? {
                 guard position < count else {
                     return nil

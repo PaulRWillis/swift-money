@@ -170,9 +170,9 @@ struct WeightedSplitTests {
         ])
     }
 
-    // `distributeLeftover` used to fully rescan every remainder for each leftover unit, which measured
-    // at about 18 seconds for 16,000 equal weights. Two seconds is a generous ceiling well clear of
-    // ordinary noise, that only a quadratic regression would come close to.
+    // Rescanning every remainder for each leftover unit takes about 18 seconds for 16,000 equal
+    // weights. The 2-second ceiling is well clear of ordinary noise, so only a quadratic
+    // regression trips it.
     @Test("A weighted split with many parts completes quickly, not quadratically")
     func manyPartsSplitCompletesQuickly() throws {
         let weights = try #require(Weights(Array(repeating: Weight(integerLiteral: 1), count: 16_000)))
