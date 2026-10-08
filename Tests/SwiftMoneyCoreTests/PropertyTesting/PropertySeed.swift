@@ -20,4 +20,5 @@ enum PropertySeed {
     static let ranges: UInt64 = 0x600C
     static let stride: UInt64 = 0x700D
     static let steps: UInt64 = 0x800E
+    static let unsignedWords: UInt64 = 0x900F
 }
