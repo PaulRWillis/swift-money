@@ -2,6 +2,8 @@ public extension FX {
     /// Why an exchange rate or a conversion could not produce a result.
     ///
     /// ```swift
+    /// let mid = FX.ExchangeRate<Currencies.EUR, Currencies.GBP>("0.000000000000000001")!
+    /// let margin = FX.Margin(.percent(60))!
     /// do throws(FX.ExchangeError) {
     ///     let customer = try mid.applyingMargin(margin)
     /// } catch {

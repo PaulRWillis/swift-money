@@ -351,7 +351,8 @@ public extension MoneyOf.Unrounded where C: CurrencyType {
     /// than at each hop.
     ///
     /// ```swift
-    /// // eurGbp is 0.87 and third is 1/3
+    /// let eurGbp = FX.ExchangeRate<Currencies.EUR, Currencies.GBP>("0.87")!
+    /// let third = Rate(string: "1/3")!
     /// let gbp = try (EUR(minorUnits: 300_00).unrounded * third)
     ///     .converted(using: eurGbp)
     ///     .rounded(.toNearestOrEven)   // £87.00
@@ -377,6 +378,8 @@ public extension MoneyOf where C: CurrencyType {
     /// single settling.
     ///
     /// ```swift
+    /// let eurGbp = FX.ExchangeRate<Currencies.EUR, Currencies.GBP>("0.87")!
+    /// let margin = FX.Margin(.basisPoints(5))!
     /// let gbp = try EUR(minorUnits: 100_00)
     ///     .converted(using: eurGbp.applyingMargin(margin))
     ///     .rounded(.toNearestOrEven)   // one rounding, into GBP

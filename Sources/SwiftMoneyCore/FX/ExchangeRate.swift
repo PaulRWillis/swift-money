@@ -50,7 +50,8 @@ public extension FX {
         /// never larger than the mid rate.
         ///
         /// ```swift
-        /// // mid is 1.5 and margin is 20%
+        /// let mid = FX.ExchangeRate<Currencies.EUR, Currencies.GBP>("1.5")!
+        /// let margin = FX.Margin(.percent(20))!
         /// let customer = try mid.applyingMargin(margin)   // 1.2
         /// ```
         ///
@@ -75,7 +76,8 @@ public extension FX {
         /// `EUR→GBP` is `EUR→USD` crossed with `USD→GBP`.
         ///
         /// ```swift
-        /// // eurUsd is 1.1 and usdGbp is 0.8
+        /// let eurUsd = FX.ExchangeRate<Currencies.EUR, Currencies.USD>("1.1")!
+        /// let usdGbp = FX.ExchangeRate<Currencies.USD, Currencies.GBP>("0.8")!
         /// let eurGbp = try eurUsd.crossed(with: usdGbp)   // 0.88
         /// ```
         ///
