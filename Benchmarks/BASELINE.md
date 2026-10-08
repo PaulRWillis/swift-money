@@ -3,7 +3,7 @@
 The reference performance work is measured against. Every change is a diff against these numbers, so a
 regression or a win is measured, not impressioned. It covers every public `SwiftMoneyCore` operation that
 does work, common and edge cases, grouped by the type that owns it. Stored-property reads and constants
-(`currency`, `min`, `max`, `zero`, `EvenSplit`'s fields, `UnevenSplit`'s counts, the coding-key
+(`currency`, `MoneyOf.min`, `MoneyOf.max`, `zero`, `EvenSplit`'s fields, `UnevenSplit`'s counts, the coding-key
 literals) have no row of their own. Nor does `UnevenSplit.largerAmount`: it is computed, but its
 getter is a bare return.
 
@@ -57,6 +57,8 @@ ahead of `Decimal`. The fractional operations are measured against the closest p
 | MoneyOf is positive | 7 | 0 | 0 |
 | MoneyOf is zero | 7 | 0 | 0 |
 | MoneyOf magnitude | 30 | 0 | 1 |
+| MoneyOf max | 35 | 0 | 1 |
+| MoneyOf min | 35 | 0 | 1 |
 | MoneyOf negation | 29 | 0 | 1 |
 | MoneyOf parsing | 223 | 0 | 6 |
 | MoneyOf parsing a large amount | 657 | 0 | 17 |
@@ -91,6 +93,8 @@ ahead of `Decimal`. The fractional operations are measured against the closest p
 | Money init major units, UInt32 | 46 | 0 | 1 |
 | Money is less than, throwing | 18 | 0 | 1 |
 | Money is multiple, throwing | 20 | 0 | 1 |
+| Money max, throwing | 39 | 0 | 1 |
+| Money min, throwing | 39 | 0 | 1 |
 | Money parsing | 349 | 0 | 9 |
 | Money parsing, caller's currency | 301 | 0 | 8 |
 | Money parsing, whole major units | 347 | 0 | 9 |

@@ -22,4 +22,15 @@ extension Gen where Value == Money {
             Money(minorUnits: units, currency: currency)
         }
     }
+
+    /// A generator of two runtime-currency amounts whose minor units fall in `range`, both in one
+    /// currency drawn from `currency`.
+    static func runtimeMoneyPair(
+        minorUnitsIn range: ClosedRange<Int64>,
+        currency: Gen<Currency>
+    ) -> Gen<(Money, Money)> {
+        zip(currency, zip(Gen<Int64>.int(in: range), Gen<Int64>.int(in: range))).map { currency, units in
+            (Money(minorUnits: units.0, currency: currency), Money(minorUnits: units.1, currency: currency))
+        }
+    }
 }

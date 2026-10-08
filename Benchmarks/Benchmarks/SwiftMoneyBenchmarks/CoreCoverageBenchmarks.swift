@@ -1654,6 +1654,56 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         }
     }
 
+    Benchmark("MoneyOf min", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(min(clampProbes[index % clampProbes.count], clampProbes[(index &+ 3) % clampProbes.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money min, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try min(
+                    runtimeClampProbes[index % runtimeClampProbes.count],
+                    runtimeClampProbes[(index &+ 3) % runtimeClampProbes.count]
+                ))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts share a currency, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("MoneyOf max", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(max(clampProbes[index % clampProbes.count], clampProbes[(index &+ 3) % clampProbes.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money max, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try max(
+                    runtimeClampProbes[index % runtimeClampProbes.count],
+                    runtimeClampProbes[(index &+ 3) % runtimeClampProbes.count]
+                ))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts share a currency, so this cannot happen: \(error)")
+        }
+    }
+
     // Some operands are negative, so both signs of stride occur; none is zero.
     let strideAmounts = operands.map { GBP(minorUnits: $0 % 2 == 0 ? $0 * 100 : -$0 * 100) }
     let runtimeStrideAmounts = strideAmounts.map { Money($0) }

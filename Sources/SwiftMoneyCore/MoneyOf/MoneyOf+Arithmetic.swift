@@ -282,11 +282,12 @@ public extension MoneyOf where C == AnyCurrency {
     /// a total order, and none exists here.
     ///
     /// The standard sorting and extreme-finding algorithms take a throwing closure, so this composes
-    /// with them:
+    /// with them. For two amounts, ``max(_:_:)`` reads more plainly:
     ///
     /// ```swift
     /// let ordered = try prices.sorted { try $0.isLessThan($1) }
     /// let dearest = try prices.max { try $0.isLessThan($1) }
+    /// let higher = try max(offer, limit)
     /// ```
     ///
     /// - Parameter other: The amount to compare against.
