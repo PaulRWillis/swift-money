@@ -33,4 +33,12 @@ struct NonEmptyTests {
         #expect(NonEmpty(1, [2]) == NonEmpty([1, 2]))
         #expect(NonEmpty(1, [2]) != NonEmpty([2, 1]))
     }
+
+    @Test("Two equal non-empty sequences hash alike")
+    func equalElementsHashAlike() throws {
+        let split = NonEmpty(1, [2])
+        let fromArray = try #require(NonEmpty([1, 2]))
+
+        #expect(Set([split, fromArray, NonEmpty(2, [1])]).count == 2)
+    }
 }

@@ -1337,7 +1337,7 @@ func fullNameRecords(of locale: String) -> LocaleCurrencyEntries<LocaleTables.Fu
         LocaleTables.FullName(
             other: name.other,
             overrides: PluralCategory.allCases.compactMap { category in
-                name.byCategory[category].map { (category, $0) }
+                name.byCategory[category].map { NameOverride(category: category, name: $0) }
             }
         )
     }
@@ -1367,29 +1367,6 @@ func minimumGroupingDigits(_ numbers: [String: Any], locale: String) -> Int {
     }
 
     return digits
-}
-
-// Which directory each stored identifier is read from, in the order the locale section is searched.
-//
-// A locale is filed under the identifier a caller resolves to rather than under its directory name,
-// because ICU drops a script the language already implies: data filed as `ff-Latn-GH` is asked for
-// as `ff-GH` and never found. Where several directories shorten to one identifier, the one already
-// named that identifier wins and the rest are reported, CLDR publishing the same data under each.
-func localeGroups(
-    among candidates: [String],
-    shortenedBy scripts: LikelyScripts
-) -> [(key: String, directories: [String])] {
-    let grouped = Dictionary(grouping: candidates) { scripts.shortened($0) }
-
-    return grouped.keys
-        .sorted { $0.utf8.lexicographicallyPrecedes($1.utf8) }
-        .map { key in
-            let directories = grouped[key, default: []].sorted()
-            // The directory already named the identifier defines it; the rest only stand in for it.
-            let preferred = directories.filter { $0 == key } + directories.filter { $0 != key }
-
-            return (key, preferred)
-        }
 }
 
 // Every candidate language read once, split into the ones a locale can be built on and the ones it
@@ -1489,26 +1466,32 @@ var skipped: [SkippedLocale] = []
 
 let scripts = likelyScripts()
 
-for (key, directories) in localeGroups(among: candidates, shortenedBy: scripts) {
-    // The directory named for the identifier goes first, and whichever builds first fills it. They
-    // are the same locale to a caller, since the only thing between them is a script its language
-    // already implies, so the one that can be rendered is the best data the identifier can have.
-    // The rest are reported as duplicates, and a group where none builds is reported per directory
-    // for what each actually publishes.
-    var filled = false
+for group in scripts.groups(of: candidates) {
+    let resolution = group.resolve { (folder: String) throws(LocaleSkip) in
+        try tables(for: folder, unusableLanguages: pluralRules.unusable)
+    }
 
-    for directory in directories {
-        guard !filled else {
-            skipped.append(SkippedLocale(locale: directory, skip: .duplicateOfShorterIdentifier(key)))
-            continue
+    switch resolution {
+    case .built(let tables):
+        emitted.append((group.shortName, tables))
+
+        // The folder named for the short name defines it, or the only folder when none is; the rest
+        // carry the same data and are reported as duplicates.
+        let defining = group.folders.first(where: { $0 == group.shortName }) ?? group.folders.first
+        for folder in group.folders where folder != defining {
+            skipped.append(SkippedLocale(locale: folder, skip: .duplicateOfShorterIdentifier(group.shortName)))
         }
 
-        do {
-            emitted.append((key, try tables(for: directory, unusableLanguages: pluralRules.unusable)))
-            filled = true
-        } catch {
-            skipped.append(SkippedLocale(locale: directory, skip: error))
-        }
+    case .skipped(let skips):
+        skipped += skips.map { SkippedLocale(locale: $0.folder, skip: $0.error) }
+
+    // CLDR's own rules call a group's folders one locale, so a group that doesn't build the same tables
+    // throughout is a change in CLDR this tool has no answer for yet.
+    case .partlyBuilt(let builtFolder, let failure):
+        fatalError("\(builtFolder) builds but \(failure.folder), one locale to CLDR, fails: \(failure.error)")
+
+    case .conflicting(let first, let second):
+        fatalError("\(first) and \(second) are one locale to CLDR but build different tables")
     }
 }
 

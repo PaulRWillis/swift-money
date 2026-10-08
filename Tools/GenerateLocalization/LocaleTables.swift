@@ -9,10 +9,10 @@ import SwiftMoneyLocalization
 //
 // The two currency splits hold their entries in the order their strings should reach the pool,
 // which is not the order they are searched in: `pack` sorts the records afterwards.
-struct LocaleTables {
+struct LocaleTables: Equatable, Hashable, Sendable {
     // What a locale calls one currency in symbol form, the gap each form takes beside the digits, and
     // whether a letter touches the number in each.
-    struct Display {
+    struct Display: Equatable, Hashable, Sendable {
         let standardSymbol: String
         let standardSpacing: Spacing
         let standardForm: SymbolForm
@@ -23,9 +23,9 @@ struct LocaleTables {
 
     // What a locale calls one currency in words: the name CLDR always publishes, and any plural
     // category that words it differently.
-    struct FullName {
+    struct FullName: Equatable, Hashable, Sendable {
         let other: String
-        let overrides: [(category: PluralCategory, name: String)]
+        let overrides: [NameOverride]
     }
 
     let decimalSeparator: String
@@ -78,7 +78,7 @@ struct LocaleTables {
     let numberingOverrides: [NumberingOverride]
 
     // One imposing system's separators as this locale writes them, when they differ from the default.
-    struct NumberingOverride {
+    struct NumberingOverride: Equatable, Hashable, Sendable {
         let system: String
         let decimalSeparator: String
         let groupingSeparator: String
