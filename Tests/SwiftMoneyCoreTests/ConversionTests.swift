@@ -111,7 +111,7 @@ struct ConversionTests {
         let rate = try #require(Rate(string: "100"))
         let eurGbp = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(rate))
 
-        #expect(throws: FX.ExchangeError.notRepresentable) {
+        #expect(throws: FX.ExchangeError.overflow) {
             try EUR.max.converted(using: eurGbp)
         }
     }
@@ -121,7 +121,7 @@ struct ConversionTests {
         let rate = try #require(Rate(string: "100"))
         let eurGbp = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(rate))
 
-        #expect(throws: FX.ExchangeError.notRepresentable) {
+        #expect(throws: FX.ExchangeError.overflow) {
             try EUR.max.unrounded.converted(using: eurGbp)
         }
     }

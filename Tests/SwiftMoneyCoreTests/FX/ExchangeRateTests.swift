@@ -72,7 +72,7 @@ struct ExchangeRateTests {
         let mid = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(smallestRate))
         let margin = try #require(FX.Margin(.percent(60)))
 
-        #expect(throws: FX.ExchangeError.notRepresentable) {
+        #expect(throws: FX.ExchangeError.roundsToZero) {
             try mid.applyingMargin(margin)
         }
     }
@@ -98,7 +98,7 @@ struct ExchangeRateTests {
         let eurUsd = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.USD>(largeRate))
         let usdGbp = try #require(FX.ExchangeRate<Currencies.USD, Currencies.GBP>(largeRate))
 
-        #expect(throws: FX.ExchangeError.notRepresentable) {
+        #expect(throws: FX.ExchangeError.overflow) {
             try eurUsd.crossed(with: usdGbp)
         }
     }
@@ -109,7 +109,7 @@ struct ExchangeRateTests {
         let eurUsd = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.USD>(smallRate))
         let usdGbp = try #require(FX.ExchangeRate<Currencies.USD, Currencies.GBP>(smallRate))
 
-        #expect(throws: FX.ExchangeError.notRepresentable) {
+        #expect(throws: FX.ExchangeError.roundsToZero) {
             try eurUsd.crossed(with: usdGbp)
         }
     }

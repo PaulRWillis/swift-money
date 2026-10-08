@@ -57,14 +57,14 @@ public extension FX {
         ///
         /// - Parameter margin: The provider's margin.
         /// - Returns: The mid rate less `margin`.
-        /// - Throws: ``FX/ExchangeError/notRepresentable`` if the customer rate is so close to zero
-        ///   that it rounds to zero.
+        /// - Throws: ``FX/ExchangeError/roundsToZero`` if the customer rate is too close to zero to
+        ///   represent.
         public func applyingMargin(_ margin: Margin) throws(ExchangeError) -> Self {
             // margin is in [0, 1), so the kept fraction is in (0, 1] and the product is no larger than
             // the rate: it can't overflow, only round to zero.
             guard let customer = minorPerMinorRate.multiplied(by: margin.rate.subtracted(from: .par)),
                   let result = Self(minorPerMinor: customer) else {
-                throw .notRepresentable
+                throw .roundsToZero
             }
 
             return result
@@ -83,16 +83,18 @@ public extension FX {
         ///
         /// - Parameter other: The rate from this rate's `To` currency onward.
         /// - Returns: The product of this rate and `other`.
-        /// - Throws: ``FX/ExchangeError/notRepresentable`` if the product is too large to represent,
-        ///   or so close to zero that it rounds to zero.
+        /// - Throws: ``FX/ExchangeError/overflow`` if the product is too large to represent;
+        ///   ``FX/ExchangeError/roundsToZero`` if it is too close to zero to represent.
         public func crossed<Onward>(
             with other: ExchangeRate<To, Onward>
         ) throws(ExchangeError) -> ExchangeRate<From, Onward> {
             // Both are minor-per-minor, so the shared `To` minor unit cancels and the product is
             // already `Onward` minor units per one `From` minor unit, with no scale adjustment needed.
-            guard let composed = minorPerMinorRate.multiplied(by: other.minorPerMinorRate),
-                  let result = ExchangeRate<From, Onward>(minorPerMinor: composed) else {
-                throw .notRepresentable
+            guard let composed = minorPerMinorRate.multiplied(by: other.minorPerMinorRate) else {
+                throw .overflow
+            }
+            guard let result = ExchangeRate<From, Onward>(minorPerMinor: composed) else {
+                throw .roundsToZero
             }
 
             return result

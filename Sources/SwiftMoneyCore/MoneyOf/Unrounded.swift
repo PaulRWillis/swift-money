@@ -360,13 +360,12 @@ public extension MoneyOf.Unrounded where C: CurrencyType {
     ///
     /// - Parameter rate: The rate from this amount's currency to `To`.
     /// - Returns: This amount in `To`, unsettled.
-    /// - Throws: ``FX/ExchangeError/notRepresentable`` if the converted amount is too large to
-    ///   represent.
+    /// - Throws: ``FX/ExchangeError/overflow`` if the converted amount is too large to represent.
     @inlinable func converted<To>(
         using rate: FX.ExchangeRate<C, To>
     ) throws(FX.ExchangeError) -> MoneyOf<To>.Unrounded {
         guard let converted = minorUnits.multipliedIfRepresentable(by: rate.minorPerMinorRate.value) else {
-            throw .notRepresentable
+            throw .overflow
         }
 
         return MoneyOf<To>.Unrounded(converted, storage: .implied)
@@ -387,8 +386,7 @@ public extension MoneyOf where C: CurrencyType {
     ///
     /// - Parameter rate: The rate from this amount's currency to `To`.
     /// - Returns: This amount in `To`, unsettled.
-    /// - Throws: ``FX/ExchangeError/notRepresentable`` if the converted amount is too large to
-    ///   represent.
+    /// - Throws: ``FX/ExchangeError/overflow`` if the converted amount is too large to represent.
     @inlinable func converted<To>(
         using rate: FX.ExchangeRate<C, To>
     ) throws(FX.ExchangeError) -> MoneyOf<To>.Unrounded {

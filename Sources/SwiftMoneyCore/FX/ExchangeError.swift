@@ -8,12 +8,16 @@ public extension FX {
     ///     let customer = try mid.applyingMargin(margin)
     /// } catch {
     ///     switch error {
-    ///     case .notRepresentable: …   // the customer rate rounds to zero
+    ///     case .overflow: …
+    ///     case .roundsToZero: …   // the customer rate is too small to keep
     ///     }
     /// }
     /// ```
     enum ExchangeError: Error, Equatable, Hashable, Sendable {
-        /// A result the library can't hold: too large, or a rate too close to zero to stay positive.
-        case notRepresentable
+        /// The result is too large to represent.
+        case overflow
+
+        /// The result is a rate too close to zero to represent, so it would round to zero.
+        case roundsToZero
     }
 }
