@@ -3,8 +3,8 @@ import Testing
 
 // A conversion to exercise: an amount, a mid rate (EUR→GBP), a second leg (GBP→USD) to cross with, a
 // margin, and an ordered pair of amounts for the monotonicity check. The rates are stored rather than the
-// `ExchangeRate` values, which are built in the tests: a positive rate always yields one, so `#require`
-// unwraps it there without a fallback.
+// `FX.ExchangeRate` values, which are built in the tests: a positive rate always yields one, so
+// `#require` unwraps it there without a fallback.
 private struct ConvertCase: Sendable {
     let amount: EUR
     let rate: Rate
@@ -25,7 +25,8 @@ private let conversionAmountBound: Int64 = 1_000_000
 private let exchangeSignificandRange: ClosedRange<Int64> = 1_000 ... 100_000
 private let exchangeDenominator: Int64 = 10_000
 
-// Margins from zero up to just under one half (4_999 basis points is 0.4999), the range `Margin` accepts.
+// Margins from zero up to just under one half (4_999 basis points is 0.4999), the range `FX.Margin`
+// accepts.
 private let maxMarginBasisPoints: Int64 = 4_999
 
 private let roundingRules: [RoundingRule] = [
@@ -94,7 +95,7 @@ struct ExchangeRatePropertyTests {
 
     @Test("A positive amount converts to a positive amount", arguments: convertCases)
     private func conversionIsPositive(_ convert: ConvertCase) throws {
-        let rate = try #require(ExchangeRate<Currencies.EUR, Currencies.GBP>(convert.rate))
+        let rate = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(convert.rate))
 
         for rule in roundingRules {
             #expect(convert.amount.converted(using: rate).rounded(rule) > .zero)
@@ -103,8 +104,8 @@ struct ExchangeRatePropertyTests {
 
     @Test("A crossed rate keeps a positive amount positive", arguments: convertCases)
     private func crossedConversionIsPositive(_ convert: ConvertCase) throws {
-        let eurGbp = try #require(ExchangeRate<Currencies.EUR, Currencies.GBP>(convert.rate))
-        let gbpUsd = try #require(ExchangeRate<Currencies.GBP, Currencies.USD>(convert.onwardRate))
+        let eurGbp = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(convert.rate))
+        let gbpUsd = try #require(FX.ExchangeRate<Currencies.GBP, Currencies.USD>(convert.onwardRate))
         let eurUsd = eurGbp.crossed(with: gbpUsd)
 
         for rule in roundingRules {
@@ -114,8 +115,8 @@ struct ExchangeRatePropertyTests {
 
     @Test("Applying a margin never exceeds the mid rate and stays positive", arguments: convertCases)
     private func marginStaysBelowMidAndPositive(_ convert: ConvertCase) throws {
-        let rate = try #require(ExchangeRate<Currencies.EUR, Currencies.GBP>(convert.rate))
-        let margin = try #require(Margin(.basisPoints(convert.marginBasisPoints)))
+        let rate = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(convert.rate))
+        let margin = try #require(FX.Margin(.basisPoints(convert.marginBasisPoints)))
 
         for rule in roundingRules {
             let mid = convert.amount.converted(using: rate).rounded(rule)
@@ -128,7 +129,7 @@ struct ExchangeRatePropertyTests {
 
     @Test("Converting is monotonic in the amount", arguments: convertCases)
     private func conversionIsMonotonic(_ convert: ConvertCase) throws {
-        let rate = try #require(ExchangeRate<Currencies.EUR, Currencies.GBP>(convert.rate))
+        let rate = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(convert.rate))
 
         for rule in roundingRules {
             let lower = convert.smaller.converted(using: rate).rounded(rule)
