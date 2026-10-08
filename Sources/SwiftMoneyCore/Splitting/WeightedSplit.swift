@@ -1,7 +1,8 @@
 /// The result of splitting a monetary amount by weights.
 ///
-/// One part per weight, in weight order, and the parts always sum to the original amount: a weighted
-/// split does not lose or invent money. Each part carries the weight it came from alongside its share.
+/// One part per weight, in weight order, and the parts always sum to the original amount: a
+/// weighted split does not lose or invent money. Each part carries the weight it came from
+/// alongside its share.
 public struct WeightedSplit<C: CurrencyRepresentation>: Equatable {
     /// One part of a weighted split: a weight and the share it received.
     public struct Part: Equatable {
@@ -27,10 +28,12 @@ public struct WeightedSplit<C: CurrencyRepresentation>: Equatable {
         }
     }
 
-    /// The parts, one per weight, in weight order.
+    /// The parts, one per weight, in weight order. Never empty.
     public let parts: [Part]
 
     /// Creates a weighted split from its parts.
+    ///
+    /// `parts` must not be empty.
     ///
     /// - Parameter parts: The parts, one per weight, in weight order.
     @usableFromInline
@@ -42,9 +45,6 @@ public struct WeightedSplit<C: CurrencyRepresentation>: Equatable {
 
 public extension WeightedSplit {
     /// Each part's share, in weight order.
-    ///
-    /// `@inlinable` so it specializes for a concretely-typed amount at the call site rather than running
-    /// the generic `map`, which for a typed `WeightedSplit` measured far dearer than the work it does.
     @inlinable
     var amounts: [MoneyOf<C>] {
         parts.map(\.amount)
@@ -58,8 +58,9 @@ public extension WeightedSplit {
 
     /// The number of parts, which equals the number of weights.
     @inlinable
-    var count: Int {
-        parts.count
+    var count: PartCount {
+        // `parts` is never empty, so the count is at least one.
+        PartCount(unchecked: parts.count)
     }
 }
 

@@ -53,7 +53,7 @@ struct WeightedSplitPropertyTests {
     private func onePartPerWeightInOrder(_ weighted: WeightedCase) {
         let split = weighted.money.split(by: weighted.weights)
 
-        #expect(split.count == weighted.weightValues.count)
+        #expect(Int(split.count) == weighted.weightValues.count)
         #expect(split.weights == weighted.weightValues)
     }
 

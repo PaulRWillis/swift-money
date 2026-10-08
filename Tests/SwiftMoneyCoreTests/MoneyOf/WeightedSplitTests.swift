@@ -31,7 +31,7 @@ struct WeightedSplitTests {
 
         let distribution = GBP(minorUnits: amount).split(by: weights)
 
-        #expect(distribution.count == weightList.count)
+        #expect(Int(distribution.count) == weightList.count)
         #expect(distribution.weights == weightList)
     }
 
@@ -117,6 +117,7 @@ struct WeightedSplitTests {
         let money = GBP(minorUnits: amount)
 
         #expect(money.split(by: weights).amounts == Array(money.split(into: parts).amounts))
+        #expect(money.split(into: money.split(by: weights).count) == money.split(into: parts))
     }
 
     // The leftover unit goes to a part with a non-zero remainder, never to the zero weight.
@@ -170,9 +171,9 @@ struct WeightedSplitTests {
         ])
     }
 
-    // `distributeLeftover` used to fully rescan every remainder for each leftover unit, which measured
-    // at about 18 seconds for 16,000 equal weights. Two seconds is a generous ceiling well clear of
-    // ordinary noise, that only a quadratic regression would come close to.
+    // Rescanning every remainder for each leftover unit takes about 18 seconds for 16,000 equal
+    // weights. The 2-second ceiling is well clear of ordinary noise, so only a quadratic
+    // regression trips it.
     @Test("A weighted split with many parts completes quickly, not quadratically")
     func manyPartsSplitCompletesQuickly() throws {
         let weights = try #require(Weights(Array(repeating: Weight(integerLiteral: 1), count: 16_000)))
