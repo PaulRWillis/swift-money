@@ -2109,7 +2109,7 @@ let benchmarks: @Sendable () -> Void = {
     // registration and fails loudly, rather than an `if let` that would silently drop this row — the
     // only coverage `converted(using:)` has.
     let eurGbpRate: Rate = "0.8765262907"
-    guard let eurGbp = ExchangeRate<Currencies.EUR, Currencies.GBP>(eurGbpRate) else {
+    guard let eurGbp = FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(eurGbpRate) else {
         preconditionFailure("0.8765262907 is a positive EUR/GBP rate")
     }
 
@@ -2124,8 +2124,8 @@ let benchmarks: @Sendable () -> Void = {
 
     let eurUsdRate: Rate = "1.1"
     let usdGbpRate: Rate = "0.8"
-    guard let eurUsd = ExchangeRate<Currencies.EUR, Currencies.USD>(eurUsdRate),
-          let usdGbp = ExchangeRate<Currencies.USD, Currencies.GBP>(usdGbpRate) else {
+    guard let eurUsd = FX.ExchangeRate<Currencies.EUR, Currencies.USD>(eurUsdRate),
+          let usdGbp = FX.ExchangeRate<Currencies.USD, Currencies.GBP>(usdGbpRate) else {
         preconditionFailure("1.1 and 0.8 are positive rates")
     }
 
@@ -2137,7 +2137,7 @@ let benchmarks: @Sendable () -> Void = {
 
     // Applying a provider's spread to a mid-market rate — the customer-rate step. The margin is built at
     // registration (it is failable), like the rates above.
-    guard let providerMargin = Margin(.percent(2)) else {
+    guard let providerMargin = FX.Margin(.percent(2)) else {
         preconditionFailure("2% is a valid margin")
     }
 
@@ -2153,7 +2153,7 @@ let benchmarks: @Sendable () -> Void = {
         var index = 0
 
         for _ in benchmark.scaledIterations {
-            blackHole(Margin(rateOperands[index % rateOperands.count]))
+            blackHole(FX.Margin(rateOperands[index % rateOperands.count]))
             index &+= 1
         }
     }

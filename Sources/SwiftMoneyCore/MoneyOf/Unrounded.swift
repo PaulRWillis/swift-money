@@ -351,7 +351,7 @@ public extension MoneyOf.Unrounded where C: CurrencyType {
     /// than at each hop.
     ///
     /// - Precondition: the converted amount is representable.
-    @inlinable func converted<To>(using rate: ExchangeRate<C, To>) -> MoneyOf<To>.Unrounded {
+    @inlinable func converted<To>(using rate: FX.ExchangeRate<C, To>) -> MoneyOf<To>.Unrounded {
         guard let converted = minorUnits.multipliedIfRepresentable(by: rate.minorPerMinorRate.value) else {
             preconditionFailure("Converting is not representable")  // coverage:ignore — exit-test trap
         }
@@ -371,7 +371,7 @@ public extension MoneyOf where C: CurrencyType {
     /// ```
     ///
     /// - Precondition: the converted amount is representable.
-    func converted<To>(using rate: ExchangeRate<C, To>) -> MoneyOf<To>.Unrounded {
+    func converted<To>(using rate: FX.ExchangeRate<C, To>) -> MoneyOf<To>.Unrounded {
         // The converted value is `minorUnits * rate`, and `minorUnits` is an `Int64`, so for a realistic
         // rate it is reached with one `Int128` multiply rather than widening this amount and taking the
         // 256-bit path; an extreme rate falls back to it. Mirrors `applying(_:)`.
