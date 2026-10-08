@@ -39,9 +39,11 @@ public extension MoneyOf {
             self.amount = amount
         }
 
-        /// The minor units each step moves by, never zero. Negative steps downward.
+        /// The stride's minor units: `amount.minorUnits`, which is never zero.
+        ///
+        /// Negative moves downward.
         @inlinable
-        var step: NonZeroInt64 {
+        var minorUnits: NonZeroInt64 {
             // Every initializer either rejects a zero amount or builds a non-zero one.
             NonZeroInt64(unchecked: amount.minorUnits)
         }

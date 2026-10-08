@@ -101,7 +101,7 @@ public extension ClosedRange {
         try MoneyOf<C>.Steps(
             storage: .implied,
             span: lowerBound.minorUnits ... upperBound.minorUnits,
-            by: stride.step
+            by: stride.minorUnits
         )
     }
 }
