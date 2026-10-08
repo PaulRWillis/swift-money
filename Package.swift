@@ -74,10 +74,11 @@ let package = Package(
         .target(
             name: "CLDRCurrencyPatterns"
         ),
-        // Dev-only. Works out the identifier a locale's data has to be filed under to be found.
+        // Dev-only. Groups CLDR locale folders and works out every name each is filed under.
         // Not in any library product.
         .target(
-            name: "CLDRLocaleIdentifiers"
+            name: "CLDRLocaleIdentifiers",
+            dependencies: ["SwiftMoneyLocalization"]
         ),
         // Dev-only. Names why the generator cannot build tables for a CLDR locale, decides which of
         // a locale's currency codes the tables can hold, and renders the committed report of what
@@ -118,7 +119,7 @@ let package = Package(
         ),
         .testTarget(
             name: "CLDRLocaleIdentifiersTests",
-            dependencies: ["CLDRLocaleIdentifiers"]
+            dependencies: ["CLDRLocaleIdentifiers", "SwiftMoneyLocalization"]
         ),
         .testTarget(
             name: "CLDRLocaleSkipsTests",

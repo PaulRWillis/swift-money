@@ -55,4 +55,6 @@ extension NonEmpty: Sequence {
 
 extension NonEmpty: Equatable where Element: Equatable {}
 
+extension NonEmpty: Hashable where Element: Hashable {}
+
 extension NonEmpty: Sendable where Element: Sendable {}

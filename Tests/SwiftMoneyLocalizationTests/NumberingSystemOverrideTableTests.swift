@@ -78,11 +78,11 @@ struct NumberingSystemOverrideTableTests {
     // accounting-currency-side plan's Axis B lift (§8) newly covers them, each with its own minus
     // sign or decimal separator that differs from the arab system's pinned root default. `sdh`/`sdh-IQ`
     // are also newly covered but publish an arab block identical to the default, so they contribute no
-    // row — the section holds exactly these four.
+    // row. `sd` is also filed as `sd-Arab`, which repeats its row: five in all.
     @Test("The newly-covered arab/arabext locales override exactly where their own block differs from root")
     func generatedOverrides() throws {
         let cldr = MoneyLocalization.cldr
-        #expect(cldr.numberingSystemOverrides.count == 4)
+        #expect(cldr.numberingSystemOverrides.count == 5)
 
         let arab = try #require(cldr.numberingSystems.index(of: "arab"))
         let arabext = try #require(cldr.numberingSystems.index(of: "arabext"))
@@ -97,9 +97,11 @@ struct NumberingSystemOverrideTableTests {
         let fromCkb = try #require(cldr.numberingSystemOverrides.symbols(localeIndex: ckb, systemIndex: arab))
         #expect(fromCkb.minusSign == "\u{200F}-")
 
-        let sd = try #require(cldr.locales.index(of: "sd"))
-        let fromSd = try #require(cldr.numberingSystemOverrides.symbols(localeIndex: sd, systemIndex: arab))
-        #expect(fromSd.decimalSeparator == ".")
+        for name: LocaleIdentifier in ["sd", "sd-Arab"] {
+            let sd = try #require(cldr.locales.index(of: name))
+            let fromSd = try #require(cldr.numberingSystemOverrides.symbols(localeIndex: sd, systemIndex: arab))
+            #expect(fromSd.decimalSeparator == ".")
+        }
 
         // sdh publishes an arab block identical to the pinned root default, so it contributes no row.
         let sdh = try #require(cldr.locales.index(of: "sdh"))

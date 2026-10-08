@@ -14,13 +14,6 @@ package enum LocaleSkip: Error, Equatable, Sendable {
     /// placed beside them.
     case unrepresentableNumberFormat(UnsupportedNumberFormat)
 
-    /// Another locale is already filed under the identifier this one shortens to.
-    ///
-    /// A script its language implies is dropped from the stored identifier, so `ff-Latn` and `ff`
-    /// would both be filed as `ff`. CLDR publishes the same data under both, so the longer spelling
-    /// is left out rather than allowed to overwrite the shorter.
-    case duplicateOfShorterIdentifier(String)
-
     /// The language's plural rules use a relation the rule engine does not model, such as `within`.
     ///
     /// Distinct from a rule this tool simply misreads, which stops the run: this one CLDR's grammar
@@ -49,27 +42,27 @@ package enum LocaleSkip: Error, Equatable, Sendable {
     /// The locale's currency names do not share a single gap, which one packed spacing cannot hold.
     case multipleNameGaps(Set<Spacing>)
 
-    /// Apple's `Locale` resolves this identifier back to a different one before this library ever reads
-    /// it, so emitting this locale's own data would render under the wrong identifier on that platform.
+    /// Apple's `Locale` rewrites this identifier to the locale in `resolvesTo` before this library
+    /// reads it.
     ///
-    /// Distinct from ``duplicateOfShorterIdentifier``: there, the data really is identical under both
-    /// spellings, so the platform collapsing them is harmless. Here, the data differs (confirmed against
-    /// real CLDR text, not inferred), so it is not — `Locale(identifier: "shi-Latn").identifier` and
-    /// `.language.script` both come back as plain `shi` on Darwin (verified 2026-09-27), discarding the
-    /// script this locale needs, while Linux preserves it correctly. Tracked as its own item, not part of
-    /// the plan that found it (`accounting-currency-side-plan` session handover).
+    /// A caller on Apple platforms never reaches this folder's data and gets the other locale's.
     case platformIdentifierUnreliable(resolvesTo: String)
 }
 
 package extension LocaleSkip {
-    /// Identifiers Apple's own `Locale` resolves to a different one, mapped to what it wrongly resolves
-    /// to, checked directly (not inferred) on Darwin: `Locale(identifier: "shi-Latn").identifier` and
-    /// `.language.script` both come back as `shi`, discarding the script this locale needs, though
-    /// `shi-Latn`'s own CLDR data (its currency names) differs from bare `shi`'s. `uz-Arab`, `sr-Latn`,
-    /// `zh-Hant`, `sd-Arab` and `kxv-Latn` were checked the same way and all resolve correctly, so this
-    /// stays a named exception rather than a general rule: widening it needs the same direct check, not
-    /// a pattern guess.
-    static let unreliablePlatformResolution: [String: String] = ["shi-Latn": "shi"]
+    /// Identifiers Apple's `Locale` rewrites to another locale, each mapped to that locale.
+    ///
+    /// Each entry is checked on Darwin. Apple's other rewrites give a name the tables also hold.
+    static let unreliablePlatformResolution: [String: String] = [
+        // Only a folder alone in its group can go here: a skip in a larger group stops the run.
+
+        // Comes back as `shi` (2026-09-27), dropping the script; its currency names differ from
+        // `shi`'s.
+        "shi-Latn": "shi",
+        // Comes back as `sr-ME` (macOS 26, 2026-10-05), which CLDR says is Latin. Emitted, it would
+        // hash Latin output on macOS and Cyrillic on Linux, so the golden digests would differ.
+        "sr-Cyrl-ME": "sr-ME",
+    ]
 
     /// The category this skip falls under, carrying nothing specific to the locale that raised it.
     ///
@@ -79,8 +72,6 @@ package extension LocaleSkip {
         switch self {
         case .unrepresentableNumberFormat(let format):
             Self.numberFormat(format)
-        case .duplicateOfShorterIdentifier:
-            "shortens to an identifier another locale already uses"
         case .unsupportedPluralRule:
             "states a plural rule with a relation this tool does not model"
         case .unrepresentablePattern(let pattern, let field):
@@ -112,8 +103,6 @@ package extension LocaleSkip {
             numberingSystem
         case .noCurrencyPlaceholder(let pattern):
             Self.readable(pattern)
-        case .duplicateOfShorterIdentifier(let identifier):
-            identifier
         case .unsupportedPluralRule(let language, let relation):
             "\(language) uses \(Self.readable(relation))"
         case .unrepresentablePattern(.unmodelled(let pattern, let letterSymbolPattern), _):

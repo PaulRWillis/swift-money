@@ -1337,14 +1337,14 @@ func fullNameRecords(of locale: String) -> LocaleCurrencyEntries<LocaleTables.Fu
         LocaleTables.FullName(
             other: name.other,
             overrides: PluralCategory.allCases.compactMap { category in
-                name.byCategory[category].map { (category, $0) }
+                name.byCategory[category].map { NameOverride(category: category, name: $0) }
             }
         )
     }
 }
 
-// The script each language implies, so that a locale's data is filed under the identifier a caller
-// will really ask for rather than the one its directory happens to be named.
+// The scripts CLDR's likely subtags imply, which give each folder its short name. A likelySubtags.json
+// in any other shape stops the run.
 func likelyScripts() -> LikelyScripts {
     let root = json("\(cldrSupplemental)/likelySubtags.json")
     guard let supplemental = root["supplemental"] as? [String: Any],
@@ -1367,29 +1367,6 @@ func minimumGroupingDigits(_ numbers: [String: Any], locale: String) -> Int {
     }
 
     return digits
-}
-
-// Which directory each stored identifier is read from, in the order the locale section is searched.
-//
-// A locale is filed under the identifier a caller resolves to rather than under its directory name,
-// because ICU drops a script the language already implies: data filed as `ff-Latn-GH` is asked for
-// as `ff-GH` and never found. Where several directories shorten to one identifier, the one already
-// named that identifier wins and the rest are reported, CLDR publishing the same data under each.
-func localeGroups(
-    among candidates: [String],
-    shortenedBy scripts: LikelyScripts
-) -> [(key: String, directories: [String])] {
-    let grouped = Dictionary(grouping: candidates) { scripts.shortened($0) }
-
-    return grouped.keys
-        .sorted { $0.utf8.lexicographicallyPrecedes($1.utf8) }
-        .map { key in
-            let directories = grouped[key, default: []].sorted()
-            // The directory already named the identifier defines it; the rest only stand in for it.
-            let preferred = directories.filter { $0 == key } + directories.filter { $0 != key }
-
-            return (key, preferred)
-        }
 }
 
 // Every candidate language read once, split into the ones a locale can be built on and the ones it
@@ -1484,32 +1461,40 @@ checkEveryLanguageAgainstItsSamples(ruleText)
 let candidates = publishedLocales()
 let pluralRules = pluralRuleSets(among: candidates, in: ruleText)
 
-var emitted: [(key: String, tables: LocaleTables)] = []
+var built: [(key: String, tables: LocaleTables)] = []
 var skipped: [SkippedLocale] = []
 
 let scripts = likelyScripts()
 
-for (key, directories) in localeGroups(among: candidates, shortenedBy: scripts) {
-    // The directory named for the identifier goes first, and whichever builds first fills it. They
-    // are the same locale to a caller, since the only thing between them is a script its language
-    // already implies, so the one that can be rendered is the best data the identifier can have.
-    // The rest are reported as duplicates, and a group where none builds is reported per directory
-    // for what each actually publishes.
-    var filled = false
-
-    for directory in directories {
-        guard !filled else {
-            skipped.append(SkippedLocale(locale: directory, skip: .duplicateOfShorterIdentifier(key)))
-            continue
-        }
-
-        do {
-            emitted.append((key, try tables(for: directory, unusableLanguages: pluralRules.unusable)))
-            filled = true
-        } catch {
-            skipped.append(SkippedLocale(locale: directory, skip: error))
-        }
+for group in scripts.groups(of: candidates) {
+    let resolution = group.resolve { (folder: String) throws(LocaleSkip) in
+        try tables(for: folder, unusableLanguages: pluralRules.unusable)
     }
+
+    switch resolution {
+    case .built(let tables):
+        built += group.names.map { (key: $0, tables: tables) }
+
+    case .skipped(let skips):
+        skipped += skips.map { SkippedLocale(locale: $0.folder, skip: $0.error) }
+
+    // CLDR's own rules call a group's folders one locale, so a group that doesn't build the same tables
+    // throughout is a change in CLDR this tool has no answer for yet.
+    case .partlyBuilt(let builtFolder, let failure):
+        fatalError("\(builtFolder) builds but \(failure.folder), one locale to CLDR, fails: \(failure.error)")
+
+    case .conflicting(let first, let second):
+        fatalError("\(first) and \(second) are one locale to CLDR but build different tables")
+    }
+}
+
+// In the byte order the runtime's binary search assumes.
+let emitted = built.sorted { $0.key.utf8.lexicographicallyPrecedes($1.key.utf8) }
+
+// A repeated key would make the binary search return either row without saying so.
+for (earlier, later) in zip(emitted, emitted.dropFirst())
+where !earlier.key.utf8.lexicographicallyPrecedes(later.key.utf8) {
+    fatalError("\(later.key) is filed more than once")
 }
 
 // Derived from what was emitted rather than from the candidates, so the tables carry rules only for

@@ -1,67 +1,186 @@
-/// The script each language implies, from CLDR's likely-subtag data.
+/// The scripts CLDR's likely subtags imply for each language, and for each language in a region.
 ///
-/// A locale's data has to be stored under the identifier a caller will actually ask for. ICU removes
-/// a script subtag that its language already implies, so `ff-Latn-GH` reaches a formatter as `ff-GH`
-/// and data filed under the longer spelling is never found. Shortening at generation time keeps both
-/// spellings reachable, because the long one is canonicalised before it arrives.
+/// ``shortened(_:)`` removes a script only where Unicode TR35's "Remove Likely Subtags" would, and
+/// never adds or removes a region.
 ///
-/// This reads CLDR's own table rather than asking the platform, so the identifiers a build produces
-/// depend on the pinned CLDR release and not on the ICU version of the machine running it.
-public struct LikelyScripts: Equatable, Sendable {
+/// ```swift
+/// let scripts = LikelyScripts(likelySubtags: ["zh": "zh-Hans-CN", "zh-HK": "zh-Hant-HK"])
+/// scripts.shortened("zh-Hant-HK")  // "zh-HK"
+/// scripts.shortened("zh-Hans-HK")  // "zh-Hans-HK"
+/// ```
+package struct LikelyScripts: Equatable, Hashable, Sendable {
+    /// The script each bare language implies, such as `ff` to `Latn`.
     private let byLanguage: [String: String]
 
+    /// The script each language implies in a region, keyed by language and region, such as `zh-HK`
+    /// to `Hant`.
+    private let byLanguageAndRegion: [String: String]
+
+    /// Creates the table from CLDR's likely subtags.
+    ///
+    /// Entries keyed by a bare language or a language and region become rules. Entries keyed by `und`
+    /// or by anything carrying a script are ignored, as are values with no script.
+    ///
+    /// ```swift
+    /// LikelyScripts(likelySubtags: ["ff": "ff-Latn-SN", "sr-ME": "sr-Latn-ME"])
+    /// ```
+    ///
     /// - Parameter likelySubtags: CLDR's `likelySubtags` map, identifier to fully populated
-    ///   identifier, as in `"ff"` to `"ff-Latn-SN"`. Entries keyed by anything but a bare language
-    ///   are ignored, since only a language implies the script this removes.
-    public init(likelySubtags: [String: String]) {
-        byLanguage = likelySubtags.reduce(into: [:]) { scripts, entry in
-            guard !entry.key.contains("-"), let script = Self.script(of: entry.value) else {
-                return
+    ///   identifier, as in `"ff"` to `"ff-Latn-SN"`.
+    package init(likelySubtags: [String: String]) {
+        var byLanguage: [String: String] = [:]
+        var byLanguageAndRegion: [String: String] = [:]
+
+        for (identifier, populated) in likelySubtags {
+            let key = Subtags(identifier)
+
+            guard
+                key.language != Self.undetermined,
+                key.script == nil,
+                key.rest.isEmpty,
+                let script = Subtags(populated).script
+            else {
+                continue
             }
-            scripts[entry.key] = script
+
+            if let region = key.region {
+                byLanguageAndRegion[Self.languageAndRegion(key.language, region)] = String(script)
+            } else {
+                byLanguage[String(key.language)] = String(script)
+            }
         }
+
+        self.byLanguage = byLanguage
+        self.byLanguageAndRegion = byLanguageAndRegion
     }
 
-    /// `identifier` with its script subtag removed when that script is the one its language implies.
+    /// Returns an identifier with its script removed where CLDR's likely subtags imply it.
     ///
-    /// Returns the identifier unchanged when it carries no script, or one its language does not
-    /// imply: `zh-Hant` keeps its script because Chinese implies `Hans`.
-    public func shortened(_ identifier: String) -> String {
-        let subtags = identifier.split(separator: "-", omittingEmptySubsequences: false)
+    /// The language and region's entry decides, then the language's, in TR35's lookup order. The
+    /// region always stays, so `zh-Hans-CN` becomes `zh-CN` where TR35 gives `zh`.
+    ///
+    /// ```swift
+    /// scripts.shortened("zh-Hant-HK")  // "zh-HK"
+    /// scripts.shortened("zh-Hans-SG")  // "zh-SG"
+    /// scripts.shortened("zh-Hant")     // "zh-Hant"
+    /// ```
+    ///
+    /// - Parameter identifier: A hyphen-separated locale identifier in CLDR's canonical case, such
+    ///   as a CLDR folder name.
+    /// - Returns: `identifier` without its script, or unchanged when it carries no script or one
+    ///   CLDR doesn't imply.
+    package func shortened(_ identifier: String) -> String {
+        let subtags = Subtags(identifier)
 
-        guard
-            subtags.count > 1,
-            Self.isScript(subtags[1]),
-            byLanguage[String(subtags[0])] == String(subtags[1])
-        else {
+        guard let script = subtags.script, impliedScript(of: subtags) == String(script) else {
             return identifier
         }
 
-        return ([subtags[0]] + subtags.dropFirst(2)).joined(separator: "-")
+        return ([subtags.language] + (subtags.region.map { [$0] } ?? []) + subtags.rest)
+            .joined(separator: "-")
     }
 
-    /// The script CLDR's data implies for `identifier`'s language, or nil when the language is unknown.
+    /// Returns the script CLDR implies for an identifier's language and region.
     ///
-    /// `de-CH` implies `Latn` through `de`; `lo` implies `Laoo`. Used to decide whether a locale is
-    /// written in a script a given feature covers yet.
-    public func impliedScript(of identifier: String) -> String? {
-        let language = identifier.split(separator: "-").first.map(String.init) ?? identifier
-        return byLanguage[language]
-    }
-
-    // A fully populated identifier is language-script-region, so its script is the second subtag.
-    private static func script(of identifier: String) -> String? {
-        let subtags = identifier.split(separator: "-")
-
-        guard subtags.count > 1, isScript(subtags[1]) else {
-            return nil
+    /// - Parameter subtags: The identifier's subtags.
+    /// - Returns: The script the language and region imply, falling back to the language's own;
+    ///   `nil` when CLDR lists neither.
+    private func impliedScript(of subtags: Subtags) -> String? {
+        let regional = subtags.region.flatMap {
+            byLanguageAndRegion[Self.languageAndRegion(subtags.language, $0)]
         }
 
-        return String(subtags[1])
+        return regional ?? byLanguage[String(subtags.language)]
     }
 
-    // Four letters, which no language or region subtag is.
-    private static func isScript(_ subtag: Substring) -> Bool {
-        subtag.count == 4 && subtag.allSatisfy(\.isLetter)
+    /// The language subtag CLDR uses for "undetermined", whose entries name no language of their own.
+    private static let undetermined: Substring = "und"
+
+    /// Returns the key a language and region are looked up by.
+    ///
+    /// - Parameters:
+    ///   - language: The language subtag.
+    ///   - region: The region subtag.
+    /// - Returns: The two joined by a hyphen, as in `zh-HK`.
+    private static func languageAndRegion(_ language: Substring, _ region: Substring) -> String {
+        "\(language)-\(region)"
+    }
+}
+
+extension LikelyScripts {
+    /// A locale identifier split into its language, script, region and any subtags after those.
+    ///
+    /// A subtag counts as a script or a region only in its own position and shape, so `es-419` has a
+    /// region and no script, and `ca-ES-valencia` keeps `valencia` in ``rest``.
+    private struct Subtags: Sendable, Equatable, Hashable {
+        /// The first subtag.
+        let language: Substring
+
+        /// The four-letter script after the language, if there is one.
+        let script: Substring?
+
+        /// The region after the language and any script, if there is one.
+        let region: Substring?
+
+        /// Every subtag after the language, script and region, in order.
+        let rest: [Substring]
+
+        /// Splits an identifier into its subtags.
+        ///
+        /// - Parameter identifier: A hyphen-separated locale identifier.
+        init(_ identifier: String) {
+            language = identifier.prefix { $0 != "-" }
+
+            var remaining = identifier.split(separator: "-", omittingEmptySubsequences: false)
+                .dropFirst()
+
+            if let next = remaining.first, Self.isScript(next) {
+                script = next
+                remaining = remaining.dropFirst()
+            } else {
+                script = nil
+            }
+
+            if let next = remaining.first, Self.isRegion(next) {
+                region = next
+                remaining = remaining.dropFirst()
+            } else {
+                region = nil
+            }
+
+            rest = Array(remaining)
+        }
+
+        /// The length of a script subtag, such as `Latn`.
+        private static let scriptLength = 4
+
+        /// The length of a letter region subtag, such as `GB`.
+        private static let letterRegionLength = 2
+
+        /// The length of a numeric region subtag, such as `419`.
+        private static let numericRegionLength = 3
+
+        /// Returns whether a subtag has a script's shape: four ASCII letters.
+        ///
+        /// - Parameter subtag: The subtag to check.
+        /// - Returns: `true` if `subtag` is four ASCII letters; otherwise, `false`.
+        private static func isScript(_ subtag: Substring) -> Bool {
+            subtag.count == scriptLength && subtag.allSatisfy { $0.isASCII && $0.isLetter }
+        }
+
+        /// Returns whether a subtag has a region's shape: two uppercase letters or three digits.
+        ///
+        /// - Parameter subtag: The subtag to check.
+        /// - Returns: `true` if `subtag` is a region code; otherwise, `false`.
+        private static func isRegion(_ subtag: Substring) -> Bool {
+            switch subtag.count {
+            case letterRegionLength:
+                subtag.allSatisfy { $0.isASCII && $0.isUppercase }
+            case numericRegionLength:
+                subtag.allSatisfy { $0.isASCII && $0.isNumber }
+            default:
+                false
+            }
+        }
     }
 }

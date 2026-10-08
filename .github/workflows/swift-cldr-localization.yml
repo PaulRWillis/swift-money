@@ -19,7 +19,16 @@ on:
     paths:
       - "Tools/cldr/**"
       - "Tools/GenerateLocalization/**"
-      - "Sources/SwiftMoneyLocalization/Generated/**"
+      # Every library the generator links, and the manifest and lockfile that wire and pin them,
+      # shape its output, so a change in any of them can leave the tables stale.
+      - "Package.swift"
+      - "Package.resolved"
+      - "Sources/SwiftMoneyCore/**"
+      - "Sources/SwiftMoneyLocalization/**"
+      - "Sources/CLDRLocaleIdentifiers/**"
+      - "Sources/CLDRLocaleSkips/**"
+      - "Sources/CLDRCurrencyPatterns/**"
+      - "Sources/CLDRPluralParsing/**"
 
 # A newer push to the same pull request supersedes this run, so the older one is cancelled rather
 # than holding runners the newer one is queued for. Every other run gets a group of its own, so a push
