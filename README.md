@@ -150,10 +150,14 @@ try price + euros   // throws MoneyError.currencyMismatch(lhs: .gbp, rhs: .eur)
 ```
 
 `Money` has no `<`, because no order exists between five pounds and five euros. Sort through the
-throwing comparison instead:
+throwing comparison instead, and take the larger or smaller with a throwing `max` or `min`:
 
 ```swift
-let ordered = try prices.sorted { try $0.isLessThan($1) }
+let prices = [price, delivery]
+
+let ordered = try prices.sorted { try $0.isLessThan($1) }   // [GBP 2.00, GBP 4.99]
+let higher = try max(price, delivery)                       // GBP 4.99
+let dearest = try prices.max()                              // GBP 4.99, or nil if empty
 ```
 
 ## Ranges
