@@ -58,8 +58,9 @@ public extension WeightedSplit {
 
     /// The number of parts, which equals the number of weights.
     @inlinable
-    var count: Int {
-        parts.count
+    var count: PartCount {
+        // `parts` is never empty, so the count is at least one.
+        PartCount(unchecked: parts.count)
     }
 }
 

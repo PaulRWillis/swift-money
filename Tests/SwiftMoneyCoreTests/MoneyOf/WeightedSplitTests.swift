@@ -31,7 +31,7 @@ struct WeightedSplitTests {
 
         let distribution = GBP(minorUnits: amount).split(by: weights)
 
-        #expect(distribution.count == weightList.count)
+        #expect(Int(distribution.count) == weightList.count)
         #expect(distribution.weights == weightList)
     }
 
@@ -117,6 +117,7 @@ struct WeightedSplitTests {
         let money = GBP(minorUnits: amount)
 
         #expect(money.split(by: weights).amounts == Array(money.split(into: parts).amounts))
+        #expect(money.split(into: money.split(by: weights).count) == money.split(into: parts))
     }
 
     // The leftover unit goes to a part with a non-zero remainder, never to the zero weight.
