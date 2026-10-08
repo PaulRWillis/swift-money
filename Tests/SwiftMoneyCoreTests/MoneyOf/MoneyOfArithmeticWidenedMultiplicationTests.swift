@@ -44,6 +44,120 @@ struct MoneyOfArithmeticWidenedMultiplicationTests {
         #expect(Money(minorUnits: -1, currency: .gbp) * twoToThe63 == Money(minorUnits: Int64.min, currency: .gbp))
     }
 
+    @Test("Minus one times two to the 63rd, in any wide type, is the smallest amount")
+    func minusOneTimesTwoToThe63InEveryWideType() {
+        let typed = GBP(minorUnits: -1)
+        let runtime = Money(minorUnits: -1, currency: .gbp)
+        let smallest = Money(minorUnits: Int64.min, currency: .gbp)
+
+        #expect(typed * (UInt128(1) << 63) == GBP.min)
+        #expect(typed * (Int128(1) << 63) == GBP.min)
+        #expect((Int128(1) << 63) * typed == GBP.min)
+        #expect(runtime * (UInt128(1) << 63) == smallest)
+        #expect(runtime * (Int128(1) << 63) == smallest)
+        #expect((UInt64(1) << 63) * runtime == smallest)
+    }
+
+    @Test("Zero times any wide multiplier stays zero")
+    func zeroTimesEveryWideMultiplier() {
+        let typed = GBP(minorUnits: 0)
+        let runtime = Money(minorUnits: 0, currency: .gbp)
+
+        #expect(typed * UInt64.max == typed)
+        #expect(typed * Int128.min == typed)
+        #expect(typed * Int128.max == typed)
+        #expect(typed * UInt128.max == typed)
+        #expect(runtime * UInt64.max == runtime)
+        #expect(runtime * Int128.min == runtime)
+        #expect(runtime * UInt128.max == runtime)
+    }
+
+    @Test("One times two to the 63rd traps")
+    func oneTimesTwoToThe63Traps() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(GBP(minorUnits: 1) * (UInt64(1) << 63))
+        }
+        await #expect(processExitsWith: .failure) {
+            blackHole(Money(minorUnits: 1, currency: .gbp) * (UInt64(1) << 63))
+        }
+    }
+
+    @Test("Minus one times one below the smallest Int64 traps")
+    func minusOneTimesBelowInt64Traps() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(GBP(minorUnits: -1) * (Int128(Int64.min) - 1))
+        }
+        await #expect(processExitsWith: .failure) {
+            blackHole(Money(minorUnits: -1, currency: .gbp) * (Int128(Int64.min) - 1))
+        }
+    }
+
+    @Test("Minus one times two to the 63rd plus one traps")
+    func minusOneTimesPastTwoToThe63Traps() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(GBP(minorUnits: -1) * ((UInt64(1) << 63) + 1))
+        }
+        await #expect(processExitsWith: .failure) {
+            blackHole(Money(minorUnits: -1, currency: .gbp) * ((UInt64(1) << 63) + 1))
+        }
+    }
+
+    @Test("Minus one times the largest UInt64 traps")
+    func minusOneTimesLargestUInt64Traps() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(GBP(minorUnits: -1) * UInt64.max)
+        }
+        await #expect(processExitsWith: .failure) {
+            blackHole(Money(minorUnits: -1, currency: .gbp) * UInt64.max)
+        }
+    }
+
+    @Test("The smallest amount times two to the 63rd traps")
+    func smallestTimesTwoToThe63Traps() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(GBP.min * (UInt64(1) << 63))
+        }
+        await #expect(processExitsWith: .failure) {
+            blackHole(Money(minorUnits: Int64.min, currency: .gbp) * (UInt64(1) << 63))
+        }
+    }
+
+    @Test("One times one below the smallest Int64 traps")
+    func oneTimesBelowInt64Traps() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(GBP(minorUnits: 1) * (Int128(Int64.min) - 1))
+        }
+        await #expect(processExitsWith: .failure) {
+            blackHole(Money(minorUnits: 1, currency: .gbp) * (Int128(Int64.min) - 1))
+        }
+    }
+
+    @Test("A multiplier at the 128-bit extremes traps")
+    func multiplierAt128BitExtremesTraps() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(GBP(minorUnits: -1) * UInt128.max)
+        }
+        await #expect(processExitsWith: .failure) {
+            blackHole(GBP(minorUnits: 1) * Int128.min)
+        }
+        await #expect(processExitsWith: .failure) {
+            blackHole(Money(minorUnits: -1, currency: .gbp) * UInt128.max)
+        }
+        await #expect(processExitsWith: .failure) {
+            blackHole(Money(minorUnits: 1, currency: .gbp) * Int128.min)
+        }
+    }
+
+    @Test("Minus one times the smallest Int64 traps")
+    func minusOneTimesSmallestInt64Traps() async {
+        await #expect(processExitsWith: .failure) {
+            blackHole(GBP(minorUnits: -1) * Int128(Int64.min))
+        }
+        await #expect(processExitsWith: .failure) {
+            blackHole(Money(minorUnits: -1, currency: .gbp) * Int128(Int64.min))
+        }
+    }
+
     @Test("A plain Int multiplier that truly overflows still traps")
     func intMultiplierStillTrapsOnRealOverflow() async {
         await #expect(processExitsWith: .failure) {

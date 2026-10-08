@@ -118,16 +118,13 @@ public extension MoneyOf where C: CurrencyType {
             return lhs * narrow
         }
 
-        guard let factor = Int128(exactly: rhs) else {
+        // With `lhs` nonzero and `rhs` outside `Int64`, the product's magnitude is at least 2^63,
+        // so only -1 × 2^63 fits: `Int64.min`.
+        guard lhs.minorUnits == -1, rhs == Int64.min.magnitude else {
             preconditionFailure("Scaling by \(rhs) is not representable")
         }
 
-        let (product, overflow) = Int128(lhs.minorUnits).multipliedReportingOverflow(by: factor)
-        guard !overflow, let representable = Int64(exactly: product) else {
-            preconditionFailure("Scaling by \(rhs) is not representable")
-        }
-
-        return Self(unchecked: representable, storage: .implied)
+        return Self(unchecked: .min, storage: .implied)
     }
 
     /// Returns the result of multiplying a whole number by this amount.
@@ -247,16 +244,11 @@ public extension MoneyOf where C == AnyCurrency {
             return lhs * narrow
         }
 
-        guard let factor = Int128(exactly: rhs) else {
+        guard lhs.minorUnits == -1, rhs == Int64.min.magnitude else {
             preconditionFailure("Scaling by \(rhs) is not representable")
         }
 
-        let (product, overflow) = Int128(lhs.minorUnits).multipliedReportingOverflow(by: factor)
-        guard !overflow, let representable = Int64(exactly: product) else {
-            preconditionFailure("Scaling by \(rhs) is not representable")
-        }
-
-        return Self(unchecked: representable, storage: lhs.storage)
+        return Self(unchecked: .min, storage: lhs.storage)
     }
 
     /// Returns this amount scaled by a whole number.
