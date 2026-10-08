@@ -67,6 +67,29 @@ private let sameCurrencyFives: [AmountFive] = samples(
     ]
 )
 
+// Zero or more runtime amounts in one currency, for the sequence forms. The currency is kept apart
+// so an empty list still has one to compare against.
+private struct AmountList: Sendable, CustomTestStringConvertible {
+    let currency: Currency
+    let amounts: [Money]
+
+    var testDescription: String {
+        "\(amounts.count) amounts in \(currency)"
+    }
+}
+
+private let sameCurrencyLists: [AmountList] = samples(
+    zip(Gen<Currency>.isoCurrency, Gen<Int64>.int(in: fullRange).array(count: .int(in: 0 ... 20))).map { currency, units in
+        AmountList(currency: currency, amounts: units.map { Money(minorUnits: $0, currency: currency) })
+    },
+    seed: PropertySeed.minMax,
+    edges: [
+        AmountList(currency: .gbp, amounts: []),
+        AmountList(currency: .gbp, amounts: [pounds(Int64.min)]),
+        AmountList(currency: .gbp, amounts: [pounds(Int64.max), pounds(0), pounds(Int64.min), pounds(Int64.max)]),
+    ]
+)
+
 // Ordered pairs of distinct currencies, so every pair mismatches.
 private let mismatchCurrencyPairs: [(Currency, Currency)] = [(.gbp, .eur), (.eur, .usd), (.usd, .jpy), (.jpy, .gbp)]
 
@@ -110,6 +133,14 @@ struct MinMaxPropertyTests {
         #expect(try max(a, b, c) == Money(minorUnits: Swift.max(units.0, units.1, units.2), currency: currency))
         #expect(try min(a, b, c, d, e) == Money(minorUnits: Swift.min(units.0, units.1, units.2, units.3, units.4), currency: currency))
         #expect(try max(a, b, c, d, e) == Money(minorUnits: Swift.max(units.0, units.1, units.2, units.3, units.4), currency: currency))
+    }
+
+    @Test("The least and greatest of a sequence match Swift's on its minor units", arguments: sameCurrencyLists)
+    private func sequenceMatchesStandardLibrary(_ list: AmountList) throws {
+        let units = list.amounts.map(\.minorUnits)
+
+        #expect(try list.amounts.min() == units.min().map { Money(minorUnits: $0, currency: list.currency) })
+        #expect(try list.amounts.max() == units.max().map { Money(minorUnits: $0, currency: list.currency) })
     }
 
     @Test("min and max of amounts in two currencies throw a mismatch, the first currency first", arguments: mismatchPairs)

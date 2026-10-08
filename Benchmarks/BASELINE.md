@@ -41,6 +41,10 @@ ahead of `Decimal`. The fractional operations are measured against the closest p
 | MoneyOf addition in place | 9 | 0 | 1 |
 | MoneyOf addition near the maximum | 8 | 0 | 0 |
 | MoneyOf applying a rate | 57 | 0 | 2 |
+| MoneyOf array max of 128 | 795 | 0 | 63 |
+| MoneyOf array max of 64 | 411 | 0 | 27 |
+| MoneyOf array min of 128 | 795 | 0 | 45 |
+| MoneyOf array min of 64 | 411 | 0 | 16 |
 | MoneyOf comparison | 15 | 0 | 1 |
 | MoneyOf currency | 8 | 0 | 1 |
 | MoneyOf description | 394 | 0 | 12 |
@@ -87,6 +91,10 @@ ahead of `Decimal`. The fractional operations are measured against the closest p
 | Money addition, separately built currencies | 25 | 0 | 1 |
 | Money addition, throwing | 24 | 0 | 1 |
 | Money applying a rate | 59 | 0 | 2 |
+| Money array max of 128, throwing | 1,175 | 0 | 58 |
+| Money array max of 64, throwing | 599 | 0 | 23 |
+| Money array min of 128, throwing | 1,175 | 0 | 37 |
+| Money array min of 64, throwing | 599 | 0 | 23 |
 | Money description | 384 | 0 | 12 |
 | Money equality | 15 | 0 | 1 |
 | Money from MoneyOf | 31 | 0 | 1 |

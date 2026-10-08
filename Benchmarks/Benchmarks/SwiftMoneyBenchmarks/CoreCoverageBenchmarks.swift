@@ -1836,6 +1836,50 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         }
     }
 
+    // Two lengths, one twice the other, so the rows show how the cost grows. Multiplying by a number
+    // coprime with the length scatters the extremes through the array.
+    let arrayLengths = [64, 128]
+    let typedArrays = arrayLengths.map { length in
+        (0 ..< length).map { GBP(minorUnits: Int64(($0 * 37) % length)) }
+    }
+    let runtimeArrays = typedArrays.map { amounts in amounts.map { Money($0) } }
+
+    for (length, amounts) in zip(arrayLengths, typedArrays) {
+        Benchmark("MoneyOf array min of \(length)", configuration: configuration) { benchmark in
+            for _ in benchmark.scaledIterations {
+                blackHole(amounts.min())
+            }
+        }
+
+        Benchmark("MoneyOf array max of \(length)", configuration: configuration) { benchmark in
+            for _ in benchmark.scaledIterations {
+                blackHole(amounts.max())
+            }
+        }
+    }
+
+    for (length, amounts) in zip(arrayLengths, runtimeArrays) {
+        Benchmark("Money array min of \(length), throwing", configuration: configuration) { benchmark in
+            do {
+                for _ in benchmark.scaledIterations {
+                    blackHole(try amounts.min())
+                }
+            } catch {
+                fatalError("these amounts share a currency, so this cannot happen: \(error)")
+            }
+        }
+
+        Benchmark("Money array max of \(length), throwing", configuration: configuration) { benchmark in
+            do {
+                for _ in benchmark.scaledIterations {
+                    blackHole(try amounts.max())
+                }
+            } catch {
+                fatalError("these amounts share a currency, so this cannot happen: \(error)")
+            }
+        }
+    }
+
     // Some operands are negative, so both signs of stride occur; none is zero.
     let strideAmounts = operands.map { GBP(minorUnits: $0 % 2 == 0 ? $0 * 100 : -$0 * 100) }
     let runtimeStrideAmounts = strideAmounts.map { Money($0) }
