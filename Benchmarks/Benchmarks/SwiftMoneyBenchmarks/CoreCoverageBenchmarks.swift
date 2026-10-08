@@ -301,7 +301,7 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         var index = 0
 
         for _ in benchmark.scaledIterations {
-            blackHole(euros[index % euros.count].converted(using: eurGbp))
+            blackHole(try euros[index % euros.count].converted(using: eurGbp))
             index &+= 1
         }
     }
