@@ -34,6 +34,39 @@ private let sameCurrencyPairs: [AmountPair] = samples(
     ]
 )
 
+// Five runtime amounts in one currency, for the three- and five-amount forms.
+private struct AmountFive: Sendable, CustomTestStringConvertible {
+    let amounts: (Money, Money, Money, Money, Money)
+
+    var testDescription: String {
+        "\(amounts)"
+    }
+}
+
+private let sameCurrencyFives: [AmountFive] = samples(
+    zip(
+        Gen<Currency>.isoCurrency,
+        zip(
+            zip3(Gen<Int64>.int(in: fullRange), Gen<Int64>.int(in: fullRange), Gen<Int64>.int(in: fullRange)),
+            zip(Gen<Int64>.int(in: fullRange), Gen<Int64>.int(in: fullRange))
+        )
+    ).map { currency, units in
+        AmountFive(amounts: (
+            Money(minorUnits: units.0.0, currency: currency),
+            Money(minorUnits: units.0.1, currency: currency),
+            Money(minorUnits: units.0.2, currency: currency),
+            Money(minorUnits: units.1.0, currency: currency),
+            Money(minorUnits: units.1.1, currency: currency)
+        ))
+    },
+    seed: PropertySeed.minMax,
+    edges: [
+        AmountFive(amounts: (pounds(0), pounds(0), pounds(0), pounds(0), pounds(0))),
+        AmountFive(amounts: (pounds(Int64.max), pounds(1), pounds(0), pounds(-1), pounds(Int64.min))),
+        AmountFive(amounts: (pounds(Int64.min), pounds(-1), pounds(0), pounds(1), pounds(Int64.max))),
+    ]
+)
+
 // Ordered pairs of distinct currencies, so every pair mismatches.
 private let mismatchCurrencyPairs: [(Currency, Currency)] = [(.gbp, .eur), (.eur, .usd), (.usd, .jpy), (.jpy, .gbp)]
 
@@ -65,6 +98,18 @@ struct MinMaxPropertyTests {
         let larger = try max(pair.first, pair.second)
 
         #expect((smaller, larger) == (pair.first, pair.second) || (smaller, larger) == (pair.second, pair.first))
+    }
+
+    @Test("min and max of three and five amounts match Swift.min and Swift.max on their minor units", arguments: sameCurrencyFives)
+    private func threeOrMoreMatchStandardLibrary(_ five: AmountFive) throws {
+        let (a, b, c, d, e) = five.amounts
+        let currency = a.currency
+        let units = (a.minorUnits, b.minorUnits, c.minorUnits, d.minorUnits, e.minorUnits)
+
+        #expect(try min(a, b, c) == Money(minorUnits: Swift.min(units.0, units.1, units.2), currency: currency))
+        #expect(try max(a, b, c) == Money(minorUnits: Swift.max(units.0, units.1, units.2), currency: currency))
+        #expect(try min(a, b, c, d, e) == Money(minorUnits: Swift.min(units.0, units.1, units.2, units.3, units.4), currency: currency))
+        #expect(try max(a, b, c, d, e) == Money(minorUnits: Swift.max(units.0, units.1, units.2, units.3, units.4), currency: currency))
     }
 
     @Test("min and max of amounts in two currencies throw a mismatch, the first currency first", arguments: mismatchPairs)

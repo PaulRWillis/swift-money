@@ -58,7 +58,11 @@ ahead of `Decimal`. The fractional operations are measured against the closest p
 | MoneyOf is zero | 7 | 0 | 0 |
 | MoneyOf magnitude | 30 | 0 | 1 |
 | MoneyOf max | 35 | 0 | 1 |
+| MoneyOf max of five | 286 | 0 | 9 |
+| MoneyOf max of three | 41 | 0 | 1 |
 | MoneyOf min | 35 | 0 | 1 |
+| MoneyOf min of five | 286 | 0 | 9 |
+| MoneyOf min of three | 41 | 0 | 1 |
 | MoneyOf negation | 29 | 0 | 1 |
 | MoneyOf parsing | 223 | 0 | 6 |
 | MoneyOf parsing a large amount | 657 | 0 | 17 |
@@ -93,7 +97,11 @@ ahead of `Decimal`. The fractional operations are measured against the closest p
 | Money init major units, UInt32 | 46 | 0 | 1 |
 | Money is less than, throwing | 18 | 0 | 1 |
 | Money is multiple, throwing | 20 | 0 | 1 |
+| Money max of five, throwing | 121 | 0 | 5 |
+| Money max of three, throwing | 50 | 0 | 2 |
 | Money max, throwing | 39 | 0 | 1 |
+| Money min of five, throwing | 121 | 0 | 4 |
+| Money min of three, throwing | 50 | 0 | 1 |
 | Money min, throwing | 39 | 0 | 1 |
 | Money parsing | 349 | 0 | 9 |
 | Money parsing, caller's currency | 301 | 0 | 8 |

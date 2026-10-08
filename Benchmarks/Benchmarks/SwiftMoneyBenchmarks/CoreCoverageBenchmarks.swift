@@ -1704,6 +1704,138 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         }
     }
 
+    /// Returns the probe a given number of places after an index, wrapping round to the start.
+    ///
+    /// - Parameters:
+    ///   - probes: The amounts to read from.
+    ///   - index: The iteration's index.
+    ///   - offset: How many places after `index` to read.
+    /// - Returns: The probe at `index + offset`, wrapped to the count of `probes`.
+    func probe<Amount>(_ probes: [Amount], _ index: Int, _ offset: Int) -> Amount {
+        probes[(index &+ offset) % probes.count]
+    }
+
+    Benchmark("MoneyOf min of three", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(min(probe(clampProbes, index, 0), probe(clampProbes, index, 3), probe(clampProbes, index, 6)))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money min of three, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try min(
+                    probe(runtimeClampProbes, index, 0),
+                    probe(runtimeClampProbes, index, 3),
+                    probe(runtimeClampProbes, index, 6)
+                ))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts share a currency, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("MoneyOf max of three", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(max(probe(clampProbes, index, 0), probe(clampProbes, index, 3), probe(clampProbes, index, 6)))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money max of three, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try max(
+                    probe(runtimeClampProbes, index, 0),
+                    probe(runtimeClampProbes, index, 3),
+                    probe(runtimeClampProbes, index, 6)
+                ))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts share a currency, so this cannot happen: \(error)")
+        }
+    }
+
+    // Five amounts reach the loop over `rest`, which three leave empty.
+    Benchmark("MoneyOf min of five", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(min(
+                probe(clampProbes, index, 0),
+                probe(clampProbes, index, 3),
+                probe(clampProbes, index, 6),
+                probe(clampProbes, index, 1),
+                probe(clampProbes, index, 8)
+            ))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money min of five, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try min(
+                    probe(runtimeClampProbes, index, 0),
+                    probe(runtimeClampProbes, index, 3),
+                    probe(runtimeClampProbes, index, 6),
+                    probe(runtimeClampProbes, index, 1),
+                    probe(runtimeClampProbes, index, 8)
+                ))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts share a currency, so this cannot happen: \(error)")
+        }
+    }
+
+    Benchmark("MoneyOf max of five", configuration: configuration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(max(
+                probe(clampProbes, index, 0),
+                probe(clampProbes, index, 3),
+                probe(clampProbes, index, 6),
+                probe(clampProbes, index, 1),
+                probe(clampProbes, index, 8)
+            ))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Money max of five, throwing", configuration: configuration) { benchmark in
+        var index = 0
+
+        do {
+            for _ in benchmark.scaledIterations {
+                blackHole(try max(
+                    probe(runtimeClampProbes, index, 0),
+                    probe(runtimeClampProbes, index, 3),
+                    probe(runtimeClampProbes, index, 6),
+                    probe(runtimeClampProbes, index, 1),
+                    probe(runtimeClampProbes, index, 8)
+                ))
+                index &+= 1
+            }
+        } catch {
+            fatalError("these amounts share a currency, so this cannot happen: \(error)")
+        }
+    }
+
     // Some operands are negative, so both signs of stride occur; none is zero.
     let strideAmounts = operands.map { GBP(minorUnits: $0 % 2 == 0 ? $0 * 100 : -$0 * 100) }
     let runtimeStrideAmounts = strideAmounts.map { Money($0) }

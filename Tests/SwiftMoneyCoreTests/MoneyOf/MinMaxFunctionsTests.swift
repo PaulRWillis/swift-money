@@ -80,6 +80,45 @@ struct MinMaxFunctionsTests {
         }
     }
 
+    @Test("min and max of three or more amounts find the extreme wherever it is")
+    func threeOrMore() throws {
+        #expect(try min(pounds(1_00), pounds(5_00), pounds(3_00)) == pounds(1_00))
+        #expect(try min(pounds(5_00), pounds(1_00), pounds(3_00)) == pounds(1_00))
+        #expect(try min(pounds(5_00), pounds(3_00), pounds(1_00)) == pounds(1_00))
+        #expect(try min(pounds(5_00), pounds(3_00), pounds(4_00), pounds(2_00), pounds(-1_00)) == pounds(-1_00))
+        #expect(try max(pounds(9_00), pounds(5_00), pounds(3_00)) == pounds(9_00))
+        #expect(try max(pounds(5_00), pounds(9_00), pounds(3_00)) == pounds(9_00))
+        #expect(try max(pounds(5_00), pounds(3_00), pounds(9_00)) == pounds(9_00))
+        #expect(try max(pounds(5_00), pounds(3_00), pounds(4_00), pounds(Int64.max), pounds(2_00)) == pounds(Int64.max))
+    }
+
+    @Test("A mismatch in the third amount or later names the first amount's currency and the first that differs")
+    func threeOrMoreMismatch() {
+        let euros = Money(minorUnits: 5_00, currency: .eur)
+        let yen = Money(minorUnits: 500, currency: .jpy)
+        let gbpThenEuro = MoneyError.currencyMismatch(lhs: .gbp, rhs: .eur)
+
+        #expect(throws: gbpThenEuro) { try min(pounds(1_00), euros, yen) }
+        #expect(throws: gbpThenEuro) { try max(pounds(1_00), euros, yen) }
+        #expect(throws: gbpThenEuro) { try min(pounds(1_00), pounds(2_00), euros) }
+        #expect(throws: gbpThenEuro) { try max(pounds(1_00), pounds(2_00), euros) }
+        #expect(throws: gbpThenEuro) { try min(pounds(1_00), pounds(2_00), pounds(3_00), euros, yen) }
+        #expect(throws: gbpThenEuro) { try max(pounds(1_00), pounds(2_00), pounds(3_00), euros, yen) }
+    }
+
+    @Test("A mismatch on an amount that isn't the extreme still throws")
+    func threeOrMoreMismatchOffTheExtreme() {
+        let largeEuros = Money(minorUnits: 900_00, currency: .eur)
+        let smallEuros = Money(minorUnits: -900_00, currency: .eur)
+
+        #expect(throws: MoneyError.currencyMismatch(lhs: .gbp, rhs: .eur)) {
+            try min(pounds(1_00), pounds(2_00), pounds(3_00), largeEuros)
+        }
+        #expect(throws: MoneyError.currencyMismatch(lhs: .gbp, rhs: .eur)) {
+            try max(pounds(1_00), pounds(2_00), pounds(3_00), smallEuros)
+        }
+    }
+
     @Test("min and max of numbers and typed amounts still need no try with SwiftMoneyCore imported")
     func standardLibraryUnaffected() {
         #expect(min(1, 2) == 1)
