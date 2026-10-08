@@ -123,6 +123,13 @@ struct StrideFunctionsTests {
         #expect(!everyPound.contains(Money(minorUnits: 0, currency: .jpy)))
     }
 
+    @Test("A runtime stride up to every pound amount doesn't contain a yen amount")
+    func runtimeToContainsOtherCurrency() throws {
+        let everyPound = try stride(from: pounds(.min), to: pounds(.max), by: runtimeStride(1))
+
+        #expect(!everyPound.contains(Money(minorUnits: 0, currency: .jpy)))
+    }
+
     @Test("A runtime stride contains an amount on a step in its currency, and not one between steps")
     func runtimeContainsOnAStep() throws {
         let amounts = try stride(from: pounds(10_00), through: pounds(250_00), by: runtimeStride(100_00))
@@ -205,6 +212,24 @@ struct StrideFunctionsTests {
         #expect(stride(from: GBP.max, through: .min, by: .minorUnits(-2)).underestimatedCount == .max)
         #expect(stride(from: GBP.zero, to: .zero, by: .minorUnit).underestimatedCount == 0)
         #expect(stride(from: GBP.zero, through: GBP(minorUnits: -1), by: .minorUnit).underestimatedCount == 0)
+    }
+
+    #if _pointerBitWidth(_64)
+    @Test("A stride one amount short of Int.max amounts isn't capped")
+    func countOneShortOfIntMax() {
+        let amounts = stride(from: GBP(minorUnits: Int64.min + 4), through: .max, by: .minorUnits(2))
+
+        #expect(amounts.underestimatedCount == Int.max - 1)
+    }
+    #endif
+
+    @Test("A stride with 2⁶⁴ − 1 steps after the start steps one amount at a time, either way")
+    func steppingTheWidestStride() {
+        let upward = stride(from: GBP.min, through: .max, by: .minorUnit)
+        let downward = stride(from: GBP.max, through: .min, by: .minorUnits(-1))
+
+        #expect(Array(upward.prefix(3)).map(\.minorUnits) == [Int64.min, Int64.min + 1, Int64.min + 2])
+        #expect(Array(downward.prefix(3)).map(\.minorUnits) == [Int64.max, Int64.max - 1, Int64.max - 2])
     }
 
     @Test("stride returns MoneyStrideTo and MoneyStrideThrough, and stepping an iterator leaves them intact")
