@@ -281,12 +281,17 @@ public extension MoneyOf where C == AnyCurrency {
     /// answering. That is also why ``Money`` does not conform to `Comparable`: the protocol requires
     /// a total order, and none exists here.
     ///
-    /// The standard sorting and extreme-finding algorithms take a throwing closure, so this composes
-    /// with them:
+    /// The standard sorting algorithms take a throwing closure, so this composes with them. For the
+    /// greatest of two amounts or of a sequence, ``max(_:_:)`` and ``Swift/Sequence/max()`` read more
+    /// plainly:
     ///
     /// ```swift
-    /// let ordered = try prices.sorted { try $0.isLessThan($1) }
-    /// let dearest = try prices.max { try $0.isLessThan($1) }
+    /// let small = Money(minorUnits: 3_49, currency: .gbp)
+    /// let large = Money(minorUnits: 4_99, currency: .gbp)
+    /// let prices = [large, small]
+    /// try prices.sorted { try $0.isLessThan($1) }   // [£3.49, £4.99]
+    /// try prices.max()                              // £4.99
+    /// try max(small, large)                         // £4.99
     /// ```
     ///
     /// - Parameter other: The amount to compare against.

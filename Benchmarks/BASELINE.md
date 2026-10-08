@@ -3,7 +3,7 @@
 The reference performance work is measured against. Every change is a diff against these numbers, so a
 regression or a win is measured, not impressioned. It covers every public `SwiftMoneyCore` operation that
 does work, common and edge cases, grouped by the type that owns it. Stored-property reads and constants
-(`currency`, `min`, `max`, `zero`, `EvenSplit`'s fields, `UnevenSplit`'s counts, the coding-key
+(`currency`, `MoneyOf.min`, `MoneyOf.max`, `zero`, `EvenSplit`'s fields, `UnevenSplit`'s counts, the coding-key
 literals) have no row of their own. Nor does `UnevenSplit.largerAmount`: it is computed, but its
 getter is a bare return.
 
@@ -41,6 +41,10 @@ ahead of `Decimal`. The fractional operations are measured against the closest p
 | MoneyOf addition in place | 9 | 0 | 1 |
 | MoneyOf addition near the maximum | 8 | 0 | 0 |
 | MoneyOf applying a rate | 57 | 0 | 2 |
+| MoneyOf array max of 128 | 795 | 0 | 63 |
+| MoneyOf array max of 64 | 411 | 0 | 27 |
+| MoneyOf array min of 128 | 795 | 0 | 45 |
+| MoneyOf array min of 64 | 411 | 0 | 16 |
 | MoneyOf comparison | 15 | 0 | 1 |
 | MoneyOf currency | 8 | 0 | 1 |
 | MoneyOf description | 394 | 0 | 12 |
@@ -57,6 +61,12 @@ ahead of `Decimal`. The fractional operations are measured against the closest p
 | MoneyOf is positive | 7 | 0 | 0 |
 | MoneyOf is zero | 7 | 0 | 0 |
 | MoneyOf magnitude | 30 | 0 | 1 |
+| MoneyOf max | 35 | 0 | 1 |
+| MoneyOf max of five | 286 | 0 | 9 |
+| MoneyOf max of three | 41 | 0 | 1 |
+| MoneyOf min | 35 | 0 | 1 |
+| MoneyOf min of five | 286 | 0 | 9 |
+| MoneyOf min of three | 41 | 0 | 1 |
 | MoneyOf negation | 29 | 0 | 1 |
 | MoneyOf parsing | 223 | 0 | 6 |
 | MoneyOf parsing a large amount | 657 | 0 | 17 |
@@ -81,6 +91,10 @@ ahead of `Decimal`. The fractional operations are measured against the closest p
 | Money addition, separately built currencies | 25 | 0 | 1 |
 | Money addition, throwing | 24 | 0 | 1 |
 | Money applying a rate | 59 | 0 | 2 |
+| Money array max of 128, throwing | 1,175 | 0 | 58 |
+| Money array max of 64, throwing | 599 | 0 | 23 |
+| Money array min of 128, throwing | 1,175 | 0 | 37 |
+| Money array min of 64, throwing | 599 | 0 | 23 |
 | Money description | 384 | 0 | 12 |
 | Money equality | 15 | 0 | 1 |
 | Money from MoneyOf | 31 | 0 | 1 |
@@ -91,6 +105,12 @@ ahead of `Decimal`. The fractional operations are measured against the closest p
 | Money init major units, UInt32 | 46 | 0 | 1 |
 | Money is less than, throwing | 18 | 0 | 1 |
 | Money is multiple, throwing | 20 | 0 | 1 |
+| Money max of five, throwing | 121 | 0 | 5 |
+| Money max of three, throwing | 50 | 0 | 2 |
+| Money max, throwing | 39 | 0 | 1 |
+| Money min of five, throwing | 121 | 0 | 4 |
+| Money min of three, throwing | 50 | 0 | 1 |
+| Money min, throwing | 39 | 0 | 1 |
 | Money parsing | 349 | 0 | 9 |
 | Money parsing, caller's currency | 301 | 0 | 8 |
 | Money parsing, whole major units | 347 | 0 | 9 |
