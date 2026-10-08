@@ -98,7 +98,7 @@ struct ExchangeRatePropertyTests {
         let rate = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(convert.rate))
 
         for rule in roundingRules {
-            #expect(convert.amount.converted(using: rate).rounded(rule) > .zero)
+            #expect(try convert.amount.converted(using: rate).rounded(rule) > .zero)
         }
     }
 
@@ -109,7 +109,7 @@ struct ExchangeRatePropertyTests {
         let eurUsd = try eurGbp.crossed(with: gbpUsd)
 
         for rule in roundingRules {
-            #expect(convert.amount.converted(using: eurUsd).rounded(rule) > .zero)
+            #expect(try convert.amount.converted(using: eurUsd).rounded(rule) > .zero)
         }
     }
 
@@ -119,7 +119,7 @@ struct ExchangeRatePropertyTests {
         let margin = try #require(FX.Margin(.basisPoints(convert.marginBasisPoints)))
 
         for rule in roundingRules {
-            let mid = convert.amount.converted(using: rate).rounded(rule)
+            let mid = try convert.amount.converted(using: rate).rounded(rule)
             let customer = try convert.amount.converted(using: rate.applyingMargin(margin)).rounded(rule)
 
             #expect(customer <= mid)
@@ -132,8 +132,8 @@ struct ExchangeRatePropertyTests {
         let rate = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(convert.rate))
 
         for rule in roundingRules {
-            let lower = convert.smaller.converted(using: rate).rounded(rule)
-            let upper = convert.larger.converted(using: rate).rounded(rule)
+            let lower = try convert.smaller.converted(using: rate).rounded(rule)
+            let upper = try convert.larger.converted(using: rate).rounded(rule)
 
             #expect(lower <= upper)
         }

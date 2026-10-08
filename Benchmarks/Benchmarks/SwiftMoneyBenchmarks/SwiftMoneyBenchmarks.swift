@@ -2117,7 +2117,7 @@ let benchmarks: @Sendable () -> Void = {
         var amount: Int64 = 1
 
         for _ in benchmark.scaledIterations {
-            blackHole(EUR(minorUnits: amount).converted(using: eurGbp))
+            blackHole(try EUR(minorUnits: amount).converted(using: eurGbp))
             amount &+= 1
         }
     }

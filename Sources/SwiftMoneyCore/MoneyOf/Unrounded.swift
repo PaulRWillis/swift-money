@@ -350,10 +350,22 @@ public extension MoneyOf.Unrounded where C: CurrencyType {
     /// Converting leaves the result unsettled, so a chain of conversions rounds once at the end rather
     /// than at each hop.
     ///
-    /// - Precondition: the converted amount is representable.
-    @inlinable func converted<To>(using rate: FX.ExchangeRate<C, To>) -> MoneyOf<To>.Unrounded {
+    /// ```swift
+    /// // eurGbp is 0.87 and third is 1/3
+    /// let gbp = try (EUR(minorUnits: 300_00).unrounded * third)
+    ///     .converted(using: eurGbp)
+    ///     .rounded(.toNearestOrEven)   // £87.00
+    /// ```
+    ///
+    /// - Parameter rate: The rate from this amount's currency to `To`.
+    /// - Returns: This amount in `To`, unsettled.
+    /// - Throws: ``FX/ExchangeError/notRepresentable`` if the converted amount is too large to
+    ///   represent.
+    @inlinable func converted<To>(
+        using rate: FX.ExchangeRate<C, To>
+    ) throws(FX.ExchangeError) -> MoneyOf<To>.Unrounded {
         guard let converted = minorUnits.multipliedIfRepresentable(by: rate.minorPerMinorRate.value) else {
-            preconditionFailure("Converting is not representable")  // coverage:ignore — exit-test trap
+            throw .notRepresentable
         }
 
         return MoneyOf<To>.Unrounded(converted, storage: .implied)
@@ -370,14 +382,19 @@ public extension MoneyOf where C: CurrencyType {
     ///     .rounded(.toNearestOrEven)   // one rounding, into GBP
     /// ```
     ///
-    /// - Precondition: the converted amount is representable.
-    func converted<To>(using rate: FX.ExchangeRate<C, To>) -> MoneyOf<To>.Unrounded {
+    /// - Parameter rate: The rate from this amount's currency to `To`.
+    /// - Returns: This amount in `To`, unsettled.
+    /// - Throws: ``FX/ExchangeError/notRepresentable`` if the converted amount is too large to
+    ///   represent.
+    @inlinable func converted<To>(
+        using rate: FX.ExchangeRate<C, To>
+    ) throws(FX.ExchangeError) -> MoneyOf<To>.Unrounded {
         // The converted value is `minorUnits * rate`, and `minorUnits` is an `Int64`, so for a realistic
         // rate it is reached with one `Int128` multiply rather than widening this amount and taking the
         // 256-bit path; an extreme rate falls back to it. Mirrors `applying(_:)`.
         if let converted = Fixed.scalingIfRepresentable(minorUnits, by: rate.minorPerMinorRate.value) {
             return MoneyOf<To>.Unrounded(converted, storage: .implied)
         }
-        return unrounded.converted(using: rate)
+        return try unrounded.converted(using: rate)
     }
 }
