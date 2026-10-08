@@ -57,6 +57,23 @@ struct MoneyFormatRunsTests {
         }
     }
 
+    @Test("The extreme amounts padded past one 64-bit word give their digits as runs")
+    func extremeAmountsPadAsRuns() {
+        let options = MoneyFormatOptions(precision: .fixed(4, rounding: .toNearestOrEven))
+        let largest = Self.dollar.runs(Self.money(.max, "USD"), options: options).map(\.text).joined()
+        let smallest = Self.dollar.runs(Self.money(.min, "USD"), options: options).map(\.text).joined()
+
+        #expect(largest == "$92,233,720,368,547,758.0700")
+        #expect(smallest == "-$92,233,720,368,547,758.0800")
+    }
+
+    @Test("A negative amount that rounds to zero has no sign run")
+    func negativeRoundingToZeroHasNoSignRun() {
+        let options = MoneyFormatOptions(precision: .fixed(0, rounding: .toNearestOrEven))
+
+        #expect(Self.dollar.runs(Self.money(-1, "USD"), options: options).map(\.text).joined() == "$0")
+    }
+
     @Test("A grouped positive splits the digits from the separators")
     func groupedPositiveSplits() {
         let runs = Self.dollar.runs(Self.money(1_234_56, "USD"), options: .init())

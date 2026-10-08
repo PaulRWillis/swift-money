@@ -107,4 +107,52 @@ struct MoneyFormatTests {
                 == "-$1.00\(padding)"
         )
     }
+
+    /// Returns options that show a fixed number of fraction digits.
+    ///
+    /// - Parameters:
+    ///   - digits: The number of fraction digits to show.
+    ///   - rounding: The rule for digits past `digits`.
+    /// - Returns: The options.
+    /// - Throws: An issue if `digits` is not a valid fraction length.
+    static func fixed(_ digits: Int, _ rounding: RoundingRule) throws -> MoneyFormatOptions {
+        let length = try #require(FractionLength(exactly: digits))
+        return MoneyFormatOptions(precision: .fixed(length, rounding: rounding))
+    }
+
+    @Test("The largest amount pads past one 64-bit word")
+    func largestAmountPads() throws {
+        let largest = Self.money(.max, "USD")
+
+        #expect(Self.dollar.format(largest, options: try Self.fixed(4, .toNearestOrEven)) == "$92,233,720,368,547,758.0700")
+        #expect(
+            Self.dollar.format(largest, options: try Self.fixed(19, .toNearestOrEven))
+                == "$92,233,720,368,547,758.0700000000000000000"
+        )
+    }
+
+    @Test("The smallest amount pads past one 64-bit word")
+    func smallestAmountPads() throws {
+        let smallest = Self.money(.min, "USD")
+
+        #expect(Self.dollar.format(smallest, options: try Self.fixed(4, .toNearestOrEven)) == "-$92,233,720,368,547,758.0800")
+        #expect(
+            Self.dollar.format(smallest, options: try Self.fixed(19, .toNearestOrEven))
+                == "-$92,233,720,368,547,758.0800000000000000000"
+        )
+    }
+
+    @Test("The extreme amounts round to whole units")
+    func extremeAmountsRoundToWholeUnits() throws {
+        #expect(Self.dollar.format(Self.money(.max, "USD"), options: try Self.fixed(0, .toNearestOrEven)) == "$92,233,720,368,547,758")
+        #expect(Self.dollar.format(Self.money(.max, "USD"), options: try Self.fixed(0, .up)) == "$92,233,720,368,547,759")
+        #expect(Self.dollar.format(Self.money(.min, "USD"), options: try Self.fixed(0, .down)) == "-$92,233,720,368,547,759")
+    }
+
+    @Test("A negative amount that rounds to zero shows no minus sign")
+    func negativeRoundingToZeroHasNoMinus() throws {
+        #expect(Self.dollar.format(Self.money(-1, "USD"), options: try Self.fixed(0, .toNearestOrEven)) == "$0")
+        #expect(Self.dollar.format(Self.money(-50, "USD"), options: try Self.fixed(0, .toNearestOrEven)) == "$0")
+        #expect(Self.dollar.format(Self.money(-1, "USD"), options: try Self.fixed(1, .towardZero)) == "$0.0")
+    }
 }

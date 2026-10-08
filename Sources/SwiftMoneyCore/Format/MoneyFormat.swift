@@ -152,17 +152,13 @@ public extension MoneyFormat {
         case .fixed(let length, let rule):
             (digitsShown, shown, rounding) = (length.rawValue, UInt64.DecimalExponent(length), rule)
         }
-        let value = MoneyFormat.displayValue(
+        let (amountSign, magnitude) = MoneyFormat.displayValue(
             money.minorUnits, scalePlaces: places, showing: digitsShown, rounding: rounding
         )
-
-        let amountSign = Sign(of: value)
-        let wideMagnitude = value.magnitude
         let unit = UInt64.powerOfTen(shown)
-        // Splitting by `unit` (a `UInt64`) always brings each half back within `UInt64`'s range, even
-        // when the combined `wideMagnitude` needed more than 64 bits to hold.
-        guard let whole = UInt64(exactly: digitsShown == 0 ? wideMagnitude : wideMagnitude / UInt128(unit)),
-              let fraction = UInt64(exactly: digitsShown == 0 ? 0 : wideMagnitude % UInt128(unit)) else {
+        // Dividing by `unit` brings the whole part back within one word, even when padding took the
+        // magnitude past it.
+        guard let (whole, fraction) = magnitude.quotientAndRemainder(dividingBy: unit) else {
             preconditionFailure("Formatted amount is out of the display engine's range")  // coverage:ignore — exit-test trap
         }
 
@@ -387,30 +383,38 @@ public extension MoneyFormat {
         return next
     }
 
-    // The minor-unit count re-expressed at `showing` fraction digits: unchanged when that equals the
-    // currency's scale, padded (× a power of ten) when it is more, and rounded by `rounding` when it is
-    // fewer. The result counts `10 ^ showing` per major unit.
-    //
-    // Widened to `Int128` because padding can need more than 64 bits to hold the whole and padded
-    // fraction combined, even though each half (once split by `unit` at the call site) always fits back
-    // into `UInt64` on its own. `Int64(minorUnits)` magnitude times `UInt64.powerOfTen`'s own ceiling
-    // never comes close to overflowing `Int128`, so this multiply is never truly at risk.
+    /// Returns the minor-unit count re-expressed at `showing` fraction digits, as a sign and a magnitude.
+    ///
+    /// The count is unchanged when `showing` equals the currency's scale, padded with zeros when it is
+    /// more, and rounded by `rounding` when it is fewer. The result counts `10 ^ showing` per major unit.
+    /// Padding can take the magnitude past one word.
+    ///
+    /// - Parameters:
+    ///   - minorUnits: The amount in the currency's minor units.
+    ///   - scalePlaces: The currency's fraction digits.
+    ///   - showing: The fraction digits to show.
+    ///   - rounding: The rule for the dropped digits when `showing` is fewer than `scalePlaces`.
+    /// - Returns: The sign and magnitude of the count at `showing` digits. A count that rounds to zero
+    ///   is positive.
+    /// - Precondition: `showing` and `scalePlaces` differ by at most 19.
     @inlinable
-    package static func displayValue(
+    internal static func displayValue(
         _ minorUnits: Int64,
         scalePlaces: Int,
         showing: Int,
         rounding: RoundingRule
-    ) -> Int128 {
+    ) -> (sign: Sign, magnitude: WideMagnitude) {
         if showing == scalePlaces {
-            return Int128(minorUnits)
+            return (Sign(of: minorUnits), WideMagnitude(minorUnits.magnitude, times: 1))
         }
 
         if showing > scalePlaces {
-            return Int128(minorUnits) * Int128(UInt64.powerOfTen(placesBetween(showing, scalePlaces)))
+            let padding = UInt64.powerOfTen(placesBetween(showing, scalePlaces))
+            return (Sign(of: minorUnits), WideMagnitude(minorUnits.magnitude, times: padding))
         }
         let divisor = UInt64.powerOfTen(placesBetween(scalePlaces, showing))
-        return Int128(roundedQuotient(minorUnits, by: Int64(divisor), rule: rounding))
+        let rounded = roundedQuotient(minorUnits, by: Int64(divisor), rule: rounding)
+        return (Sign(of: rounded), WideMagnitude(rounded.magnitude, times: 1))
     }
 
     // How many places `more` is past `fewer`. Both count fraction digits, `0...19`, so the difference
@@ -479,17 +483,11 @@ package extension MoneyFormat {
         case .fixed(let length, let rule):
             (digitsShown, shown, rounding) = (length.rawValue, UInt64.DecimalExponent(length), rule)
         }
-        let value = MoneyFormat.displayValue(
+        let (amountSign, magnitude) = MoneyFormat.displayValue(
             money.minorUnits, scalePlaces: places, showing: digitsShown, rounding: rounding
         )
-
-        let amountSign = Sign(of: value)
-        let wideMagnitude = value.magnitude
         let unit = UInt64.powerOfTen(shown)
-        // Splitting by `unit` (a `UInt64`) always brings each half back within `UInt64`'s range, even
-        // when the combined `wideMagnitude` needed more than 64 bits to hold.
-        guard let whole = UInt64(exactly: digitsShown == 0 ? wideMagnitude : wideMagnitude / UInt128(unit)),
-              let fraction = UInt64(exactly: digitsShown == 0 ? 0 : wideMagnitude % UInt128(unit)) else {
+        guard let (whole, fraction) = magnitude.quotientAndRemainder(dividingBy: unit) else {
             preconditionFailure("Formatted amount is out of the display engine's range")  // coverage:ignore — exit-test trap
         }
         let leadingDigit = UInt64.DecimalExponent(leadingDigitOf: whole)

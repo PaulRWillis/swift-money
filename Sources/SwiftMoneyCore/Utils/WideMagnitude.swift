@@ -2,10 +2,12 @@
 //
 // Multiplying can always be done, because a product of two words fits in two. Dividing is what can
 // fail, since the result has to fit back into one.
+@usableFromInline
 struct WideMagnitude {
-    private let high: UInt64
-    private let low: UInt64
+    @usableFromInline let high: UInt64
+    @usableFromInline let low: UInt64
 
+    @inlinable
     init(
         _ magnitude: UInt64,
         times factor: UInt64
@@ -18,6 +20,7 @@ struct WideMagnitude {
     // `nil` when the whole part needs more than one word. That check is not defensive:
     // `dividingFullWidth` traps rather than reporting a quotient it cannot return, and the quotient
     // fits exactly when the high word is below the divisor.
+    @inlinable
     func quotientAndRemainder(
         dividingBy divisor: UInt64
     ) -> (quotient: UInt64, remainder: UInt64)? {
