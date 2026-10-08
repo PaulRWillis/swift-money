@@ -2,25 +2,15 @@
 ///
 /// Stepping an iterator leaves the sequence it came from intact.
 public struct MoneyStrideToIterator<C: CurrencyRepresentation>: IteratorProtocol, Sendable {
-    /// The currency of every amount returned.
+    /// The amounts left to return, or `nil` once the last has been returned.
     @usableFromInline
-    let currency: C.Storage
+    var remaining: MoneyOf<C>.StrideProgression?
 
-    /// The positions left to return, or `nil` once the last has been returned.
-    @usableFromInline
-    var remaining: StridePositions?
-
-    /// Creates an iterator over the given positions.
+    /// Creates an iterator over the given amounts.
     ///
-    /// - Parameters:
-    ///   - currency: The currency of every amount returned.
-    ///   - remaining: The positions to return, or `nil` for none.
+    /// - Parameter remaining: The amounts to return, or `nil` for none.
     @inlinable
-    init(
-        currency: C.Storage,
-        remaining: StridePositions?
-    ) {
-        self.currency = currency
+    init(remaining: MoneyOf<C>.StrideProgression?) {
         self.remaining = remaining
     }
 
@@ -35,6 +25,6 @@ public struct MoneyStrideToIterator<C: CurrencyRepresentation>: IteratorProtocol
 
         remaining = current.advanced
 
-        return MoneyOf(unchecked: current.next, storage: currency)
+        return current.first
     }
 }

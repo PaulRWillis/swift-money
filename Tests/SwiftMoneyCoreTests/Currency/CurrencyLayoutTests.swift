@@ -8,6 +8,8 @@ import Testing
 struct CurrencyLayoutTests {
     private static let bytesPerWord = 8
 
+    private static let optionalTagBytes = 1
+
     private static func words(_ count: Int) -> Int {
         count * bytesPerWord
     }
@@ -43,6 +45,22 @@ struct CurrencyLayoutTests {
     @Test("A split of a runtime amount is five words")
     func runtimeSplitIsFiveWords() {
         #expect(MemoryLayout<Split<AnyCurrency>>.stride == Self.words(5))
+    }
+
+    @Test("A runtime stride iterator is four words and a tag byte, five words in an array")
+    func runtimeStrideIteratorIsFourWordsAndATag() {
+        #expect(MemoryLayout<MoneyStrideToIterator<AnyCurrency>>.size == Self.words(4) + Self.optionalTagBytes)
+        #expect(MemoryLayout<MoneyStrideToIterator<AnyCurrency>>.stride == Self.words(5))
+        #expect(MemoryLayout<MoneyStrideThroughIterator<AnyCurrency>>.size == Self.words(4) + Self.optionalTagBytes)
+        #expect(MemoryLayout<MoneyStrideThroughIterator<AnyCurrency>>.stride == Self.words(5))
+    }
+
+    @Test("A typed stride iterator is three words and a tag byte, four words in an array")
+    func typedStrideIteratorIsThreeWordsAndATag() {
+        #expect(MemoryLayout<MoneyStrideToIterator<Currencies.GBP>>.size == Self.words(3) + Self.optionalTagBytes)
+        #expect(MemoryLayout<MoneyStrideToIterator<Currencies.GBP>>.stride == Self.words(4))
+        #expect(MemoryLayout<MoneyStrideThroughIterator<Currencies.GBP>>.size == Self.words(3) + Self.optionalTagBytes)
+        #expect(MemoryLayout<MoneyStrideThroughIterator<Currencies.GBP>>.stride == Self.words(4))
     }
 
     @Test("A money error is two machine words")
