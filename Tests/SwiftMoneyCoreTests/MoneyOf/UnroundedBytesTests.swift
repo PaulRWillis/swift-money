@@ -221,6 +221,72 @@ struct UnroundedBytesTests {
         #expect(Self.array(GBP(minorUnits: 1).unrounded.bytes) == expected)
     }
 
+    @Test("A negative amount encodes as two's complement")
+    func negativeAmountBytes() {
+        guard #available(macOS 26, iOS 26, watchOS 26, tvOS 26, visionOS 26, *) else { return }
+
+        let amount = GBP(minorUnits: -1).unrounded
+        let expected: [UInt8] = [
+            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,  // minus one minor unit, widened to -10^18
+            0xF2, 0x1F, 0x49, 0x4C, 0x58, 0x9C, 0x00, 0x00,
+            0x1C, 0x24, 0x00, 0x00, 0x00, 0x00,              // "GBP", six-bit packed
+            0x02,                                            // two decimal places
+        ]
+
+        #expect(Self.array(amount.bytes) == expected)
+        #expect(GBP.Unrounded(bytes: Self.bytes(expected)) == amount)
+    }
+
+    @Test("An amount past one 64-bit word fills the high bytes")
+    func highWordAmountBytes() {
+        guard #available(macOS 26, iOS 26, watchOS 26, tvOS 26, visionOS 26, *) else { return }
+
+        let amount = GBP(minorUnits: 100).unrounded
+        let expected: [UInt8] = [
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05,  // one hundred minor units, widened to 10^20
+            0x6B, 0xC7, 0x5E, 0x2D, 0x63, 0x10, 0x00, 0x00,
+            0x1C, 0x24, 0x00, 0x00, 0x00, 0x00,              // "GBP", six-bit packed
+            0x02,                                            // two decimal places
+        ]
+
+        #expect(Self.array(amount.bytes) == expected)
+        #expect(GBP.Unrounded(bytes: Self.bytes(expected)) == amount)
+    }
+
+    @Test("The largest amount encodes as the largest two's-complement value")
+    func largestAmountBytes() throws {
+        guard #available(macOS 26, iOS 26, watchOS 26, tvOS 26, visionOS 26, *) else { return }
+
+        let largest = try #require(Rate(string: "170141183460469231731.687303715884105727"))
+        let amount = GBP.Unrounded(minorUnits: largest)
+        let expected: [UInt8] = [
+            0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,  // 2^127 - 1
+            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+            0x1C, 0x24, 0x00, 0x00, 0x00, 0x00,              // "GBP", six-bit packed
+            0x02,                                            // two decimal places
+        ]
+
+        #expect(Self.array(amount.bytes) == expected)
+        #expect(GBP.Unrounded(bytes: Self.bytes(expected)) == amount)
+    }
+
+    @Test("The smallest amount encodes as the smallest two's-complement value")
+    func smallestAmountBytes() throws {
+        guard #available(macOS 26, iOS 26, watchOS 26, tvOS 26, visionOS 26, *) else { return }
+
+        let smallest = try #require(Rate(string: "-170141183460469231731.687303715884105728"))
+        let amount = GBP.Unrounded(minorUnits: smallest)
+        let expected: [UInt8] = [
+            0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // -2^127
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x1C, 0x24, 0x00, 0x00, 0x00, 0x00,              // "GBP", six-bit packed
+            0x02,                                            // two decimal places
+        ]
+
+        #expect(Self.array(amount.bytes) == expected)
+        #expect(GBP.Unrounded(bytes: Self.bytes(expected)) == amount)
+    }
+
     @Test("The widest code at the largest scale encodes big-endian")
     func widestCurrencyBytes() throws {
         guard #available(macOS 26, iOS 26, watchOS 26, tvOS 26, visionOS 26, *) else { return }
