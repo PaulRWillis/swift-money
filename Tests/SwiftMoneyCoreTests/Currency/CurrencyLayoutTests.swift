@@ -49,6 +49,26 @@ struct CurrencyLayoutTests {
     func moneyErrorIsTwoWords() {
         #expect(MemoryLayout<MoneyError>.stride == Self.words(2))
     }
+
+    @Test("A fixed-point value is two machine words")
+    func fixedIsTwoWords() {
+        #expect(MemoryLayout<Fixed>.stride == Self.words(2))
+    }
+
+    @Test("A rate is two machine words")
+    func rateIsTwoWords() {
+        #expect(MemoryLayout<Rate>.stride == Self.words(2))
+    }
+
+    @Test("A typed unrounded amount is two machine words")
+    func typedUnroundedIsTwoWords() {
+        #expect(MemoryLayout<GBP.Unrounded>.stride == Self.words(2))
+    }
+
+    @Test("A runtime unrounded amount is three machine words")
+    func runtimeUnroundedIsThreeWords() {
+        #expect(MemoryLayout<Money.Unrounded>.stride == Self.words(3))
+    }
 }
 
 #endif

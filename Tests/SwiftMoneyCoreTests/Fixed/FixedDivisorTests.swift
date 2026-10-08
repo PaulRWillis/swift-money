@@ -18,7 +18,7 @@ struct FixedDivisorTests {
         #expect(Fixed.Divisor(exactly: 1) == Fixed.Divisor(1))
     }
 
-    @Test("The largest Int128 is a divisor")
+    @Test("The largest signed 128-bit value is a divisor")
     func largestIsADivisor() {
         #expect(Fixed.Divisor(exactly: .max) == Fixed.Divisor(170_141_183_460_469_231_731_687_303_715_884_105_727))
     }

@@ -204,8 +204,8 @@ extension MoneyOf.Steps {
         span: ClosedRange<MoneyOf<C>.MinorUnits>,
         by requested: NonZeroInt64
     ) throws(MoneyStepsParsingError<C>) {
-        // The width reaches 2⁶⁴ − 1 minor units, which `Int64` cannot hold but `UInt64` can, and an
-        // `Int128` divide is a library call.
+        // The width reaches 2⁶⁴ − 1 minor units, which `Int64` cannot hold but `UInt64` can, without
+        // paying for a 128-bit divide.
         let width = UInt64(bitPattern: span.upperBound &- span.lowerBound)
 
         guard width > 0 else {

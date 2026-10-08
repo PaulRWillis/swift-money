@@ -53,7 +53,7 @@ public extension MoneyOf.Unrounded where C: CurrencyType {
     ///
     /// Traps on overflow.
     @inlinable static func * (lhs: Self, rhs: some BinaryInteger) -> Self {
-        guard let factor = Int128(exactly: rhs), let scaled = lhs.minorUnits.multipliedIfRepresentable(by: factor) else {
+        guard let factor = Int128Words(exactly: rhs), let scaled = lhs.minorUnits.multipliedIfRepresentable(by: factor) else {
             preconditionFailure("Scaling by \(rhs) is not representable")  // coverage:ignore — exit-test trap
         }
 
@@ -201,7 +201,7 @@ public extension MoneyOf.Unrounded where C == AnyCurrency {
     ///
     /// Traps on overflow.
     @inlinable static func * (lhs: Self, rhs: some BinaryInteger) -> Self {
-        guard let factor = Int128(exactly: rhs), let scaled = lhs.minorUnits.multipliedIfRepresentable(by: factor) else {
+        guard let factor = Int128Words(exactly: rhs), let scaled = lhs.minorUnits.multipliedIfRepresentable(by: factor) else {
             preconditionFailure("Scaling by \(rhs) is not representable")  // coverage:ignore — exit-test trap
         }
 
@@ -334,7 +334,7 @@ public extension MoneyOf.Unrounded where C: CurrencyType {
     ///
     /// - Precondition: the amount is representable.
     @inlinable init(majorUnits: Rate) {
-        self.init(majorUnits.value.multiplied(by: Int128(Int64(C.currency.unitScale))), storage: .implied)
+        self.init(majorUnits.value.multiplied(by: Int128Words(Int64(C.currency.unitScale))), storage: .implied)
     }
 
     /// Creates an amount from a fractional number of the currency's minor units.
@@ -373,7 +373,7 @@ public extension MoneyOf where C: CurrencyType {
     /// - Precondition: the converted amount is representable.
     func converted<To>(using rate: ExchangeRate<C, To>) -> MoneyOf<To>.Unrounded {
         // The converted value is `minorUnits * rate`, and `minorUnits` is an `Int64`, so for a realistic
-        // rate it is reached with one `Int128` multiply rather than widening this amount and taking the
+        // rate it is reached with one 64-by-128-bit multiply rather than widening this amount and taking the
         // 256-bit path; an extreme rate falls back to it. Mirrors `applying(_:)`.
         if let converted = Fixed.scalingIfRepresentable(minorUnits, by: rate.minorPerMinorRate.value) {
             return MoneyOf<To>.Unrounded(converted, storage: .implied)

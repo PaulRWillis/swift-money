@@ -22,7 +22,7 @@ private struct UnroundedTriple: Sendable {
 
 // |minorUnits| ≤ 10⁹ and rate ≤ 10⁶, so an applied product reaches 10¹⁵ minor units — well inside
 // `Fixed`'s ±1.7×10²⁰ range, and inside Int64 once settled. Held as an `Unrounded`, that is a storage
-// integer of 10¹⁵ × 10¹⁸ = 10³³, still far below Int128.max (~1.7×10³⁸).
+// integer of 10¹⁵ × 10¹⁸ = 10³³, still far below Int128Words.max (~1.7×10³⁸).
 private let unroundedAmountBound: Int64 = 1_000_000_000
 private let unroundedRateSignificandBound: Int64 = 1_000_000
 

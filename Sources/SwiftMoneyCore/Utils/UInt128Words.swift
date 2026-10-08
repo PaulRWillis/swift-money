@@ -116,6 +116,7 @@ extension UInt128Words {
     ///
     /// - Parameter other: The value to add.
     /// - Returns: The sum, wrapped to 128 bits, and `true` if it overflowed.
+    @inlinable
     package func addingReportingOverflow(_ other: UInt128Words) -> (partialValue: UInt128Words, overflow: Bool) {
         let (sumLow, carry) = low.addingReportingOverflow(other.low)
         let (highWords, highOverflow) = high.addingReportingOverflow(other.high)
@@ -132,6 +133,7 @@ extension UInt128Words {
     ///
     /// - Parameter other: The value to subtract.
     /// - Returns: The difference, wrapped to 128 bits, and `true` if it overflowed.
+    @inlinable
     package func subtractingReportingOverflow(_ other: UInt128Words) -> (partialValue: UInt128Words, overflow: Bool) {
         let (differenceLow, borrow) = low.subtractingReportingOverflow(other.low)
         let (highWords, highOverflow) = high.subtractingReportingOverflow(other.high)

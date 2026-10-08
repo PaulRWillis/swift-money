@@ -42,7 +42,7 @@ struct FixedSettlingTests {
 
     @Test("A value whose whole part needs more than a word does not settle")
     func twoWordWholesDoNotSettle() throws {
-        let justPastOneWord = try #require(Fixed(exactly: Int128(UInt64.max) + 1))
+        let justPastOneWord = try #require(Fixed(exactly: Int128Words(bitPattern: UInt128Words(high: 1, low: 0))))
 
         #expect(Int64(justPastOneWord, rounding: .towardZero) == nil)
         #expect(Int64(Fixed(storageBits: .max), rounding: .towardZero) == nil)
@@ -54,7 +54,7 @@ struct FixedSettlingTests {
     // whole part is 18_446_744_073_709_551_615, past Int64.max.
     @Test("The largest one-step dividend divides, and its whole part is past Int64")
     func largestOneStepDividend() {
-        let largestOneStep = Int128(999_999_999_999_999_999) << 64 | Int128(UInt64.max)
+        let largestOneStep = Int128Words(bitPattern: UInt128Words(high: 999_999_999_999_999_999, low: .max))
 
         #expect(Int64(Fixed(storageBits: largestOneStep), rounding: .towardZero) == nil)
     }

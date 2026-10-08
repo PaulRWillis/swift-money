@@ -174,6 +174,7 @@ extension Int128Words {
     ///
     /// - Parameter other: The value to add.
     /// - Returns: The sum, wrapped to 128 bits, and `true` if it overflowed.
+    @inlinable
     package func addingReportingOverflow(_ other: Int128Words) -> (partialValue: Int128Words, overflow: Bool) {
         let sum = Int128Words(bitPattern: _storage.addingReportingOverflow(other._storage).partialValue)
 
@@ -190,6 +191,7 @@ extension Int128Words {
     ///
     /// - Parameter other: The value to subtract.
     /// - Returns: The difference, wrapped to 128 bits, and `true` if it overflowed.
+    @inlinable
     package func subtractingReportingOverflow(_ other: Int128Words) -> (partialValue: Int128Words, overflow: Bool) {
         let difference = Int128Words(bitPattern: _storage.subtractingReportingOverflow(other._storage).partialValue)
 
@@ -225,6 +227,7 @@ extension Int128Words {
     ///
     /// - Parameter factor: The value to multiply by.
     /// - Returns: The product, wrapped to 128 bits, and `true` if it overflowed.
+    @usableFromInline
     package func multipliedReportingOverflow(byInt64 factor: Int64) -> (partialValue: Int128Words, overflow: Bool) {
         let magnitude = self.magnitude
         let (lowCarry, productLow) = magnitude.low.multipliedFullWidth(by: factor.magnitude)

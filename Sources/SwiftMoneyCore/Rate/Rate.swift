@@ -14,7 +14,7 @@ public extension Rate {
     ///
     /// - Precondition: `p` is within the representable range; any realistic percentage is.
     @inlinable static func percent(_ p: some BinaryInteger) -> Rate {
-        guard let significand = Int128(exactly: p), let rate = Rate(percentSignificand: significand) else {
+        guard let significand = Int128Words(exactly: p), let rate = Rate(percentSignificand: significand) else {
             preconditionFailure("Rate.percent(\(p)) is out of range")  // coverage:ignore — exit-test trap
         }
         return rate
@@ -25,7 +25,7 @@ public extension Rate {
     ///
     /// - Precondition: `bp` is within the representable range; any realistic rate is.
     @inlinable static func basisPoints(_ bp: some BinaryInteger) -> Rate {
-        guard let significand = Int128(exactly: bp), let rate = Rate(basisPointSignificand: significand) else {
+        guard let significand = Int128Words(exactly: bp), let rate = Rate(basisPointSignificand: significand) else {
             preconditionFailure("Rate.basisPoints(\(bp)) is out of range")  // coverage:ignore — exit-test trap
         }
         return rate
@@ -34,7 +34,7 @@ public extension Rate {
 
 extension Rate {
     // `significand` percent, or `nil` if out of range.
-    @usableFromInline init?(percentSignificand significand: Int128) {
+    @usableFromInline init?(percentSignificand significand: Int128Words) {
         guard let fixed = Fixed(significand: significand, exponent: -Rate.percentFractionDigits) else {
             return nil
         }
@@ -42,7 +42,7 @@ extension Rate {
     }
 
     // `significand` basis points, or `nil` if out of range.
-    @usableFromInline init?(basisPointSignificand significand: Int128) {
+    @usableFromInline init?(basisPointSignificand significand: Int128Words) {
         guard let fixed = Fixed(significand: significand, exponent: -Rate.basisPointFractionDigits) else {
             return nil
         }
@@ -166,8 +166,8 @@ private extension Rate {
         let numeratorText = text[text.startIndex ..< slash]
         let denominatorText = text[text.index(after: slash)...]
 
-        guard let numerator = Int128(numeratorText),
-              let denominator = Int128(denominatorText),
+        guard let numerator = Int128Words(numeratorText),
+              let denominator = Int128Words(denominatorText),
               let divisor = Fixed.Divisor(exactly: denominator),
               let whole = Fixed(exactly: numerator) else {
             return nil
@@ -181,10 +181,10 @@ private extension Rate {
     }
 
     // Scans a signed decimal ("-0.175", ".5", "100") into a significand and its fraction-digit count.
-    static func scanDecimal(_ text: Substring) -> (significand: Int128, fractionDigits: Int)? {
+    static func scanDecimal(_ text: Substring) -> (significand: Int128Words, fractionDigits: Int)? {
         let zero = UInt8(ascii: "0"), nine = UInt8(ascii: "9")
         var sign = Sign.positive
-        var magnitude: UInt128 = 0
+        var magnitude = UInt128Words.min
         var fractionDigits = 0
         var sawPoint = false
         var sawDigit = false
@@ -201,16 +201,14 @@ private extension Rate {
                 sawPoint = true
                 continue
             }
-            guard (zero ... nine).contains(byte) else { return nil }
-            let (shifted, tooBig) = magnitude.multipliedReportingOverflow(by: 10)
-            let (grown, carry) = shifted.addingReportingOverflow(UInt128(byte - zero))
-            guard !tooBig, !carry else { return nil }
+            guard (zero ... nine).contains(byte),
+                  let grown = magnitude.multipliedByTenAdding(byte - zero) else { return nil }
             magnitude = grown
             sawDigit = true
             if sawPoint { fractionDigits += 1 }
         }
 
-        guard sawDigit, let significand = Int128(magnitude: magnitude, sign: sign) else { return nil }
+        guard sawDigit, let significand = Int128Words(magnitude: magnitude, sign: sign) else { return nil }
         return (significand, fractionDigits)
     }
 }
@@ -218,5 +216,5 @@ private extension Rate {
 private extension Rate {
     static let percentFractionDigits = 2       // percent = value / 10²
     static let basisPointFractionDigits = 4    // basis points = value / 10⁴
-    static let basisPointsPerWhole: Int128 = 10_000    // basis points in 1 = 10⁴
+    static var basisPointsPerWhole: Int128Words { Int128Words(10_000 as Int64) }    // basis points in 1 = 10⁴
 }
