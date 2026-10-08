@@ -50,7 +50,7 @@ struct ExchangeRateTests {
         let margin = try #require(FX.Margin(.basisPoints(5)))                                          // 0.0005
         let expectedRate = try #require(Rate(string: "0.9995"))
 
-        let customer = mid.applyingMargin(margin)
+        let customer = try mid.applyingMargin(margin)
         let expected = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(expectedRate))
 
         #expect(customer == expected)
@@ -62,7 +62,19 @@ struct ExchangeRateTests {
         let mid = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(midRate))
         let noMargin = try #require(FX.Margin(.percent(0)))
 
-        #expect(mid.applyingMargin(noMargin) == mid)
+        #expect(try mid.applyingMargin(noMargin) == mid)
+    }
+
+    // The smallest rate less 60% is 0.4 of the smallest step, which rounds to zero.
+    @Test("A margin that would round the customer rate to zero throws")
+    func marginRoundingToZeroThrows() throws {
+        let smallestRate = try #require(Rate(string: "0.000000000000000001"))
+        let mid = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(smallestRate))
+        let margin = try #require(FX.Margin(.percent(60)))
+
+        #expect(throws: FX.ExchangeError.notRepresentable) {
+            try mid.applyingMargin(margin)
+        }
     }
 
     @Test("Crossing two rates composes them through the shared currency")

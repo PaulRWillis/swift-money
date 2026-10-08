@@ -47,13 +47,23 @@ public extension FX {
         /// Returns the customer rate for this mid-market rate: the rate less the provider's margin.
         ///
         /// The customer keeps the fraction of the mid rate the margin does not take, so the result is
-        /// always positive and never larger than the mid rate.
-        public func applyingMargin(_ margin: Margin) -> Self {
-            // margin is in [0, 1), so the kept fraction is in (0, 1] and the product stays positive and
-            // no larger than the rate, so it cannot leave the range or the positive invariant.
+        /// never larger than the mid rate.
+        ///
+        /// ```swift
+        /// // mid is 1.5 and margin is 20%
+        /// let customer = try mid.applyingMargin(margin)   // 1.2
+        /// ```
+        ///
+        /// - Parameter margin: The provider's margin.
+        /// - Returns: The mid rate less `margin`.
+        /// - Throws: ``FX/ExchangeError/notRepresentable`` if the customer rate is so close to zero
+        ///   that it rounds to zero.
+        public func applyingMargin(_ margin: Margin) throws(ExchangeError) -> Self {
+            // margin is in [0, 1), so the kept fraction is in (0, 1] and the product is no larger than
+            // the rate: it can't overflow, only round to zero.
             guard let customer = minorPerMinorRate.multiplied(by: margin.rate.subtracted(from: .par)),
                   let result = Self(minorPerMinor: customer) else {
-                preconditionFailure("Applying a margin left the representable range")  // coverage:ignore — exit-test trap
+                throw .notRepresentable
             }
 
             return result

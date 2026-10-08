@@ -32,7 +32,7 @@ struct ConversionTests {
         let margin = try #require(FX.Margin(.basisPoints(5)))
 
         let mid = EUR(minorUnits: 100_00).converted(using: eurGbp).rounded(.toNearestOrEven)
-        let customer = EUR(minorUnits: 100_00).converted(using: eurGbp.applyingMargin(margin)).rounded(.toNearestOrEven)
+        let customer = try EUR(minorUnits: 100_00).converted(using: eurGbp.applyingMargin(margin)).rounded(.toNearestOrEven)
 
         #expect(customer < mid)
     }
@@ -45,7 +45,7 @@ struct ConversionTests {
         let mid = try #require(FX.ExchangeRate<Currencies.GBP, Currencies.EUR>(midRate))
         let margin = try #require(FX.Margin(.percent(20)))
 
-        let euros = GBP(minorUnits: 1_00).converted(using: mid.applyingMargin(margin)).rounded(.toNearestOrEven)
+        let euros = try GBP(minorUnits: 1_00).converted(using: mid.applyingMargin(margin)).rounded(.toNearestOrEven)
 
         #expect(euros == EUR(minorUnits: 1_20))
     }

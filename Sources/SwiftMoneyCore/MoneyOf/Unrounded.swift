@@ -365,7 +365,7 @@ public extension MoneyOf where C: CurrencyType {
     /// single settling.
     ///
     /// ```swift
-    /// let gbp = EUR(minorUnits: 100_00)
+    /// let gbp = try EUR(minorUnits: 100_00)
     ///     .converted(using: eurGbp.applyingMargin(margin))
     ///     .rounded(.toNearestOrEven)   // one rounding, into GBP
     /// ```

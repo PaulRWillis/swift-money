@@ -120,7 +120,7 @@ struct ExchangeRatePropertyTests {
 
         for rule in roundingRules {
             let mid = convert.amount.converted(using: rate).rounded(rule)
-            let customer = convert.amount.converted(using: rate.applyingMargin(margin)).rounded(rule)
+            let customer = try convert.amount.converted(using: rate.applyingMargin(margin)).rounded(rule)
 
             #expect(customer <= mid)
             #expect(customer > .zero)

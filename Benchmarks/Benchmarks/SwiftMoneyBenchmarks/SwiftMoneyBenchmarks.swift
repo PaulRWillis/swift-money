@@ -2143,7 +2143,7 @@ let benchmarks: @Sendable () -> Void = {
 
     Benchmark("ExchangeRate applying a margin", configuration: defaultConfiguration) { benchmark in
         for _ in benchmark.scaledIterations {
-            blackHole(eurGbp.applyingMargin(providerMargin))
+            blackHole(try eurGbp.applyingMargin(providerMargin))
         }
     }
 
