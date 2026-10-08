@@ -74,15 +74,23 @@ public extension FX {
         /// The shared currency is enforced by the types: this rate's `To` must be `other`'s `From`, so
         /// `EUR→GBP` is `EUR→USD` crossed with `USD→GBP`.
         ///
-        /// - Precondition: the composed rate is representable, which any realistic pair of rates is.
+        /// ```swift
+        /// // eurUsd is 1.1 and usdGbp is 0.8
+        /// let eurGbp = try eurUsd.crossed(with: usdGbp)   // 0.88
+        /// ```
+        ///
+        /// - Parameter other: The rate from this rate's `To` currency onward.
+        /// - Returns: The product of this rate and `other`.
+        /// - Throws: ``FX/ExchangeError/notRepresentable`` if the product is too large to represent,
+        ///   or so close to zero that it rounds to zero.
         public func crossed<Onward>(
             with other: ExchangeRate<To, Onward>
-        ) -> ExchangeRate<From, Onward> {
+        ) throws(ExchangeError) -> ExchangeRate<From, Onward> {
             // Both are minor-per-minor, so the shared `To` minor unit cancels and the product is
             // already `Onward` minor units per one `From` minor unit, with no scale adjustment needed.
             guard let composed = minorPerMinorRate.multiplied(by: other.minorPerMinorRate),
                   let result = ExchangeRate<From, Onward>(minorPerMinor: composed) else {
-                preconditionFailure("Crossing two rates left the representable range")  // coverage:ignore — exit-test trap
+                throw .notRepresentable
             }
 
             return result

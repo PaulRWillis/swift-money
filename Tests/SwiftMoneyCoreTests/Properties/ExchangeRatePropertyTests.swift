@@ -106,7 +106,7 @@ struct ExchangeRatePropertyTests {
     private func crossedConversionIsPositive(_ convert: ConvertCase) throws {
         let eurGbp = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(convert.rate))
         let gbpUsd = try #require(FX.ExchangeRate<Currencies.GBP, Currencies.USD>(convert.onwardRate))
-        let eurUsd = eurGbp.crossed(with: gbpUsd)
+        let eurUsd = try eurGbp.crossed(with: gbpUsd)
 
         for rule in roundingRules {
             #expect(convert.amount.converted(using: eurUsd).rounded(rule) > .zero)

@@ -86,9 +86,31 @@ struct ExchangeRateTests {
         let eurUsd = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.USD>(eurUsdRate))
         let usdGbp = try #require(FX.ExchangeRate<Currencies.USD, Currencies.GBP>(usdGbpRate))
 
-        let eurGbp = eurUsd.crossed(with: usdGbp)
+        let eurGbp = try eurUsd.crossed(with: usdGbp)
         let expected = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(expectedRate))
 
         #expect(eurGbp == expected)
+    }
+
+    @Test("Crossing two rates whose product is too large throws")
+    func crossingPastTheLargestRateThrows() throws {
+        let largeRate = try #require(Rate(string: "1000000000000"))                                    // 10¹²
+        let eurUsd = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.USD>(largeRate))
+        let usdGbp = try #require(FX.ExchangeRate<Currencies.USD, Currencies.GBP>(largeRate))
+
+        #expect(throws: FX.ExchangeError.notRepresentable) {
+            try eurUsd.crossed(with: usdGbp)
+        }
+    }
+
+    @Test("Crossing two rates whose product rounds to zero throws")
+    func crossingToZeroThrows() throws {
+        let smallRate = try #require(Rate(string: "0.0000000001"))                                     // 10⁻¹⁰
+        let eurUsd = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.USD>(smallRate))
+        let usdGbp = try #require(FX.ExchangeRate<Currencies.USD, Currencies.GBP>(smallRate))
+
+        #expect(throws: FX.ExchangeError.notRepresentable) {
+            try eurUsd.crossed(with: usdGbp)
+        }
     }
 }

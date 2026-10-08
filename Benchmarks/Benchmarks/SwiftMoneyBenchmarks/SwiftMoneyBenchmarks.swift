@@ -2131,7 +2131,7 @@ let benchmarks: @Sendable () -> Void = {
 
     Benchmark("ExchangeRate crossed", configuration: defaultConfiguration) { benchmark in
         for _ in benchmark.scaledIterations {
-            blackHole(eurUsd.crossed(with: usdGbp))
+            blackHole(try eurUsd.crossed(with: usdGbp))
         }
     }
 

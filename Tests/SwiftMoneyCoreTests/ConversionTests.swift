@@ -59,7 +59,7 @@ struct ConversionTests {
         let directRate = try #require(Rate(string: "0.88"))
         let eurGbp = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(directRate))
 
-        let viaCross = EUR(minorUnits: 100_00).converted(using: eurUsd.crossed(with: usdGbp)).rounded(.toNearestOrEven)
+        let viaCross = try EUR(minorUnits: 100_00).converted(using: eurUsd.crossed(with: usdGbp)).rounded(.toNearestOrEven)
         let direct = EUR(minorUnits: 100_00).converted(using: eurGbp).rounded(.toNearestOrEven)
 
         #expect(viaCross == direct)
@@ -78,7 +78,7 @@ struct ConversionTests {
         let eurUsd = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.USD>(eurUsdRate)).applyingMargin(margin)
         let usdGbp = try #require(FX.ExchangeRate<Currencies.USD, Currencies.GBP>(usdGbpRate)).applyingMargin(margin)
 
-        let gbp = EUR(minorUnits: 100_00).converted(using: eurUsd.crossed(with: usdGbp)).rounded(.toNearestOrEven)
+        let gbp = try EUR(minorUnits: 100_00).converted(using: eurUsd.crossed(with: usdGbp)).rounded(.toNearestOrEven)
 
         #expect(gbp == GBP(minorUnits: 120_00))
     }
