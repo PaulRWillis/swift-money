@@ -29,17 +29,17 @@ extension RoundingRule {
     }
 }
 
-// Applies the rounding step and the sign, or `nil` when the true value doesn't fit `Int128`.
-// One function for the divides and construction, so the overflow and `Int128.min` handling live once.
-func signedRounded(quotient: UInt128, step: RoundingStep, sign: Sign) -> Int128? {
+// Applies the rounding step and the sign, or `nil` when the true value doesn't fit 128 signed bits.
+// One function for the divides and construction, so the overflow and `Int128Words.min` handling live once.
+func signedRounded(quotient: UInt128Words, step: RoundingStep, sign: Sign) -> Int128Words? {
     guard step == .awayFromZero else {
-        return Int128(magnitude: quotient, sign: sign)
+        return Int128Words(magnitude: quotient, sign: sign)
     }
 
     let (stepped, overflow) = quotient.addingReportingOverflow(1)
     guard !overflow else {
-        return nil   // coverage:ignore — unreachable: a real quotient is far below UInt128.max
+        return nil   // coverage:ignore — unreachable: a real quotient is far below UInt128Words.max
     }
 
-    return Int128(magnitude: stepped, sign: sign)
+    return Int128Words(magnitude: stepped, sign: sign)
 }

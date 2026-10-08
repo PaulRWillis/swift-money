@@ -76,9 +76,8 @@ public extension MoneyOf {
 public extension MoneyOf where C: CurrencyType {
     /// Returns the result of multiplying this amount by a whole number.
     ///
-    /// Traps on overflow. `Int` always fits `Int64` exactly, so this checks the actual product at
-    /// 64-bit width instead of widening through `Int128` — the fast path for the overwhelmingly
-    /// common case (a plain number literal or count).
+    /// Traps on overflow. `Int` always fits `Int64` exactly, so this checks the product at 64-bit
+    /// width.
     @inlinable
     static func * (lhs: Self, rhs: Int) -> Self {
         let (product, overflow) = lhs.minorUnits.multipliedReportingOverflow(by: Int64(rhs))
@@ -90,9 +89,8 @@ public extension MoneyOf where C: CurrencyType {
 
     /// Returns the result of multiplying this amount by a whole number.
     ///
-    /// Traps on overflow. `Int64` is already the width `minorUnits` is stored in, so this checks the
-    /// actual product directly instead of widening through `Int128` — the same fast path as the `Int`
-    /// overload above, for callers whose count is explicitly `Int64` rather than the platform `Int`.
+    /// Traps on overflow. `Int64` is the width the amount is stored in, so this checks the product
+    /// directly.
     @inlinable
     static func * (lhs: Self, rhs: Int64) -> Self {
         let (product, overflow) = lhs.minorUnits.multipliedReportingOverflow(by: rhs)
@@ -202,9 +200,8 @@ public extension MoneyOf where C == AnyCurrency {
 
     /// Returns this amount scaled by a whole number.
     ///
-    /// Traps on overflow. `Int` always fits `Int64` exactly, so this checks the actual product at
-    /// 64-bit width instead of widening through `Int128` — the fast path for the overwhelmingly
-    /// common case (a plain number literal or count).
+    /// Traps on overflow. `Int` always fits `Int64` exactly, so this checks the product at 64-bit
+    /// width.
     @inlinable
     static func * (lhs: Self, rhs: Int) -> Self {
         let (product, overflow) = lhs.minorUnits.multipliedReportingOverflow(by: Int64(rhs))
@@ -216,9 +213,8 @@ public extension MoneyOf where C == AnyCurrency {
 
     /// Returns this amount scaled by a whole number.
     ///
-    /// Traps on overflow. `Int64` is already the width `minorUnits` is stored in, so this checks the
-    /// actual product directly instead of widening through `Int128` — the same fast path as the `Int`
-    /// overload above, for callers whose count is explicitly `Int64` rather than the platform `Int`.
+    /// Traps on overflow. `Int64` is the width the amount is stored in, so this checks the product
+    /// directly.
     @inlinable
     static func * (lhs: Self, rhs: Int64) -> Self {
         let (product, overflow) = lhs.minorUnits.multipliedReportingOverflow(by: rhs)

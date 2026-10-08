@@ -46,7 +46,8 @@ extension FX.ExchangeRate: CustomStringConvertible {
         withUnsafeTemporaryAllocation(of: UInt8.self, capacity: UInt128.maximumDecimalDigits) { buffer in
             // The stored rate is a positive whole number of 10⁻¹⁸ smallest-unit parts, so its digits
             // are the quote's with the point moved `18 + placesGained` places in: from 0 to 36.
-            let start = minorPerMinorRate.value.storageBits.magnitude.writeDecimalDigits(endingAt: buffer)
+            let words = minorPerMinorRate.value.storageBits.magnitude
+            let start = (UInt128(words.high) << 64 | UInt128(words.low)).writeDecimalDigits(endingAt: buffer)
             var end = buffer.count
             var places = Fixed.fractionalDigits + Self.placesGained
 
@@ -159,7 +160,7 @@ extension FX {
     ///   falls past the 18th place; ``ExchangeRateParsingError/overflow`` if the result is too large
     ///   to hold.
     static func minorPerMinorRate(
-        significand: Int128,
+        significand: Int128Words,
         exponent: Int,
         placesGained: Int
     ) throws(ExchangeRateParsingError) -> Rate {
@@ -174,7 +175,7 @@ extension FX {
 
         case nil:
             // Building it overflows when scaling up. Scaling down fails only past the largest power of
-            // ten `Int128` holds, which leaves non-zero digits beyond the 18th place.
+            // ten a 128-bit integer holds, which leaves non-zero digits beyond the 18th place.
             guard shifted + Fixed.fractionalDigits < 0 else {
                 throw .overflow
             }

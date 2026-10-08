@@ -21,7 +21,7 @@ enum DroppedFraction {
         }
     }
 
-    init(remainder: UInt128, divisor: UInt128) {
+    init(remainder: UInt128Words, divisor: UInt128Words) {
         guard remainder != 0 else {
             self = .zero
             return

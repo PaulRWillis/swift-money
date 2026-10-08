@@ -13,15 +13,18 @@
 // entry points the wrappers call are visible for calling, while their bodies are not emitted for inlining.
 @usableFromInline
 package struct Fixed: Equatable, Hashable, Sendable, BitwiseCopyable {
-    // `fileprivate`, not `private`, so the same-file `Int64(exactly:)` / `Int64(_:rounding:)` can read it.
-    fileprivate var _storage: Int128
+    /// The value times 10¹⁸.
+    @usableFromInline var _storage: Int128Words
 
     // The number of fractional digits a value is held to; `Scale` holds ten raised to that power.
     // Internal, not private: an exchange rate writes its quote out to these places.
     static let fractionalDigits = 18
-    private static var scale: Int128 { Scale.value }
+    private static var scale: Int128Words { Scale.value }
 
-    private init(_storage: Int128) {
+    /// Creates a value from its stored integer.
+    ///
+    /// - Parameter _storage: The value times 10¹⁸.
+    @usableFromInline init(_storage: Int128Words) {
         self._storage = _storage
     }
 
@@ -32,7 +35,7 @@ package struct Fixed: Equatable, Hashable, Sendable, BitwiseCopyable {
 extension Fixed {
     /// The raw stored integer: the value times 10¹⁸.
     @usableFromInline
-    package var storageBits: Int128 {
+    package var storageBits: Int128Words {
         _storage
     }
 
@@ -44,7 +47,7 @@ extension Fixed {
     ///
     /// - Parameter storageBits: The value times 10¹⁸.
     @usableFromInline
-    package init(storageBits: Int128) {
+    package init(storageBits: Int128Words) {
         self.init(_storage: storageBits)
     }
 }
@@ -57,12 +60,14 @@ extension Fixed: Comparable {
 
 extension Fixed {
     /// Returns the sum of the two values, and whether it overflowed the representable range.
+    @inlinable
     package func addingReportingOverflow(_ other: Fixed) -> (value: Fixed, overflow: Bool) {
         let (sum, overflow) = _storage.addingReportingOverflow(other._storage)
         return (Fixed(_storage: sum), overflow)
     }
 
     /// Returns the difference of the two values, and whether it overflowed the representable range.
+    @inlinable
     package func subtractingReportingOverflow(_ other: Fixed) -> (value: Fixed, overflow: Bool) {
         let (difference, overflow) = _storage.subtractingReportingOverflow(other._storage)
         return (Fixed(_storage: difference), overflow)
@@ -82,7 +87,7 @@ extension Fixed {
     }
 
     /// Returns this value scaled by a whole number, and whether it overflowed the representable range.
-    package func multipliedReportingOverflow(by n: Int128) -> (value: Fixed, overflow: Bool) {
+    package func multipliedReportingOverflow(by n: Int128Words) -> (value: Fixed, overflow: Bool) {
         let (product, overflow) = _storage.multipliedReportingOverflow(by: n)
         return (Fixed(_storage: product), overflow)
     }
@@ -127,7 +132,7 @@ extension Fixed {
         precondition(rhs._storage != 0, "Fixed divided by zero")
 
         let sign = Sign(of: lhs._storage) * Sign(of: rhs._storage)
-        let numerator = Wide256Magnitude(lhs._storage.magnitude, times: UInt128(Fixed.scale))
+        let numerator = Wide256Magnitude(lhs._storage.magnitude, times: UInt128Words(Scale.divisor))
 
         guard let storage = bankersDivide256(numerator, by: rhs._storage.magnitude, sign: sign) else {
             preconditionFailure("Fixed division overflowed")  // coverage:ignore — exit-test trap
@@ -139,7 +144,7 @@ extension Fixed {
     /// Returns this value scaled by a whole number.
     ///
     /// - Precondition: the result is representable. Use ``multipliedIfRepresentable(by:)`` otherwise.
-    @usableFromInline package func multiplied(by n: Int128) -> Fixed {
+    @usableFromInline package func multiplied(by n: Int128Words) -> Fixed {
         let (value, overflow) = multipliedReportingOverflow(by: n)
         precondition(!overflow, "Fixed integer multiplication overflowed")
 
@@ -168,12 +173,14 @@ extension Fixed {
 
 extension Fixed {
     /// Returns the sum of the two values, or `nil` if it overflows the representable range.
+    @inlinable
     package func addingIfRepresentable(_ other: Fixed) -> Fixed? {
         let (value, overflow) = addingReportingOverflow(other)
         return overflow ? nil : value
     }
 
     /// Returns the difference of the two values, or `nil` if it overflows the representable range.
+    @inlinable
     package func subtractingIfRepresentable(_ other: Fixed) -> Fixed? {
         let (value, overflow) = subtractingReportingOverflow(other)
         return overflow ? nil : value
@@ -186,24 +193,24 @@ extension Fixed {
     }
 
     /// Returns this value scaled by a whole number, or `nil` if it overflows the representable range.
-    @usableFromInline package func multipliedIfRepresentable(by n: Int128) -> Fixed? {
+    @usableFromInline package func multipliedIfRepresentable(by n: Int128Words) -> Fixed? {
         let (value, overflow) = multipliedReportingOverflow(by: n)
         return overflow ? nil : value
     }
 }
 
 extension Fixed {
-    // A whole number of minor units scaled by `rate`, as the unrounded product — the value
+    // A whole number of minor units scaled by `rate`, as the unrounded product: the value
     // `Fixed(minorUnits) * rate` computes, reached without widening to `Fixed` first.
     //
     // `Fixed(minorUnits) * rate` is `(minorUnits · 10^18 · rateStorage) / 10^18 = minorUnits · rateStorage`,
-    // a plain integer product. Since `minorUnits` is an `Int64`, that product fits `Int128` for every rate
-    // up to about eighteen, which is every realistic one — so the common case skips the 256-bit
-    // multiply-and-divide the general `Fixed * Fixed` pays. `nil` for an extreme rate, whose caller falls
-    // back to the wide path.
+    // a plain integer product. Since `minorUnits` is an `Int64`, that product fits 128 signed bits for
+    // every rate up to about eighteen, which is every realistic one, so the common case skips the
+    // 256-bit multiply-and-divide the general `Fixed * Fixed` pays. `nil` for an extreme rate, whose
+    // caller falls back to the wide path.
     @usableFromInline
     static func scalingIfRepresentable(_ minorUnits: Int64, by rate: Fixed) -> Fixed? {
-        let (product, overflow) = Int128(minorUnits).multipliedReportingOverflow(by: rate._storage)
+        let (product, overflow) = rate._storage.multipliedReportingOverflow(byInt64: minorUnits)
         return overflow ? nil : Fixed(_storage: product)
     }
 }
@@ -214,7 +221,7 @@ extension Fixed {
     /// Exact with at most 18 fractional digits; digits beyond the eighteenth are rounded by `rounding`.
     ///
     /// - Returns: `nil` if the value is outside the representable range.
-    package init?(significand: Int128, exponent: Int, rounding: RoundingRule = .toNearestOrEven) {
+    package init?(significand: Int128Words, exponent: Int, rounding: RoundingRule = .toNearestOrEven) {
         guard let built = Fixed.exactness(significand: significand, exponent: exponent, rounding: rounding) else {
             return nil
         }
@@ -238,7 +245,7 @@ extension Fixed {
 
     // `significand × 10^exponent`, and whether digits past the eighteenth had to be rounded; nil if out
     // of range.
-    static func exactness(significand: Int128, exponent: Int, rounding: RoundingRule) -> Exactness? {
+    static func exactness(significand: Int128Words, exponent: Int, rounding: RoundingRule) -> Exactness? {
         let shift = exponent + Fixed.fractionalDigits   // _storage = significand × 10^shift
         guard shift < 0 else {
             return Fixed.scaledUp(significand, byPowerOfTen: shift).map { .exact(Fixed(_storage: $0)) }
@@ -248,12 +255,12 @@ extension Fixed {
     }
 
     // `significand × 10^power` as raw storage, or nil if it overflows.
-    private static func scaledUp(_ significand: Int128, byPowerOfTen power: Int) -> Int128? {
+    private static func scaledUp(_ significand: Int128Words, byPowerOfTen power: Int) -> Int128Words? {
         // Widening a whole number shifts by exactly `fractionalDigits`, so its multiplier is the `scale`
         // constant. Reusing it skips the table read, which measured cheaper on every string parse.
         let multiplier = power == Fixed.fractionalDigits
             ? Fixed.scale
-            : Int128.DecimalExponent(exactly: power).map(Int128.powerOfTen)
+            : Int128Words.DecimalExponent(exactly: power).map(Int128Words.powerOfTen)
 
         guard let multiplier else {
             return nil
@@ -265,21 +272,21 @@ extension Fixed {
 
     // `significand ÷ 10^power`, rounding the dropped digits by `rounding`; nil on overflow.
     private static func scaledDown(
-        _ significand: Int128,
+        _ significand: Int128Words,
         byPowerOfTen power: Int,
         rounding: RoundingRule
     ) -> Exactness? {
-        guard let exponent = Int128.DecimalExponent(exactly: power) else {
+        guard let exponent = Int128Words.DecimalExponent(exactly: power) else {
             return nil
         }
 
-        let divisor = Int128.powerOfTen(exponent)
+        let divisor = Int128Words.powerOfTen(exponent)
 
         let sign = Sign(of: significand)
         let (quotient, remainder) = significand.magnitude.quotientAndRemainder(dividingBy: divisor.magnitude)
 
         guard remainder != 0 else {
-            return Int128(magnitude: quotient, sign: sign).map { .exact(Fixed(_storage: $0)) }
+            return Int128Words(magnitude: quotient, sign: sign).map { .exact(Fixed(_storage: $0)) }
         }
 
         let dropped = DroppedFraction(remainder: remainder, divisor: divisor.magnitude)
@@ -290,14 +297,16 @@ extension Fixed {
 
     /// Creates a whole value. Every `Int64` is representable.
     @usableFromInline package init(_ value: Int64) {
-        // An `Int64` times 10^18 stays below `Int128.max`, so the product cannot overflow.
-        self.init(_storage: Int128(value) &* Fixed.scale)
+        // A signed full-width product is the two's-complement bits of the 128-bit one, and an `Int64`
+        // times 10^18 is far inside 128 signed bits.
+        let (high, low) = value.multipliedFullWidth(by: Int64(bitPattern: Scale.divisor))
+        self.init(_storage: Int128Words(bitPattern: UInt128Words(high: UInt64(bitPattern: high), low: low)))
     }
 
     /// Creates a whole value.
     ///
     /// - Returns: `nil` if `value` is outside the representable range.
-    package init?(exactly value: Int128) {
+    package init?(exactly value: Int128Words) {
         guard let fixed = Fixed(significand: value, exponent: 0) else {
             return nil
         }
@@ -313,7 +322,7 @@ extension Fixed {
     ///   exponent notation, more than one point, or any non-digit — or if the value is out of range.
     package init?(decimal string: some StringProtocol, rounding: RoundingRule = .toNearestOrEven) {
         var sign = Sign.positive
-        var magnitude: UInt128 = 0
+        var magnitude = UInt128Words.min
         var fractionDigits = 0
         var sawPoint = false
         var sawDigit = false
@@ -352,7 +361,7 @@ extension Fixed {
             }
         }
 
-        guard sawDigit, let significand = Int128(magnitude: magnitude, sign: sign) else {
+        guard sawDigit, let significand = Int128Words(magnitude: magnitude, sign: sign) else {
             return nil
         }
 
@@ -390,22 +399,6 @@ private extension UInt8 {
         }
 
         return self - zero
-    }
-}
-
-private extension UInt128 {
-    // Shifts one decimal place and adds a digit, or nil on overflow.
-    func multipliedByTenAdding(_ digit: UInt8) -> UInt128? {
-        let (shifted, mulOverflow) = multipliedReportingOverflow(by: 10)
-        guard !mulOverflow else {
-            return nil
-        }
-        let (sum, addOverflow) = shifted.addingReportingOverflow(UInt128(digit))
-        guard !addOverflow else {
-            return nil   // coverage:ignore — unreachable: the ×10 above overflows first on any input that reaches this
-        }
-
-        return sum
     }
 }
 
@@ -459,11 +452,10 @@ extension Fixed {
     // The magnitude's whole part and dropped fraction; nil when the whole part needs more than one word.
     fileprivate var wholeAndFraction: (whole: UInt64, fraction: UInt64)? {
         let magnitude = _storage.magnitude
-        let high = UInt64(truncatingIfNeeded: magnitude >> 64)
-        guard high < Scale.divisor else {
+        guard magnitude.high < Scale.divisor else {
             return nil
         }
-        let (whole, fraction) = Scale.divide(high: high, low: UInt64(truncatingIfNeeded: magnitude))
+        let (whole, fraction) = Scale.divide(high: magnitude.high, low: magnitude.low)
         return (whole, fraction)
     }
 }

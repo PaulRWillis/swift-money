@@ -4,7 +4,7 @@ import Testing
 
 // A stored value and a power of ten, 10^-k, to multiply it by.
 private struct PowerOfTenProduct: Sendable, CustomTestStringConvertible {
-    let storage: Int128
+    let storage: Int128Words
     let k: Int
 
     var testDescription: String {
@@ -16,15 +16,15 @@ private let everyRule: [RoundingRule] = [
     .towardZero, .awayFromZero, .down, .up, .toNearestOrEven, .toNearestOrAwayFromZero,
 ]
 
-private let largestStoredPowerOfTenLessOne: Int128 = 99_999_999_999_999_999_999_999_999_999_999_999_999
+private let largestStoredPowerOfTenLessOne: Int128Words = 99_999_999_999_999_999_999_999_999_999_999_999_999
 
 private let powerOfTenProducts: [PowerOfTenProduct] = samples(
     zip(
-        Gen { seed in Int128.random(in: .min ... .max, using: &seed) },
+        Gen<Int128Words>.anySignedWords,
         Gen<Int64>.int(in: 1 ... 18).map(Int.init)
     ).map { PowerOfTenProduct(storage: $0, k: $1) },
     seed: PropertySeed.powerOfTenProduct,
-    edges: [Int128.max, Int128.min, largestStoredPowerOfTenLessOne, -largestStoredPowerOfTenLessOne, 1, -1]
+    edges: [Int128Words.max, Int128Words.min, largestStoredPowerOfTenLessOne, -largestStoredPowerOfTenLessOne, 1, -1]
         .flatMap { storage in [1, 9, 18].map { PowerOfTenProduct(storage: storage, k: $0) } }
 )
 
@@ -65,7 +65,7 @@ struct FixedArithmeticTests {
         #expect(largest * Fixed(1) == largest)
         #expect(mostNegative * Fixed(1) == mostNegative)
         #expect(mostNegative.multipliedIfRepresentable(by: Fixed(-1)) == nil)
-        #expect(largest.multipliedIfRepresentable(by: oneAndAHalf) == nil)   // fits 128 bits, not `Int128`
+        #expect(largest.multipliedIfRepresentable(by: oneAndAHalf) == nil)   // fits 128 unsigned bits, not signed
     }
 
     @Test("Addition and subtraction combine values")
@@ -172,14 +172,14 @@ struct FixedArithmeticTests {
     // `exponent: -18` names the least significant digit, so a `significand:` there reads as the stored
     // value — the way to construct and check the extremes through the public interface.
     @Test("Integer division ties to even, symmetrically across sign", arguments: [
-        (Int128(5), Fixed.Divisor(2), Int128(2)),          // 2.5 → 2 (even)
-        (Int128(7), Fixed.Divisor(2), Int128(4)),          // 3.5 → 4 (even)
-        (Int128(-7), Fixed.Divisor(2), Int128(-4)),
-        (Int128(-5), Fixed.Divisor(2), Int128(-2)),        // -2.5 → -2 (even)
-        (Int128.min, Fixed.Divisor(1), Int128.min),        // taken from its magnitude, never negated
-        (Int128.max, Fixed.Divisor(2), Int128.max / 2 + 1),
+        (Int128Words(5), Fixed.Divisor(2), Int128Words(2)),          // 2.5 → 2 (even)
+        (Int128Words(7), Fixed.Divisor(2), Int128Words(4)),          // 3.5 → 4 (even)
+        (Int128Words(-7), Fixed.Divisor(2), Int128Words(-4)),
+        (Int128Words(-5), Fixed.Divisor(2), Int128Words(-2)),        // -2.5 → -2 (even)
+        (Int128Words.min, Fixed.Divisor(1), Int128Words.min),        // taken from its magnitude, never negated
+        (Int128Words.max, Fixed.Divisor(2), Int128Words.max / 2 + 1),
     ])
-    func integerDivisionRoundsHalfToEven(_ testCase: (storage: Int128, divisor: Fixed.Divisor, expected: Int128)) throws {
+    func integerDivisionRoundsHalfToEven(_ testCase: (storage: Int128Words, divisor: Fixed.Divisor, expected: Int128Words)) throws {
         let value = try #require(Fixed(significand: testCase.storage, exponent: -18))
         let expected = try #require(Fixed(significand: testCase.expected, exponent: -18))
 
@@ -210,7 +210,7 @@ struct FixedArithmeticTests {
     func dailyAccrualPrecision() throws {
         let balance = Fixed(1_000_000)                    // £10,000 = 1,000,000 minor units
         let rate = try #require(Fixed(decimal: "0.05"))   // 5%
-        let days: Int128 = 1_826
+        let days: Int64 = 1_826
 
         let dailyInterest = (balance * rate).divided(by: 365)
         var accrued = Fixed.zero
@@ -218,7 +218,7 @@ struct FixedArithmeticTests {
             accrued = accrued + dailyInterest
         }
 
-        let singleShot = (balance * rate).multiplied(by: days).divided(by: 365)
+        let singleShot = (balance * rate).multiplied(by: Int128Words(days)).divided(by: 365)
         let difference = accrued - singleShot
 
         #expect(difference < Fixed(1))       // within one minor unit, either way

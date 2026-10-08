@@ -295,7 +295,7 @@ enum GDATestRunner {
 
         exponent -= fractionDigits
         guard -exponent <= maxFractionalDigits else { return .tooPrecise }
-        guard let magnitude = Int128(digits) else { return .outOfRange }
+        guard let magnitude = Int128Words(digits) else { return .outOfRange }
         let significand = negative ? -magnitude : magnitude
         guard let fixed = Fixed(significand: significand, exponent: exponent) else { return .outOfRange }
         return .value(fixed)

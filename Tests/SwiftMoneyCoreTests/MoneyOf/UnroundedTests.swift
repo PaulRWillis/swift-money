@@ -3,7 +3,7 @@ import Testing
 
 @Suite("Unrounded Tests")
 struct UnroundedTests {
-    private static let mostNegative = GBP.Unrounded(minorUnits: "-170141183460469231731.687303715884105728")   // Int128.min storage
+    private static let mostNegative = GBP.Unrounded(minorUnits: "-170141183460469231731.687303715884105728")   // Int128Words.min storage
 
     @Test("A chain settles once, where scaling settles at every step")
     func aChainSettlesOnce() throws {

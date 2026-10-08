@@ -2,10 +2,9 @@ extension Fixed {
     // Ten to the eighteenth: a `Fixed` holds its value as a whole number of these parts. The only copy
     // of the constant, and the only divisor the reciprocal below is correct for.
     enum Scale {
-        // A literal, so it folds into every use; derived from it, the divisor does too. A `static let`
-        // built from another constant is lazily initialized and pays a check on every read (measured).
-        static let value: Int128 = 1_000_000_000_000_000_000
-        static var divisor: UInt64 { UInt64(truncatingIfNeeded: value) }
+        // Computed, not `static let`: a stored struct is lazily initialized, a check on every read.
+        static var divisor: UInt64 { 1_000_000_000_000_000_000 }
+        static var value: Int128Words { Int128Words(bitPattern: UInt128Words(divisor)) }
 
         // `(high, low) ÷ 10^18`, for `high < 10^18`.
         //

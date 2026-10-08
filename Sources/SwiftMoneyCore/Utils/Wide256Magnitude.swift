@@ -1,15 +1,15 @@
 // A magnitude too large for a single 128-bit word, as produced by multiplying two 128-bit magnitudes.
 //
-// A sibling of `WideMagnitude` one word wider: two `UInt128` limbs hold the 256-bit product. Kept
-// deliberately separate rather than made generic — only two widths are ever used, and the money path's
+// A sibling of `WideMagnitude` one word wider: two `UInt128Words` limbs hold the 256-bit product. Kept
+// separate rather than made generic: only two widths are ever used, and the money path's
 // `WideMagnitude` stays untouched.
 struct Wide256Magnitude {
-    private let high: UInt128
-    private let low: UInt128
+    private let high: UInt128Words
+    private let low: UInt128Words
 
     init(
-        _ magnitude: UInt128,
-        times factor: UInt128
+        _ magnitude: UInt128Words,
+        times factor: UInt128Words
     ) {
         (high, low) = magnitude.multipliedFullWidth(by: factor)
     }
@@ -20,8 +20,8 @@ struct Wide256Magnitude {
     // `dividingFullWidth` traps rather than reporting a quotient it cannot return, and the quotient
     // fits exactly when the high word is below the divisor.
     func quotientAndRemainder(
-        dividingBy divisor: UInt128
-    ) -> (quotient: UInt128, remainder: UInt128)? {
+        dividingBy divisor: UInt128Words
+    ) -> (quotient: UInt128Words, remainder: UInt128Words)? {
         guard high < divisor else {
             return nil
         }
@@ -32,17 +32,15 @@ struct Wide256Magnitude {
     // The same for `Fixed`'s scale, 10^18: long division one 64-bit limb at a time. `high < 10^18`
     // keeps each step's top word below the divisor, which is what `Fixed.Scale.divide` requires.
     @inline(__always)
-    func quotientAndRemainderDividingByScale() -> (quotient: UInt128, remainder: UInt64)? {
-        guard high < UInt128(Fixed.Scale.divisor) else {
+    func quotientAndRemainderDividingByScale() -> (quotient: UInt128Words, remainder: UInt64)? {
+        guard high < UInt128Words(Fixed.Scale.divisor) else {
             return nil
         }
 
-        // Below the divisor, `high` is its own low limb, the running remainder of the first step.
-        let (upper, carried) = Fixed.Scale.divide(
-            high: UInt64(truncatingIfNeeded: high), low: UInt64(truncatingIfNeeded: low >> 64)
-        )
-        let (lower, remainder) = Fixed.Scale.divide(high: carried, low: UInt64(truncatingIfNeeded: low))
+        // Below the divisor, `high` is its own low word, the running remainder of the first step.
+        let (upper, carried) = Fixed.Scale.divide(high: high.low, low: low.high)
+        let (lower, remainder) = Fixed.Scale.divide(high: carried, low: low.low)
 
-        return (UInt128(upper) << 64 | UInt128(lower), remainder)
+        return (UInt128Words(high: upper, low: lower), remainder)
     }
 }

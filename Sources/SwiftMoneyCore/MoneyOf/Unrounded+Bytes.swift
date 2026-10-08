@@ -32,15 +32,17 @@ public extension MoneyOf.Unrounded {
     /// amount without consulting any table. Allocation-free.
     @inlinable
     var bytes: InlineArray<23, UInt8> {
-        let amount = UInt128(bitPattern: minorUnits.storageBits)
+        let amount = UInt128Words(bitPattern: minorUnits.storageBits)
         let currency = C.currency(for: storage)
         let code = currency.code.compactValue
         let scale = UInt8(currency.unitScale.decimalPlaces)
 
         return InlineArray<23, UInt8> { index in
             switch index {
-            case 0 ... 15:
-                UInt8(truncatingIfNeeded: amount >> (8 * (15 - index)))
+            case 0 ... 7:
+                UInt8(truncatingIfNeeded: amount.high >> (8 * (7 - index)))
+            case 8 ... 15:
+                UInt8(truncatingIfNeeded: amount.low >> (8 * (15 - index)))
             case 16 ... 21:
                 UInt8(truncatingIfNeeded: code >> (8 * (21 - index)))
             default:
@@ -56,9 +58,14 @@ public extension MoneyOf.Unrounded {
 @available(macOS 26, iOS 26, watchOS 26, tvOS 26, visionOS 26, *)
 @inlinable
 func decodedUnroundedFields(_ bytes: InlineArray<23, UInt8>) -> (minorUnits: Fixed, code: CurrencyCode, scale: UnitScale)? {
-    var amount: UInt128 = 0
-    for index in 0 ... 15 {
-        amount = amount << 8 | UInt128(bytes[index])
+    var high: UInt64 = 0
+    for index in 0 ... 7 {
+        high = high << 8 | UInt64(bytes[index])
+    }
+
+    var low: UInt64 = 0
+    for index in 8 ... 15 {
+        low = low << 8 | UInt64(bytes[index])
     }
 
     var packedCode: UInt64 = 0
@@ -71,7 +78,8 @@ func decodedUnroundedFields(_ bytes: InlineArray<23, UInt8>) -> (minorUnits: Fix
         return nil
     }
 
-    return (Fixed(storageBits: Int128(bitPattern: amount)), code, scale)
+    let amount = Int128Words(bitPattern: UInt128Words(high: high, low: low))
+    return (Fixed(storageBits: amount), code, scale)
 }
 
 @available(macOS 26, iOS 26, watchOS 26, tvOS 26, visionOS 26, *)

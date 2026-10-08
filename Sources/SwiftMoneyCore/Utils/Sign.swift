@@ -22,6 +22,7 @@ package enum Sign: Equatable {
     /// ```
     ///
     /// - Parameter value: The value whose sign to take.
+    @inlinable
     package init(of value: Int128Words) {
         self = value._storage.high >> 63 == 0 ? .positive : .negative
     }
@@ -49,27 +50,6 @@ extension Int64 {
         }
 
         guard let positive = Int64(exactly: magnitude) else {
-            return nil
-        }
-
-        self = sign == .negative ? -positive : positive
-    }
-}
-
-extension Int128 {
-    // Rebuilds a signed value from its magnitude. `nil` when the magnitude has no signed counterpart.
-    init?(
-        magnitude: UInt128,
-        sign: Sign
-    ) {
-        // The smallest `Int128` is taken from its magnitude directly rather than by negating, having no
-        // positive counterpart.
-        if sign == .negative, magnitude == Int128.min.magnitude {
-            self = .min
-            return
-        }
-
-        guard let positive = Int128(exactly: magnitude) else {
             return nil
         }
 
