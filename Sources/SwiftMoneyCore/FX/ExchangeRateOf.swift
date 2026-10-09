@@ -2,9 +2,10 @@ public extension FX {
     /// The rate at which one currency converts to another.
     ///
     /// Quoted the way a market quotes a pair: how many major units of `To` one major unit of `From`
-    /// buys. A EUR/GBP rate of `0.87` means €1 buys £0.87. An exchange rate is strictly positive, and
-    /// the currencies are part of the type, so a rate can only convert the currency it was quoted for
-    /// and the direction cannot be mixed up.
+    /// buys. A EUR/GBP rate of `0.87` means €1 buys £0.87. An exchange rate is strictly positive.
+    /// Between two ``CurrencyType`` currencies the pair is part of the type, so a rate can only
+    /// convert the currency it was quoted for and the direction cannot be mixed up. ``FX/ExchangeRate``
+    /// carries a pair known only at runtime.
     ///
     /// Converting an amount at a rate is in the `SwiftMoneyFX` module.
     ///
@@ -38,6 +39,18 @@ public extension FX {
             self.minorPerMinorRate = rate
             self.fromStorage = fromStorage
             self.toStorage = toStorage
+        }
+
+        /// The currency the rate converts from.
+        @inlinable
+        public var from: Currency {
+            From.currency(for: fromStorage)
+        }
+
+        /// The currency the rate converts to.
+        @inlinable
+        public var to: Currency {
+            To.currency(for: toStorage)
         }
 
         /// Returns the customer rate for this mid-market rate: the rate less the provider's margin.

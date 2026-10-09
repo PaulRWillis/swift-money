@@ -616,6 +616,17 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         }
     }
 
+    // The pair is a value here, so its scales are read on every call.
+    Benchmark("Runtime ExchangeRate construction", configuration: configuration) { benchmark in
+        let quotes: [Rate] = ["0.87", "0.8765262907", "1.17", "0.91", "1.2345"]
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(FX.ExchangeRate(quotes[index % quotes.count], from: .eur, to: .gbp))
+            index &+= 1
+        }
+    }
+
     // MARK: Splitting
 
     Benchmark("MoneyOf split into 1000, materialized", configuration: configuration) { benchmark in

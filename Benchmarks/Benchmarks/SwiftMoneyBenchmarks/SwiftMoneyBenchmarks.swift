@@ -2148,6 +2148,14 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    let runtimeEurGbp = FX.ExchangeRate(eurGbp)
+
+    Benchmark("Runtime ExchangeRate applying a margin", configuration: defaultConfiguration) { benchmark in
+        for _ in benchmark.scaledIterations {
+            blackHole(try runtimeEurGbp.applyingMargin(providerMargin))
+        }
+    }
+
     // Rates cycled rather than one constant, so the work can't be hoisted out of the loop. USD→JPY
     // changes scale, so its JSON quote is rescaled on the way out and in.
     let eurGbpRates = rateOperands.compactMap { FX.ExchangeRateOf<Currencies.EUR, Currencies.GBP>($0) }
@@ -2159,11 +2167,22 @@ let benchmarks: @Sendable () -> Void = {
         preconditionFailure("Every operand is a positive rate")
     }
 
+    let runtimeEurGbpRates = eurGbpRates.map { FX.ExchangeRate($0) }
+
     Benchmark("ExchangeRate inverted", configuration: defaultConfiguration) { benchmark in
         var index = 0
 
         for _ in benchmark.scaledIterations {
             blackHole(try eurGbpRates[index % eurGbpRates.count].inverted())
+            index &+= 1
+        }
+    }
+
+    Benchmark("Runtime ExchangeRate inverted", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(try runtimeEurGbpRates[index % runtimeEurGbpRates.count].inverted())
             index &+= 1
         }
     }
@@ -2200,6 +2219,15 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    Benchmark("Runtime ExchangeRate from a decimal string", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(try FX.ExchangeRate(string: eurGbpQuotes[index % eurGbpQuotes.count], from: .eur, to: .gbp))
+            index &+= 1
+        }
+    }
+
     Benchmark("FixedPoint from a decimal string", configuration: defaultConfiguration) { benchmark in
         var index = 0
 
@@ -2227,6 +2255,15 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    Benchmark("Runtime ExchangeRate description", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(runtimeEurGbpRates[index % runtimeEurGbpRates.count].description)
+            index &+= 1
+        }
+    }
+
     Benchmark("FixedPoint description", configuration: defaultConfiguration) { benchmark in
         let fixedQuotes = eurGbpQuotes.compactMap { FixedPointDecimal($0) }
         var index = 0
@@ -2244,6 +2281,35 @@ let benchmarks: @Sendable () -> Void = {
             var hasher = Hasher()
             hasher.combine(eurGbpRates[index % eurGbpRates.count])
             blackHole(hasher.finalize())
+            index &+= 1
+        }
+    }
+
+    Benchmark("Runtime ExchangeRate hashing", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            var hasher = Hasher()
+            hasher.combine(runtimeEurGbpRates[index % runtimeEurGbpRates.count])
+            blackHole(hasher.finalize())
+            index &+= 1
+        }
+    }
+
+    Benchmark("Runtime ExchangeRate from a typed rate", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(FX.ExchangeRate(eurGbpRates[index % eurGbpRates.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Runtime ExchangeRate to a typed rate", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(try FX.ExchangeRateOf<Currencies.EUR, Currencies.GBP>(runtimeEurGbpRates[index % runtimeEurGbpRates.count]))
             index &+= 1
         }
     }
