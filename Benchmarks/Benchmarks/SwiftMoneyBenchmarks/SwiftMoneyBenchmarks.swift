@@ -2178,6 +2178,64 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    let eurGbpQuotes = ["0.87", "0.8765262907", "1.17", "0.91", "1.2345"]
+    let usdJpyQuoteTexts = ["149.5", "150.25", "148", "151.125", "147.8"]
+
+    Benchmark("ExchangeRate from a decimal string", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(try FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(string: eurGbpQuotes[index % eurGbpQuotes.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("ExchangeRate from a decimal string, across scales", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(try FX.ExchangeRate<Currencies.USD, Currencies.JPY>(string: usdJpyQuoteTexts[index % usdJpyQuoteTexts.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("FixedPoint from a decimal string", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(FixedPointDecimal(eurGbpQuotes[index % eurGbpQuotes.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("ExchangeRate description", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(eurGbpRates[index % eurGbpRates.count].description)
+            index &+= 1
+        }
+    }
+
+    Benchmark("ExchangeRate description, across scales", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(usdJpyRates[index % usdJpyRates.count].description)
+            index &+= 1
+        }
+    }
+
+    Benchmark("FixedPoint description", configuration: defaultConfiguration) { benchmark in
+        let fixedQuotes = eurGbpQuotes.compactMap { FixedPointDecimal($0) }
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(fixedQuotes[index % fixedQuotes.count].description)
+            index &+= 1
+        }
+    }
+
     Benchmark("ExchangeRate hashing", configuration: defaultConfiguration) { benchmark in
         var index = 0
 
