@@ -68,6 +68,65 @@ private let wideQuotients: [WideQuotient] = [
     ),
 ]
 
+// A dividend, a one-word divisor and the quotient and remainder they give, at the edges between a
+// dividend that fits one word and one that doesn't, and between divisors below and above 2^32.
+private struct WordQuotient: Sendable, CustomTestStringConvertible {
+    let name: String
+    let dividend: UInt128Words
+    let divisor: UInt64
+    let quotient: UInt128Words
+    let remainder: UInt64
+
+    var testDescription: String {
+        name
+    }
+}
+
+private let wordQuotients: [WordQuotient] = [
+    WordQuotient(
+        name: "a one-word dividend",
+        dividend: UInt128Words(high: 0, low: 0x0000_0000_3B9A_CA07),
+        divisor: 0xFFFF_FFFF,
+        quotient: 0,
+        remainder: 0x3B9A_CA07
+    ),
+    WordQuotient(
+        name: "a dividend just past one word, by three",
+        dividend: UInt128Words(high: 1, low: 1),
+        divisor: 3,
+        quotient: UInt128Words(high: 0, low: 0x5555_5555_5555_5555),
+        remainder: 2
+    ),
+    WordQuotient(
+        name: "a dividend just past one word, by 2^32 - 1",
+        dividend: UInt128Words(high: 1, low: 0),
+        divisor: 0xFFFF_FFFF,
+        quotient: UInt128Words(high: 0, low: 0x0000_0001_0000_0001),
+        remainder: 1
+    ),
+    WordQuotient(
+        name: "the largest dividend, by 2^32 - 1",
+        dividend: .max,
+        divisor: 0xFFFF_FFFF,
+        quotient: UInt128Words(high: 0x0000_0001_0000_0001, low: 0x0000_0001_0000_0001),
+        remainder: 0
+    ),
+    WordQuotient(
+        name: "the largest dividend, by 2^32",
+        dividend: .max,
+        divisor: 0x1_0000_0000,
+        quotient: UInt128Words(high: 0x0000_0000_FFFF_FFFF, low: 0xFFFF_FFFF_FFFF_FFFF),
+        remainder: 0xFFFF_FFFF
+    ),
+    WordQuotient(
+        name: "the largest dividend, by 2^64 - 1",
+        dividend: .max,
+        divisor: 0xFFFF_FFFF_FFFF_FFFF,
+        quotient: UInt128Words(high: 1, low: 1),
+        remainder: 0
+    ),
+]
+
 @Suite("UInt128Words Tests")
 struct UInt128WordsTests {
 
@@ -192,6 +251,31 @@ struct UInt128WordsTests {
 
         #expect(result.quotient == UInt128Words(high: 0x1999_9999_9999_9999, low: 0x9999_9999_9999_9999))
         #expect(result.remainder == 5)
+    }
+
+    @Test("Dividing by a one-word divisor", arguments: wordQuotients)
+    private func dividingByOneWord(_ vector: WordQuotient) {
+        let result = vector.dividend.quotientAndRemainder(dividingBy: UInt128Words(vector.divisor))
+
+        #expect(result.quotient == vector.quotient)
+        #expect(result.remainder == UInt128Words(vector.remainder))
+    }
+
+    @Test("Dividing a 256-bit value by a one-word divisor", arguments: wordQuotients)
+    private func dividingFullWidthByOneWord(_ vector: WordQuotient) {
+        let result = UInt128Words(vector.divisor).dividingFullWidth((high: 0, low: vector.dividend))
+
+        #expect(result.quotient == vector.quotient)
+        #expect(result.remainder == UInt128Words(vector.remainder))
+    }
+
+    @Test("Dividing a 256-bit value whose upper half is just below a half-word divisor")
+    func dividingFullWidthJustBelowAHalfWordDivisor() {
+        let divisor = UInt128Words(0xFFFF_FFFF)
+        let result = divisor.dividingFullWidth((high: UInt128Words(0xFFFF_FFFE), low: .max))
+
+        #expect(result.quotient == .max)
+        #expect(result.remainder == UInt128Words(0xFFFF_FFFE))
     }
 
     @Test("Dividing by a larger divisor gives zero and the dividend back")

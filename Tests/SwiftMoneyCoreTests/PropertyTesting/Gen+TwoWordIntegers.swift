@@ -25,12 +25,14 @@ extension Gen where Value == UInt128Words {
         }
     }
 
-    /// Values at and around the edges of each 64-bit word.
+    /// Values at and around the edges of each 64-bit word, and either side of `2^32`.
     static var wordBoundaries: [UInt128Words] {
         [
             UInt128Words(high: 0, low: 0),
             UInt128Words(high: 0, low: 1),
             UInt128Words(high: 0, low: 2),
+            UInt128Words(high: 0, low: 0xFFFF_FFFF),
+            UInt128Words(high: 0, low: 0x1_0000_0000),
             UInt128Words(high: 0, low: .max - 1),
             UInt128Words(high: 0, low: .max),
             UInt128Words(high: 1, low: 0),
