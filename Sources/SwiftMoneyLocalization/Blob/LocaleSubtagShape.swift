@@ -43,11 +43,26 @@ extension LocaleSubtagShape {
         /// No bytes.
         case empty
 
-        /// ASCII letters only, no more than a script has, with how many.
-        case letters(count: Int)
+        /// One ASCII letter.
+        case oneLetter
 
-        /// ASCII digits only, no more than a numeric region has, with how many.
-        case digits(count: Int)
+        /// Two ASCII letters, a letter region's length.
+        case twoLetters
+
+        /// Three ASCII letters.
+        case threeLetters
+
+        /// Four ASCII letters, a script's length.
+        case fourLetters
+
+        /// One ASCII digit.
+        case oneDigit
+
+        /// Two ASCII digits.
+        case twoDigits
+
+        /// Three ASCII digits, a numeric region's length.
+        case threeDigits
 
         /// Bytes no script or region starts with: a byte that is neither an ASCII letter nor an ASCII
         /// digit, a mix of the two, or more of either than any shape has.
@@ -57,34 +72,44 @@ extension LocaleSubtagShape {
         ///
         /// - Parameter byte: The subtag's next byte.
         mutating func count(_ byte: UInt8) {
-            self = switch self {
-            case .empty where Self.isLetter(byte): .letters(count: 1)
-            case .empty where Self.isDigit(byte): .digits(count: 1)
-            case .letters(let count) where count < Self.scriptLength && Self.isLetter(byte):
-                .letters(count: count + 1)
-            case .digits(let count) where count < Self.numericRegionLength && Self.isDigit(byte):
-                .digits(count: count + 1)
-            case .empty, .letters, .digits, .shapeless: .shapeless
+            self = if Self.isLetter(byte) {
+                afterLetter
+            } else if Self.isDigit(byte) {
+                afterDigit
+            } else {
+                .shapeless
             }
         }
 
         /// The shape of the bytes read, or `nil` when they are neither a script's nor a region's.
         var shape: LocaleSubtagShape? {
             switch self {
-            case .letters(count: Self.scriptLength): .script
-            case .letters(count: Self.letterRegionLength), .digits(count: Self.numericRegionLength): .region
-            case .empty, .letters, .digits, .shapeless: nil
+            case .fourLetters: .script
+            case .twoLetters, .threeDigits: .region
+            case .empty, .oneLetter, .threeLetters, .oneDigit, .twoDigits, .shapeless: nil
             }
         }
 
-        /// The length of a script subtag, such as `Latn`.
-        private static let scriptLength = 4
+        /// The tally after one more ASCII letter.
+        private var afterLetter: Tally {
+            switch self {
+            case .empty: .oneLetter
+            case .oneLetter: .twoLetters
+            case .twoLetters: .threeLetters
+            case .threeLetters: .fourLetters
+            case .fourLetters, .oneDigit, .twoDigits, .threeDigits, .shapeless: .shapeless
+            }
+        }
 
-        /// The length of a letter region subtag, such as `GB`.
-        private static let letterRegionLength = 2
-
-        /// The length of a numeric region subtag, such as `419`.
-        private static let numericRegionLength = 3
+        /// The tally after one more ASCII digit.
+        private var afterDigit: Tally {
+            switch self {
+            case .empty: .oneDigit
+            case .oneDigit: .twoDigits
+            case .twoDigits: .threeDigits
+            case .oneLetter, .twoLetters, .threeLetters, .fourLetters, .threeDigits, .shapeless: .shapeless
+            }
+        }
 
         /// The bit that tells an ASCII capital letter from its small letter.
         private static let asciiCaseBit: UInt8 = 0x20
