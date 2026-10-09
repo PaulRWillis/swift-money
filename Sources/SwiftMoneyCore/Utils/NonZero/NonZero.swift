@@ -34,6 +34,8 @@ struct NonZero<Value: ZeroRepresentable & Hashable & Sendable>: Equatable, Hasha
     /// - Returns: `true` if the values are equal; otherwise, `false`.
     @inlinable
     static func == (lhs: Self, rhs: Self) -> Bool {
+        // Hand-written, with `hash(into:)`, because the synthesized ones don't specialize across
+        // modules.
         lhs.rawValue == rhs.rawValue
     }
 

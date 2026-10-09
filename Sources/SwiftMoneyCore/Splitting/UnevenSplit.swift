@@ -44,7 +44,8 @@ public struct UnevenSplit<C: CurrencyRepresentation>: Equatable, Hashable, Senda
     /// Creates the parts of an uneven split.
     ///
     /// The counts sum to the number of parts the amount was split into, at most `Int.max`. The
-    /// amounts times their counts sum to the amount that was split, so the total fits in `Int64`.
+    /// amounts times their counts sum to the amount that was split, so the total fits in
+    /// `Money.MinorUnits`.
     ///
     /// - Parameters:
     ///   - largerCount: The number of parts that receive the larger amount.
