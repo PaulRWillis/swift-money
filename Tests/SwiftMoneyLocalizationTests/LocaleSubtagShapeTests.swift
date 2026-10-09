@@ -16,7 +16,7 @@ struct LocaleSubtagShapeTests {
 
     @Test(
         "Anything else has no shape",
-        arguments: ["Ääää", "4190", "G1", "41", "GBR", "Lat1", "", "e", "valencia"]
+        arguments: ["Ääää", "4190", "G1", "1G", "41", "GBR", "Lat1", "Latin", "", "e", "valencia"]
     )
     func noShape(_ subtag: String) {
         #expect(LocaleSubtagShape(subtag.utf8) == nil)

@@ -237,13 +237,15 @@ extension LocaleFallbackChain {
             _ bytes: inout String.UTF8View.Iterator,
             from start: Int
         ) -> (range: Range<Int>, shape: LocaleSubtagShape?) {
-            var tally = LocaleSubtagShape.Tally()
+            var tally = LocaleSubtagShape.Tally.empty
+            var length = 0
 
             while let byte = bytes.next(), LocaleKey.folded(byte) != LocaleKey.separator {
                 tally.count(byte)
+                length += 1
             }
 
-            return (start ..< start + tally.length, tally.shape)
+            return (start ..< start + length, tally.shape)
         }
     }
 }

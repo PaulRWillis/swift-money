@@ -27,7 +27,7 @@ package enum LocaleSubtagShape: Sendable, Equatable {
     ///   digits.
     /// - Complexity: O(*n*), where *n* is the length of `subtag`.
     package init?(_ subtag: some Collection<UInt8>) {
-        let tally = subtag.reduce(into: Tally()) { $0.count($1) }
+        let tally = subtag.reduce(into: Tally.empty) { $0.count($1) }
 
         guard let shape = tally.shape else {
             return nil
@@ -38,34 +38,42 @@ package enum LocaleSubtagShape: Sendable, Equatable {
 }
 
 extension LocaleSubtagShape {
-    /// What a subtag's bytes are so far, read one byte at a time: how many, and whether all are
-    /// letters or all digits.
-    struct Tally {
-        /// How many bytes have been read.
-        private(set) var length = 0
+    /// What a subtag's bytes read so far could still be, one byte at a time.
+    enum Tally {
+        /// No bytes.
+        case empty
 
-        /// Whether every byte read is an ASCII letter.
-        private var allLetters = true
+        /// ASCII letters only, no more than a script has, with how many.
+        case letters(count: Int)
 
-        /// Whether every byte read is an ASCII digit.
-        private var allDigits = true
+        /// ASCII digits only, no more than a numeric region has, with how many.
+        case digits(count: Int)
+
+        /// Bytes no script or region starts with: a byte that is neither an ASCII letter nor an ASCII
+        /// digit, a mix of the two, or more of either than any shape has.
+        case shapeless
 
         /// Counts one more byte of the subtag.
         ///
         /// - Parameter byte: The subtag's next byte.
         mutating func count(_ byte: UInt8) {
-            length += 1
-            allLetters = allLetters && Self.isLetter(byte)
-            allDigits = allDigits && Self.isDigit(byte)
+            self = switch self {
+            case .empty where Self.isLetter(byte): .letters(count: 1)
+            case .empty where Self.isDigit(byte): .digits(count: 1)
+            case .letters(let count) where count < Self.scriptLength && Self.isLetter(byte):
+                .letters(count: count + 1)
+            case .digits(let count) where count < Self.numericRegionLength && Self.isDigit(byte):
+                .digits(count: count + 1)
+            case .empty, .letters, .digits, .shapeless: .shapeless
+            }
         }
 
         /// The shape of the bytes read, or `nil` when they are neither a script's nor a region's.
         var shape: LocaleSubtagShape? {
-            switch length {
-            case Self.scriptLength where allLetters: .script
-            case Self.letterRegionLength where allLetters: .region
-            case Self.numericRegionLength where allDigits: .region
-            default: nil
+            switch self {
+            case .letters(count: Self.scriptLength): .script
+            case .letters(count: Self.letterRegionLength), .digits(count: Self.numericRegionLength): .region
+            case .empty, .letters, .digits, .shapeless: nil
             }
         }
 
