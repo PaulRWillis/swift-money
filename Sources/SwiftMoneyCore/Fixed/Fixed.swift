@@ -28,7 +28,11 @@ package struct Fixed: Equatable, Hashable, Sendable, BitwiseCopyable {
     }
 
     /// The value zero.
-    @usableFromInline package static let zero = Fixed(_storage: 0)
+    @inlinable package static var zero: Fixed {
+        // Computed from words: a stored `static let` of the literal `0` is lazily initialized, a check
+        // on every read, because the literal isn't folded at compile time.
+        Fixed(_storage: Int128Words(bitPattern: UInt128Words(high: 0, low: 0)))
+    }
 }
 
 extension Fixed {

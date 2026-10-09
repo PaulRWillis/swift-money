@@ -482,9 +482,14 @@ extension UInt128Words {
     /// - Returns: `self × 10 + digit`, or `nil` if it doesn't fit 128 bits.
     package func multipliedByTenAdding(_ digit: UInt8) -> UInt128Words? {
         let (lowCarry, shiftedLow) = low.multipliedFullWidth(by: 10)
+        let (sumLow, digitCarry) = shiftedLow.addingReportingOverflow(UInt64(digit))
+        guard high != 0 else {
+            // `lowCarry` is at most 9, so with no upper word the carries fit one without wrapping.
+            return UInt128Words(high: lowCarry &+ (digitCarry ? 1 : 0), low: sumLow)
+        }
+
         let (highProduct, highOverflow) = high.multipliedReportingOverflow(by: 10)
         let (shiftedHigh, carryOverflow) = highProduct.addingReportingOverflow(lowCarry)
-        let (sumLow, digitCarry) = shiftedLow.addingReportingOverflow(UInt64(digit))
         let (sumHigh, digitOverflow) = shiftedHigh.addingReportingOverflow(digitCarry ? 1 : 0)
 
         guard !highOverflow, !carryOverflow, !digitOverflow else {
