@@ -23,17 +23,18 @@ extension FX.ExchangeRate: Codable {
 
     /// Reads a rate written as its two currency codes and its market quote.
     ///
-    /// The codes must be `From`'s and `To`'s. The quote is a positive decimal string, and digits
-    /// finer than a rate holds are rounded to the nearest, ties to even.
+    /// The codes must be `From`'s and `To`'s. The quote is a positive decimal string the rate can
+    /// hold exactly: it is never rounded.
     ///
     /// ```swift
-    /// {"from": "EUR", "to": "GBP", "rate": "0.87"}   // €1 = £0.87
-    /// {"from": "USD", "to": "GBP", "rate": "0.75"}   // refused: not a EUR→GBP rate
+    /// {"from": "EUR", "to": "GBP", "rate": "0.87"}                    // €1 = £0.87
+    /// {"from": "USD", "to": "GBP", "rate": "0.75"}                    // refused: not a EUR→GBP rate
+    /// {"from": "EUR", "to": "GBP", "rate": "0.8765262907123456789"}   // refused: too many places
     /// ```
     ///
     /// - Parameter decoder: The decoder to read from.
     /// - Throws: `DecodingError` if a field is missing, a code is not the one this type names, or
-    ///   the quote is not a positive decimal a rate can hold.
+    ///   the quote is not a positive decimal the rate can hold exactly.
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
@@ -53,16 +54,34 @@ extension FX.ExchangeRate: Codable {
             )
         }
 
-        // Moving the point rescales the quote to minor units in the same step that rounds it, where
-        // building a `Rate` first would round twice.
-        guard let stored = Fixed(significand: significand, exponent: Self.placesGained - fractionDigits),
-              let rate = Self(minorPerMinor: Rate(stored)) else {
+        // Moving the point rescales the quote to minor units without rounding it, where building a
+        // `Rate` first would round any quote finer than eighteen places before the check below.
+        let exactness = Fixed.exactness(
+            significand: significand,
+            exponent: Self.placesGained - fractionDigits,
+            rounding: .toNearestOrEven
+        )
+
+        guard let exactness else {
             throw DecodingError.dataCorruptedError(
                 forKey: .rate,
                 in: container,
                 debugDescription: """
                     A rate from \(From.currency.code) to \(To.currency.code) can't hold "\(text)": \
-                    it is too large, or so small it rounds to zero.
+                    it is too large, or has more decimal places than the rate can hold.
+                    """
+            )
+        }
+
+        // An exact positive quote is a positive rate, so the init can't fail here.
+        guard case let .exact(stored) = exactness, let rate = Self(minorPerMinor: Rate(stored)) else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .rate,
+                in: container,
+                debugDescription: """
+                    A rate from \(From.currency.code) to \(To.currency.code) holds a quote to at \
+                    most \(Fixed.fractionalDigits + Self.placesGained) decimal places, but read \
+                    "\(text)". Round the quote to that many places before sending it.
                     """
             )
         }

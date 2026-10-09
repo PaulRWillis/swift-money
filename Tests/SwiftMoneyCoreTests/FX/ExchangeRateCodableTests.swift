@@ -57,12 +57,45 @@ struct ExchangeRateCodableTests {
         #expect(try decoded(FX.ExchangeRate<Currencies.JPY, Currencies.USD>.self, from: text) == jpyUsd)
     }
 
-    @Test("A quote finer than a rate keeps is rounded to the nearest, ties to even")
-    func decodingRounds() throws {
-        let expected = try #require(EURGBP("0.000000000000000002"))
-        let text = #"{"from":"EUR","to":"GBP","rate":"0.0000000000000000015"}"#
+    @Test(
+        "A quote finer than a rate can hold is refused, not rounded",
+        arguments: ["0.0000000000000000015", "0.0000000000000000004", "0.8765262907123456789"]
+    )
+    func refusesAQuoteFinerThanARateHolds(_ quote: String) {
+        let text = #"{"from":"EUR","to":"GBP","rate":"\#(quote)"}"#
+
+        #expect(throws: DecodingError.self) {
+            try decoded(EURGBP.self, from: text)
+        }
+    }
+
+    @Test("Zeros past the places a rate holds lose nothing, so the quote reads")
+    func decodesTrailingZerosPastTheLastPlace() throws {
+        let expected = try #require(EURGBP("0.87"))
+        let text = #"{"from":"EUR","to":"GBP","rate":"0.870000000000000000000"}"#
 
         #expect(try decoded(EURGBP.self, from: text) == expected)
+    }
+
+    // A rate holds eighteen places of `To` minor units per `From` minor unit. Yen have no minor unit
+    // and dollars two, so a USD→JPY quote holds sixteen places and a JPY→USD quote twenty.
+    @Test("How many places a quote may have depends on the two currencies' scales")
+    func placesDependOnTheScales() throws {
+        let usdJpy = FX.ExchangeRate<Currencies.USD, Currencies.JPY>.self
+        let jpyUsd = FX.ExchangeRate<Currencies.JPY, Currencies.USD>.self
+
+        #expect(throws: Never.self) {
+            try decoded(usdJpy, from: #"{"from":"USD","to":"JPY","rate":"149.1234567890123456"}"#)
+        }
+        #expect(throws: DecodingError.self) {
+            try decoded(usdJpy, from: #"{"from":"USD","to":"JPY","rate":"149.12345678901234567"}"#)
+        }
+        #expect(throws: Never.self) {
+            try decoded(jpyUsd, from: #"{"from":"JPY","to":"USD","rate":"0.00668896321070234114"}"#)
+        }
+        #expect(throws: DecodingError.self) {
+            try decoded(jpyUsd, from: #"{"from":"JPY","to":"USD","rate":"0.006688963210702341145"}"#)
+        }
     }
 
     @Test(
@@ -91,12 +124,9 @@ struct ExchangeRateCodableTests {
         }
     }
 
-    @Test(
-        "A quote too large to hold, or so small it rounds to zero, is refused",
-        arguments: ["1000000000000000000000", "0.0000000000000000004"]
-    )
-    func refusesAQuoteOutOfRange(_ quote: String) {
-        let text = #"{"from":"EUR","to":"GBP","rate":"\#(quote)"}"#
+    @Test("A quote too large to hold is refused")
+    func refusesAQuoteTooLarge() {
+        let text = #"{"from":"EUR","to":"GBP","rate":"1000000000000000000000"}"#
 
         #expect(throws: DecodingError.self) {
             try decoded(EURGBP.self, from: text)
