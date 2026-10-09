@@ -1343,16 +1343,36 @@ func fullNameRecords(of locale: String) -> LocaleCurrencyEntries<LocaleTables.Fu
     }
 }
 
-// The scripts CLDR's likely subtags imply, which give each folder its short name. A likelySubtags.json
-// in any other shape stops the run.
-func likelyScripts() -> LikelyScripts {
+// CLDR's likely subtags, which give each folder its short name and each place its script. A
+// likelySubtags.json in any other shape stops the run.
+func likelySubtags() -> [String: String] {
     let root = json("\(cldrSupplemental)/likelySubtags.json")
     guard let supplemental = root["supplemental"] as? [String: Any],
           let subtags = supplemental["likelySubtags"] as? [String: String] else {
         fatalError("Could not read the likely subtags from likelySubtags.json")
     }
 
-    return LikelyScripts(likelySubtags: subtags)
+    return subtags
+}
+
+// CLDR's parent locales, child to parent. The lookup sends a script its language doesn't imply to
+// root, which holds only while CLDR's rule for those says so; any other rule stops the run.
+func parentLocales() -> [String: String] {
+    let root = json("\(cldrSupplemental)/parentLocales.json")
+    guard let supplemental = root["supplemental"] as? [String: Any],
+          let locales = supplemental["parentLocales"] as? [String: Any],
+          let parents = locales["parentLocale"] as? [String: String],
+          let rules = locales["_localeRules"] as? [String: Any],
+          let parentRules = rules["parentLocale"] as? [String: String],
+          let nonlikelyScript = parentRules["nonlikelyScript"] else {
+        fatalError("Could not read the parent locales from parentLocales.json")
+    }
+
+    guard nonlikelyScript == "root" else {
+        fatalError("parentLocales.json sends a non-likely script to \(nonlikelyScript), not root")
+    }
+
+    return parents
 }
 
 // How long a locale's integer part must be before it groups at all. CLDR publishes it as text and
@@ -1461,19 +1481,28 @@ checkEveryLanguageAgainstItsSamples(ruleText)
 let candidates = publishedLocales()
 let pluralRules = pluralRuleSets(among: candidates, in: ruleText)
 
-var built: [(key: String, tables: LocaleTables)] = []
+var builtLocales: [BuiltLocale<LocaleTables>] = []
 var skipped: [SkippedLocale] = []
 
-let scripts = likelyScripts()
+let inheritance: LocaleInheritance
+do {
+    inheritance = try LocaleInheritance(
+        folders: candidates,
+        likelySubtags: likelySubtags(),
+        parentLocales: parentLocales()
+    )
+} catch {
+    fatalError("CLDR's parent locales don't make a lookup that ends: \(error)")
+}
 
-for group in scripts.groups(of: candidates) {
+for group in inheritance.groups {
     let resolution = group.resolve { (folder: String) throws(LocaleSkip) in
         try tables(for: folder, unusableLanguages: pluralRules.unusable)
     }
 
     switch resolution {
     case .built(let tables):
-        built += group.names.map { (key: $0, tables: tables) }
+        builtLocales.append(BuiltLocale(group: group, value: tables))
 
     case .skipped(let skips):
         skipped += skips.map { SkippedLocale(locale: $0.folder, skip: $0.error) }
@@ -1486,6 +1515,16 @@ for group in scripts.groups(of: candidates) {
     case .conflicting(let first, let second):
         fatalError("\(first) and \(second) are one locale to CLDR but build different tables")
     }
+}
+
+// Every name of a built group, then the places CLDR names with no folder of their own, filed under
+// the locale CLDR's lookup reaches wherever the runtime's lookup would miss it.
+let resolvedNames = inheritance.resolvedNames(for: builtLocales)
+let built = builtLocales.flatMap { locale in locale.group.names.map { (key: $0, tables: locale.value) } }
+    + resolvedNames.map { (key: $0.name, tables: $0.locale.value) }
+
+for place in inheritance.placesReachingUnbuiltLocales(for: builtLocales) {
+    print("Not filed: \(place) reaches \(inheritance.group(reachedFrom: place).shortName), which was skipped")
 }
 
 // In the order the runtime's binary search assumes.

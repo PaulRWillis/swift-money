@@ -60,8 +60,8 @@ package enum FormatMatrix {
         }
     }
 
-    /// The locales the CLDR data covers, read from the blob so the list grows with the data rather than
-    /// being maintained by hand. The identifiers are the ones the data ships (`en`, `en-GB`, …).
+    /// Every identifier the CLDR data covers directly, read from the blob, including regions CLDR has
+    /// no folder for, such as `zh-TW`.
     package static let coveredLocaleIDs = MoneyLocalization.coveredLocaleIdentifiers
 
     /// Representative locale-with-numbering-system identifiers, exercising each resolution shape the engine

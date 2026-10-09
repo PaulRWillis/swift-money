@@ -21,7 +21,15 @@ package struct LocaleTable: Sendable {
     }
 
     /// Every covered locale's identifier, in the blob's sorted order. The identifiers are the ones the
-    /// data ships (`en`, `en-GB`, …), not region variants that inherit from them.
+    /// data ships (`en`, `en-GB`, …), not region variants that inherit from them. These include
+    /// regions CLDR has no folder for, such as `zh-TW`.
+    ///
+    /// ```swift
+    /// table.identifiers().contains("zh-TW")  // true
+    /// ```
+    ///
+    /// - Returns: The identifiers, in the order the lookup searches them.
+    /// - Complexity: O(*n*), where *n* is the number of locales.
     package func identifiers() -> [String] {
         (0 ..< localeCount).map {
             reader.string(reader.stringRef(at: entriesOffset + $0 * Entry.stride + Entry.key))
