@@ -12,8 +12,14 @@ public extension FX {
     /// A provider's buy and sell rates for a pair are two rates, one each way. They are separate
     /// quotes, not reciprocals, so build each from its own quote rather than with ``inverted()``.
     ///
+    /// Name the typed pairs you use as a market writes them, base currency first, so `EURGBP 0.87`
+    /// reads as €1 = £0.87:
+    ///
     /// ```swift
-    /// let eurGbp = Rate(string: "0.87").flatMap(FX.ExchangeRateOf<Currencies.EUR, Currencies.GBP>.init)
+    /// extension FX {
+    ///     typealias EURGBP = ExchangeRateOf<Currencies.EUR, Currencies.GBP>
+    /// }
+    /// let eurGbp = FX.EURGBP("0.87")   // €1 = £0.87
     /// ```
     struct ExchangeRateOf<From: CurrencyRepresentation, To: CurrencyRepresentation>: Sendable, Hashable
         where From.Mismatch == To.Mismatch

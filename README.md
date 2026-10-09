@@ -75,7 +75,14 @@ re-export, so converting always takes its own dependency and `import SwiftMoneyF
 .product(name: "SwiftMoneyFX", package: "swift-money"),
 ```
 
-Exchange rates themselves are in the core. `SwiftMoneyFX` builds for Embedded Swift too.
+Exchange rates themselves are in the core. A rate whose pair is only known at runtime, such as one
+from a provider's feed, carries its two currencies:
+
+```swift
+let rate = try FX.ExchangeRate(string: "0.87", from: .eur, to: .gbp)   // €1 = £0.87
+```
+
+`SwiftMoneyFX` builds for Embedded Swift too.
 
 **Requires Swift 6.2.**
 **Platforms:** macOS 15+, iOS 18+, watchOS 11+, tvOS 18+, visionOS 2+. Linux builds in CI.
