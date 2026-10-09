@@ -9,7 +9,15 @@ struct LocaleTableTests {
 
     // Keys in the order the generator sorts them into, ASCII letters compared as small letters. "en"
     // sits next to "en-GB" so a lookup for either has to stop on the right one.
-    static let keys = ["de", "en", "en-GB", "ja", "sr-Latn", "zh"]
+    static let keys = ["de", "en", "en-GB", "ha", "ha-Latn", "ha-SD", "ja", "sr-Latn", "zh", "zh-Hant", "zh-SG"]
+
+    /// Returns the index of a key in the synthetic table.
+    ///
+    /// - Parameter key: A key the table holds, spelled as stored.
+    /// - Returns: The key's index, or `nil` when the table doesn't hold it.
+    static func index(ofKey key: String) -> LocaleIndex? {
+        keys.firstIndex(of: key).map(LocaleIndex.init(position:))
+    }
 
     static func makeBlob() -> (bytes: [UInt8], entriesOffset: Int) {
         var builder = BlobTestBuilder()
@@ -61,11 +69,24 @@ struct LocaleTableTests {
 
     @Test(
         "Letter case doesn't matter",
-        arguments: [("EN_gb", 2), ("en-gb", 2), ("SR-LATN", 4), ("ZH", 5)] as [(LocaleIdentifier, Int)]
+        arguments: [("EN_gb", "en-GB"), ("en-gb", "en-GB"), ("SR-LATN", "sr-Latn"), ("ZH", "zh")] as [(LocaleIdentifier, String)]
     )
-    func letterCase(_ identifier: LocaleIdentifier, _ position: Int) {
+    func letterCase(_ identifier: LocaleIdentifier, _ key: String) {
         Self.withTable { table in
-            #expect(table.index(of: identifier) == LocaleIndex(position: position))
+            #expect(table.index(of: identifier) == Self.index(ofKey: key))
+        }
+    }
+
+    @Test(
+        "A script or region the tables don't cover falls back through the language and script, then the language and region",
+        arguments: [
+            ("sr-Latn_RS", "sr-Latn"), ("SR-latn-rs", "sr-Latn"), ("zh-Hant-SG", "zh-Hant"), ("en-Latn-GB", "en-GB"),
+            ("en-GB-oxendict", "en-GB"), ("ha-Latn-SD", "ha-Latn"),
+        ] as [(LocaleIdentifier, String)]
+    )
+    func scriptThenRegionFallback(_ identifier: LocaleIdentifier, _ key: String) {
+        Self.withTable { table in
+            #expect(table.index(of: identifier) == Self.index(ofKey: key))
         }
     }
 

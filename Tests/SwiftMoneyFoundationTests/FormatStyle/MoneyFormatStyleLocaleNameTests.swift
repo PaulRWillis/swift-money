@@ -50,6 +50,13 @@ struct MoneyFormatStyleLocaleNameTests {
         }
     }
 
+    @Test("A Locale named Latin Serbian in Serbia writes Latin")
+    func latinSerbianLocale() {
+        let style = USD.FormatStyle().locale(Locale(identifier: "sr-Latn_RS")).presentation(.fullName)
+
+        #expect(style.format(USD(minorUnits: 1_234_56)).contains("dolara"))
+    }
+
     @Test("A Locale built from Serbian, Cyrillic and Romania writes Cyrillic")
     func cyrillicRomanianSerbianComponents() {
         let components = Locale.Components(languageCode: "sr", script: "Cyrl", languageRegion: "RO")

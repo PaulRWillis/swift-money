@@ -36,17 +36,24 @@ package struct LocaleTable: Sendable {
         }
     }
 
-    /// The index of the locale `identifier` names, or of the language it belongs to when its region is
-    /// not covered on its own, as CLDR inheritance resolves it (`de_DE` to `de`). ASCII letter case is
-    /// ignored.
+    /// Returns the index of the locale an identifier names, or of the nearest locale the data covers.
     ///
-    /// - Returns: `nil` when neither the identifier nor its language is covered.
+    /// Tries the identifier, then its language and script, then its language and region, then its
+    /// language. Either `-` or `_` separates subtags, and ASCII letter case is ignored.
+    ///
+    /// ```swift
+    /// table.index(of: "zh_TW")       // the index of zh-TW
+    /// table.index(of: "sr-Latn-RS")  // the index of sr-Latn
+    /// table.index(of: "EN_gb")       // the index of en-GB
+    /// table.index(of: "zz")          // nil
+    /// ```
+    ///
+    /// - Parameter identifier: The locale identifier to look up.
+    /// - Returns: The index of the first of those the data covers, or `nil` when none is.
+    /// - Complexity: O(*m* log *n*), where *m* is the length of `identifier` and *n* is the number of
+    ///   locales.
     package func index(of identifier: LocaleIdentifier) -> LocaleIndex? {
-        var keys = LocaleFallbackChain(identifier).makeIterator()
-
-        // The chain yields the identifier first and, when anything follows it, the language last.
-        return keys.next().flatMap(index(of:))
-            ?? IteratorSequence(keys).reduce(nil) { _, key in Optional(key) }.flatMap(index(of:))
+        LocaleFallbackChain(identifier).lazy.compactMap(index(of:)).first
     }
 
     // Binary search over the keys, in the byte order the generator sorted them into. Forced inline:

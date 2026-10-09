@@ -12,6 +12,9 @@ public enum MoneyLocalization {
 
     /// The currency format for an amount's currency in a locale, or `nil` if the locale is not covered.
     ///
+    /// An identifier the data doesn't cover falls back as CLDR resolves it, through its language and
+    /// script, then language and region, then language, so `zh-TW` is Traditional Chinese.
+    ///
     /// ```swift
     /// let format = MoneyLocalization.moneyFormat(for: .gbp, locale: "en-GB")   // £ before, ","/"."
     /// format.map { GBP(minorUnits: 4_99).formatted(with: $0) }                 // "£4.99"
@@ -20,7 +23,7 @@ public enum MoneyLocalization {
     /// - Parameters:
     ///   - currency: The currency to format. Its code selects the symbol; its scale sets the digits.
     ///   - locale: The locale identifier, with `-` or `_` between subtags, in any letter case, such as
-    ///     `"en-GB"` or `"de_DE"`. A language-region identifier falls back to its language.
+    ///     `"en-GB"` or `"de_DE"`.
     ///   - presentation: Whether to show the symbol, the ISO code, or the narrow symbol.
     ///   - numberingSystem: The digits and separators to render in. ``NumberingSystemSelection/automatic``
     ///     (the default) uses the locale's own default system, so the output is unchanged.

@@ -204,6 +204,25 @@ struct LocaleNameTests {
         #expect(try Self.fullName(1_234_56, "TWD", in: "zh_TW").contains("新台幣"))
     }
 
+    @Test("Traditional Chinese in Taiwan, spelled with its script, writes the New Taiwan dollar as $")
+    func traditionalTaiwaneseChineseDollar() throws {
+        #expect(try Self.formatted(1_234_56, "TWD", in: "zh-hant-tw") == "$1,234.56")
+    }
+
+    // These keys hold the same records as the language, so only the index shows which one is reached.
+    @Test(
+        "A place spelled with its language's own script reaches the language-and-script key",
+        arguments: [
+            ("sr-Cyrl-RO", "sr-Cyrl"), ("sr_Cyrl_RO", "sr-Cyrl"), ("kk-Cyrl-CN", "kk-Cyrl"), ("mn-Cyrl-CN", "mn-Cyrl"),
+        ] as [(LocaleIdentifier, LocaleIdentifier)]
+    )
+    func ownScriptPlaceReachesItsScriptKey(_ name: LocaleIdentifier, _ key: LocaleIdentifier) {
+        let locales = MoneyLocalization.cldr.locales
+
+        #expect(locales.identifiers().contains(key.value))
+        #expect(locales.index(of: name) == locales.index(of: key))
+    }
+
     // With no numbering system given, each locale writes CLDR's default digits, so `az-IR` writes
     // Extended Arabic-Indic digits.
     @Test(
