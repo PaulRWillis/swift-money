@@ -49,8 +49,13 @@ struct MoneyFormatStyleNumberingSystemTests {
         // Foundation resolves `bn` to latn even though CLDR bakes beng, so honoring the locale renders
         // Latin digits — matching the rest of Foundation and fixing the previous mixed-numerals divergence.
         let bn = Self.formatted("bn")
-        #expect(bn.contains("4"))     // Latin digits, as Foundation asks
-        #expect(!bn.contains("৪"))    // not the baked Bengali digits
+
+        withKnownIssue("Foundation before iOS 18 resolves bn to Bengali digits") {
+            #expect(bn.contains("4"))     // Latin digits, as Foundation asks
+            #expect(!bn.contains("৪"))    // not the baked Bengali digits
+        } when: {
+            systemFoundationPredatesExpectedBehavior()
+        }
     }
 
     @Test("The attributed output matches the plain output for a numbering system")

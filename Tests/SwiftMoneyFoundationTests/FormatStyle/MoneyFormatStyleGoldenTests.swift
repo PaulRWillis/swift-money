@@ -12,14 +12,22 @@ import Testing
 @Suite("MoneyFormatStyle golden")
 struct MoneyFormatStyleGoldenTests {
 
+    /// The locales Foundation gives native digits before iOS 18, which the goldens don't record.
+    private static let localesWithNativeDigitsBeforeiOS18: Set<String> = ["bn", "bn-IN", "mr", "ur-IN"]
+
     @Test("Engine output matches the committed golden, per locale", arguments: FormatMatrix.goldenLocaleIDs)
     func matchesGolden(_ localeID: String) {
         let digest = FormatMatrix.goldenDigest(forLocale: localeID)
 
-        #expect(
-            digest == goldenDigests[localeID],
-            "\(localeID): golden mismatch (regenerate with `swift run RecordGoldenDigests`). got 0x\(String(digest, radix: 16))"
-        )
+        withKnownIssue("Foundation before iOS 18 gives this locale its native digits") {
+            #expect(
+                digest == goldenDigests[localeID],
+                "\(localeID): golden mismatch (regenerate with `swift run RecordGoldenDigests`). got 0x\(String(digest, radix: 16))"
+            )
+        } when: {
+            systemFoundationPredatesExpectedBehavior()
+                && Self.localesWithNativeDigitsBeforeiOS18.contains(localeID)
+        }
     }
 
     // A cell the data cannot render falls back to ICU, and a digest of ICU's text would not be
