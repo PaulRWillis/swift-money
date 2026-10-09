@@ -63,7 +63,7 @@ public extension FX {
         /// - Returns: The mid rate less `margin`.
         /// - Throws: ``FX/ExchangeError/roundsToZero`` if the customer rate is too close to zero to
         ///   represent.
-        public func applyingMargin(_ margin: Margin) throws(ExchangeError) -> Self {
+        public func applyingMargin(_ margin: Margin) throws(ExchangeError<From.Mismatch>) -> Self {
             // margin is in [0, 1), so the kept fraction is in (0, 1] and the product is no larger than
             // the rate: it can't overflow, only round to zero.
             guard let customer = minorPerMinorRate.multiplied(by: margin.rate.subtracted(from: .par)),
@@ -91,7 +91,7 @@ public extension FX {
         ///   ``FX/ExchangeError/roundsToZero`` if it is too close to zero to represent.
         public func crossed<Onward>(
             with other: ExchangeRateOf<To, Onward>
-        ) throws(ExchangeError) -> ExchangeRateOf<From, Onward> {
+        ) throws(ExchangeError<From.Mismatch>) -> ExchangeRateOf<From, Onward> {
             // Both are minor-per-minor, so the shared `To` minor unit cancels and the product is
             // already `Onward` minor units per one `From` minor unit, with no scale adjustment needed.
             guard let composed = minorPerMinorRate.multiplied(by: other.minorPerMinorRate) else {
@@ -118,7 +118,7 @@ public extension FX {
         /// - Returns: The inverse of this rate.
         /// - Throws: ``FX/ExchangeError/roundsToZero`` if the inverse is too close to zero to
         ///   represent.
-        public func inverted() throws(ExchangeError) -> ExchangeRateOf<To, From> {
+        public func inverted() throws(ExchangeError<From.Mismatch>) -> ExchangeRateOf<To, From> {
             // The inverse of `To` minor units per `From` minor unit is `From` per `To`, so it needs no
             // rescaling. A positive rate is at least 10⁻¹⁸, so the inverse is at most 10¹⁸ and the
             // divide can't overflow, only round to zero.

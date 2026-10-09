@@ -88,8 +88,26 @@ struct ExchangeRateTests {
         let mid = try #require(FX.ExchangeRateOf<Currencies.EUR, Currencies.GBP>(smallestRate))
         let margin = try #require(FX.Margin(.percent(60)))
 
-        #expect(throws: FX.ExchangeError.roundsToZero) {
+        #expect(throws: FX.ExchangeError<Never>.roundsToZero) {
             try mid.applyingMargin(margin)
+        }
+    }
+
+    @Test("A typed rate's error is switched over with no case for a currency mismatch")
+    func typedErrorNeedsNoMismatchCase() throws {
+        let smallest = try #require(FX.ExchangeRateOf<Currencies.EUR, Currencies.GBP>("0.000000000000000001"))
+        let margin = try #require(FX.Margin(.percent(60)))
+
+        do throws(FX.ExchangeError<Never>) {
+            _ = try smallest.applyingMargin(margin)
+            Issue.record("Expected the customer rate to round to zero")
+        } catch {
+            switch error {
+            case .overflow:
+                Issue.record("Expected roundsToZero, not overflow")
+            case .roundsToZero:
+                break
+            }
         }
     }
 
@@ -114,7 +132,7 @@ struct ExchangeRateTests {
         let eurUsd = try #require(FX.ExchangeRateOf<Currencies.EUR, Currencies.USD>(largeRate))
         let usdGbp = try #require(FX.ExchangeRateOf<Currencies.USD, Currencies.GBP>(largeRate))
 
-        #expect(throws: FX.ExchangeError.overflow) {
+        #expect(throws: FX.ExchangeError<Never>.overflow) {
             try eurUsd.crossed(with: usdGbp)
         }
     }
@@ -125,7 +143,7 @@ struct ExchangeRateTests {
         let eurUsd = try #require(FX.ExchangeRateOf<Currencies.EUR, Currencies.USD>(smallRate))
         let usdGbp = try #require(FX.ExchangeRateOf<Currencies.USD, Currencies.GBP>(smallRate))
 
-        #expect(throws: FX.ExchangeError.roundsToZero) {
+        #expect(throws: FX.ExchangeError<Never>.roundsToZero) {
             try eurUsd.crossed(with: usdGbp)
         }
     }
@@ -178,7 +196,7 @@ struct ExchangeRateTests {
     func invertingToZeroThrows() throws {
         let huge = try #require(FX.ExchangeRateOf<Currencies.JPY, Currencies.USD>("100000000000000000"))
 
-        #expect(throws: FX.ExchangeError.roundsToZero) {
+        #expect(throws: FX.ExchangeError<Never>.roundsToZero) {
             try huge.inverted()
         }
     }

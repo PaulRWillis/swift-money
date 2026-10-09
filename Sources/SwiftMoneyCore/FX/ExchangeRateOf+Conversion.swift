@@ -12,7 +12,7 @@ extension FX.ExchangeRateOf {
     /// - Throws: ``FX/ExchangeError/overflow`` if the converted amount is too large to represent.
     @inlinable package func applied(
         to amount: MoneyOf<From>
-    ) throws(FX.ExchangeError) -> MoneyOf<To>.Unrounded {
+    ) throws(FX.ExchangeError<Never>) -> MoneyOf<To>.Unrounded {
         // An `Int64` amount at a realistic rate fits one `Int128` multiply; an extreme rate falls
         // back to the 256-bit path.
         if let converted = Fixed.scalingIfRepresentable(amount.minorUnits, by: minorPerMinorRate.value) {
@@ -36,7 +36,7 @@ extension FX.ExchangeRateOf {
     /// - Throws: ``FX/ExchangeError/overflow`` if the converted amount is too large to represent.
     @inlinable package func applied(
         to amount: MoneyOf<From>.Unrounded
-    ) throws(FX.ExchangeError) -> MoneyOf<To>.Unrounded {
+    ) throws(FX.ExchangeError<Never>) -> MoneyOf<To>.Unrounded {
         guard let converted = amount.minorUnits.multipliedIfRepresentable(by: minorPerMinorRate.value) else {
             throw .overflow
         }

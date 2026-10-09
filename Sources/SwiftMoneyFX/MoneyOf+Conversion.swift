@@ -17,7 +17,7 @@ public extension MoneyOf where C: CurrencyType {
     /// - Throws: `FX.ExchangeError.overflow` if the converted amount is too large to represent.
     @inlinable func converted<To>(
         using rate: FX.ExchangeRateOf<C, To>
-    ) throws(FX.ExchangeError) -> MoneyOf<To>.Unrounded {
+    ) throws(FX.ExchangeError<Never>) -> MoneyOf<To>.Unrounded {
         try rate.applied(to: self)
     }
 }
