@@ -364,11 +364,7 @@ public extension MoneyOf.Unrounded where C: CurrencyType {
     @inlinable func converted<To>(
         using rate: FX.ExchangeRate<C, To>
     ) throws(FX.ExchangeError) -> MoneyOf<To>.Unrounded {
-        guard let converted = minorUnits.multipliedIfRepresentable(by: rate.minorPerMinorRate.value) else {
-            throw .overflow
-        }
-
-        return MoneyOf<To>.Unrounded(converted, storage: .implied)
+        try rate.applied(to: self)
     }
 }
 
@@ -390,12 +386,6 @@ public extension MoneyOf where C: CurrencyType {
     @inlinable func converted<To>(
         using rate: FX.ExchangeRate<C, To>
     ) throws(FX.ExchangeError) -> MoneyOf<To>.Unrounded {
-        // The converted value is `minorUnits * rate`, and `minorUnits` is an `Int64`, so for a realistic
-        // rate it is reached with one `Int128` multiply rather than widening this amount and taking the
-        // 256-bit path; an extreme rate falls back to it. Mirrors `applying(_:)`.
-        if let converted = Fixed.scalingIfRepresentable(minorUnits, by: rate.minorPerMinorRate.value) {
-            return MoneyOf<To>.Unrounded(converted, storage: .implied)
-        }
-        return try unrounded.converted(using: rate)
+        try rate.applied(to: self)
     }
 }
