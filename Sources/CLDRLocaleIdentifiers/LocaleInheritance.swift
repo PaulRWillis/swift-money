@@ -115,6 +115,7 @@ package struct LocaleInheritance: Sendable {
     /// - Parameter name: The name the lookup has reached.
     /// - Returns: The group holding the name, its short name, or its parent's root; otherwise the next
     ///   name to look up.
+    /// - Complexity: O(*m*), where *m* is the length of the name.
     private func hop(from name: String) -> Hop {
         let shortName = scripts.shortened(name)
 
@@ -176,8 +177,8 @@ package struct LocaleInheritance: Sendable {
 
     /// Follows the lookup from every parent locale's key, and throws on the first that loops.
     ///
-    /// Any other lookup ends: truncation removes a subtag each step, and a lookup that meets a parent
-    /// joins a path checked here.
+    /// Any other lookup ends: truncation shortens the name within two steps, and a lookup that meets a
+    /// parent joins a path checked here.
     ///
     /// - Throws: ``InheritanceError/cycle(through:)`` with the first name a lookup passes twice.
     /// - Complexity: O(*p* × *d*) steps, where *p* is the number of parent locales and *d* the longest
@@ -203,6 +204,7 @@ package struct LocaleInheritance: Sendable {
     ///   - likelySubtags: CLDR's `likelySubtags` map.
     ///   - parentLocales: CLDR's `parentLocales` map.
     /// - Returns: Every key and value, and their `L-S` and `L-R` parts.
+    /// - Complexity: O(*t*), where *t* is the total length of every key and value in both maps.
     private static func names(
         mentionedIn likelySubtags: [String: String],
         and parentLocales: [String: String]

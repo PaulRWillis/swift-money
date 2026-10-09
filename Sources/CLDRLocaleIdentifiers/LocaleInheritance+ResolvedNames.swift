@@ -59,6 +59,7 @@ extension LocaleInheritance {
     ///   - keys: The names filed so far.
     ///   - built: Every built locale, by its group.
     /// - Returns: `keys` with the places added.
+    /// - Complexity: O(*n* log *n*), where *n* is the number of names CLDR mentions.
     private func filingPlaces<Value>(_ keys: Keys<Value>, built: [LocaleGroup: BuiltLocale<Value>]) -> Keys<Value> {
         filing(places(spokenIn: Array(built.values)), into: keys, built: built)
     }
@@ -68,6 +69,7 @@ extension LocaleInheritance {
     ///
     /// - Parameter keys: The names filed so far.
     /// - Returns: `keys` with the aliases added.
+    /// - Complexity: O(*k*), where *k* is the number of names in `keys`.
     private func filingOwnScriptAliases<Value>(_ keys: Keys<Value>) -> Keys<Value> {
         keys.values.reduce(into: keys) { keys, entry in
             let subtags = LocaleSubtags(entry.name)
@@ -97,6 +99,7 @@ extension LocaleInheritance {
     ///   - keys: The names filed so far.
     ///   - built: Every built locale, by its group.
     /// - Returns: `keys` with the spellings added.
+    /// - Complexity: O(*k* log *k*), where *k* is the number of names in `keys`.
     private func filingPlacesWithScript<Value>(
         _ keys: Keys<Value>,
         built: [LocaleGroup: BuiltLocale<Value>]
@@ -130,6 +133,7 @@ extension LocaleInheritance {
     ///   - keys: The names filed so far.
     ///   - built: Every built locale, by its group.
     /// - Returns: `keys` with the names added.
+    /// - Complexity: O(*c*), where *c* is the number of names in `names`.
     private func filing<Value>(
         _ names: [String],
         into keys: Keys<Value>,
@@ -151,6 +155,7 @@ extension LocaleInheritance {
     ///
     /// - Parameter built: Every group the generator built, with its value.
     /// - Returns: The places, in the order the runtime searches names.
+    /// - Complexity: O(*n* log *n*), where *n* is the number of names CLDR mentions.
     private func places<Value>(spokenIn built: [BuiltLocale<Value>]) -> [String] {
         let languages = Set(built.flatMap { $0.group.names.map { LocaleSubtags($0).language } })
 
@@ -168,6 +173,7 @@ extension LocaleInheritance {
     ///   - name: The name to look up.
     ///   - keys: The names filed so far.
     /// - Returns: The group of the first key the chain finds, or `nil` when it finds none.
+    /// - Complexity: O(*m*), where *m* is the length of the name.
     private static func locale<Value>(reachedBy name: String, in keys: Keys<Value>) -> LocaleGroup? {
         var chain = LocaleFallbackChain(LocaleIdentifier(name)).makeIterator()
 
