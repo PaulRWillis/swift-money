@@ -49,7 +49,10 @@ struct LocaleSubtagsTests {
 
         let disagreeing = names.filter { name in
             let expected = Self.expectedChain(of: name).map(Self.bytes(of:))
-            let underscored = String(name.map { $0 == "-" ? "_" : $0 })
+            let underscored = String(
+                decoding: name.utf8.map { $0 == UInt8(ascii: "-") ? UInt8(ascii: "_") : $0 },
+                as: UTF8.self
+            )
 
             return [name, underscored].contains { Self.chain(of: $0) != expected }
         }
