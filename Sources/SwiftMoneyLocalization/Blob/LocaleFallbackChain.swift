@@ -1,7 +1,7 @@
 /// The keys a locale identifier is looked up by, in the order CLDR falls back through them.
 ///
 /// The identifier comes first, then its language and script, then its language and region, then its
-/// language. Each of the last three comes only when the identifier has more after that part, so no
+/// language. Each of the last three comes only when the identifier has more than that part, so no
 /// key repeats. A script counts only as the second subtag, and a region only as the second, or third
 /// after a script; nothing later is classified, so `de-u-nu-latn` has no region `nu`.
 ///

@@ -20,9 +20,10 @@ package struct LocaleTable: Sendable {
         self.localeCount = localeCount
     }
 
-    /// Every covered locale's identifier, in the blob's sorted order. The identifiers are the ones the
-    /// data ships (`en`, `en-GB`, …), not region variants that inherit from them. These include
-    /// regions CLDR has no folder for, such as `zh-TW`.
+    /// Returns every covered locale's identifier, in the blob's sorted order.
+    ///
+    /// These are the identifiers the data ships (`en`, `en-GB`, …), including regions CLDR has no
+    /// folder for, such as `zh-TW`.
     ///
     /// ```swift
     /// table.identifiers().contains("zh-TW")  // true
@@ -87,8 +88,14 @@ package struct LocaleTable: Sendable {
         return nil
     }
 
-    // Where the stored key at `entry` sorts against the key being looked up. Compared byte by byte out
-    // of the pool, so neither side is copied into a string to compare it.
+    /// Returns where the stored key at an entry sorts against the key being looked up, comparing their
+    /// bytes in place.
+    ///
+    /// - Parameters:
+    ///   - entry: The position of the stored key.
+    ///   - key: The key being looked up.
+    /// - Returns: Whether the stored key sorts before `key`, equals it, or sorts after it.
+    /// - Complexity: O(*k*), where *k* is the length of the stored key.
     @inline(__always)
     private func order(ofKeyAt entry: Int, against key: LocaleKey) -> Order {
         let stored = reader.stringRef(at: entriesOffset + entry * Entry.stride + Entry.key)
@@ -120,10 +127,15 @@ package struct LocaleTable: Sendable {
         return position == Int(stored.length) ? .equal : .after
     }
 
-    // Where a stored key sorts against the key being looked up.
+    /// Where a stored key sorts against the key being looked up.
     private enum Order {
+        /// The stored key sorts before the one looked up.
         case before
+
+        /// The keys are equal.
         case equal
+
+        /// The stored key sorts after the one looked up.
         case after
     }
 }

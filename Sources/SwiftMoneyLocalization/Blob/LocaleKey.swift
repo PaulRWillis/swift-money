@@ -1,8 +1,5 @@
 /// The bytes a locale identifier, or part of one, is looked up by.
 ///
-/// A view over the identifier rather than a copy of it, so building a key and reading its bytes
-/// allocates nothing.
-///
 /// ```swift
 /// var bytes = LocaleKey("EN_gb").bytes.makeIterator()
 /// bytes.next()  // UInt8(ascii: "e")
@@ -42,6 +39,7 @@ package struct LocaleKey: Sendable {
     ///   - utf8: The identifier's UTF-8.
     ///   - language: The length of the language subtag, which starts the identifier.
     ///   - region: The byte offsets of the region subtag.
+    /// - Precondition: `region.lowerBound` must not be less than `language`.
     init(_ utf8: String.UTF8View, language: Int, region: Range<Int>) {
         self.utf8 = utf8
         span = .languageAndRegion(language: language, region: region)
@@ -154,8 +152,8 @@ extension LocaleKey {
             nextUnfolded().map(LocaleKey.folded)
         }
 
-        /// Returns the key's next byte as the identifier spells it, with the separator before a region
-        /// that skips a script.
+        /// Returns the key's next byte as the identifier spells it, with `-` before the region of a
+        /// language-and-region key.
         ///
         /// - Returns: The next byte, not folded, or `nil` after the last.
         // Forced inline: left to the optimizer, a binary search calls out for every byte it compares.
