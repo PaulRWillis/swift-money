@@ -36,8 +36,8 @@ public extension MoneyOf where C == AnyCurrency {
 // The fraction `part / whole`, or `nil` when `whole` is zero. A rate is a decimal, so this is the
 // division `applying(_:)` inverts rather than an exact ratio.
 func proportion(
-    _ part: Int64,
-    of whole: Int64
+    _ part: Money.MinorUnits,
+    of whole: Money.MinorUnits
 ) -> Rate? {
     // Dividing two `Fixed` values widens to 256 bits; one 128-bit divide rounds the same.
     NonZero(whole).map { whole in

@@ -17,8 +17,8 @@ extension NonZero where Value == Money.MinorUnits {
     /// Returns the quotient and remainder of this value divided by the given
     /// number of parts.
     ///
-    /// The remainder comes back as a `Remainder` rather than an `Int64`, so a
-    /// caller has to decide what to do when it is non-zero instead of being
+    /// The remainder comes back as a `Remainder` rather than as minor units, so
+    /// a caller has to decide what to do when it is non-zero instead of being
     /// able to ignore it.
     ///
     ///     // an amount of 1,000,000, divided into 933 parts
@@ -31,7 +31,7 @@ extension NonZero where Value == Money.MinorUnits {
     ///   `Remainder`. A non-zero remainder has the same sign as this value.
     func quotientAndRemainder(
         dividingBy rhs: PartCount
-    ) -> (quotient: Int64, remainder: Remainder) {
+    ) -> (quotient: Money.MinorUnits, remainder: Remainder) {
         let (quotient, remainder) = rawValue.quotientAndRemainder(dividingBy: Int64(rhs))
 
         return (quotient, Remainder(remainder))

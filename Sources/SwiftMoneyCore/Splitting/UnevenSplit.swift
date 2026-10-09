@@ -30,7 +30,7 @@ public struct UnevenSplit<C: CurrencyRepresentation>: Equatable, Hashable, Senda
     /// The amount each smaller part receives.
     @inlinable
     public var smallerAmount: MoneyOf<C> {
-        // Moving a non-zero `Int64` one unit toward zero can't overflow.
+        // Moving a non-zero amount of minor units one unit toward zero can't overflow.
         MoneyOf(unchecked: largerMinorUnits.rawValue &- largerMinorUnits.signum, storage: storage)
     }
 

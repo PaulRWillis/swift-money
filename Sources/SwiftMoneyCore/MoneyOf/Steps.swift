@@ -220,14 +220,14 @@ extension MoneyOf.Steps {
         }
 
         // The shortened step is at most the requested one and at least one, so its bit pattern,
-        // negated for a downward step, fits `Int64` and is not zero.
+        // negated for a downward step, fits `MinorUnits` and is not zero.
         let shortened = Swift.min(magnitude, width)
-        let settled: Int64
+        let settled: MoneyOf<C>.MinorUnits
         switch StrideDirection(of: requested) {
         case .upward:
-            settled = Int64(bitPattern: shortened)
+            settled = MoneyOf<C>.MinorUnits(bitPattern: shortened)
         case .downward:
-            settled = Int64(bitPattern: 0 &- shortened)
+            settled = MoneyOf<C>.MinorUnits(bitPattern: 0 &- shortened)
         }
 
         self.init(unchecked: storage, span: span, step: NonZero(unchecked: settled), count: count)

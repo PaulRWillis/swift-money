@@ -194,7 +194,7 @@ extension Split {
 /// - Returns: The split, with larger parts one minor unit further from zero.
 @usableFromInline
 func split(
-    _ amount: Int64,
+    _ amount: Money.MinorUnits,
     into parts: PartCount
 ) -> MinorUnitSplit {
     guard let amount = NonZero(amount) else {
