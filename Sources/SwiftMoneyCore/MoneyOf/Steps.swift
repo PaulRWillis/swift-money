@@ -40,7 +40,7 @@ public extension MoneyOf {
         /// The minor units between neighboring steps, no more than the span's width; one upward when
         /// the width is zero. Its sign is the direction.
         @usableFromInline
-        let step: NonZeroInt64
+        let step: NonZero<MoneyOf<C>.MinorUnits>
 
         // Stored rather than worked out from `span` and `step`, since `endIndex` reads it on every
         // step of a loop.
@@ -59,7 +59,7 @@ public extension MoneyOf {
         init(
             unchecked storage: C.Storage,
             span: ClosedRange<MoneyOf<C>.MinorUnits>,
-            step: NonZeroInt64,
+            step: NonZero<MoneyOf<C>.MinorUnits>,
             count: Int
         ) {
             self.storage = storage
@@ -202,14 +202,14 @@ extension MoneyOf.Steps {
     init(
         storage: C.Storage,
         span: ClosedRange<MoneyOf<C>.MinorUnits>,
-        by requested: NonZeroInt64
+        by requested: NonZero<MoneyOf<C>.MinorUnits>
     ) throws(MoneyStepsParsingError<C>) {
         // The width reaches 2⁶⁴ − 1 minor units, which `Int64` cannot hold but `UInt64` can, and an
         // `Int128` divide is a library call.
         let width = UInt64(bitPattern: span.upperBound &- span.lowerBound)
 
         guard width > 0 else {
-            self.init(unchecked: storage, span: span, step: NonZeroInt64(unchecked: 1), count: 1)
+            self.init(unchecked: storage, span: span, step: NonZero(unchecked: 1), count: 1)
             return
         }
 
@@ -220,17 +220,17 @@ extension MoneyOf.Steps {
         }
 
         // The shortened step is at most the requested one and at least one, so its bit pattern,
-        // negated for a downward step, fits `Int64` and is not zero.
+        // negated for a downward step, fits `MinorUnits` and is not zero.
         let shortened = Swift.min(magnitude, width)
-        let settled: Int64
+        let settled: MoneyOf<C>.MinorUnits
         switch StrideDirection(of: requested) {
         case .upward:
-            settled = Int64(bitPattern: shortened)
+            settled = MoneyOf<C>.MinorUnits(bitPattern: shortened)
         case .downward:
-            settled = Int64(bitPattern: 0 &- shortened)
+            settled = MoneyOf<C>.MinorUnits(bitPattern: 0 &- shortened)
         }
 
-        self.init(unchecked: storage, span: span, step: NonZeroInt64(unchecked: settled), count: count)
+        self.init(unchecked: storage, span: span, step: NonZero(unchecked: settled), count: count)
     }
 
     /// The way the steps run.
@@ -581,7 +581,7 @@ extension MoneyOf.Steps {
         guard bounds.lower.minorUnits <= bounds.upper.minorUnits else {
             throw .invertedBounds(lowerBound: bounds.lower, upperBound: bounds.upper)
         }
-        guard let step = NonZeroInt64(stride.minorUnits) else {
+        guard let step = NonZero(stride.minorUnits) else {
             throw .zeroStride
         }
 

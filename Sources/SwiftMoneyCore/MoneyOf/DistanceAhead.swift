@@ -16,7 +16,7 @@ extension MoneyOf {
 
         /// The minor units of the stride the distance is measured along. Negative moves downward.
         @usableFromInline
-        let strideMinorUnits: NonZeroInt64
+        let strideMinorUnits: NonZero<MinorUnits>
 
         /// Creates the distance from one amount to another, returning `nil` if the second is behind
         /// the first.
@@ -32,7 +32,7 @@ extension MoneyOf {
         init?(
             from start: MoneyOf,
             to target: MoneyOf,
-            along strideMinorUnits: NonZeroInt64
+            along strideMinorUnits: NonZero<MinorUnits>
         ) {
             let start = start.minorUnits
             let target = target.minorUnits
@@ -67,7 +67,7 @@ extension MoneyOf {
         @inlinable
         init(
             minorUnits: Magnitude,
-            strideMinorUnits: NonZeroInt64
+            strideMinorUnits: NonZero<MinorUnits>
         ) {
             self.minorUnits = minorUnits
             self.strideMinorUnits = strideMinorUnits

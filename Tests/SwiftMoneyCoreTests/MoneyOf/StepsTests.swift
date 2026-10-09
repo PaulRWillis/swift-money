@@ -69,6 +69,14 @@ struct StepsTests {
         #expect(down.map(\.minorUnits) == [Int64.max, Int64.max - quarter, -1, -1 - quarter, Int64.min])
     }
 
+    @Test("The whole width of an amount by Int64.min minor units is the upper bound, −1p and the lower")
+    func wholeWidthByMostNegativeStride() throws {
+        let steps = try (GBP.min ... GBP.max).steps(by: .minorUnits(-9_223_372_036_854_775_808))
+
+        #expect(steps.map(\.minorUnits) == [Int64.max, -1, Int64.min])
+        #expect(steps.stride == .minorUnits(-9_223_372_036_854_775_808))
+    }
+
     @Test("Typed steps' bounds are the range they were built from, whichever way they run")
     func typedBounds() throws {
         let range = GBP(minorUnits: 10_00) ... GBP(minorUnits: 250_00)

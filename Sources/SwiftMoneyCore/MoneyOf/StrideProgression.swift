@@ -16,7 +16,7 @@ extension MoneyOf {
 
         /// The minor units each step moves by. Negative moves downward.
         @usableFromInline
-        let strideMinorUnits: NonZeroInt64
+        let strideMinorUnits: NonZero<MinorUnits>
 
         /// Creates the amounts from a start up to, but not including, an end, one stride apart.
         ///
@@ -87,7 +87,7 @@ extension MoneyOf {
         init(
             unchecked first: MoneyOf,
             stepsAfterFirst: DistanceAhead.StepCount,
-            strideMinorUnits: NonZeroInt64
+            strideMinorUnits: NonZero<MinorUnits>
         ) {
             self.first = first
             self.stepsAfterFirst = stepsAfterFirst
