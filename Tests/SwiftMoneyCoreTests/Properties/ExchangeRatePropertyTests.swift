@@ -25,8 +25,7 @@ private let conversionAmountBound: Int64 = 1_000_000
 private let exchangeSignificandRange: ClosedRange<Int64> = 1_000 ... 100_000
 private let exchangeDenominator: Int64 = 10_000
 
-// Margins from zero up to just under one half (4_999 basis points is 0.4999), the range `FX.Margin`
-// accepts.
+// Margins up to 0.4999, below the 1 that `FX.Margin` allows, so the settled amount stays positive.
 private let maxMarginBasisPoints: Int64 = 4_999
 
 private let roundingRules: [RoundingRule] = [
@@ -90,6 +89,28 @@ private let convertCases: [ConvertCase] = samples(
     ]
 )
 
+// Three legs, EUR→GBP→USD→JPY, so the last one changes scale.
+private struct CrossCase: Sendable {
+    let amount: EUR
+    let first: Rate
+    let second: Rate
+    let third: Rate
+}
+
+private let crossCases: [CrossCase] = samples(
+    zip(
+        euros(in: conversionAmountFloor ... conversionAmountBound),
+        zip3(exchangeRateGen(), exchangeRateGen(), exchangeRateGen())
+    ).map { amount, rates in
+        CrossCase(amount: amount, first: rates.0, second: rates.1, third: rates.2)
+    },
+    seed: PropertySeed.exchangeRateCrossing,
+    edges: [
+        CrossCase(amount: EUR(minorUnits: conversionAmountBound), first: "10", second: "10", third: "10"),
+        CrossCase(amount: EUR(minorUnits: conversionAmountFloor), first: "0.1", second: "0.1", third: "0.1"),
+    ]
+)
+
 @Suite("Exchange-rate properties")
 struct ExchangeRatePropertyTests {
 
@@ -124,6 +145,40 @@ struct ExchangeRatePropertyTests {
 
             #expect(customer <= mid)
             #expect(customer > .zero)
+        }
+    }
+
+    @Test("A rate of one is an identity for crossing and converting", arguments: convertCases)
+    private func rateOfOneIsAnIdentity(_ convert: ConvertCase) throws {
+        let eurGbp = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(convert.rate))
+        let eurEur = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.EUR>("1"))
+        let gbpGbp = try #require(FX.ExchangeRate<Currencies.GBP, Currencies.GBP>("1"))
+
+        #expect(try eurEur.crossed(with: eurGbp) == eurGbp)
+        #expect(try eurGbp.crossed(with: gbpGbp) == eurGbp)
+
+        for rule in roundingRules {
+            #expect(try convert.amount.converted(using: eurEur).rounded(rule) == convert.amount)
+        }
+    }
+
+    @Test("Crossing is associative to within one minor unit", arguments: crossCases)
+    private func crossingIsAssociative(_ cross: CrossCase) throws {
+        let eurGbp = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(cross.first))
+        let gbpUsd = try #require(FX.ExchangeRate<Currencies.GBP, Currencies.USD>(cross.second))
+        let usdJpy = try #require(FX.ExchangeRate<Currencies.USD, Currencies.JPY>(cross.third))
+
+        let leftFirst = try eurGbp.crossed(with: gbpUsd).crossed(with: usdJpy)
+        let rightFirst = try eurGbp.crossed(with: gbpUsd.crossed(with: usdJpy))
+
+        // Each product rounds by at most 0.5 × 10⁻¹⁸, so the groupings differ by about 10⁻¹¹ yen at
+        // most here: settling can split them only across a rounding boundary, and then by one yen.
+        let oneYen = JPY(minorUnits: 1)
+        for rule in roundingRules {
+            let difference = try cross.amount.converted(using: leftFirst).rounded(rule)
+                - cross.amount.converted(using: rightFirst).rounded(rule)
+
+            #expect(difference <= oneYen && difference >= -oneYen)
         }
     }
 
