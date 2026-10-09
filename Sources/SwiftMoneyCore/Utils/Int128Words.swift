@@ -174,9 +174,13 @@ extension Int128Words {
     ///
     /// - Parameter other: The value to add.
     /// - Returns: The sum, wrapped to 128 bits, and `true` if it overflowed.
-    @inlinable
+    @inlinable @inline(__always)
     package func addingReportingOverflow(_ other: Int128Words) -> (partialValue: Int128Words, overflow: Bool) {
-        let sum = Int128Words(bitPattern: _storage.addingReportingOverflow(other._storage).partialValue)
+        // The two's-complement sum is the unsigned one modulo 2^128, so the upper words wrap freely.
+        let (low, carry) = _storage.low.addingReportingOverflow(other._storage.low)
+        let high = _storage.high &+ other._storage.high &+ (carry ? 1 : 0)
+
+        let sum = Int128Words(bitPattern: UInt128Words(high: high, low: low))
 
         // A sum overflows exactly when both operands share a sign the wrapped sum doesn't.
         let sign = Sign(of: self)
@@ -191,9 +195,14 @@ extension Int128Words {
     ///
     /// - Parameter other: The value to subtract.
     /// - Returns: The difference, wrapped to 128 bits, and `true` if it overflowed.
-    @inlinable
+    @inlinable @inline(__always)
     package func subtractingReportingOverflow(_ other: Int128Words) -> (partialValue: Int128Words, overflow: Bool) {
-        let difference = Int128Words(bitPattern: _storage.subtractingReportingOverflow(other._storage).partialValue)
+        // The two's-complement difference is the unsigned one modulo 2^128, so the upper words wrap
+        // freely.
+        let (low, borrow) = _storage.low.subtractingReportingOverflow(other._storage.low)
+        let high = _storage.high &- other._storage.high &- (borrow ? 1 : 0)
+
+        let difference = Int128Words(bitPattern: UInt128Words(high: high, low: low))
 
         // A difference overflows exactly when the operands' signs differ and the wrapped difference
         // takes the subtrahend's.
@@ -209,7 +218,30 @@ extension Int128Words {
     ///
     /// - Parameter other: The value to multiply by.
     /// - Returns: The product, wrapped to 128 bits, and `true` if it overflowed.
+    @inline(__always)
     package func multipliedReportingOverflow(by other: Int128Words) -> (partialValue: Int128Words, overflow: Bool) {
+        guard let factor = Int64(exactly: other) else {
+            return multipliedWideReportingOverflow(by: other)
+        }
+        guard let narrow = Int64(exactly: self) else {
+            return multipliedReportingOverflow(byInt64: factor)
+        }
+
+        // Both factors are within `-2^63...2^63 - 1`, so the product's magnitude is at most 2^126
+        // and fits.
+        let (high, low) = narrow.multipliedFullWidth(by: factor)
+        return (Int128Words(bitPattern: UInt128Words(high: UInt64(bitPattern: high), low: low)), false)
+    }
+
+    /// Returns the product of this value and another outside `Int64`, and whether it overflowed.
+    ///
+    /// - Parameter other: The value to multiply by, outside `Int64`.
+    /// - Returns: The product, wrapped to 128 bits, and `true` if it overflowed.
+    private func multipliedWideReportingOverflow(by other: Int128Words) -> (partialValue: Int128Words, overflow: Bool) {
+        if let factor = Int64(exactly: self) {
+            return other.multipliedReportingOverflow(byInt64: factor)
+        }
+
         let (product, overflow) = magnitude.multipliedReportingOverflow(by: other.magnitude)
         let (value, outOfRange) = Int128Words.signed(product, sign: Sign(of: self) * Sign(of: other))
 
@@ -229,14 +261,22 @@ extension Int128Words {
     /// - Returns: The product, wrapped to 128 bits, and `true` if it overflowed.
     @usableFromInline
     package func multipliedReportingOverflow(byInt64 factor: Int64) -> (partialValue: Int128Words, overflow: Bool) {
-        let magnitude = self.magnitude
-        let (lowCarry, productLow) = magnitude.low.multipliedFullWidth(by: factor.magnitude)
-        let (highCarry, highProduct) = magnitude.high.multipliedFullWidth(by: factor.magnitude)
-        let (productHigh, carry) = highProduct.addingReportingOverflow(lowCarry)
+        // With `self = high · 2^64 + low`, the product is `high · factor · 2^64 + low · factor`. The
+        // unsigned `low` times a negative `factor` is its product with the factor's bits, less
+        // `low · 2^64`.
+        let (lowCarry, productLow) = _storage.low.multipliedFullWidth(by: UInt64(bitPattern: factor))
+        let (crossHigh, crossLow) = Int64(bitPattern: _storage.high).multipliedFullWidth(by: factor)
+        let correction = factor < 0 ? _storage.low : 0
 
-        let product = UInt128Words(high: productHigh, low: productLow)
-        let (value, outOfRange) = Int128Words.signed(product, sign: Sign(of: self) * Sign(of: factor))
-        return (value, highCarry != 0 || carry || outOfRange)
+        // The product is `(top · 2^64 + middle) · 2^64 + productLow`, which fits exactly when
+        // `top · 2^64 + middle` fits one signed word. `crossHigh` is within `±2^62`, so adding the
+        // carry and taking the borrow can't wrap.
+        let (sum, carry) = crossLow.addingReportingOverflow(lowCarry)
+        let (middle, borrow) = sum.subtractingReportingOverflow(correction)
+        let top = crossHigh &+ (carry ? 1 : 0) &- (borrow ? 1 : 0)
+
+        let product = Int128Words(bitPattern: UInt128Words(high: middle, low: productLow))
+        return (product, top != Int64(bitPattern: middle) >> 63)
     }
 }
 
@@ -359,19 +399,33 @@ extension Int128Words {
     /// - Returns: The value, or `nil` if `text` isn't a decimal integer in `-2^127...2^127 - 1`.
     /// - Complexity: O(*n*), where *n* is the length of `text`.
     package init?(_ text: some StringProtocol) {
-        let utf8 = text.utf8
+        // Reading the bytes in place, where the text's storage allows, skips the string index
+        // arithmetic each step through a `Substring` costs.
+        let value = text.utf8.withContiguousStorageIfAvailable(Int128Words.parsing) ?? Int128Words.parsing(text.utf8)
+        guard let value else {
+            return nil
+        }
+
+        self = value
+    }
+
+    /// Returns the value of decimal text's bytes, or `nil` if they aren't a decimal integer that fits.
+    ///
+    /// - Parameter utf8: The text's UTF-8 bytes.
+    /// - Returns: The value, or `nil` if the bytes aren't a decimal integer in `-2^127...2^127 - 1`.
+    /// - Complexity: O(*n*), where *n* is the number of bytes.
+    private static func parsing(_ utf8: some Collection<UInt8>) -> Int128Words? {
         let (sign, digits) = switch utf8.first {
         case UInt8(ascii: "-"): (Sign.negative, utf8.dropFirst())
         case UInt8(ascii: "+"): (Sign.positive, utf8.dropFirst())
         default: (Sign.positive, utf8[...])
         }
 
-        guard let magnitude = Int128Words.magnitude(ofDigits: digits),
-              let value = Int128Words(magnitude: magnitude, sign: sign) else {
+        guard let magnitude = Int128Words.magnitude(ofDigits: digits) else {
             return nil
         }
 
-        self = value
+        return Int128Words(magnitude: magnitude, sign: sign)
     }
 
     /// Returns the value of a run of ASCII decimal digits, or `nil` if it is empty, holds any other

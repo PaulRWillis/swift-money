@@ -1,3 +1,4 @@
+import Foundation
 import SwiftMoneyCore
 import Testing
 
@@ -56,6 +57,8 @@ private let parseCases: [ParseCase] = [
 
 private let digitCases: [DigitCase] = [
     DigitCase(value: 12, digit: 3, expected: 123),
+    DigitCase(value: UInt128Words(high: 0, low: .max), digit: 9, expected: UInt128Words(high: 9, low: .max)),
+    DigitCase(value: UInt128Words(high: 1, low: 0), digit: 0, expected: UInt128Words(high: 10, low: 0)),
     DigitCase(
         value: UInt128Words(high: 0, low: 0x1999_9999_9999_9999),
         digit: 9,
@@ -221,6 +224,24 @@ struct Int128WordsTests {
         #expect(!product.overflow)
     }
 
+    @Test("Multiplying at the edges of Int64 gives the full product")
+    func multiplyingAtTheEdgesOfInt64() {
+        let smallestSquared = Int128Words(Int64.min).multipliedReportingOverflow(by: Int128Words(Int64.min))
+        let extremes = Int128Words(Int64.min).multipliedReportingOverflow(by: Int128Words(Int64.max))
+        let twoToThe63 = Int128Words(bitPattern: UInt128Words(high: 0, low: 0x8000_0000_0000_0000))
+        let justPastInt64 = twoToThe63.multipliedReportingOverflow(by: -1)
+        let justBelowInt64 = Int128Words(-2).multipliedReportingOverflow(by: Int128Words(Int64.min) - 1)
+
+        #expect(smallestSquared.partialValue == 85_070_591_730_234_615_865_843_651_857_942_052_864)
+        #expect(!smallestSquared.overflow)
+        #expect(extremes.partialValue == -85_070_591_730_234_615_856_620_279_821_087_277_056)
+        #expect(!extremes.overflow)
+        #expect(justPastInt64.partialValue == Int128Words(Int64.min))
+        #expect(!justPastInt64.overflow)
+        #expect(justBelowInt64.partialValue == 18_446_744_073_709_551_618)
+        #expect(!justBelowInt64.overflow)
+    }
+
     @Test("Halving the largest value and adding one gives two to the 126")
     func halvingTheLargest() {
         #expect(Int128Words.max / 2 + 1 == 85_070_591_730_234_615_865_843_651_857_942_052_864)
@@ -288,6 +309,20 @@ struct Int128WordsTests {
         #expect(Int128Words(testCase.text) == testCase.expected)
         #expect(Int128Words(Substring(testCase.text)) == testCase.expected)
     }
+
+    #if _runtime(_ObjC)
+    @Test("Parsing text whose UTF-8 isn't stored contiguously")
+    func parsingNonContiguousText() {
+        let characters = Array("€-170141183460469231731687303715884105728".utf16)
+        let text = NSString(characters: characters, length: characters.count) as String
+        let smallestText = Substring(text).dropFirst()
+
+        // The euro sign keeps the `NSString` in UTF-16, so its UTF-8 view has no storage to lend.
+        #expect(smallestText.utf8.withContiguousStorageIfAvailable { _ in true } == nil)
+        #expect(Int128Words(smallestText) == .min)
+        #expect(Int128Words(text) == nil)
+    }
+    #endif
 
     @Test("Multiplying by ten and adding a digit", arguments: digitCases)
     private func multiplyingByTenAdding(_ testCase: DigitCase) {
