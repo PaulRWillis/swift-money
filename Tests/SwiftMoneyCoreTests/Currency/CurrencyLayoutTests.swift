@@ -63,6 +63,18 @@ struct CurrencyLayoutTests {
         #expect(MemoryLayout<GBP.StrideThrough.Iterator>.stride == Self.words(4))
     }
 
+    @Test("Runtime steps are five machine words")
+    func runtimeStepsAreFiveWords() {
+        #expect(MemoryLayout<Money.Steps>.size == Self.words(5))
+        #expect(MemoryLayout<Money.Steps>.stride == Self.words(5))
+    }
+
+    @Test("Typed steps are four machine words")
+    func typedStepsAreFourWords() {
+        #expect(MemoryLayout<GBP.Steps>.size == Self.words(4))
+        #expect(MemoryLayout<GBP.Steps>.stride == Self.words(4))
+    }
+
     @Test("A money error is two machine words")
     func moneyErrorIsTwoWords() {
         #expect(MemoryLayout<MoneyError>.stride == Self.words(2))

@@ -11,7 +11,7 @@ enum StrideDirection: Sendable {
     ///
     /// - Parameter step: The minor units each step moves by.
     @inlinable
-    init(of step: NonZeroInt64) {
+    init(of step: NonZero<Money.MinorUnits>) {
         self = step.rawValue > 0 ? .upward : .downward
     }
 }
