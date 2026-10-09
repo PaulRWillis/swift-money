@@ -34,11 +34,19 @@ struct LocaleKeyTests {
 
     @Test("Keys differing only in letter case and separator have the same bytes")
     func caseAndSeparatorDoNotMatter() {
-        #expect(Array(LocaleKey("ZH_Hant").bytes) == Array(LocaleKey("zh-hant").bytes))
+        #expect(Self.bytes(of: "ZH_Hant") == Self.bytes(of: "zh-hant"))
     }
 
     @Test("A key's bytes are the identifier's, each folded")
     func bytesAreFolded() {
-        #expect(Array(LocaleKey("en_gb").bytes) == Array("en-gb".utf8))
+        #expect(Self.bytes(of: "en_gb") == Array("en-gb".utf8))
+    }
+
+    /// Returns the bytes of an identifier's key.
+    ///
+    /// - Parameter identifier: The identifier to read.
+    /// - Returns: The key's bytes, folded.
+    private static func bytes(of identifier: LocaleIdentifier) -> [UInt8] {
+        Array(IteratorSequence(LocaleKey(identifier).bytes.makeIterator()))
     }
 }

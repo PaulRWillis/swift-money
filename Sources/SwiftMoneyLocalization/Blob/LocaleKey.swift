@@ -4,7 +4,8 @@
 /// allocates nothing.
 ///
 /// ```swift
-/// Array(LocaleKey("en_GB").bytes) == Array("en-GB".utf8)  // true
+/// var bytes = LocaleKey("EN_gb").bytes.makeIterator()
+/// bytes.next()  // UInt8(ascii: "e")
 /// ```
 package struct LocaleKey: Sendable {
     /// The identifier's UTF-8.
@@ -96,7 +97,7 @@ extension LocaleKey {
     }
 
     /// A key's bytes, each read through ``LocaleKey/folded(_:)``.
-    package struct Bytes: Sequence, Sendable {
+    package struct Bytes: Sendable {
         /// The identifier's UTF-8.
         fileprivate let utf8: String.UTF8View
 

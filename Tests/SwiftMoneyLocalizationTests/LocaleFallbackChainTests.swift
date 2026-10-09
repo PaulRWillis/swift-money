@@ -12,7 +12,15 @@ struct LocaleFallbackChainTests {
     /// - Parameter identifier: The identifier to build the chain from.
     /// - Returns: Each key's bytes, in the order the chain yields them.
     private static func keys(of identifier: LocaleIdentifier) -> [[UInt8]] {
-        LocaleFallbackChain(identifier).map { Array($0.bytes) }
+        IteratorSequence(LocaleFallbackChain(identifier).makeIterator()).map(bytes(of:))
+    }
+
+    /// Returns a key's bytes.
+    ///
+    /// - Parameter key: The key to read.
+    /// - Returns: The key's bytes, folded.
+    private static func bytes(of key: LocaleKey) -> [UInt8] {
+        Array(IteratorSequence(key.bytes.makeIterator()))
     }
 
     /// Returns the bytes of each identifier read as a whole key.
@@ -20,7 +28,7 @@ struct LocaleFallbackChainTests {
     /// - Parameter identifiers: The identifiers to read.
     /// - Returns: Each identifier's key bytes, in order.
     private static func keys(_ identifiers: [String]) -> [[UInt8]] {
-        identifiers.map { Array(LocaleKey(LocaleIdentifier($0)).bytes) }
+        identifiers.map { bytes(of: LocaleKey(LocaleIdentifier($0))) }
     }
 
     @Test(

@@ -10,7 +10,7 @@
 /// LocaleFallbackChain("en_US")        // en-US, en
 /// LocaleFallbackChain("en_US_POSIX")  // en-US-POSIX, en-US, en
 /// ```
-package struct LocaleFallbackChain: Sequence, Sendable {
+package struct LocaleFallbackChain: Sendable {
     /// The identifier's UTF-8.
     private let utf8: String.UTF8View
 

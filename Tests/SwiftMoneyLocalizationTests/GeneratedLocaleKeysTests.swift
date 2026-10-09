@@ -10,8 +10,8 @@ struct GeneratedLocaleKeysTests {
         let identifiers = MoneyLocalization.coveredLocaleIdentifiers
 
         for (earlier, later) in zip(identifiers, identifiers.dropFirst()) {
-            let earlierBytes = LocaleKey(LocaleIdentifier(earlier)).bytes
-            let laterBytes = LocaleKey(LocaleIdentifier(later)).bytes
+            let earlierBytes = IteratorSequence(LocaleKey(LocaleIdentifier(earlier)).bytes.makeIterator())
+            let laterBytes = IteratorSequence(LocaleKey(LocaleIdentifier(later)).bytes.makeIterator())
 
             #expect(earlierBytes.lexicographicallyPrecedes(laterBytes), "\(earlier) is not before \(later)")
         }

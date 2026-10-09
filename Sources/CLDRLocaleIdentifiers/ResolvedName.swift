@@ -198,9 +198,15 @@ extension LocaleInheritance {
     ///   - keys: The names filed so far.
     /// - Returns: The group of the first key the chain finds, or `nil` when it finds none.
     private static func locale<Value>(reachedBy name: String, in keys: Keys<Value>) -> LocaleGroup? {
-        LocaleFallbackChain(LocaleIdentifier(name)).lazy
-            .compactMap { keys[FoldedLocaleName($0)] }
-            .first?.locale.group
+        var chain = LocaleFallbackChain(LocaleIdentifier(name)).makeIterator()
+
+        while let key = chain.next() {
+            if let filed = keys[FoldedLocaleName(key)] {
+                return filed.locale.group
+            }
+        }
+
+        return nil
     }
 }
 
