@@ -254,15 +254,15 @@ extension LocaleFallbackChain {
         /// The length of BCP 47's longest language subtag, in bytes.
         private static let longestLanguage = 8
 
-        /// Reads a subtag and the separator after it, stopping as soon as the subtag can't be a script
-        /// or a region.
+        /// Reads a subtag and the separator after it, or stops partway once the subtag can't be a
+        /// script or a region.
         ///
         /// - Parameters:
         ///   - bytes: The identifier's bytes, from the subtag's first.
         ///   - start: The offset of the subtag's first byte.
         /// - Returns: The subtag's byte offsets and its shape, or `nil` when it is neither a script nor
         ///   a region.
-        /// - Complexity: O(1): it reads at most one byte more than a script has, and the separator.
+        /// - Complexity: O(1): it reads at most five bytes.
         private static func classifiedSubtag(
             _ bytes: inout String.UTF8View.Iterator,
             from start: Int
