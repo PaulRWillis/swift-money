@@ -121,6 +121,32 @@ struct LikelyScriptsTests {
         #expect(scripts.shortened("xx-Ääää") == "xx-Ääää")
     }
 
+    @Test("The script a language and region imply is inserted")
+    func impliedScriptIsInserted() {
+        let scripts = LikelyScripts(likelySubtags: ["zh": "zh-Hans-CN", "zh-TW": "zh-Hant-TW"])
+
+        #expect(scripts.withImpliedScript("zh-TW") == "zh-Hant-TW")
+        #expect(scripts.withImpliedScript("zh") == "zh-Hans")
+        #expect(scripts.withImpliedScript("zh-SG") == "zh-Hans-SG")
+    }
+
+    @Test("A name with a script, or a language the table doesn't list, keeps its spelling")
+    func impliedScriptLeavesOthersAlone() {
+        let scripts = LikelyScripts(likelySubtags: ["zh": "zh-Hans-CN", "zh-TW": "zh-Hant-TW"])
+
+        #expect(scripts.withImpliedScript("zh-Hant-TW") == "zh-Hant-TW")
+        #expect(scripts.withImpliedScript("zh-Hans-TW") == "zh-Hans-TW")
+        #expect(scripts.withImpliedScript("xx") == "xx")
+        #expect(scripts.withImpliedScript("xx-GB") == "xx-GB")
+    }
+
+    @Test("Subtags after the region stay after it when a script is inserted")
+    func impliedScriptKeepsTheRest() {
+        let scripts = LikelyScripts(likelySubtags: ["ca": "ca-Latn-ES"])
+
+        #expect(scripts.withImpliedScript("ca-ES-valencia") == "ca-Latn-ES-valencia")
+    }
+
     @Test("An empty table changes nothing")
     func emptyTableIsIdentity() {
         #expect(LikelyScripts(likelySubtags: [:]).shortened("ff-Latn-GH") == "ff-Latn-GH")

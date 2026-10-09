@@ -1,0 +1,59 @@
+import SwiftMoneyLocalization
+import Testing
+
+// The keys a locale identifier is looked up by, in the order CLDR falls back through them. Each
+// expected key is compared through `LocaleKey`'s bytes, so the comparison reads both sides the same
+// way whatever the fold maps.
+@Suite("Locale Fallback Chain Tests")
+struct LocaleFallbackChainTests {
+
+    /// Returns the bytes of each key a chain yields, in order.
+    ///
+    /// - Parameter identifier: The identifier to build the chain from.
+    /// - Returns: Each key's bytes, in the order the chain yields them.
+    private static func keys(of identifier: LocaleIdentifier) -> [[UInt8]] {
+        LocaleFallbackChain(identifier).map { Array($0.bytes) }
+    }
+
+    /// Returns the bytes of each identifier read as a whole key.
+    ///
+    /// - Parameter identifiers: The identifiers to read.
+    /// - Returns: Each identifier's key bytes, in order.
+    private static func keys(_ identifiers: [String]) -> [[UInt8]] {
+        identifiers.map { Array(LocaleKey(LocaleIdentifier($0)).bytes) }
+    }
+
+    @Test(
+        "An identifier yields itself, then its language and script, language and region, and language",
+        arguments: [
+            ("zh-Hant_TW", ["zh-Hant_TW", "zh-Hant", "zh-TW", "zh"]),
+            ("sr-Latn-rs", ["sr-Latn-rs", "sr-Latn", "sr-rs", "sr"]),
+            ("en_US", ["en_US", "en"]),
+            ("en_US_POSIX", ["en_US_POSIX", "en-US", "en"]),
+            ("en", ["en"]),
+            ("ca-ES-valencia", ["ca-ES-valencia", "ca-ES", "ca"]),
+        ] as [(LocaleIdentifier, [String])]
+    )
+    func chain(_ identifier: LocaleIdentifier, _ expected: [String]) {
+        #expect(Self.keys(of: identifier) == Self.keys(expected))
+    }
+
+    // A subtag is a script only second, and a region only second or third after a script, so an
+    // extension's `nu`, a codeset's `TW.UTF` and a region after a non-script never count.
+    @Test(
+        "A subtag out of position or shape is neither script nor region",
+        arguments: [
+            ("de-u-nu-latn", ["de-u-nu-latn", "de"]),
+            ("zh_TW.UTF-8", ["zh_TW.UTF-8", "zh"]),
+            ("xx-Ääää-ZZ", ["xx-Ääää-ZZ", "xx"]),
+        ] as [(LocaleIdentifier, [String])]
+    )
+    func unclassifiedSubtags(_ identifier: LocaleIdentifier, _ expected: [String]) {
+        #expect(Self.keys(of: identifier) == Self.keys(expected))
+    }
+
+    @Test("An empty identifier yields itself alone")
+    func emptyIdentifier() {
+        #expect(Self.keys(of: "") == [[]])
+    }
+}

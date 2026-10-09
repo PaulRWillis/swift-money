@@ -2510,6 +2510,21 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    // One row per shape of locale identifier the lookup falls back through, each a different number
+    // of binary searches.
+    for identifier: LocaleIdentifier in ["en_US", "en_US_POSIX", "sr-Latn_RS", "en-Latn-US", "zh_TW", "EN_gb"] {
+        Benchmark("MoneyLocalization moneyFormat, \(identifier.value)", configuration: defaultConfiguration) { benchmark in
+            var index = 0
+
+            for _ in benchmark.scaledIterations {
+                blackHole(MoneyLocalization.moneyFormat(
+                    for: formatCurrencies[index % formatCurrencies.count], locale: identifier
+                ))
+                index &+= 1
+            }
+        }
+    }
+
     // The ISO presentation always stringifies the code, so this is where a change to the code's
     // representation lands even after the common path stops building the string.
     Benchmark("MoneyLocalization moneyFormat, ISO code, en_GB", configuration: defaultConfiguration) { benchmark in

@@ -1343,16 +1343,36 @@ func fullNameRecords(of locale: String) -> LocaleCurrencyEntries<LocaleTables.Fu
     }
 }
 
-// The scripts CLDR's likely subtags imply, which give each folder its short name. A likelySubtags.json
-// in any other shape stops the run.
-func likelyScripts() -> LikelyScripts {
+// CLDR's likely subtags, which give each folder its short name and each place its script. A
+// likelySubtags.json in any other shape stops the run.
+func likelySubtags() -> [String: String] {
     let root = json("\(cldrSupplemental)/likelySubtags.json")
     guard let supplemental = root["supplemental"] as? [String: Any],
           let subtags = supplemental["likelySubtags"] as? [String: String] else {
         fatalError("Could not read the likely subtags from likelySubtags.json")
     }
 
-    return LikelyScripts(likelySubtags: subtags)
+    return subtags
+}
+
+// CLDR's parent locales, child to parent. The lookup sends a script its language doesn't imply to
+// root, which holds only while CLDR's rule for those says so; any other rule stops the run.
+func parentLocales() -> [String: String] {
+    let root = json("\(cldrSupplemental)/parentLocales.json")
+    guard let supplemental = root["supplemental"] as? [String: Any],
+          let locales = supplemental["parentLocales"] as? [String: Any],
+          let parents = locales["parentLocale"] as? [String: String],
+          let rules = locales["_localeRules"] as? [String: Any],
+          let parentRules = rules["parentLocale"] as? [String: String],
+          let nonlikelyScript = parentRules["nonlikelyScript"] else {
+        fatalError("Could not read the parent locales from parentLocales.json")
+    }
+
+    guard nonlikelyScript == "root" else {
+        fatalError("parentLocales.json sends a non-likely script to \(nonlikelyScript), not root")
+    }
+
+    return parents
 }
 
 // How long a locale's integer part must be before it groups at all. CLDR publishes it as text and
@@ -1461,19 +1481,28 @@ checkEveryLanguageAgainstItsSamples(ruleText)
 let candidates = publishedLocales()
 let pluralRules = pluralRuleSets(among: candidates, in: ruleText)
 
-var built: [(key: String, tables: LocaleTables)] = []
+var builtLocales: [BuiltLocale<LocaleTables>] = []
 var skipped: [SkippedLocale] = []
 
-let scripts = likelyScripts()
+let inheritance: LocaleInheritance
+do {
+    inheritance = try LocaleInheritance(
+        folders: candidates,
+        likelySubtags: likelySubtags(),
+        parentLocales: parentLocales()
+    )
+} catch {
+    fatalError("CLDR's parent locales don't make a lookup that ends: \(error)")
+}
 
-for group in scripts.groups(of: candidates) {
+for group in inheritance.groups {
     let resolution = group.resolve { (folder: String) throws(LocaleSkip) in
         try tables(for: folder, unusableLanguages: pluralRules.unusable)
     }
 
     switch resolution {
     case .built(let tables):
-        built += group.names.map { (key: $0, tables: tables) }
+        builtLocales.append(BuiltLocale(group: group, value: tables))
 
     case .skipped(let skips):
         skipped += skips.map { SkippedLocale(locale: $0.folder, skip: $0.error) }
@@ -1488,13 +1517,23 @@ for group in scripts.groups(of: candidates) {
     }
 }
 
-// In the byte order the runtime's binary search assumes.
-let emitted = built.sorted { $0.key.utf8.lexicographicallyPrecedes($1.key.utf8) }
+// Every name of a built group, then the places CLDR names with no folder of their own, filed under
+// the locale CLDR's lookup reaches wherever the runtime's lookup would miss it.
+let resolvedNames = inheritance.resolvedNames(for: builtLocales)
+let built = builtLocales.flatMap { locale in locale.group.names.map { (key: $0, tables: locale.value) } }
+    + resolvedNames.map { (key: $0.name, tables: $0.locale.value) }
 
-// A repeated key would make the binary search return either row without saying so.
-for (earlier, later) in zip(emitted, emitted.dropFirst())
-where !earlier.key.utf8.lexicographicallyPrecedes(later.key.utf8) {
-    fatalError("\(later.key) is filed more than once")
+for place in inheritance.placesReachingUnbuiltLocales(for: builtLocales) {
+    print("Not filed: \(place) reaches \(inheritance.group(reachedFrom: place).shortName), which was skipped")
+}
+
+// In the order the runtime's binary search assumes.
+let emitted = built.sorted { LocaleLookupOrder.precedes($0.key, $1.key) }
+
+// A repeated key, or two keys differing only in letter case, would make the binary search return
+// either row without saying so.
+if let (earlier, later) = LocaleLookupOrder.firstPairOutOfOrder(in: emitted.map(\.key)) {
+    fatalError("\(later) is filed more than once, or differs from \(earlier) only in letter case")
 }
 
 // Derived from what was emitted rather than from the candidates, so the tables carry rules only for
@@ -1505,10 +1544,11 @@ let languages = emitted.map { language(of: $0.key) }.uniqued()
 // the order is for that reproducibility rather than for a search. A language that draws no plural
 // distinctions, such as Japanese, has rules for no category and takes `other` for every amount.
 for language in languages.sorted(by: { $0.utf8.lexicographicallyPrecedes($1.utf8) }) {
-    packedPluralLanguages.append(PackedPluralLanguage(
-        key: pool.insert(language),
-        rules: pluralRules.usable[language, default: LanguageRules(rules: [], samples: [])].rules
-    ))
+    guard let rules = pluralRules.usable[language] else {
+        fatalError("\(language) has an emitted locale but no plural rules")
+    }
+
+    packedPluralLanguages.append(PackedPluralLanguage(key: pool.insert(language), rules: rules.rules))
 }
 
 for (locale, tables) in emitted {
