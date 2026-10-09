@@ -113,4 +113,47 @@ struct ExchangeRateTests {
             try eurUsd.crossed(with: usdGbp)
         }
     }
+
+    @Test("Inverting a rate gives the rate the other way")
+    func inverting() throws {
+        let eurGbp = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>("0.8"))
+        let expected = try #require(FX.ExchangeRate<Currencies.GBP, Currencies.EUR>("1.25"))
+
+        #expect(try eurGbp.inverted() == expected)
+    }
+
+    @Test("Inverting a rate between currencies of different scales quotes it per major unit")
+    func invertingAcrossScales() throws {
+        let usdJpy = try #require(FX.ExchangeRate<Currencies.USD, Currencies.JPY>("125"))
+        let expected = try #require(FX.ExchangeRate<Currencies.JPY, Currencies.USD>("0.008"))
+
+        #expect(try usdJpy.inverted() == expected)
+    }
+
+    @Test("An inverse that needs more places than a rate keeps is rounded to the nearest")
+    func invertingRounds() throws {
+        let eurGbp = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>("3"))
+        let oneThird = try #require(Rate(string: "1/3"))
+        let expected = try #require(FX.ExchangeRate<Currencies.GBP, Currencies.EUR>(oneThird))
+
+        #expect(try eurGbp.inverted() == expected)
+    }
+
+    @Test("Inverting the smallest rate gives a large rate rather than overflowing")
+    func invertingTheSmallestRate() throws {
+        let smallest = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>("0.000000000000000001"))
+        let expected = try #require(FX.ExchangeRate<Currencies.GBP, Currencies.EUR>("1000000000000000000"))
+
+        #expect(try smallest.inverted() == expected)
+    }
+
+    // ¥1 = $10¹⁷ is 10¹⁹ cents a yen, whose inverse, 10⁻¹⁹ yen a cent, is a tenth of the smallest step.
+    @Test("Inverting a rate whose inverse rounds to zero throws")
+    func invertingToZeroThrows() throws {
+        let huge = try #require(FX.ExchangeRate<Currencies.JPY, Currencies.USD>("100000000000000000"))
+
+        #expect(throws: FX.ExchangeError.roundsToZero) {
+            try huge.inverted()
+        }
+    }
 }

@@ -182,6 +182,22 @@ struct ExchangeRatePropertyTests {
         }
     }
 
+    @Test("Inverting twice converts to within one minor unit of the original rate", arguments: convertCases)
+    private func invertingTwiceIsNearlyAnIdentity(_ convert: ConvertCase) throws {
+        let rate = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(convert.rate))
+        let twice = try rate.inverted().inverted()
+
+        // Each inverse rounds by at most 0.5 × 10⁻¹⁸, which the second grows by at most the rate
+        // squared (100 here): about 10⁻¹⁰ pence at most, so settling splits them by one penny at most.
+        let onePenny = GBP(minorUnits: 1)
+        for rule in roundingRules {
+            let difference = try convert.amount.converted(using: rate).rounded(rule)
+                - convert.amount.converted(using: twice).rounded(rule)
+
+            #expect(difference <= onePenny && difference >= -onePenny)
+        }
+    }
+
     @Test("Converting is monotonic in the amount", arguments: convertCases)
     private func conversionIsMonotonic(_ convert: ConvertCase) throws {
         let rate = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(convert.rate))

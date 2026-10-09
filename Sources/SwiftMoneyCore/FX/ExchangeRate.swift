@@ -99,5 +99,32 @@ public extension FX {
 
             return result
         }
+
+        /// Returns the rate the other way round: how many major units of `From` one major unit of
+        /// `To` buys.
+        ///
+        /// The inverse is rounded to the nearest representable rate, so inverting twice may not give
+        /// back this rate exactly. It is never a provider's sell rate, which is a quote of its own.
+        ///
+        /// ```swift
+        /// let eurGbp = FX.ExchangeRate<Currencies.EUR, Currencies.GBP>("0.8")!
+        /// let gbpEur = try eurGbp.inverted()   // 1.25
+        /// ```
+        ///
+        /// - Returns: The inverse of this rate.
+        /// - Throws: ``FX/ExchangeError/roundsToZero`` if the inverse is too close to zero to
+        ///   represent.
+        public func inverted() throws(ExchangeError) -> ExchangeRate<To, From> {
+            // The inverse of `To` minor units per `From` minor unit is `From` per `To`, so it needs no
+            // rescaling. A positive rate is at least 10⁻¹⁸, so the inverse is at most 10¹⁸ and the
+            // divide can't overflow, only round to zero.
+            guard let result = ExchangeRate<To, From>(
+                minorPerMinor: Rate(Rate.par.value / minorPerMinorRate.value)
+            ) else {
+                throw .roundsToZero
+            }
+
+            return result
+        }
     }
 }
