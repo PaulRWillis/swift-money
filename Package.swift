@@ -108,8 +108,10 @@ let package = Package(
         .testTarget(
             name: "SwiftMoneyCoreTests",
             dependencies: ["SwiftMoneyCore", "SwiftMoneyCoreTestSupport"],
+            exclude: ["Resources/UPDATING.md"],
             // The General Decimal Arithmetic conformance corpus, parsed at runtime by GDATests.
-            resources: [.copy("Resources")]
+            // Not the whole folder: codesign rejects a top-level Resources folder in an iOS bundle.
+            resources: [.copy("Resources/GDA")]
         ),
         .testTarget(
             name: "SwiftMoneyFXTests",
