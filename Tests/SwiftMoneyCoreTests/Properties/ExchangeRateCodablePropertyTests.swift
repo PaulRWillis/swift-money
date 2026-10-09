@@ -10,7 +10,10 @@ private let codingRates: [Rate] = samples(
     edges: ["0.000001", "1", "1000000000000"]
 )
 
-private func roundTripped<From: CurrencyType, To: CurrencyType>(_ rate: FX.ExchangeRateOf<From, To>) throws -> FX.ExchangeRateOf<From, To> {
+// A currency the ISO table doesn't ship, so its scale has to cross the wire.
+private let millicredits = customCurrency(code: "MCR", unitScale: 1_000)
+
+private func roundTripped<From, To>(_ rate: FX.ExchangeRateOf<From, To>) throws -> FX.ExchangeRateOf<From, To> {
     try JSONDecoder().decode(FX.ExchangeRateOf<From, To>.self, from: JSONEncoder().encode(rate))
 }
 
@@ -40,5 +43,19 @@ struct ExchangeRateCodablePropertyTests {
 
         #expect(try roundTripped(inverseOfUsdJpy) == inverseOfUsdJpy)
         #expect(try roundTripped(inverseOfJpyUsd) == inverseOfJpyUsd)
+    }
+
+    @Test("A runtime rate reads back unchanged, between ISO and custom currencies, either way", arguments: codingRates)
+    private func runtimeRoundTrips(_ quote: Rate) throws {
+        let pairs: [(Currency, Currency)] = [
+            (.eur, .gbp), (.usd, .jpy), (.jpy, .usd), (millicredits, .gbp), (.jpy, millicredits),
+        ]
+
+        for (from, to) in pairs {
+            let rate = try #require(FX.ExchangeRate(quote, from: from, to: to))
+
+            #expect(try roundTripped(rate) == rate)
+            #expect(try roundTripped(rate.inverted()) == rate.inverted())
+        }
     }
 }

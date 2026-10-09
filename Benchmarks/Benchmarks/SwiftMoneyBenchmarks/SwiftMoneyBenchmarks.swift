@@ -2395,6 +2395,45 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    Benchmark("Runtime ExchangeRate JSON encode", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(try rateEncoder.encode(runtimeEurGbpRates[index % runtimeEurGbpRates.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("Runtime ExchangeRate JSON decode", configuration: defaultConfiguration) { benchmark in
+        let decoder = JSONDecoder()
+        let payloads = try runtimeEurGbpRates.map { try rateEncoder.encode($0) }
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(try decoder.decode(FX.ExchangeRate.self, from: payloads[index % payloads.count]))
+            index &+= 1
+        }
+    }
+
+    // A currency the ISO table doesn't ship on each side, so both scales are written and read.
+    guard let millicredits = Currency(code: "MCR", unitScale: 1_000),
+          let centicredits = Currency(code: "CCR", unitScale: 100) else {
+        preconditionFailure("MCR and CCR are not codes the library ships")
+    }
+
+    Benchmark("Runtime ExchangeRate JSON decode, with scales", configuration: defaultConfiguration) { benchmark in
+        let decoder = JSONDecoder()
+        let payloads = try runtimeEurGbpRates.map { rate in
+            try rateEncoder.encode(FX.ExchangeRate(string: rate.description, from: millicredits, to: centicredits))
+        }
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(try decoder.decode(FX.ExchangeRate.self, from: payloads[index % payloads.count]))
+            index &+= 1
+        }
+    }
+
     // The peer writes one string, not three fields, so read these against the rows above as a floor
     // for the coder, not like for like.
     Benchmark("FixedPoint JSON encode", configuration: defaultConfiguration) { benchmark in
