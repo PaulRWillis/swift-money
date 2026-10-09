@@ -1,6 +1,6 @@
 #if !hasFeature(Embedded)
 
-extension FX.ExchangeRateOf: Codable {
+extension FX.ExchangeRateOf: Codable where From: CurrencyType, To: CurrencyType {
     /// Writes the rate as its two currency codes and its market quote.
     ///
     /// The quote is `To` major units per one `From` major unit, as a decimal string carrying every
@@ -18,7 +18,10 @@ extension FX.ExchangeRateOf: Codable {
 
         try container.encode(String(From.currency.code), forKey: .from)
         try container.encode(String(To.currency.code), forKey: .to)
-        try container.encode(description, forKey: .rate)
+        try container.encode(
+            FX.quoteText(of: minorPerMinorRate, placesGained: FX.placesGained(from: From.currency, to: To.currency)),
+            forKey: .rate
+        )
     }
 
     /// Reads a rate written as its two currency codes and its market quote.
@@ -44,7 +47,12 @@ extension FX.ExchangeRateOf: Codable {
         let text = try container.decode(String.self, forKey: .rate)
 
         do {
-            self = try Self(string: text)
+            let rate = try FX.minorPerMinorRate(
+                quote: text,
+                placesGained: FX.placesGained(from: From.currency, to: To.currency)
+            )
+
+            self = Self(unchecked: rate, fromStorage: .implied, toStorage: .implied)
         } catch {
             throw DecodingError.dataCorruptedError(
                 forKey: .rate,
@@ -55,7 +63,7 @@ extension FX.ExchangeRateOf: Codable {
     }
 }
 
-extension FX.ExchangeRateOf {
+extension FX.ExchangeRateOf where From: CurrencyType, To: CurrencyType {
     /// The keys a rate's fields are written under.
     private enum CodingKeys: String, CodingKey {
         /// The code of the currency the rate converts from.

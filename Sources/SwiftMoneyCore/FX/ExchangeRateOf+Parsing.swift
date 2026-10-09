@@ -1,4 +1,4 @@
-public extension FX.ExchangeRateOf{
+public extension FX.ExchangeRateOf where From: CurrencyType, To: CurrencyType {
     /// Creates an exchange rate from a market quote's text: `To` major units per one `From` major
     /// unit, as a plain decimal.
     ///
@@ -16,22 +16,89 @@ public extension FX.ExchangeRateOf{
     ///   ``FX/ExchangeRateParsingError/notPositive`` if it is zero or negative;
     ///   ``FX/ExchangeRateParsingError/inexactRate(maximumFractionDigits:)`` if it has more places
     ///   than the rate holds; ``FX/ExchangeRateParsingError/overflow`` if it is too large to hold.
+    @inlinable
     init(string quote: String) throws(FX.ExchangeRateParsingError) {
-        guard let (significand, fractionDigits) = Rate.scanDecimal(quote[...]) else {
-            throw .unrecognizedText
-        }
+        try self.init(quote: quote, fromStorage: .implied, toStorage: .implied)
+    }
+}
 
+extension FX.ExchangeRateOf {
+    /// Creates a rate from a market quote's text, between the currencies two storages name.
+    ///
+    /// The quote is scaled for the same two currencies the rate stores, so it can't be scaled for
+    /// one pair and kept under another.
+    ///
+    /// - Parameters:
+    ///   - quote: The market quote, such as `"0.87"`.
+    ///   - fromStorage: What names the currency the rate converts from.
+    ///   - toStorage: What names the currency the rate converts to.
+    /// - Throws: ``FX/ExchangeRateParsingError/unrecognizedText`` if `quote` is not a plain decimal;
+    ///   ``FX/ExchangeRateParsingError/notPositive`` if it is zero or negative;
+    ///   ``FX/ExchangeRateParsingError/inexactRate(maximumFractionDigits:)`` if it has more places
+    ///   than the rate holds; ``FX/ExchangeRateParsingError/overflow`` if it is too large to hold.
+    @inlinable
+    init(quote: String, fromStorage: From.Storage, toStorage: To.Storage) throws(FX.ExchangeRateParsingError) {
         let rate = try FX.minorPerMinorRate(
-            significand: significand,
-            exponent: -fractionDigits,
-            placesGained: Self.placesGained
+            quote: quote,
+            placesGained: Self.placesGained(fromStorage: fromStorage, toStorage: toStorage)
         )
 
-        guard let result = Self(minorPerMinor: rate) else {
-            throw .notPositive
-        }
+        self.init(unchecked: rate, fromStorage: fromStorage, toStorage: toStorage)
+    }
 
-        self = result
+    /// Creates a rate from a market quote, between the currencies two storages name.
+    ///
+    /// The quote is scaled for the same two currencies the rate stores, so it can't be scaled for
+    /// one pair and kept under another.
+    ///
+    /// - Parameters:
+    ///   - marketRate: The market quote: `To` major units per one `From` major unit.
+    ///   - fromStorage: What names the currency the rate converts from.
+    ///   - toStorage: What names the currency the rate converts to.
+    /// - Throws: ``FX/ExchangeRateParsingError/notPositive`` if the quote is zero or negative;
+    ///   ``FX/ExchangeRateParsingError/inexactRate(maximumFractionDigits:)`` if it has more places
+    ///   than the rate holds; ``FX/ExchangeRateParsingError/overflow`` if it is too large to hold.
+    @inlinable
+    init(marketRate: Rate, fromStorage: From.Storage, toStorage: To.Storage) throws(FX.ExchangeRateParsingError) {
+        let rate = try FX.minorPerMinorRate(
+            marketRate: marketRate,
+            placesGained: Self.placesGained(fromStorage: fromStorage, toStorage: toStorage)
+        )
+
+        self.init(unchecked: rate, fromStorage: fromStorage, toStorage: toStorage)
+    }
+
+    /// The decimal places a quote gains when rescaled from major units to smallest units: `To`'s
+    /// places less `From`'s, from `-18` to `18`.
+    @inlinable
+    var placesGained: Int {
+        Self.placesGained(fromStorage: fromStorage, toStorage: toStorage)
+    }
+
+    /// Returns the decimal places a quote gains when rescaled from major units to smallest units,
+    /// between the currencies two storages name.
+    ///
+    /// - Parameters:
+    ///   - fromStorage: What names the currency converted from.
+    ///   - toStorage: What names the currency converted to.
+    /// - Returns: The places of the currency converted to, less those of the one converted from,
+    ///   from `-18` to `18`.
+    @inlinable
+    static func placesGained(fromStorage: From.Storage, toStorage: To.Storage) -> Int {
+        FX.placesGained(from: From.currency(for: fromStorage), to: To.currency(for: toStorage))
+    }
+}
+
+extension FX {
+    /// Returns the decimal places a quote gains when rescaled from major units to smallest units.
+    ///
+    /// - Parameters:
+    ///   - from: The currency converted from.
+    ///   - to: The currency converted to.
+    /// - Returns: The places of `to` less those of `from`, from `-18` to `18`.
+    @inlinable
+    static func placesGained(from: Currency, to: Currency) -> Int {
+        to.unitScale.decimalPlaces - from.unitScale.decimalPlaces
     }
 }
 
@@ -42,20 +109,36 @@ extension FX.ExchangeRateOf: CustomStringConvertible {
     /// let eurGbp = try FX.ExchangeRateOf<Currencies.EUR, Currencies.GBP>(string: "0.870")
     /// eurGbp.description   // "0.87"
     /// ```
+    @inlinable
     public var description: String {
+        FX.quoteText(of: minorPerMinorRate, placesGained: placesGained)
+    }
+}
+
+extension FX {
+    /// Returns a rate's market quote, with every digit the rate holds and no trailing zeros.
+    ///
+    /// - Parameters:
+    ///   - minorPerMinorRate: A positive rate in smallest units of one currency per smallest unit of
+    ///     another.
+    ///   - placesGained: The decimal places of the currency converted to, less those of the currency
+    ///     converted from.
+    /// - Returns: The quote in major units of the one currency per major unit of the other.
+    @usableFromInline
+    static func quoteText(of minorPerMinorRate: Rate, placesGained: Int) -> String {
         withUnsafeTemporaryAllocation(of: UInt8.self, capacity: UInt128.maximumDecimalDigits) { buffer in
             // The stored rate is a positive whole number of 10⁻¹⁸ smallest-unit parts, so its digits
             // are the quote's with the point moved `18 + placesGained` places in: from 0 to 36.
             let start = minorPerMinorRate.value.storageBits.magnitude.writeDecimalDigits(endingAt: buffer)
             var end = buffer.count
-            var places = Fixed.fractionalDigits + Self.placesGained
+            var places = Fixed.fractionalDigits + placesGained
 
             while places > 0, buffer[end - 1] == UInt8(ascii: "0") {
                 end -= 1
                 places -= 1
             }
 
-            return Self.quoteText(digits: UnsafeMutableBufferPointer(rebasing: buffer[start ..< end]), places: places)
+            return decimalText(digits: UnsafeMutableBufferPointer(rebasing: buffer[start ..< end]), places: places)
         }
     }
 
@@ -65,7 +148,7 @@ extension FX.ExchangeRateOf: CustomStringConvertible {
     ///   - digits: ASCII digits, most significant first, with no leading or trailing zeros to drop.
     ///   - places: How many of the digits fall after the point. May exceed the number of digits.
     /// - Returns: The decimal, with a leading `0` before a point that would otherwise start it.
-    private static func quoteText(digits: UnsafeMutableBufferPointer<UInt8>, places: Int) -> String {
+    private static func decimalText(digits: UnsafeMutableBufferPointer<UInt8>, places: Int) -> String {
         let count = digits.count
         let length = places == 0 ? count : count > places ? count + 1 : places + 2
 
@@ -133,20 +216,48 @@ private extension UInt128 {
     }
 }
 
-extension FX.ExchangeRateOf{
-    /// The decimal places a quote gains when rescaled from major units to smallest units: `To`'s
-    /// places less `From`'s, from `-18` to `18`.
-    static var placesGained: Int {
-        To.currency.unitScale.decimalPlaces - From.currency.unitScale.decimalPlaces
-    }
-}
-
 extension FX {
+    /// Returns a market quote's text rescaled from major units to smallest units, exactly.
+    ///
+    /// - Parameters:
+    ///   - quote: The market quote, such as `"0.87"`.
+    ///   - placesGained: The decimal places of the currency converted to, less those of the currency
+    ///     converted from.
+    /// - Returns: The quote in smallest units of the currency converted to, per smallest unit of the
+    ///   currency converted from.
+    /// - Throws: ``ExchangeRateParsingError/unrecognizedText`` if `quote` is not a plain decimal;
+    ///   otherwise as ``minorPerMinorRate(significand:exponent:placesGained:)`` does.
+    @usableFromInline
+    static func minorPerMinorRate(quote: String, placesGained: Int) throws(ExchangeRateParsingError) -> Rate {
+        guard let (significand, fractionDigits) = Rate.scanDecimal(quote[...]) else {
+            throw .unrecognizedText
+        }
+
+        return try minorPerMinorRate(significand: significand, exponent: -fractionDigits, placesGained: placesGained)
+    }
+
+    /// Returns a market quote rescaled from major units to smallest units, exactly.
+    ///
+    /// - Parameters:
+    ///   - marketRate: The market quote: major units of one currency per major unit of another.
+    ///   - placesGained: The decimal places of the currency converted to, less those of the currency
+    ///     converted from.
+    /// - Returns: The quote in smallest units of the currency converted to, per smallest unit of the
+    ///   currency converted from.
+    /// - Throws: As ``minorPerMinorRate(significand:exponent:placesGained:)`` does.
+    @usableFromInline
+    static func minorPerMinorRate(marketRate: Rate, placesGained: Int) throws(ExchangeRateParsingError) -> Rate {
+        try minorPerMinorRate(
+            significand: marketRate.value.storageBits,
+            exponent: -Fixed.fractionalDigits,
+            placesGained: placesGained
+        )
+    }
+
     /// Returns a market quote rescaled from major units to smallest units, exactly.
     ///
     /// Takes the scales as a number rather than as currency types, so a rate between currencies known
-    /// only at runtime can use it too. Leaves the sign alone: a rate's own initializer refuses one that
-    /// isn't positive.
+    /// only at runtime can use it too.
     ///
     /// - Parameters:
     ///   - significand: The quote's digits as a whole number: `87` for `0.87`.
@@ -154,10 +265,10 @@ extension FX {
     ///   - placesGained: The decimal places of the currency converted to, less those of the currency
     ///     converted from.
     /// - Returns: The quote in smallest units of the currency converted to, per smallest unit of the
-    ///   currency converted from.
+    ///   currency converted from: always greater than zero.
     /// - Throws: ``ExchangeRateParsingError/inexactRate(maximumFractionDigits:)`` if a non-zero digit
     ///   falls past the 18th place; ``ExchangeRateParsingError/overflow`` if the result is too large
-    ///   to hold.
+    ///   to hold; ``ExchangeRateParsingError/notPositive`` if it is zero or negative.
     static func minorPerMinorRate(
         significand: Int128,
         exponent: Int,
@@ -167,7 +278,13 @@ extension FX {
 
         switch Fixed.exactness(significand: significand, exponent: shifted, rounding: .toNearestOrEven) {
         case let .exact(value)?:
-            return Rate(value)
+            let rate = Rate(value)
+
+            guard rate.isPositive else {
+                throw .notPositive
+            }
+
+            return rate
 
         case .rounded?:
             throw .inexactRate(maximumFractionDigits: Fixed.fractionalDigits + placesGained)

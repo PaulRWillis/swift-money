@@ -10,7 +10,7 @@ private let codingRates: [Rate] = samples(
     edges: ["0.000001", "1", "1000000000000"]
 )
 
-private func roundTripped<From, To>(_ rate: FX.ExchangeRateOf<From, To>) throws -> FX.ExchangeRateOf<From, To> {
+private func roundTripped<From: CurrencyType, To: CurrencyType>(_ rate: FX.ExchangeRateOf<From, To>) throws -> FX.ExchangeRateOf<From, To> {
     try JSONDecoder().decode(FX.ExchangeRateOf<From, To>.self, from: JSONEncoder().encode(rate))
 }
 

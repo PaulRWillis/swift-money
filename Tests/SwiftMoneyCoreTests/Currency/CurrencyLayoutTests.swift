@@ -63,6 +63,18 @@ struct CurrencyLayoutTests {
         #expect(MemoryLayout<GBP.StrideThrough.Iterator>.stride == Self.words(4))
     }
 
+    @Test("A typed exchange rate is its rate alone, two words")
+    func typedExchangeRateIsTwoWords() {
+        #expect(MemoryLayout<FX.ExchangeRateOf<Currencies.EUR, Currencies.GBP>>.size == Self.words(2))
+        #expect(MemoryLayout<FX.ExchangeRateOf<Currencies.EUR, Currencies.GBP>>.stride == Self.words(2))
+    }
+
+    @Test("A runtime exchange rate is its rate and two currencies, four words")
+    func runtimeExchangeRateIsFourWords() {
+        #expect(MemoryLayout<FX.ExchangeRateOf<AnyCurrency, AnyCurrency>>.size == Self.words(4))
+        #expect(MemoryLayout<FX.ExchangeRateOf<AnyCurrency, AnyCurrency>>.stride == Self.words(4))
+    }
+
     @Test("A money error is two machine words")
     func moneyErrorIsTwoWords() {
         #expect(MemoryLayout<MoneyError>.stride == Self.words(2))

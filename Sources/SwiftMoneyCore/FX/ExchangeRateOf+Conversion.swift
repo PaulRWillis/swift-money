@@ -1,4 +1,4 @@
-extension FX.ExchangeRateOf {
+extension FX.ExchangeRateOf where From: CurrencyType, To: CurrencyType {
     /// Returns an amount converted to `To` at this rate, keeping the fraction for a single settling.
     ///
     /// ```swift
