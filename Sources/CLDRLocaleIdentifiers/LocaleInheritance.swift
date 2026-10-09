@@ -99,7 +99,7 @@ package struct LocaleInheritance: Sendable {
     ///
     /// - Parameter name: A hyphen-separated locale name, spelled as CLDR spells it.
     /// - Returns: The first group the lookup finds, or the root's when it finds none.
-    /// - Complexity: O(*m*) per step, where *m* is the length of the name; at most one step per
+    /// - Complexity: O(*m*) per step, where *m* is the length of the name; at most two steps per
     ///   subtag, plus one per parent locale on the way.
     package func group(reachedFrom name: String) -> LocaleGroup {
         switch hop(from: name) {
