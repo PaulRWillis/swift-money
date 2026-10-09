@@ -13,8 +13,23 @@ private enum HighPrecision: CurrencyType {
     static let currency = customCurrency(code: "HGH", unitScale: 1_000_000_000_000_000_000)
 }
 
+// Eighteen decimal places, as ether has, so a rate from it holds only a couple of places per coin.
+private enum Ether: CurrencyType {
+    static let currency = customCurrency(code: "ETH", unitScale: 1_000_000_000_000_000_000)
+}
+
 @Suite("Exchange Rate Tests")
 struct ExchangeRateTests {
+
+    // An ETH→GBP rate holds pence per wei to 18 places: two places of pounds per ether.
+    @Test("A quote with more places than the rate holds builds no rate, rather than a rounded one")
+    func inexactQuoteIsNil() throws {
+        let twoPlaces = try #require(Rate(string: "3200.12"))
+        let threePlaces = try #require(Rate(string: "3200.125"))
+
+        #expect(FX.ExchangeRate<Ether, Currencies.GBP>(twoPlaces) != nil)
+        #expect(FX.ExchangeRate<Ether, Currencies.GBP>(threePlaces) == nil)
+    }
 
     @Test("A positive rate builds")
     func positiveRateBuilds() throws {

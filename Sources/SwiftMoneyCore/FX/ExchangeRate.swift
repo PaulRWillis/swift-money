@@ -29,23 +29,22 @@ public extension FX {
 
         /// Creates an exchange rate from a market quote: `To` major units per one `From` major unit.
         ///
+        /// The quote is never rounded. Use ``init(string:)`` to learn why a quote was refused.
+        ///
+        /// - Parameter marketRate: The market quote.
         /// - Returns: `nil` if the rate is not strictly positive (a zero or negative exchange rate
-        ///   would zero or sign-flip a conversion), or if rescaling it between the two currencies
-        ///   overflows the representable range.
+        ///   would zero or sign-flip a conversion), if it has more decimal places than a rate between
+        ///   the two currencies holds, or if it is too large to hold.
         public init?(_ marketRate: Rate) {
-            // A major-unit rate scaled to minor units: multiplying a `From`-minor amount by the result
-            // gives a `To`-minor amount. `× toScale ÷ fromScale` converts between the two quote
-            // forms. For example, $1 = ¥149.5 (per major) becomes 1.495 ¥-minor per ¢, since ¥ has
-            // scale 1 and $ has 100. The multiply is checked because the two scales can differ widely
-            // enough to overflow; the divide that follows only shrinks an already-representable value,
-            // so it cannot.
-            guard let scaled = marketRate.value
-                .multipliedIfRepresentable(by: Int128(Int64(To.currency.unitScale)))?
-                .divided(by: Fixed.Divisor(From.currency.unitScale)) else {
+            guard let rate = try? FX.minorPerMinorRate(
+                significand: marketRate.value.storageBits,
+                exponent: -Fixed.fractionalDigits,
+                placesGained: Self.placesGained
+            ) else {
                 return nil
             }
 
-            self.init(minorPerMinor: Rate(scaled))
+            self.init(minorPerMinor: rate)
         }
 
         /// Returns the customer rate for this mid-market rate: the rate less the provider's margin.
