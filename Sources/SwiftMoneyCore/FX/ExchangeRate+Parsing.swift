@@ -43,24 +43,93 @@ extension FX.ExchangeRate: CustomStringConvertible {
     /// eurGbp.description   // "0.87"
     /// ```
     public var description: String {
-        // The stored rate is a positive whole number of 10⁻¹⁸ smallest-unit parts, so its digits are
-        // the quote's with the point moved `18 + placesGained` places in: from 0 to 36.
-        var digits = String(minorPerMinorRate.value.storageBits)
-        var places = Fixed.fractionalDigits + Self.placesGained
+        withUnsafeTemporaryAllocation(of: UInt8.self, capacity: UInt128.maximumDecimalDigits) { buffer in
+            // The stored rate is a positive whole number of 10⁻¹⁸ smallest-unit parts, so its digits
+            // are the quote's with the point moved `18 + placesGained` places in: from 0 to 36.
+            let start = minorPerMinorRate.value.storageBits.magnitude.writeDecimalDigits(endingAt: buffer)
+            var end = buffer.count
+            var places = Fixed.fractionalDigits + Self.placesGained
 
-        while places > 0, digits.last == "0" {
-            digits.removeLast()
-            places -= 1
+            while places > 0, buffer[end - 1] == UInt8(ascii: "0") {
+                end -= 1
+                places -= 1
+            }
+
+            return Self.quoteText(digits: UnsafeMutableBufferPointer(rebasing: buffer[start ..< end]), places: places)
+        }
+    }
+
+    /// Returns digits written as a decimal, with the point the given number of places from the end.
+    ///
+    /// - Parameters:
+    ///   - digits: ASCII digits, most significant first, with no leading or trailing zeros to drop.
+    ///   - places: How many of the digits fall after the point. May exceed the number of digits.
+    /// - Returns: The decimal, with a leading `0` before a point that would otherwise start it.
+    private static func quoteText(digits: UnsafeMutableBufferPointer<UInt8>, places: Int) -> String {
+        let count = digits.count
+        let length = places == 0 ? count : count > places ? count + 1 : places + 2
+
+        return String(unsafeUninitializedCapacity: length) { output in
+            var offset = 0
+
+            func write(_ byte: UInt8) {
+                output[offset] = byte
+                offset += 1
+            }
+
+            if places == 0 {
+                digits.forEach(write)
+            } else if count > places {
+                digits[..<(count - places)].forEach(write)
+                write(UInt8(ascii: "."))
+                digits[(count - places)...].forEach(write)
+            } else {
+                write(UInt8(ascii: "0"))
+                write(UInt8(ascii: "."))
+                (0 ..< (places - count)).forEach { _ in write(UInt8(ascii: "0")) }
+                digits.forEach(write)
+            }
+
+            return offset
+        }
+    }
+}
+
+private extension UInt128 {
+    /// The most decimal digits a value can have: `UInt128.max` is about 3.4 × 10³⁸.
+    static let maximumDecimalDigits = 39
+
+    /// Writes the value's decimal digits as ASCII at the end of a buffer, and returns where they start.
+    ///
+    /// - Parameter buffer: Space for at least ``maximumDecimalDigits`` bytes.
+    /// - Returns: The index of the most significant digit; the digits run to the buffer's end.
+    func writeDecimalDigits(endingAt buffer: UnsafeMutableBufferPointer<UInt8>) -> Int {
+        // Ten to the nineteenth is the largest power of ten a `UInt64` holds, so each chunk of 19
+        // digits is written with cheap 64-bit division, and the 128-bit division runs at most twice.
+        let chunk: UInt64 = 10_000_000_000_000_000_000
+        var remaining = self
+        var index = buffer.count
+
+        func write(_ value: UInt64, padTo width: Int) {
+            var value = value
+            var written = 0
+
+            repeat {
+                index -= 1
+                buffer[index] = UInt8(ascii: "0") + UInt8(value % 10)
+                value /= 10
+                written += 1
+            } while value > 0 || written < width
         }
 
-        guard places > 0 else {
-            return digits
+        while remaining > UInt128(UInt64.max) {
+            let (quotient, low) = remaining.quotientAndRemainder(dividingBy: UInt128(chunk))
+            write(UInt64(low), padTo: 19)
+            remaining = quotient
         }
+        write(UInt64(remaining), padTo: 1)
 
-        let padded = String(repeating: "0", count: max(0, places + 1 - digits.count)) + digits
-        let point = padded.index(padded.endIndex, offsetBy: -places)
-
-        return String(padded[..<point]) + "." + String(padded[point...])
+        return index
     }
 }
 

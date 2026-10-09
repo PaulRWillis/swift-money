@@ -101,6 +101,15 @@ struct ExchangeRateParsingTests {
         #expect(jpyUsd.description == "0.008")
     }
 
+    // Thirty-nine digits, the most a rate's stored value has, so every digit of it is written.
+    @Test("A rate with as many digits as it can hold is described with every one")
+    func describesTheLongestQuote() throws {
+        let quote = "123456789012345678901.234567890123456789"
+        let rate = try EURGBP(string: quote)
+
+        #expect(rate.description == quote)
+    }
+
     // ¥1 = $0.0066889632107023411… needs more than eighteen places once quoted per major unit.
     @Test("A rate whose quote needs more than eighteen places is described with every digit")
     func describesBeyondEighteenPlaces() throws {
