@@ -61,10 +61,9 @@ jobs:
       with:
         xcode-version: '26.5'
 
-    - name: List schemes
-      run: xcodebuild -list
-
+    # An explicit bash shell adds pipefail, without which the tee hides a failed build.
     - name: Build
+      shell: bash
       run: >-
         xcodebuild build
         -scheme SwiftMoney
