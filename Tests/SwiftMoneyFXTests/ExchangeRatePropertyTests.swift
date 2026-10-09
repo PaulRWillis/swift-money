@@ -1,5 +1,6 @@
 import SwiftMoneyCore
 import SwiftMoneyCoreTestSupport
+import SwiftMoneyFX
 import Testing
 
 // A conversion to exercise: an amount, a mid rate (EUR→GBP), a second leg (GBP→USD) to cross with, a

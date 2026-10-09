@@ -1,6 +1,7 @@
 import Benchmark
 import Foundation
 import SwiftMoneyCore
+import SwiftMoneyFX
 import SwiftMoneyLocalization
 
 // The rest of `SwiftMoneyCore`'s public API: every operation the main suite had no row for, so each

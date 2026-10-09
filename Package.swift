@@ -21,6 +21,10 @@ let package = Package(
             targets: ["SwiftMoneyCore"]
         ),
         .library(
+            name: "SwiftMoneyFX",
+            targets: ["SwiftMoneyFX"]
+        ),
+        .library(
             name: "SwiftMoneyLocalization",
             targets: ["SwiftMoneyLocalization"]
         ),
@@ -42,6 +46,10 @@ let package = Package(
         ),
         .target(
             name: "SwiftMoneyCore"
+        ),
+        .target(
+            name: "SwiftMoneyFX",
+            dependencies: ["SwiftMoneyCore"]
         ),
         .target(
             name: "SwiftMoneyLocalization",
@@ -102,6 +110,10 @@ let package = Package(
             dependencies: ["SwiftMoneyCore", "SwiftMoneyCoreTestSupport"],
             // The General Decimal Arithmetic conformance corpus, parsed at runtime by GDATests.
             resources: [.copy("Resources")]
+        ),
+        .testTarget(
+            name: "SwiftMoneyFXTests",
+            dependencies: ["SwiftMoneyFX", "SwiftMoneyCore", "SwiftMoneyCoreTestSupport"]
         ),
         .testTarget(
             name: "SwiftMoneyLocalizationTests",
