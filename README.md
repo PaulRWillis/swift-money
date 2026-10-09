@@ -68,8 +68,9 @@ import SwiftMoney   // the core types and the Foundation-backed formatting, in o
 
 **Requires Swift 6.2.**
 **Platforms:** macOS 13.3+, iOS 16.4+, watchOS 9.4+, tvOS 16.4+, visionOS 1+. Those point releases
-are the first with `StaticBigInt`, which the library's 128-bit integer literals need. Linux builds in
-CI.
+are the first with `StaticBigInt`, which the library's 128-bit integer literals need. Below iOS 18
+and macOS 15, parsing and the digits some locales use follow the system's Foundation, so some
+formatted amounts may not parse back there. Linux builds in CI.
 
 ## Creating money
 
