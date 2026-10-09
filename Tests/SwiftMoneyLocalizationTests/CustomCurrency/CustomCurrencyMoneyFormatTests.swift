@@ -29,12 +29,14 @@ struct CustomCurrencyMoneyFormatTests {
         #expect(CurrencySymbol(text) == "M")
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("An empty currency symbol literal traps")
     func emptySymbolLiteralTraps() async {
         await #expect(processExitsWith: .failure) {
             let _: CurrencySymbol = ""
         }
     }
+    #endif
 
     // The generic entry reads the display from the type, proving the binding, and a glyph takes the
     // locale's pattern gap: none in en, a non-breaking space in de.

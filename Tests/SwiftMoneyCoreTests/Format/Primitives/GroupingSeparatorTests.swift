@@ -18,10 +18,12 @@ struct GroupingSeparatorTests {
         #expect(GroupingSeparator(empty) == nil)
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("Literal: an empty separator traps")
     func fromEmptyLiteral() async {
         await #expect(processExitsWith: .failure) {
             let _: GroupingSeparator = ""
         }
     }
+    #endif
 }

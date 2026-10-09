@@ -123,6 +123,7 @@ struct UnroundedTests {
             == (try [runtime, runtime, runtime].total())?.rounded(.toNearestOrEven).minorUnits)
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("Scaling by an integer wider than Int128 traps")
     @available(macOS 15, iOS 18, watchOS 11, tvOS 18, visionOS 2, *)
     func scalingByIntegerWiderThanInt128Traps() async {
@@ -137,6 +138,7 @@ struct UnroundedTests {
             blackHole(GBP(minorUnits: 10_00).unrounded.divided(by: 0))
         }
     }
+    #endif
 
     // The case the type exists for: five years of daily interest, rounded once, matches the annual
     // figure to within a minor unit, where settling each day drifts away from it.
@@ -225,6 +227,7 @@ struct UnroundedTests {
         #expect(roundsIdentically(GBP(minorUnits: 10_00).unrounded * third) == nil)
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("Scaling traps on overflow")
     func scalingTrapsOnOverflow() async {
         await #expect(processExitsWith: .failure) {
@@ -238,6 +241,7 @@ struct UnroundedTests {
             blackHole(GBP.min.unrounded * 20)
         }
     }
+    #endif
 
     @Test("Settling the largest and smallest amounts never overflows", arguments: everyRule)
     func settlingTheExtremesNeverOverflows(rule: RoundingRule) {
@@ -347,6 +351,7 @@ struct UnroundedTests {
         #expect(GBP.Unrounded.zero.rounded(.awayFromZero) == GBP.zero)
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("Adding traps on overflow")
     func addingTrapsOnOverflow() async {
         await #expect(processExitsWith: .failure) {
@@ -362,6 +367,7 @@ struct UnroundedTests {
             blackHole(GBP.min.unrounded * 15 - huge)
         }
     }
+    #endif
 
     @Test("Equal chains are equal however they were reached")
     func equalChainsAreEqual() throws {

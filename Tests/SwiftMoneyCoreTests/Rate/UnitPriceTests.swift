@@ -75,6 +75,7 @@ struct UnitPriceTests {
         #expect(tariff.total(for: 1_000).rounded(.toNearestOrEven) == GBP(minorUnits: 23_00))
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("Totaling a quantity too large to represent traps")
     func totalTrapsOnOverflow() async {
         await #expect(processExitsWith: .failure) {
@@ -83,4 +84,5 @@ struct UnitPriceTests {
             blackHole(price.total(for: Int64.max))
         }
     }
+    #endif
 }

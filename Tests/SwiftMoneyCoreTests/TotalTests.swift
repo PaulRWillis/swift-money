@@ -54,6 +54,7 @@ struct TotalTests {
         }
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("Totaling traps on overflow")
     func totalTrapsOnOverflow() async {
         await #expect(processExitsWith: .failure) {
@@ -77,6 +78,7 @@ struct TotalTests {
             blackHole(try amounts.total())
         }
     }
+    #endif
 
     // Three thirds of a penny total a penny. Settling each one first would total nothing.
     @Test("Totaling unrounded typed amounts stays exact")

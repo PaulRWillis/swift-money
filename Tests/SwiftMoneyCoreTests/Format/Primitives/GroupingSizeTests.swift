@@ -19,10 +19,12 @@ struct GroupingSizeTests {
         #expect(GroupingSize(exactly: -1) == nil)
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("Literal: init from zero traps")
     func initFromZeroLiteral() async {
         await #expect(processExitsWith: .failure) {
             _ = GroupingSize(0)
         }
     }
+    #endif
 }

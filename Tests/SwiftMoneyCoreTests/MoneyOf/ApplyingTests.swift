@@ -128,6 +128,7 @@ struct ApplyingTests {
         #expect(threeHalvesOfThisIsTheLargestAmount.applying(threeHalves).rounded(.towardZero) == GBP.max)
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("Settling past the range traps, where truncating would not")
     func roundingTrapsOnOverflow() async {
         await #expect(processExitsWith: .failure) {
@@ -148,6 +149,7 @@ struct ApplyingTests {
             blackHole(GBP.min.applying("2").rounded(.toNearestOrEven))
         }
     }
+    #endif
 
     @Test("A runtime-currency amount scales and keeps its currency")
     func runtimeCurrency() {

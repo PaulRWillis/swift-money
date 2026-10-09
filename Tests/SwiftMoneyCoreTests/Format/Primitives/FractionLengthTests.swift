@@ -14,12 +14,14 @@ struct FractionLengthTests {
         #expect(FractionLength(exactly: -1) == nil)
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("Literal: init from a negative value traps")
     func initFromNegativeLiteral() async {
         await #expect(processExitsWith: .failure) {
             _ = FractionLength(-1)
         }
     }
+    #endif
 
     // Nineteen is the ceiling the display engine can actually render (padding multiplies by a power of
     // ten held in a UInt64, and 10^20 overflows it) — pinning both sides of that boundary here means an
@@ -34,10 +36,12 @@ struct FractionLengthTests {
         #expect(FractionLength(exactly: 20) == nil)
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("Literal: init one past the widest renderable length traps")
     func initPastWidestRenderableLengthLiteral() async {
         await #expect(processExitsWith: .failure) {
             _ = FractionLength(20)
         }
     }
+    #endif
 }

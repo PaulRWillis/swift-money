@@ -43,6 +43,7 @@ struct MoneyOfTests {
         #expect(GBP(exactly: UInt64.max) == nil)
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("when constructed from value beyond storage should trap")
     @available(macOS 15, iOS 18, watchOS 11, tvOS 18, visionOS 2, *)
     func whenConstructedFromValueBeyondStorage_shouldTrap() async {
@@ -50,6 +51,7 @@ struct MoneyOfTests {
             blackHole(GBP(minorUnits: Int128.max))
         }
     }
+    #endif
 
     @Test("Add succeeds")
     func add() {
@@ -59,6 +61,7 @@ struct MoneyOfTests {
         #expect(a + b == GBP(minorUnits: 12))
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("Add traps on overflow")
     func addTrapsOnOverflow() async {
         await #expect(processExitsWith: .failure) {
@@ -72,6 +75,7 @@ struct MoneyOfTests {
             blackHole(GBP.min + GBP(minorUnits: -1))
         }
     }
+    #endif
 
     @Test("Addition in place succeeds")
     func additionInPlace() {
@@ -91,6 +95,7 @@ struct MoneyOfTests {
         #expect(a - b == GBP(minorUnits: -2))
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("Subtract traps on overflow")
     func subtractTrapsOnOverflow() async {
         await #expect(processExitsWith: .failure) {
@@ -104,6 +109,7 @@ struct MoneyOfTests {
             blackHole(GBP.min - GBP(minorUnits: 1))
         }
     }
+    #endif
 
     @Test("Subtraction in place succeeds")
     func subtractionInPlace() {
@@ -135,12 +141,14 @@ struct MoneyOfTests {
         #expect(-GBP.zero == GBP.zero)
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("Negation traps on min")
     func negationTrapsOnMin() async {
         await #expect(processExitsWith: .failure) {
             blackHole(-GBP.min)
         }
     }
+    #endif
 
     @Test("Magnitude of a negative amount is its positive counterpart")
     func magnitudeOfNegativeAmountIsPositiveCounterpart() {
@@ -162,12 +170,14 @@ struct MoneyOfTests {
         #expect(sut.magnitude == GBP.max)
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("Magnitude traps on min")
     func magnitudeTrapsOnMin() async {
         await #expect(processExitsWith: .failure) {
             blackHole(GBP.min.magnitude)
         }
     }
+    #endif
 
     @Test("Is negative below zero")
     func isNegativeBelowZero() {
@@ -224,6 +234,7 @@ struct MoneyOfTests {
         #expect(neg * -3 == GBP(minorUnits: +36))
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("Integral multiplication traps on overflow")
     func integralMultiplicationTrapsOnOverflow() async {
         await #expect(processExitsWith: .failure) {
@@ -245,6 +256,7 @@ struct MoneyOfTests {
             blackHole(2 * GBP.min)
         }
     }
+    #endif
 
     @Test("Integral multiplication in place func succeeds")
     func integralMultiplicationInPlace() {
@@ -264,6 +276,7 @@ struct MoneyOfTests {
         #expect(hugeMultiplier * GBP.zero == GBP.zero)
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("Integral multiplication by a multiplier too wide for Int64 still traps when the product overflows")
     func integralMultiplicationByWideMultiplierTrapsWhenProductOverflows() async {
         await #expect(processExitsWith: .failure) {
@@ -274,6 +287,7 @@ struct MoneyOfTests {
             blackHole(UInt64.max * GBP(minorUnits: 1))
         }
     }
+    #endif
 
     // Fractional scaling is covered by ScalingTests, which drives the algorithm through GBP.
 
