@@ -171,7 +171,7 @@ struct StrideFunctionsTests {
     @Test("The stride types' doc examples compile and give their amounts")
     func docExamples() {
         let end = GBP(minorUnits: 3_00)
-        let amounts = stride(from: .zero, to: end, by: .majorUnit)   // MoneyStrideTo<Currencies.GBP>
+        let amounts = stride(from: .zero, to: end, by: .majorUnit)   // GBP.StrideTo
         let throughEnd = GBP(minorUnits: 2_50)
         // MoneyStrideThrough<Currencies.GBP>
         let throughAmounts = stride(from: .zero, through: throughEnd, by: .majorUnit)
@@ -232,21 +232,25 @@ struct StrideFunctionsTests {
         #expect(Array(downward.prefix(3)).map(\.minorUnits) == [Int64.max, Int64.max - 1, Int64.max - 2])
     }
 
-    @Test("stride returns MoneyStrideTo and MoneyStrideThrough, and stepping an iterator leaves them intact")
+    @Test("stride returns StrideTo and MoneyStrideThrough, and stepping an iterator leaves them intact")
     func namedTypes() throws {
-        let upTo: MoneyStrideTo<Currencies.GBP> = stride(from: GBP.zero, to: GBP(minorUnits: 2), by: .minorUnit)
+        let upTo: GBP.StrideTo = stride(from: GBP.zero, to: GBP(minorUnits: 2), by: .minorUnit)
+        let runtimeUpTo: Money.StrideTo = try stride(from: pounds(0), to: pounds(2), by: runtimeStride(1))
         let through: MoneyStrideThrough<AnyCurrency> = try stride(from: pounds(0), through: pounds(1), by: runtimeStride(1))
-        var upToIterator: MoneyStrideToIterator<Currencies.GBP> = upTo.makeIterator()
+        var upToIterator: GBP.StrideTo.Iterator = upTo.makeIterator()
         var throughIterator: MoneyStrideThroughIterator<AnyCurrency> = through.makeIterator()
 
         #expect(upToIterator.next() == .zero)
         #expect(throughIterator.next() == pounds(0))
         #expect(Array(upTo) == [GBP.zero, GBP(minorUnits: 1)])
+        #expect(Array(runtimeUpTo) == [pounds(0), pounds(1)])
         #expect(Array(through) == [pounds(0), pounds(1)])
     }
 
     @Test("stride over Int still type-checks with SwiftMoneyCore imported")
     func integerStrideUnaffected() {
+        let _: StrideTo<Int> = stride(from: 0, to: 10, by: 2)
+
         #expect(Array(stride(from: 0, to: 10, by: 2)) == [0, 2, 4, 6, 8])
         #expect(Array(stride(from: 0, through: 10, by: 5)) == [0, 5, 10])
     }
