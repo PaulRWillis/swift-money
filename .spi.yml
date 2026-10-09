@@ -1,4 +1,4 @@
 version: 1
 builder:
   configs:
-    - documentation_targets: [SwiftMoneyCore]
+    - documentation_targets: [SwiftMoneyCore, SwiftMoneyFX]

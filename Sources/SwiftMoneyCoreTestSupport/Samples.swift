@@ -3,7 +3,7 @@
 // The random draws are prepended with a hand-written edge corpus — the boundary values a shrinker would
 // converge on, always present rather than hoped for. A single seed fixes the whole array, so a failing
 // element printed by swift-testing is itself the reproduction.
-func samples<Value>(
+package func samples<Value>(
     _ generator: Gen<Value>,
     count: Int = PropertySeed.sampleCount,
     seed: UInt64,

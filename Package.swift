@@ -21,6 +21,10 @@ let package = Package(
             targets: ["SwiftMoneyCore"]
         ),
         .library(
+            name: "SwiftMoneyFX",
+            targets: ["SwiftMoneyFX"]
+        ),
+        .library(
             name: "SwiftMoneyLocalization",
             targets: ["SwiftMoneyLocalization"]
         ),
@@ -44,6 +48,10 @@ let package = Package(
             name: "SwiftMoneyCore"
         ),
         .target(
+            name: "SwiftMoneyFX",
+            dependencies: ["SwiftMoneyCore"]
+        ),
+        .target(
             name: "SwiftMoneyLocalization",
             dependencies: ["SwiftMoneyCore"],
             // The generator writes its report of the locales it left out beside the tables, so that
@@ -53,6 +61,12 @@ let package = Package(
         .target(
             name: "SwiftMoneyFoundation",
             dependencies: ["SwiftMoneyCore", "SwiftMoneyLocalization"]
+        ),
+        // Dev-only. The property-test generators and test helpers, shared by the Core, FX and
+        // Foundation test suites. Not in any library product.
+        .target(
+            name: "SwiftMoneyCoreTestSupport",
+            dependencies: ["SwiftMoneyCore"]
         ),
         // Dev-only. Shares the format-matrix inputs between the golden test and the ICU deviation
         // report, so they can't drift apart. Not in any library product.
@@ -93,9 +107,13 @@ let package = Package(
         ),
         .testTarget(
             name: "SwiftMoneyCoreTests",
-            dependencies: ["SwiftMoneyCore"],
+            dependencies: ["SwiftMoneyCore", "SwiftMoneyCoreTestSupport"],
             // The General Decimal Arithmetic conformance corpus, parsed at runtime by GDATests.
             resources: [.copy("Resources")]
+        ),
+        .testTarget(
+            name: "SwiftMoneyFXTests",
+            dependencies: ["SwiftMoneyFX", "SwiftMoneyCore", "SwiftMoneyCoreTestSupport"]
         ),
         .testTarget(
             name: "SwiftMoneyLocalizationTests",
@@ -103,7 +121,12 @@ let package = Package(
         ),
         .testTarget(
             name: "SwiftMoneyFoundationTests",
-            dependencies: ["SwiftMoneyFoundation", "SwiftMoneyFormatMatrix", "SwiftMoneyLocalization"]
+            dependencies: [
+                "SwiftMoneyFoundation",
+                "SwiftMoneyFormatMatrix",
+                "SwiftMoneyLocalization",
+                "SwiftMoneyCoreTestSupport",
+            ]
         ),
         .testTarget(
             name: "SwiftMoneyFormatMatrixTests",

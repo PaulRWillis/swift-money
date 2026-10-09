@@ -1,4 +1,5 @@
 import SwiftMoneyCore
+import SwiftMoneyFX
 import Testing
 
 @Suite("Conversion Tests")

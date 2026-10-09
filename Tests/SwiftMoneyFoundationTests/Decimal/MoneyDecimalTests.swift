@@ -1,5 +1,6 @@
 import Foundation
 import SwiftMoneyCore
+import SwiftMoneyCoreTestSupport
 import SwiftMoneyFoundation
 import Testing
 

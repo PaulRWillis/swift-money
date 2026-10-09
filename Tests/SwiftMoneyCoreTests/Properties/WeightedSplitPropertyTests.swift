@@ -1,4 +1,5 @@
 import SwiftMoneyCore
+import SwiftMoneyCoreTestSupport
 import Testing
 
 // An amount and the weights it is split by. The source list is kept alongside the `Weights` value so the

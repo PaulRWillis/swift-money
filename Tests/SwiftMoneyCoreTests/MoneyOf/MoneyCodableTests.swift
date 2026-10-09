@@ -1,5 +1,6 @@
 import Foundation
 import SwiftMoneyCore
+import SwiftMoneyCoreTestSupport
 import Testing
 
 // Scales other than the sterling hundredth, all powers of ten.

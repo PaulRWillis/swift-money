@@ -1,3 +1,4 @@
+import SwiftMoneyCoreTestSupport
 import Testing
 
 @Suite("Gen")

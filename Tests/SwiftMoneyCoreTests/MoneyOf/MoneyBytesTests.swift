@@ -1,4 +1,5 @@
 import SwiftMoneyCore
+import SwiftMoneyCoreTestSupport
 import Testing
 
 // The byte serializer exists only where `InlineArray` does (macOS 26 and up). The suite itself is not

@@ -3,6 +3,7 @@ import FixedPointDecimal
 import Foundation
 import SwiftMoneyCore
 import SwiftMoneyFoundation
+import SwiftMoneyFX
 import SwiftMoneyLocalization
 
 // Six baselines, because one number on its own says nothing. `Int` is what the type safety costs,

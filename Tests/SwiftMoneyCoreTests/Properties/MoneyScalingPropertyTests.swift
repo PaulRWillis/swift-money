@@ -1,4 +1,5 @@
 import SwiftMoneyCore
+import SwiftMoneyCoreTestSupport
 import Testing
 
 // One amount and the whole numbers it is scaled by, the operands of the ring-multiplication laws. Two

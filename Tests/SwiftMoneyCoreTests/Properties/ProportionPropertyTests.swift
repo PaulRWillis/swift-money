@@ -1,4 +1,5 @@
 import SwiftMoneyCore
+import SwiftMoneyCoreTestSupport
 import Testing
 
 // A part and the whole it is measured against, with `0 < whole` and `0 ≤ part ≤ whole`.

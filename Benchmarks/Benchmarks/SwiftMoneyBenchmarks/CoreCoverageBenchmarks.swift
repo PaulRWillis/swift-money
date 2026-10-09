@@ -1,12 +1,13 @@
 import Benchmark
 import Foundation
 import SwiftMoneyCore
+import SwiftMoneyFX
 import SwiftMoneyLocalization
 
-// The rest of `SwiftMoneyCore`'s public API: every operation the main suite had no row for, so each
-// public function has a number. Same rules as the main suite: every iteration reads a different operand,
-// so no call can be hoisted, and results reach the harness through `blackHole` (7 instructions for an
-// integer, 22 for a struct — read each row net of that).
+// The rest of the public API of `SwiftMoneyCore` and `SwiftMoneyFX`: every operation the main suite
+// had no row for, so each public function has a number. Same rules as the main suite: every iteration
+// reads a different operand, so no call can be hoisted, and results reach the harness through
+// `blackHole`, which costs 7 instructions for an integer and 22 for a struct; read each row net of it.
 func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
     let operands: [Int64] = [1, 2, 3, 5, 7, 10, 13, 17, 19, 23]
     let pounds = operands.map { GBP(minorUnits: $0) }

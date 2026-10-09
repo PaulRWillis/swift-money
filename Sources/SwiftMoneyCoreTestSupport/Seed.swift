@@ -5,16 +5,16 @@
 // the whole `.random(in:using:)` family drives it, and a given seed yields the same stream on every
 // platform, with no Foundation. It is the strong seed type the harness threads through generators, never
 // a raw `Int`.
-struct Seed: RandomNumberGenerator {
+package struct Seed: RandomNumberGenerator {
     private var state: UInt64
 
     /// Creates a generator whose stream is fixed by `seed`.
-    init(_ seed: UInt64) {
+    package init(_ seed: UInt64) {
         self.state = seed
     }
 
     /// Returns the next value in the stream and advances the state.
-    mutating func next() -> UInt64 {
+    package mutating func next() -> UInt64 {
         state = state &+ Self.increment
 
         var mixed = state

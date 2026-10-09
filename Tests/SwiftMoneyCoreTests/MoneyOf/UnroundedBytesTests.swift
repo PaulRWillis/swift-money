@@ -1,4 +1,5 @@
 import SwiftMoneyCore
+import SwiftMoneyCoreTestSupport
 import Testing
 
 // The serializer exists only where `InlineArray` does (macOS 26 and up). `@Test` cannot sit on an

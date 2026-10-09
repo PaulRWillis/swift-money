@@ -1,4 +1,5 @@
 import SwiftMoneyCore
+import SwiftMoneyCoreTestSupport
 import Testing
 
 // Ordered bounds and two non-zero strides in minor units. A narrow band makes a stride as long as the

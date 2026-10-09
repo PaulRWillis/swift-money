@@ -1,4 +1,5 @@
 import SwiftMoneyCore
+import SwiftMoneyCoreTestSupport
 import Testing
 
 // A currency defined entirely outside the library, proving no library change is needed to add one.

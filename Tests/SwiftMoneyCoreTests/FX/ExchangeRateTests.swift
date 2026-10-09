@@ -1,4 +1,5 @@
 import SwiftMoneyCore
+import SwiftMoneyCoreTestSupport
 import Testing
 
 // A currency at the coarsest scale (no minor units), for pairing against `HighPrecision` to force a

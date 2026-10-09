@@ -59,12 +59,23 @@ Then add the product your target needs. For most apps the umbrella product is al
 import SwiftMoney   // the core types and the Foundation-backed formatting, in one import
 ```
 
-`SwiftMoney` re-exports two libraries you can also depend on directly:
+`SwiftMoney` re-exports three libraries you can also depend on directly:
 
-- **`SwiftMoneyCore`** — the core money types, with no Foundation dependency, so it is the one to use
-  on Embedded Swift.
-- **`SwiftMoneyFoundation`** — the pieces that need Foundation: formatting, localized parsing,
+- `SwiftMoneyCore` has the core money types. It has no Foundation dependency, so it is the one to
+  use on Embedded Swift.
+- `SwiftMoneyLocalization` has the locale currency formats, generated from CLDR. It has no
+  Foundation dependency either, and builds for Embedded Swift.
+- `SwiftMoneyFoundation` has the pieces that need Foundation: formatting, localized parsing,
   `Decimal` interop, and JSON configuration.
+
+Converting an amount to another currency lives in **`SwiftMoneyFX`**, which `SwiftMoney` does not
+re-export, so converting always takes its own dependency and `import SwiftMoneyFX`:
+
+```swift
+.product(name: "SwiftMoneyFX", package: "swift-money"),
+```
+
+Exchange rates themselves are in the core. `SwiftMoneyFX` builds for Embedded Swift too.
 
 **Requires Swift 6.2.**
 **Platforms:** macOS 15+, iOS 18+, watchOS 11+, tvOS 18+, visionOS 2+. Linux builds in CI.

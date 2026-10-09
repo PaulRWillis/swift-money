@@ -2,6 +2,9 @@
 // formatting, localized parsing, `Decimal` interop and JSON configuration together, so a caller writes
 // one import instead of importing `SwiftMoneyCore` and `SwiftMoneyFoundation` separately.
 //
+// `SwiftMoneyFX` is left out on purpose, so converting between currencies always takes an explicit
+// `import SwiftMoneyFX`.
+//
 // Embedded targets import `SwiftMoneyCore` directly instead: this umbrella re-exports
 // `SwiftMoneyFoundation`, which pulls in Foundation, and Foundation is not available under Embedded Swift.
 //

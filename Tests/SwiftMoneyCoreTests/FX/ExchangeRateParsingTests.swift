@@ -1,4 +1,5 @@
 import SwiftMoneyCore
+import SwiftMoneyCoreTestSupport
 import Testing
 
 private typealias EURGBP = FX.ExchangeRate<Currencies.EUR, Currencies.GBP>

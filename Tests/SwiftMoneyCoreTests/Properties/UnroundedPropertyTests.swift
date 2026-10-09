@@ -1,4 +1,5 @@
 import SwiftMoneyCore
+import SwiftMoneyCoreTestSupport
 import Testing
 
 // An amount and a rate to scale it by, for the settling and scale-by-one properties.
