@@ -84,6 +84,7 @@ struct MoneyFormatStyleRoundingTests {
         #expect(style.format(CHF(minorUnits: 4_98)) == "CHF\u{00A0}4.98")
     }
 
+    #if EXIT_TESTS_SUPPORTED
     // Two tests rather than one parameterized over [0, -5]: a capture clause in an exit-test
     // closure is a newer swift-testing feature, and CI's pinned toolchain refuses it.
     @Test("A step of zero traps, being a mistake in the source")
@@ -99,6 +100,7 @@ struct MoneyFormatStyleRoundingTests {
             blackHole(CHF.FormatStyle().rounded(increment: -5))
         }
     }
+    #endif
 
     @Test("Foundation loses the currency symbol when an increment meets a fraction length")
     func foundationLosesTheSymbolOnAnIncrementBesideAFractionLength() {

@@ -50,6 +50,7 @@ struct WeightsTests {
         #expect(Weights([0, 0]) == nil)
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("Literal: Init from proportional weights succeeds")
     func initFromProportionalWeightsLiteral() async {
         await #expect(processExitsWith: .success) {
@@ -77,6 +78,7 @@ struct WeightsTests {
             _ = [9223372036854775807, 1] as Weights
         }
     }
+    #endif
 
     @Test("A literal equals its validated counterpart")
     func literalEqualsValidatedCounterpart() {

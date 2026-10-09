@@ -27,12 +27,14 @@ struct CustomCurrencyFullNameTests {
         #expect(CurrencyName(text) == "M")
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("An empty currency name literal traps")
     func emptyNameLiteralTraps() async {
         await #expect(processExitsWith: .failure) {
             let _: CurrencyName = ""
         }
     }
+    #endif
 
     // The singular name is used for one whole unit and the plural for the rest, through the type.
     @Test("A whole-unit currency is named in the singular for one unit")

@@ -28,10 +28,12 @@ struct StepsIndexTests {
         #expect(first != later)
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("A negative literal traps")
     func negativeLiteralTraps() async {
         await #expect(processExitsWith: .failure) {
             blackHole(GBP.Steps.Index(integerLiteral: -1))
         }
     }
+    #endif
 }

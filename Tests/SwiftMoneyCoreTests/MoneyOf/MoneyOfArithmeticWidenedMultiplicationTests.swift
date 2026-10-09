@@ -75,6 +75,7 @@ struct MoneyOfArithmeticWidenedMultiplicationTests {
         #expect(runtime * UInt128.max == runtime)
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("One times two to the 63rd traps")
     func oneTimesTwoToThe63Traps() async {
         await #expect(processExitsWith: .failure) {
@@ -178,6 +179,7 @@ struct MoneyOfArithmeticWidenedMultiplicationTests {
             blackHole(GBP(minorUnits: 1) * UInt64.max)
         }
     }
+    #endif
 
     @Test("The reversed operand order (Int × Money) also stays zero, not just Money × Int")
     @available(macOS 15, iOS 18, watchOS 11, tvOS 18, visionOS 2, *)

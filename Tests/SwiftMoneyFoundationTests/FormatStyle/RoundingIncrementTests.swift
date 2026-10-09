@@ -36,6 +36,7 @@ struct RoundingIncrementTests {
         #expect(increment == (try #require(RoundingIncrement(exactly: 25))))
     }
 
+    #if EXIT_TESTS_SUPPORTED
     // Two tests rather than one parameterized over [0, -5]: a capture clause in an exit-test
     // closure is a newer swift-testing feature, and CI's pinned toolchain refuses it.
     @Test("A zero literal traps")
@@ -63,6 +64,7 @@ struct RoundingIncrementTests {
             blackHole(RoundingIncrement(0))
         }
     }
+    #endif
 
     @Test("An increment converts back to the integer it was built from")
     func convertsToInt64() throws {

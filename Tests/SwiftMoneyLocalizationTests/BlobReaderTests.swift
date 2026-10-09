@@ -99,6 +99,7 @@ struct BlobReaderTests {
         }
     }
 
+    #if EXIT_TESTS_SUPPORTED
     // An exit test's body is spawned as a fresh process, so it may not capture anything from outside
     // itself: every value the body needs is built inside it.
 
@@ -171,6 +172,7 @@ struct BlobReaderTests {
             }
         }
     }
+    #endif
 
     @Test("Finds a record by its currency code, and reports a code it has none for")
     func recordSearch() throws {

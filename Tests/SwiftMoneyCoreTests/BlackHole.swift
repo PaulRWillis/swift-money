@@ -1,3 +1,4 @@
+#if EXIT_TESTS_SUPPORTED
 /// Consumes a value so that trapping arithmetic is not optimized away.
 ///
 /// An overflow check is removed along with the arithmetic when its result is unused, so
@@ -18,3 +19,4 @@
 @inline(never)
 @_optimize(none)
 func blackHole<T>(_ value: T) {}
+#endif

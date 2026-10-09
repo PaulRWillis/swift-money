@@ -184,12 +184,14 @@ struct UInt128WordsTests {
         #expect(UInt128Words(high: 1, low: 0) - 1 == UInt128Words(high: 0, low: .max))
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("Subtracting below zero traps")
     func subtractingBelowZeroTraps() async {
         await #expect(processExitsWith: .failure) {
             blackHole(UInt128Words.min - 1)
         }
     }
+    #endif
 
     @Test("Multiplying overflows once the product needs a third word")
     func multiplyingOverflows() {
@@ -227,12 +229,14 @@ struct UInt128WordsTests {
         #expect(result.remainder == vector.remainder)
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("Dividing a 256-bit value whose quotient needs a third word traps")
     func dividingFullWidthPastTheRangeTraps() async {
         await #expect(processExitsWith: .failure) {
             blackHole(UInt128Words(high: 0, low: 7).dividingFullWidth((high: UInt128Words(high: 0, low: 7), low: 0)))
         }
     }
+    #endif
 
     @Test("Dividing by a divisor whose estimate is one too large")
     func dividingWithAnEstimateOneTooLarge() {
@@ -294,12 +298,14 @@ struct UInt128WordsTests {
         #expect(result.remainder == 0)
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("Dividing by zero traps")
     func dividingByZeroTraps() async {
         await #expect(processExitsWith: .failure) {
             blackHole(UInt128Words.max.quotientAndRemainder(dividingBy: 0))
         }
     }
+    #endif
 
     @Test("Shifting moves bits across the word boundary")
     func shiftingAcrossTheWordBoundary() {
