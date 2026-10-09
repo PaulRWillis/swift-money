@@ -33,6 +33,7 @@ struct FixedDivisorTests {
         #expect(Fixed.Divisor(UnitScale(100)) == Fixed.Divisor(100))
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("A zero divisor literal traps")
     func zeroLiteralTraps() async {
         await #expect(processExitsWith: .failure) {
@@ -40,6 +41,7 @@ struct FixedDivisorTests {
             blackHole(zero)
         }
     }
+    #endif
 
     @Test("The most negative value divided by one is itself")
     func mostNegativeByOne() throws {

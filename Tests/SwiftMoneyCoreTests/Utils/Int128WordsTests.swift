@@ -257,6 +257,7 @@ struct Int128WordsTests {
         #expect(Int128Words(-3) * 4 == -12)
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("Adding past the largest value traps")
     func addingPastTheLargestTraps() async {
         await #expect(processExitsWith: .failure) {
@@ -298,6 +299,7 @@ struct Int128WordsTests {
             blackHole(Int128Words(1) / 0)
         }
     }
+    #endif
 
     @Test("Converting to Double rounds to nearest, ties to even", arguments: doubleCases)
     private func convertsToDouble(_ testCase: DoubleCase) {

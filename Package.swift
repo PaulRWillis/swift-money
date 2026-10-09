@@ -2,6 +2,15 @@
 
 import PackageDescription
 
+/// The compilation condition `EXIT_TESTS_SUPPORTED`, set where Swift Testing has exit tests.
+///
+/// The platforms are the ones swift-testing leaves out of its `SWT_NO_EXIT_TESTS` list. Any other
+/// platform leaves the exit tests out instead of failing to compile them.
+let exitTestsSupported: SwiftSetting = .define(
+    "EXIT_TESTS_SUPPORTED",
+    .when(platforms: [.macOS, .macCatalyst, .linux, .windows, .openbsd, .custom("freebsd")])
+)
+
 let package = Package(
     name: "SwiftMoney",
     platforms: [
@@ -111,7 +120,8 @@ let package = Package(
             exclude: ["Resources/UPDATING.md"],
             // The General Decimal Arithmetic conformance corpus, parsed at runtime by GDATests.
             // Not the whole folder: codesign rejects a top-level Resources folder in an iOS bundle.
-            resources: [.copy("Resources/GDA")]
+            resources: [.copy("Resources/GDA")],
+            swiftSettings: [exitTestsSupported]
         ),
         .testTarget(
             name: "SwiftMoneyFXTests",
@@ -119,7 +129,8 @@ let package = Package(
         ),
         .testTarget(
             name: "SwiftMoneyLocalizationTests",
-            dependencies: ["SwiftMoneyLocalization"]
+            dependencies: ["SwiftMoneyLocalization"],
+            swiftSettings: [exitTestsSupported]
         ),
         .testTarget(
             name: "SwiftMoneyFoundationTests",
@@ -128,7 +139,8 @@ let package = Package(
                 "SwiftMoneyFormatMatrix",
                 "SwiftMoneyLocalization",
                 "SwiftMoneyCoreTestSupport",
-            ]
+            ],
+            swiftSettings: [exitTestsSupported]
         ),
         .testTarget(
             name: "SwiftMoneyFormatMatrixTests",

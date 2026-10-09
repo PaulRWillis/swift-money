@@ -133,6 +133,7 @@ struct StepsCollectionTests {
         #expect(steps.contains(Money(minorUnits: 250_00, currency: .eur)) == false)
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("A position outside the steps traps, as Array's subscript does")
     func subscriptOutsideTraps() async {
         await #expect(processExitsWith: .failure) {
@@ -144,4 +145,5 @@ struct StepsCollectionTests {
             blackHole(steps[steps.index(before: steps.startIndex)])
         }
     }
+    #endif
 }

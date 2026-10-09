@@ -1,3 +1,4 @@
+#if EXIT_TESTS_SUPPORTED
 /// Consumes a value so that a trap is not optimized away.
 ///
 /// The Foundation test target's copy of the helper in `Tests/SwiftMoneyTests/BlackHole.swift`,
@@ -10,3 +11,4 @@
 @inline(never)
 @_optimize(none)
 func blackHole<T>(_ value: T) {}
+#endif

@@ -117,6 +117,7 @@ struct CurrencyCodeTests {
         #expect(String(code) == "GBP")
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("An invalid string literal traps")
     func invalidLiteralTraps() async {
         await #expect(processExitsWith: .failure) {
@@ -134,6 +135,7 @@ struct CurrencyCodeTests {
             blackHole(CurrencyCode("nope!"))
         }
     }
+    #endif
 
     @Test("A code is written as a string, uppercased")
     func encodesAsString() throws {

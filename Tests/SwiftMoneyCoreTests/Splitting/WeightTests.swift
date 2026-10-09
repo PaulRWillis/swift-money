@@ -24,6 +24,7 @@ struct WeightTests {
         #expect(Int(weight) == 60)
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("A non-negative literal builds a weight")
     func nonNegativeLiteral() async {
         await #expect(processExitsWith: .success) {
@@ -37,6 +38,7 @@ struct WeightTests {
             blackHole(-1 as Weight)
         }
     }
+    #endif
 
     @Test("Equal weights are equal")
     func equality() throws {

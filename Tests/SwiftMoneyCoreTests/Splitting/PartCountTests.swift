@@ -34,6 +34,7 @@ struct PartCountTests {
         #expect(PartCount(exactly: int) == nil)
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("Literal: Init from smallest valid value succeeds")
     func initFromSmallestValidLiteral() async {
         await #expect(processExitsWith: .success) {
@@ -68,6 +69,7 @@ struct PartCountTests {
             _ = PartCount(-9223372036854775808)
         }
     }
+    #endif
 
     @Test("Int conversion returns the underlying value")
     func intConversion() {

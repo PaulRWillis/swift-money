@@ -62,6 +62,7 @@ struct RateParsingTests {
         #expect(smallest == (try #require(Rate(string: "0.000000000000000001"))))
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("A percent literal one digit past the grid traps")
     func percentLiteralPastTheGridTraps() async {
         await #expect(processExitsWith: .failure) {
@@ -75,6 +76,7 @@ struct RateParsingTests {
             blackHole(Rate(stringLiteral: "-0.1234567890123456789"))
         }
     }
+    #endif
 
     // The nineteenth digit is exactly half a step, so each rule picks one of the two neighbors.
     @Test(
@@ -92,6 +94,7 @@ struct RateParsingTests {
         #expect(Rate(string: "0.1234567890123456785", rounding: rule) == expected)
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("An inexact fraction literal traps")
     func inexactFractionLiteralTraps() async {
         await #expect(processExitsWith: .failure) {
@@ -112,6 +115,7 @@ struct RateParsingTests {
             blackHole(Rate(stringLiteral: "not a rate"))
         }
     }
+    #endif
 
     @Test(
         "Every rule parses an exact fraction exactly",

@@ -121,6 +121,7 @@ struct StrideTests {
         #expect(JPY.Stride.majorUnits(9_223_372_036_854_775_807).amount == .max)
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("A zero unit count literal traps")
     func zeroUnitCountTraps() async {
         await #expect(processExitsWith: .failure) {
@@ -137,6 +138,7 @@ struct StrideTests {
             blackHole(GBP.Stride.majorUnits(9_223_372_036_854_775_807))
         }
     }
+    #endif
 
     @Test("A major-unit count too large for a runtime currency is no stride, of a currency or an amount")
     func overflowingRuntimeMajorUnitsIsNil() {

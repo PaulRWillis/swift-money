@@ -125,6 +125,7 @@ struct UnitScaleTests {
         #expect(scale == (try #require(UnitScale(exactly: 100))))
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("A zero literal traps")
     func zeroLiteralTraps() async {
         await #expect(processExitsWith: .failure) {
@@ -158,4 +159,5 @@ struct UnitScaleTests {
             blackHole(UnitScale(0))
         }
     }
+    #endif
 }

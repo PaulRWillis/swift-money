@@ -225,6 +225,7 @@ struct FixedArithmeticTests {
         #expect(Fixed(-1) < difference)
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("Division by zero traps")
     func divisionByZeroTraps() async {
         await #expect(processExitsWith: .failure) {
@@ -239,6 +240,7 @@ struct FixedArithmeticTests {
             blackHole(big * big)
         }
     }
+    #endif
 
     @Test("Division that rounds up carries the eighteenth digit")
     func divisionRoundsUp() {
@@ -246,6 +248,7 @@ struct FixedArithmeticTests {
         #expect(Fixed(2) / Fixed(3) == Fixed(significand: 666_666_666_666_666_667, exponent: -18))
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("Division past the range traps")
     func divisionOverflowTraps() async {
         await #expect(processExitsWith: .failure) {
@@ -253,4 +256,5 @@ struct FixedArithmeticTests {
             blackHole(tiny.map { Fixed(1_000_000_000_000) / $0 })
         }
     }
+    #endif
 }

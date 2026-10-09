@@ -34,6 +34,7 @@ struct RateTests {
         #expect(Rate.basisPoints(UInt16(5_000)) == Rate.basisPoints(5_000))
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("A rate too large to represent traps")
     @available(macOS 15, iOS 18, watchOS 11, tvOS 18, visionOS 2, *)
     func oversizedRateTraps() async {
@@ -44,6 +45,7 @@ struct RateTests {
             blackHole(Rate.percent(UInt128.max))   // wider than Int128
         }
     }
+    #endif
 
     @Test("Approximating a Double lands on the nearest rate")
     func approximatesDouble() throws {

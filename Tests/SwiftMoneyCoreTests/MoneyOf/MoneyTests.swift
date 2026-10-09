@@ -18,6 +18,7 @@ struct MoneyTests {
         #expect(Money(exactly: Int128.max, currency: .gbp) == nil)
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("when constructed from value beyond storage should trap")
     @available(macOS 15, iOS 18, watchOS 11, tvOS 18, visionOS 2, *)
     func whenConstructedFromValueBeyondStorage_shouldTrap() async {
@@ -25,6 +26,7 @@ struct MoneyTests {
             blackHole(Money(minorUnits: Int128.max, currency: .gbp))
         }
     }
+    #endif
 
     @Test("Add same currency succeeds")
     func addSameCurrency() throws {
@@ -34,6 +36,7 @@ struct MoneyTests {
         #expect(try a + b == Money(minorUnits: 12, currency: .eur))
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("Add traps on overflow")
     func addTrapsOnOverflow() async {
         await #expect(processExitsWith: .failure) {
@@ -53,6 +56,7 @@ struct MoneyTests {
             blackHole(try a + b)
         }
     }
+    #endif
 
     @Test("Add different currencies throws, naming both")
     func addDifferentCurrencies() {
@@ -85,6 +89,7 @@ struct MoneyTests {
         #expect(a == Money(minorUnits: 5, currency: .gbp))
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("Addition in place traps on overflow")
     func additionInPlaceTrapsOnOverflow() async {
         await #expect(processExitsWith: .failure) {
@@ -94,6 +99,7 @@ struct MoneyTests {
             blackHole(a)
         }
     }
+    #endif
 
     @Test("Subtract same currency succeeds")
     func subtractSameCurrency() throws {
@@ -103,6 +109,7 @@ struct MoneyTests {
         #expect(try a - b == Money(minorUnits: -2, currency: .eur))
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("Subtract traps on overflow")
     func subtractTrapsOnOverflow() async {
         await #expect(processExitsWith: .failure) {
@@ -122,6 +129,7 @@ struct MoneyTests {
             blackHole(try a - b)
         }
     }
+    #endif
 
     @Test("Subtract different currencies throws, naming both")
     func subtractDifferentCurrencies() {
@@ -154,6 +162,7 @@ struct MoneyTests {
         #expect(a == Money(minorUnits: 5, currency: .gbp))
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("Subtraction in place traps on underflow")
     func subtractionInPlaceTrapsOnUnderflow() async {
         await #expect(processExitsWith: .failure) {
@@ -163,6 +172,7 @@ struct MoneyTests {
             blackHole(a)
         }
     }
+    #endif
 
     @Test("Negation keeps the currency and cannot throw")
     func negationKeepsCurrency() {
@@ -174,12 +184,14 @@ struct MoneyTests {
         #expect(negated.currency == .gbp)
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("Negation traps on the smallest amount")
     func negationTrapsOnSmallestAmount() async {
         await #expect(processExitsWith: .failure) {
             blackHole(-Money(minorUnits: Int64.min, currency: .gbp))
         }
     }
+    #endif
 
     @Test("Magnitude keeps the currency")
     func magnitudeKeepsCurrency() {
@@ -191,12 +203,14 @@ struct MoneyTests {
         #expect(magnitude.currency == .gbp)
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("Magnitude traps on the smallest amount")
     func magnitudeTrapsOnSmallestAmount() async {
         await #expect(processExitsWith: .failure) {
             blackHole(Money(minorUnits: Int64.min, currency: .gbp).magnitude)
         }
     }
+    #endif
 
     @Test("Is negative reports the sign")
     func isNegativeReportsSign() {
@@ -240,6 +254,7 @@ struct MoneyTests {
         #expect(neg * -3 == Money(minorUnits: +36, currency: .gbp))
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("Integral multiplication traps on overflow")
     func integralMultiplicationTrapsOnOverflow() async {
         await #expect(processExitsWith: .failure) {
@@ -261,6 +276,7 @@ struct MoneyTests {
             blackHole(2 * Money(minorUnits: Int64.min, currency: .gbp))
         }
     }
+    #endif
 
     @Test("Integral multiplication in place succeeds")
     func integralMultiplicationInPlace() throws {
@@ -281,6 +297,7 @@ struct MoneyTests {
         #expect(hugeMultiplier * zero == zero)
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("Integral multiplication by a multiplier too wide for Int64 still traps when the product overflows")
     func integralMultiplicationByWideMultiplierTrapsWhenProductOverflows() async {
         await #expect(processExitsWith: .failure) {
@@ -291,6 +308,7 @@ struct MoneyTests {
             blackHole(UInt64.max * Money(minorUnits: 1, currency: .gbp))
         }
     }
+    #endif
 
     @Test("One try covers a whole chain")
     func oneTryCoversAWholeChain() throws {
@@ -400,6 +418,7 @@ struct MoneyTests {
         #expect(scaled == Money(minorUnits: 3, currency: .eur))
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("Settling a scaled amount past the range traps")
     func scalingTrapsOnOverflow() async {
         await #expect(processExitsWith: .failure) {
@@ -413,6 +432,7 @@ struct MoneyTests {
             blackHole(Money(minorUnits: Int64.min, currency: .gbp).applying("2").rounded(.toNearestOrEven))
         }
     }
+    #endif
 
     // Three halves of this is exactly the largest amount with a half left over, so truncating fits and
     // only the rounding step passes the maximum.
@@ -423,6 +443,7 @@ struct MoneyTests {
         #expect(sut.applying("1.5").rounded(.towardZero) == Money(minorUnits: Int64.max, currency: .gbp))
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("Rounding traps on overflow, where truncating would not")
     func roundingTrapsOnOverflow() async {
         await #expect(processExitsWith: .failure) {
@@ -432,6 +453,7 @@ struct MoneyTests {
             )
         }
     }
+    #endif
 
     // The algorithm itself is covered by SplitTests. These two check the step that
     // is unique to Money: re-attaching the currency to every share.
@@ -513,6 +535,7 @@ struct MoneyTests {
         #expect(sut.unrounded.divided(by: 4).rounded(.toNearestOrEven) == Money(minorUnits: 2_50, currency: .eur))
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("Scaling an unrounded amount traps on overflow")
     func unroundedScalingTrapsOnOverflow() async {
         await #expect(processExitsWith: .failure) {
@@ -536,6 +559,7 @@ struct MoneyTests {
             blackHole(unrounded)
         }
     }
+    #endif
 
     // Settling cannot overflow, so it needs no `try` even at the largest amount.
     @Test("Settling an unrounded amount never throws")
@@ -582,6 +606,7 @@ struct MoneyTests {
         }
     }
 
+    #if EXIT_TESTS_SUPPORTED
     @Test("Adding unrounded amounts traps on overflow")
     func addingUnroundedTrapsOnOverflow() async {
         await #expect(processExitsWith: .failure) {
@@ -611,4 +636,5 @@ struct MoneyTests {
             blackHole(running)
         }
     }
+    #endif
 }
