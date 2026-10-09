@@ -66,9 +66,11 @@ package struct LocaleTable: Sendable {
         return nil
     }
 
-    // Binary search over the keys, in the byte order the generator sorted them into. Forced inline:
-    // left to the optimizer, every lookup calls out to this search and to each probe.
-    @inline(__always)
+    /// Returns the index of the locale stored under a key.
+    ///
+    /// - Parameter key: The key to look up.
+    /// - Returns: The index of the entry whose key matches `key`, or `nil` when none does.
+    /// - Complexity: O(log *n*), where *n* is the number of locales.
     private func index(of key: LocaleKey) -> LocaleIndex? {
         var low = 0
         var high = localeCount
