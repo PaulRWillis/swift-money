@@ -15,7 +15,7 @@ public struct UnevenSplit<C: CurrencyRepresentation>: Equatable, Hashable, Senda
     public let smallerCount: PartCount
 
     /// The minor units each larger part receives, never zero.
-    @usableFromInline let largerMinorUnits: NonZeroInt64
+    @usableFromInline let largerMinorUnits: NonZero<Money.MinorUnits>
 
     /// The currency storage both amounts are built from.
     @usableFromInline let storage: C.Storage
@@ -54,7 +54,7 @@ public struct UnevenSplit<C: CurrencyRepresentation>: Equatable, Hashable, Senda
     @inlinable
     init(
         largerCount: PartCount,
-        largerMinorUnits: NonZeroInt64,
+        largerMinorUnits: NonZero<Money.MinorUnits>,
         smallerCount: PartCount,
         storage: C.Storage
     ) {

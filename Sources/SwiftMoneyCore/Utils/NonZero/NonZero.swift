@@ -45,3 +45,11 @@ struct NonZero<Value: ZeroRepresentable & Hashable & Sendable>: Equatable, Hasha
         hasher.combine(rawValue)
     }
 }
+
+extension NonZero where Value: SignedInteger {
+    /// `-1` if this value is negative and `1` if it's positive.
+    @inlinable
+    var signum: Value {
+        rawValue < 0 ? -1 : 1
+    }
+}

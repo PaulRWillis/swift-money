@@ -8,7 +8,7 @@ enum MinorUnitSplit: Hashable, Sendable {
     /// never zero. The smaller group's are one unit nearer zero.
     case uneven(
         largerCount: PartCount,
-        largerMinorUnits: NonZeroInt64,
+        largerMinorUnits: NonZero<Money.MinorUnits>,
         smallerCount: PartCount
     )
 }

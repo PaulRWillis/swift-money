@@ -1,39 +1,19 @@
-/// A 64-bit signed integer that is never zero.
-@usableFromInline
-struct NonZeroInt64: Equatable, Hashable, Sendable {
-    /// The integer, never zero.
-    @usableFromInline
-    let rawValue: Int64
+extension NonZero where Value == Money.MinorUnits {
+    // What a division left over. Nested so that the enclosing type answers "a remainder of what",
+    // which matters once more than one kind of remainder exists.
+    enum Remainder {
+        case zero
+        case nonZero(NonZero)
 
-    /// Creates a non-zero integer, or `nil` if the value is zero.
-    ///
-    /// - Parameter value: The integer, which may be zero.
-    /// - Returns: `nil` if `value` is zero.
-    @inlinable
-    init?(_ value: Int64) {
-        guard value != 0 else {
-            return nil
+        init(_ value: Value) {
+            if let nonZero = NonZero(value) {
+                self = .nonZero(nonZero)
+            } else {
+                self = .zero
+            }
         }
-
-        self.rawValue = value
     }
 
-    /// Creates a non-zero integer without checking it.
-    ///
-    /// - Parameter value: The integer, which the caller already knows is not zero.
-    @inlinable
-    init(unchecked value: Int64) {
-        self.rawValue = value
-    }
-
-    /// Returns `-1` if this value is negative and `1` if it's positive.
-    @inlinable
-    var signum: Int64 {
-        rawValue < 0 ? -1 : 1
-    }
-}
-
-extension NonZeroInt64 {
     /// Returns the quotient and remainder of this value divided by the given
     /// number of parts.
     ///
