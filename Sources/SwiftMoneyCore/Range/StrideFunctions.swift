@@ -50,8 +50,8 @@ public func stride<C: CurrencyType>(
     from start: MoneyOf<C>,
     through end: MoneyOf<C>,
     by stride: MoneyOf<C>.Stride
-) -> MoneyStrideThrough<C> {
-    MoneyStrideThrough(from: start, through: end, by: stride)
+) -> MoneyOf<C>.StrideThrough {
+    .init(from: start, through: end, by: stride)
 }
 
 /// Returns the runtime amounts from a start up to, but not including, an end, one stride apart.
@@ -105,9 +105,9 @@ public func stride(
     from start: Money,
     through end: Money,
     by stride: Money.Stride
-) throws(MoneyError) -> MoneyStrideThrough<AnyCurrency> {
+) throws(MoneyError) -> Money.StrideThrough {
     try AnyCurrency.requireMatch(start.storage, end.storage)
     try AnyCurrency.requireMatch(start.storage, stride.amount.storage)
 
-    return MoneyStrideThrough(from: start, through: end, by: stride)
+    return .init(from: start, through: end, by: stride)
 }

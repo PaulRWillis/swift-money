@@ -2627,7 +2627,7 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
     let poundSequences = lowerPounds.indices.map {
         stride(from: lowerPounds[$0], through: upperPounds[$0], by: strideByMajorUnits)
     }
-    let runtimePoundSequences: [MoneyStrideThrough<AnyCurrency>]
+    let runtimePoundSequences: [Money.StrideThrough]
     do {
         runtimePoundSequences = try runtimeLowerPounds.indices.map {
             try stride(from: runtimeLowerPounds[$0], through: runtimeUpperPounds[$0], by: runtimeStrideByMajorUnits)
