@@ -93,15 +93,13 @@ jobs:
       run: xcodebuild -downloadPlatform iOS -buildVersion 17.5
 
     - name: Create an iOS 17.5 simulator
-      run: |
-        xcrun simctl list runtimes
-        xcrun simctl create iPhone-15-iOS-17 'iPhone 15' com.apple.CoreSimulator.SimRuntime.iOS-17-5
+      run: xcrun simctl create iPhone-15-iOS-17 'iPhone 15' com.apple.CoreSimulator.SimRuntime.iOS-17-5
 
     - name: Run tests
       run: >-
         xcodebuild test
         -scheme SwiftMoney-Package
-        -destination 'platform=iOS Simulator,name=iPhone-15-iOS-17'
+        -destination 'platform=iOS Simulator,name=iPhone-15-iOS-17,OS=17.5'
         -resultBundlePath TestResults.xcresult
 
     - name: Test summary
