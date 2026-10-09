@@ -50,8 +50,8 @@ package struct LocaleTable: Sendable {
     ///
     /// - Parameter identifier: The locale identifier to look up.
     /// - Returns: The index of the first of those the data covers, or `nil` when none is.
-    /// - Complexity: O(*m* log *n*), where *m* is the length of `identifier` and *n* is the number of
-    ///   locales.
+    /// - Complexity: O(*m* + log *n*), where *m* is the length of the language subtag of `identifier`
+    ///   and *n* is the number of locales.
     package func index(of identifier: LocaleIdentifier) -> LocaleIndex? {
         var keys = LocaleFallbackChain(identifier).makeIterator()
 
