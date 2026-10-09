@@ -9,7 +9,7 @@ package struct LocaleKey: Sendable {
     private let utf8: String.UTF8View
 
     /// Which of the identifier's bytes the key reads.
-    private let span: Span
+    private let extent: Extent
 
     /// Creates the key for a whole identifier.
     ///
@@ -20,7 +20,7 @@ package struct LocaleKey: Sendable {
     /// - Parameter identifier: The identifier to look up.
     package init(_ identifier: LocaleIdentifier) {
         utf8 = identifier.value.utf8
-        span = .prefix(length: utf8.count)
+        extent = .prefix(length: utf8.count)
     }
 
     /// Creates the key for an identifier's first bytes.
@@ -30,7 +30,7 @@ package struct LocaleKey: Sendable {
     ///   - length: How many of its bytes the key reads.
     init(_ utf8: String.UTF8View, prefixLength length: Int) {
         self.utf8 = utf8
-        span = .prefix(length: length)
+        extent = .prefix(length: length)
     }
 
     /// Creates the key for an identifier's language and region, leaving out what lies between them.
@@ -42,12 +42,12 @@ package struct LocaleKey: Sendable {
     /// - Precondition: `region.lowerBound` must not be less than `language`.
     init(_ utf8: String.UTF8View, language: Int, region: Range<Int>) {
         self.utf8 = utf8
-        span = .languageAndRegion(language: language, region: region)
+        extent = .languageAndRegion(language: language, region: region)
     }
 
     /// The key's bytes, each read through ``folded(_:)``.
     package var bytes: Bytes {
-        Bytes(utf8: utf8, span: span)
+        Bytes(utf8: utf8, extent: extent)
     }
 
     /// Returns a byte as the lookup compares it: `_` as `-`, `A` to `Z` as `a` to `z`, and every other
@@ -86,7 +86,7 @@ package struct LocaleKey: Sendable {
 
 extension LocaleKey {
     /// Which of an identifier's bytes a key reads.
-    fileprivate enum Span: Sendable {
+    fileprivate enum Extent: Sendable {
         /// The identifier's first bytes.
         case prefix(length: Int)
 
@@ -100,7 +100,7 @@ extension LocaleKey {
         fileprivate let utf8: String.UTF8View
 
         /// Which of the identifier's bytes to read.
-        fileprivate let span: Span
+        fileprivate let extent: Extent
 
         /// Returns an iterator over the key's bytes.
         ///
@@ -108,7 +108,7 @@ extension LocaleKey {
         // Forced inline: left to the optimizer, a binary search calls out for every probe.
         @inline(__always)
         package func makeIterator() -> Iterator {
-            switch span {
+            switch extent {
             case .prefix(let length):
                 Iterator(utf8: utf8, length: length, region: nil)
             case .languageAndRegion(let language, let region):
