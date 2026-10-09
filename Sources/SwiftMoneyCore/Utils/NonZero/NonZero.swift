@@ -28,6 +28,8 @@ struct NonZero<Value: ZeroRepresentable & Hashable & Sendable>: Equatable, Hasha
 
     /// Returns whether two non-zero values are equal.
     ///
+    /// Two non-zero values are equal when the values they hold are equal.
+    ///
     /// - Parameters:
     ///   - lhs: A value to compare.
     ///   - rhs: Another value to compare.

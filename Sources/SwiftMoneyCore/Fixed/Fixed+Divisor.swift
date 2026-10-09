@@ -24,6 +24,8 @@ extension Fixed {
         }
 
         /// Creates a divisor from the size of a non-zero amount of minor units, ignoring its sign.
+        ///
+        /// - Parameter amount: The minor units whose size to divide by.
         init(magnitudeOf amount: NonZero<Money.MinorUnits>) {
             self.magnitude = UInt128(amount.rawValue.magnitude)
         }
