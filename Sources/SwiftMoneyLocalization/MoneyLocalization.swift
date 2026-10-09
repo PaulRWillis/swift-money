@@ -143,13 +143,17 @@ public enum MoneyLocalization {
     /// - Parameters:
     ///   - operands: The amount's plural operands.
     ///   - localeIndex: The locale's position, as ``LocaleTable/index(of:)`` returns it.
-    /// - Returns: The amount's category, or `nil` when the data holds no rules for the locale's
-    ///   language.
+    /// - Returns: The amount's category, or `nil` when `localeIndex` isn't a position in the table, or
+    ///   the data holds no rules for the locale's language.
     package static func pluralCategory(
         of operands: PluralOperandValues,
         at localeIndex: LocaleIndex
     ) -> PluralCategory? {
-        pluralRulesByLocale[localeIndex.position].map { rules in
+        guard pluralRulesByLocale.indices.contains(localeIndex.position) else {
+            return nil
+        }
+
+        return pluralRulesByLocale[localeIndex.position].map { rules in
             PluralCategory.allCases.first { rules[$0]?.matches(operands) == true } ?? .other
         }
     }
