@@ -57,7 +57,7 @@ package struct LocaleTable: Sendable {
 
         // A loop, not `lazy.compactMap(_:).first`: measured in release, the lazy form makes an exact
         // match cost about half as much again.
-        while let key = keys.next() {
+        while let key = keys.nextKey() {
             if let index = index(of: key) {
                 return index
             }

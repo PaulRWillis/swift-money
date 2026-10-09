@@ -59,9 +59,18 @@ extension LocaleFallbackChain {
         /// - Returns: The next key, or `nil` after the last.
         /// - Complexity: O(*m*) for the second key, where *m* is the length of the identifier; O(1)
         ///   for the others.
+        package mutating func next() -> LocaleKey? {
+            nextKey()
+        }
+
+        /// Returns the chain's next key.
+        ///
+        /// - Returns: The next key, or `nil` after the last.
+        /// - Complexity: O(*m*) for the second key, where *m* is the length of the identifier; O(1)
+        ///   for the others.
         // Forced inline: left to the optimizer, every lookup calls out once per key.
         @inline(__always)
-        package mutating func next() -> LocaleKey? {
+        mutating func nextKey() -> LocaleKey? {
             while let current = step {
                 step = current.next
 
@@ -93,9 +102,8 @@ extension LocaleFallbackChain {
         ///
         /// - Returns: The identifier's subtags.
         /// - Complexity: O(*m*) the first time, where *m* is the length of the identifier; O(1) after.
-        // An explicit memo rather than a `lazy var`: the lazy getter isn't inlined and costs every
-        // fallback lookup about a tenth more.
-        @inline(__always)
+        // Out of line: the parse runs at most once per lookup, and inlined it is copied into each step.
+        @inline(never)
         private mutating func subtags() -> Subtags {
             if let parsedSubtags {
                 return parsedSubtags
