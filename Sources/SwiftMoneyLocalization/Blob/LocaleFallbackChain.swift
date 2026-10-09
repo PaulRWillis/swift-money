@@ -187,7 +187,7 @@ extension LocaleFallbackChain {
             case .script where second.range.upperBound < length:
                 let third = Self.classifiedSubtag(&bytes, from: second.range.upperBound + 1)
                 script = second.range
-                region = third?.shape == .region ? third?.range : nil
+                region = third.flatMap { $0.shape == .region ? $0.range : nil }
             case .script:
                 script = second.range
                 region = nil
