@@ -18,7 +18,7 @@ extension FX.ExchangeRate: Codable {
 
         try container.encode(String(From.currency.code), forKey: .from)
         try container.encode(String(To.currency.code), forKey: .to)
-        try container.encode(marketQuoteText, forKey: .rate)
+        try container.encode(description, forKey: .rate)
     }
 
     /// Reads a rate written as its two currency codes and its market quote.
@@ -43,50 +43,15 @@ extension FX.ExchangeRate: Codable {
 
         let text = try container.decode(String.self, forKey: .rate)
 
-        guard let (significand, fractionDigits) = Rate.scanDecimal(text[...]), significand > 0 else {
+        do {
+            self = try Self(string: text)
+        } catch {
             throw DecodingError.dataCorruptedError(
                 forKey: .rate,
                 in: container,
-                debugDescription: """
-                    Not a market quote: "\(text)" in the "\(CodingKeys.rate.stringValue)" field. \
-                    Write the rate as a positive decimal string, as in "0.87".
-                    """
+                debugDescription: Self.refusal(of: text, because: error)
             )
         }
-
-        // Moving the point rescales the quote to minor units without rounding it, where building a
-        // `Rate` first would round any quote finer than eighteen places before the check below.
-        let exactness = Fixed.exactness(
-            significand: significand,
-            exponent: Self.placesGained - fractionDigits,
-            rounding: .toNearestOrEven
-        )
-
-        guard let exactness else {
-            throw DecodingError.dataCorruptedError(
-                forKey: .rate,
-                in: container,
-                debugDescription: """
-                    A rate from \(From.currency.code) to \(To.currency.code) can't hold "\(text)": \
-                    it is too large, or has more decimal places than the rate can hold.
-                    """
-            )
-        }
-
-        // An exact positive quote is a positive rate, so the init can't fail here.
-        guard case let .exact(stored) = exactness, let rate = Self(minorPerMinor: Rate(stored)) else {
-            throw DecodingError.dataCorruptedError(
-                forKey: .rate,
-                in: container,
-                debugDescription: """
-                    A rate from \(From.currency.code) to \(To.currency.code) holds a quote to at \
-                    most \(Fixed.fractionalDigits + Self.placesGained) decimal places, but read \
-                    "\(text)". Round the quote to that many places before sending it.
-                    """
-            )
-        }
-
-        self = rate
     }
 }
 
@@ -103,26 +68,34 @@ extension FX.ExchangeRate {
         case rate
     }
 
-    /// The market quote written out in full, with no trailing zeros.
-    private var marketQuoteText: String {
-        // The stored rate is a whole number of 10⁻¹⁸ minor-unit parts, and positive, so its digits
-        // are the quote's with the point moved: `18 + placesGained` places in, `0...36`.
-        var digits = String(minorPerMinorRate.value.storageBits)
-        var places = Fixed.fractionalDigits + Self.placesGained
+    /// Returns why a quote read from the wire is refused, and how to fix it.
+    ///
+    /// - Parameters:
+    ///   - text: The quote as it was read.
+    ///   - error: Why it isn't a rate.
+    /// - Returns: What was wrong with the quote, and what to send instead.
+    private static func refusal(of text: String, because error: FX.ExchangeRateParsingError) -> String {
+        let pair = "\(From.currency.code) to \(To.currency.code)"
 
-        while places > 0, digits.last == "0" {
-            digits.removeLast()
-            places -= 1
+        switch error {
+        case .unrecognizedText:
+            return """
+                Not a market quote: "\(text)" in the "\(CodingKeys.rate.stringValue)" field. \
+                Write the rate as a decimal string, as in "0.87".
+                """
+
+        case .notPositive:
+            return "A rate from \(pair) must be greater than zero, but read \"\(text)\"."
+
+        case let .inexactRate(maximumFractionDigits):
+            return """
+                A rate from \(pair) holds a quote to at most \(maximumFractionDigits) decimal \
+                places, but read "\(text)". Round the quote to that many places before sending it.
+                """
+
+        case .overflow:
+            return "A rate from \(pair) can't hold \"\(text)\": it is too large."
         }
-
-        guard places > 0 else {
-            return digits
-        }
-
-        let padded = String(repeating: "0", count: max(0, places + 1 - digits.count)) + digits
-        let point = padded.index(padded.endIndex, offsetBy: -places)
-
-        return String(padded[..<point]) + "." + String(padded[point...])
     }
 
     /// Reads a currency code and checks that it is the one this type names.

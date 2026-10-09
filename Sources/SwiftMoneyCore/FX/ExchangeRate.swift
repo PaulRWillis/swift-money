@@ -18,7 +18,7 @@ public extension FX {
         // scales differ.
         @usableFromInline let minorPerMinorRate: Rate
 
-        // Internal, not private: decoding builds the stored rate directly, to round only once.
+        // Internal, not private: parsing a quote builds the stored rate from its own file.
         init?(minorPerMinor rate: Rate) {
             guard rate.isPositive else {
                 return nil
