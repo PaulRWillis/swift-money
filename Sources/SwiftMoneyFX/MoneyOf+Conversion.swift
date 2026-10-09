@@ -9,7 +9,7 @@ public extension MoneyOf where C: CurrencyType {
     /// let margin = FX.Margin(.basisPoints(5))!
     /// let gbp = try EUR(minorUnits: 100_00)
     ///     .converted(using: eurGbp.applyingMargin(margin))
-    ///     .rounded(.toNearestOrEven)   // one rounding, into GBP
+    ///     .rounded(.toNearestOrEven)   // £86.96
     /// ```
     ///
     /// - Parameter rate: The rate from this amount's currency to `To`.

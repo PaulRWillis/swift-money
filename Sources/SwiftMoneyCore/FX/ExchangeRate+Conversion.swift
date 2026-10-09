@@ -13,9 +13,8 @@ extension FX.ExchangeRate {
     @inlinable package func applied(
         to amount: MoneyOf<From>
     ) throws(FX.ExchangeError) -> MoneyOf<To>.Unrounded {
-        // The converted value is `minorUnits * rate`, and `minorUnits` is an `Int64`, so for a realistic
-        // rate it is reached with one `Int128` multiply rather than widening the amount and taking the
-        // 256-bit path; an extreme rate falls back to it.
+        // An `Int64` amount at a realistic rate fits one `Int128` multiply; an extreme rate falls
+        // back to the 256-bit path.
         if let converted = Fixed.scalingIfRepresentable(amount.minorUnits, by: minorPerMinorRate.value) {
             return MoneyOf<To>.Unrounded(converted, storage: .implied)
         }

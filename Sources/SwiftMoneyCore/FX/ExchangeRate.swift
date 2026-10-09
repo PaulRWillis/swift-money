@@ -6,6 +6,8 @@ public extension FX {
     /// the currencies are part of the type, so a rate can only convert the currency it was quoted for
     /// and the direction cannot be mixed up.
     ///
+    /// Converting an amount at a rate is in the `SwiftMoneyFX` module.
+    ///
     /// A provider's buy and sell rates for a pair are two rates, one each way. They are separate
     /// quotes, not reciprocals, so build each from its own quote rather than with ``inverted()``.
     ///
@@ -13,9 +15,8 @@ public extension FX {
     /// let eurGbp = Rate(string: "0.87").flatMap(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>.init)
     /// ```
     struct ExchangeRate<From: CurrencyType, To: CurrencyType>: Sendable, Equatable, Hashable {
-        // Stored as `To` minor units per one `From` minor unit, the form `applied(to:)` and
-        // `crossed` use directly. The public quote is per major unit; the two differ only when the
-        // currencies' scales differ.
+        /// The rate in `To` minor units per one `From` minor unit. It differs from the public
+        /// per-major-unit quote only when the two currencies' scales differ.
         @usableFromInline let minorPerMinorRate: Rate
 
         // Internal, not private: parsing a quote builds the stored rate from its own file.

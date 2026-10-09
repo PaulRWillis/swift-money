@@ -1,2 +1,2 @@
-/// A namespace for foreign exchange: converting an amount from one currency to another.
+/// A namespace for foreign exchange: exchange rates, margins and their errors.
 public enum FX {}
