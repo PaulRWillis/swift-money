@@ -24,7 +24,12 @@ struct MoneyParseStrategyCodableTests {
         let decoded = try Self.decoded(sut, as: Money.ParseStrategy.self)
 
         #expect(decoded == sut)
-        #expect(try decoded.parse("BHD\u{00A0}1.234") == Money(minorUnits: 1_234, currency: .bhd))
+
+        try withKnownIssue("Foundation before iOS 18 does not parse dinar text") { () throws in
+            #expect(try decoded.parse("BHD\u{00A0}1.234") == Money(minorUnits: 1_234, currency: .bhd))
+        } when: {
+            systemFoundationPredatesExpectedBehavior()
+        }
     }
 
     @Test("A runtime strategy carries a currency no ISO list names")
