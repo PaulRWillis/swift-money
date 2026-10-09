@@ -57,17 +57,19 @@ extension LocaleFallbackChain {
             self.utf8 = utf8
         }
 
-        /// Returns the chain's next key.
+        /// Advances to the chain's next key and returns it, for code that walks the chain as an
+        /// iterator.
         ///
         /// - Returns: The next key, or `nil` after the last.
         package mutating func next() -> LocaleKey? {
             nextKey()
         }
 
-        /// Returns the chain's next key.
+        /// Returns the chain's next key, for the table's lookup.
         ///
         /// - Returns: The next key, or `nil` after the last.
-        // Forced inline: left to the optimizer, every lookup calls out once per key.
+        // Forced inline: left to the optimizer, every lookup calls out once per key. Apart from the
+        // `IteratorProtocol` requirement, which forced inline copies its body into the witness too.
         @inline(__always)
         mutating func nextKey() -> LocaleKey? {
             while let current = step {
