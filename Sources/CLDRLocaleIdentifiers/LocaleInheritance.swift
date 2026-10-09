@@ -130,38 +130,40 @@ package struct LocaleInheritance: Sendable {
         case .root:
             return .reached(root)
         case nil:
-            return truncated(name, withScript: withScript).map(Hop.next) ?? .reached(root)
+            return truncated(name, withScript: withScript)
         }
     }
 
-    /// Returns a name with its last subtag removed, as TR35 truncates it.
+    /// Returns where TR35's truncation takes a name.
     ///
     /// - Parameters:
     ///   - name: The name to truncate.
     ///   - withScript: The name with its implied script inserted.
     /// - Returns: The name without its last subtag after any variants are gone, `L-S` for `L-R` or
-    ///   `L-S-R`, `L` for `L-S` when `S` is the language's own script, or `nil` when the lookup goes to
-    ///   root.
-    private func truncated(_ name: String, withScript: String) -> String? {
+    ///   `L-S-R`, or `L` for `L-S` when `S` is the language's own script; otherwise the root's group.
+    /// - Complexity: O(*m*), where *m* is the length of the name.
+    private func truncated(_ name: String, withScript: String) -> Hop {
         let subtags = LocaleSubtags(name)
 
         if !subtags.rest.isEmpty {
-            return LocaleSubtags(
+            return .next(LocaleSubtags(
                 language: subtags.language, script: subtags.script, region: subtags.region,
                 rest: Array(subtags.rest.dropLast())
-            ).name
+            ).name)
         }
 
         if subtags.region != nil {
             let full = LocaleSubtags(withScript)
-            return LocaleSubtags(language: full.language, script: full.script, region: nil, rest: []).name
+            return .next(
+                LocaleSubtags(language: full.language, script: full.script, region: nil, rest: []).name
+            )
         }
 
         guard let script = subtags.script, script == ownScript(of: subtags.language) else {
-            return nil
+            return .reached(root)
         }
 
-        return String(subtags.language)
+        return .next(String(subtags.language))
     }
 
     /// Returns the script CLDR implies for a bare language.
