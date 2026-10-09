@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Verify that the Embedded-facing modules compile under Embedded Swift.
 #
-# The core (and the localization data built on it) is meant to run on Embedded Swift, which forbids
-# Foundation, existentials, reflection, and metatypes. This compiles every source of each module under
-# the Embedded feature so a change that reaches for one of those fails here rather than in a user's
-# firmware build. The Codable surface is excluded from the core under Embedded (see the
+# The core, and the conversion and localization modules built on it, are meant to run on Embedded
+# Swift, which forbids Foundation, existentials, reflection, and metatypes. This compiles every source
+# of each module under the Embedded feature so a change that reaches for one of those fails here rather
+# than in a user's firmware build. The Codable surface is excluded from the core under Embedded (see the
 # `#if !hasFeature(Embedded)` guards), so it is not exercised here. SwiftMoneyFoundation is not checked:
 # it depends on Foundation by design.
 #
@@ -25,7 +25,7 @@ REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 TARGET="arm64-apple-none-macho"
 PACKAGE="swift-money"
 # Embedded-facing modules, in dependency order: each emits a module the next compiles against.
-MODULES=(SwiftMoneyCore SwiftMoneyLocalization)
+MODULES=(SwiftMoneyCore SwiftMoneyFX SwiftMoneyLocalization)
 
 # Prints the swift.org toolchain bundles in the standard directories, one per line: releases newest
 # first, then any others (snapshots, a `swift-latest` link) in glob order, oldest first.

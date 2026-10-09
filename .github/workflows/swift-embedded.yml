@@ -6,10 +6,12 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-    # Scoped to what Embedded/verify.sh compiles (Core + Localization only), so an unrelated future
-    # package does not trigger it. The push trigger above is left unscoped as a post-merge health signal.
+    # Scoped to what Embedded/verify.sh compiles (Core, FX and Localization only), so an unrelated
+    # future package does not trigger it. The push trigger above is left unscoped as a post-merge
+    # health signal.
     paths:
       - 'Sources/SwiftMoneyCore/**'
+      - 'Sources/SwiftMoneyFX/**'
       - 'Sources/SwiftMoneyLocalization/**'
       - 'Embedded/**'
       - 'Package.swift'
@@ -45,5 +47,5 @@ jobs:
     - name: Swift version
       run: swift --version
 
-    - name: Verify SwiftMoneyCore compiles under Embedded
+    - name: Verify SwiftMoneyCore, SwiftMoneyFX and SwiftMoneyLocalization compile under Embedded
       run: bash Embedded/verify.sh
