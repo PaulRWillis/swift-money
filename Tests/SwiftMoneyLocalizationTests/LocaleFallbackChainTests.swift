@@ -60,6 +60,39 @@ struct LocaleFallbackChainTests {
         #expect(Self.keys(of: identifier) == Self.keys(expected))
     }
 
+    @Test(
+        "A leading, doubled or trailing separator leaves an empty subtag with no shape",
+        arguments: [
+            ("en-", ["en-", "en"]),
+            ("en--US", ["en--US", "en"]),
+            ("en-Latn--US", ["en-Latn--US", "en-Latn", "en"]),
+            ("-en", ["-en", ""]),
+        ] as [(LocaleIdentifier, [String])]
+    )
+    func emptySubtags(_ identifier: LocaleIdentifier, _ expected: [String]) {
+        #expect(Self.keys(of: identifier) == Self.keys(expected))
+    }
+
+    @Test(
+        "A subtag longer than a script or a region is neither, however long",
+        arguments: [
+            ("en-Latnx-US", ["en-Latnx-US", "en"]),
+            ("en-Latn-USA", ["en-Latn-USA", "en-Latn", "en"]),
+            ("en-" + String(repeating: "B", count: 1_000), ["en-" + String(repeating: "B", count: 1_000), "en"]),
+            (
+                "en-Latn-" + String(repeating: "U", count: 1_000),
+                ["en-Latn-" + String(repeating: "U", count: 1_000), "en-Latn", "en"]
+            ),
+            (
+                "en-Latn-US-" + String(repeating: "x", count: 1_000),
+                ["en-Latn-US-" + String(repeating: "x", count: 1_000), "en-Latn", "en-US", "en"]
+            ),
+        ] as [(String, [String])]
+    )
+    func longSubtags(_ identifier: String, _ expected: [String]) {
+        #expect(Self.keys(of: LocaleIdentifier(identifier)) == Self.keys(expected))
+    }
+
     @Test("An empty identifier yields itself alone")
     func emptyIdentifier() {
         #expect(Self.keys(of: "") == [[]])
