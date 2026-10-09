@@ -179,8 +179,11 @@ private extension Rate {
 
         return .exact(value)
     }
+}
 
+extension Rate {
     // Scans a signed decimal ("-0.175", ".5", "100") into a significand and its fraction-digit count.
+    // Internal, not private: an exchange rate reads its quote with it, to rescale before rounding.
     static func scanDecimal(_ text: Substring) -> (significand: Int128, fractionDigits: Int)? {
         let zero = UInt8(ascii: "0"), nine = UInt8(ascii: "9")
         var sign = Sign.positive

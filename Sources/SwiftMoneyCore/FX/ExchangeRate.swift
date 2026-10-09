@@ -12,10 +12,11 @@ public extension FX {
     struct ExchangeRate<From: CurrencyType, To: CurrencyType>: Sendable, Equatable, Hashable {
         // Stored as `To` minor units per one `From` minor unit, the form `converted` and `crossed`
         // use directly. The public quote is per major unit; the two differ only when the currencies'
-        // scales differ, and the conversion between them lives solely in `init?(_:)`.
+        // scales differ.
         @usableFromInline let minorPerMinorRate: Rate
 
-        private init?(minorPerMinor rate: Rate) {
+        // Internal, not private: decoding builds the stored rate directly, to round only once.
+        init?(minorPerMinor rate: Rate) {
             guard rate.isPositive else {
                 return nil
             }

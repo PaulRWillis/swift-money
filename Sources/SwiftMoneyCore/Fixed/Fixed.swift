@@ -17,7 +17,8 @@ package struct Fixed: Equatable, Hashable, Sendable, BitwiseCopyable {
     fileprivate var _storage: Int128
 
     // The number of fractional digits a value is held to; `Scale` holds ten raised to that power.
-    private static let fractionalDigits = 18
+    // Internal, not private: an exchange rate writes its quote out to these places.
+    static let fractionalDigits = 18
     private static var scale: Int128 { Scale.value }
 
     private init(_storage: Int128) {
