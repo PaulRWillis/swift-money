@@ -36,35 +36,37 @@ extension Split {
     /// ```swift
     /// let split = GBP(minorUnits: 100_00).split(into: 3)
     /// for amount in split.amounts { … }        // £33.34, £33.33, £33.33
-    /// let all = Array(split.amounts)           // materializes, one element per part
+    /// let all = Array(split.amounts)           // [£33.34, £33.33, £33.33]
     /// ```
     ///
-    /// - Note: This is a `Sequence` rather than a `Collection`, deliberately. `Collection` would
-    ///   require `count` to be an `Int`, which cannot coexist with ``Split/count`` returning
-    ///   ``PartCount``; it would require a subscript whose valid range depends on the instance and
-    ///   so cannot be expressed in any index type, leaving a trap as the only option; and it would
-    ///   make `first`, `last`, `max()` and `min()` optional for a value that always has at least one
-    ///   part. Implementing `underestimatedCount` also makes `Array(split.amounts)` roughly twice as
-    ///   fast as the equivalent `RandomAccessCollection`, because capacity is reserved exactly.
+    /// - Note: For the number of amounts, use ``Split/count``.
     ///
-    /// - Note: Iterating does not consume the sequence (it can be traversed repeatedly), though
-    ///   `Sequence` does not promise that to generic code.
+    /// - Note: The amounts can be iterated more than once.
     @inlinable
     public var amounts: some Sequence<MoneyOf<C>> {
         Amounts(self)
     }
 
+    /// A split's amounts, one per part.
     @usableFromInline struct Amounts: Sequence {
+        /// The split to iterate.
         @usableFromInline let split: Split
 
+        /// Creates the amounts of a split.
+        ///
+        /// - Parameter split: The split to iterate.
         @inlinable init(_ split: Split) {
             self.split = split
         }
 
+        /// The number of parts, which is exactly the number of amounts.
         @inlinable var underestimatedCount: Int {
             Int(split.count)
         }
 
+        /// Returns an iterator over the split's amounts.
+        ///
+        /// - Returns: A new iterator, starting at the first part.
         @inlinable func makeIterator() -> Iterator {
             Iterator(split)
         }
@@ -90,7 +92,6 @@ extension Split {
             ///
             /// - Parameter split: The split to iterate.
             @inlinable init(_ split: Split) {
-                // Settled once here, so `next()` does no switch or count arithmetic per element.
                 switch split {
                 case let .even(even):
                     larger = even.amount
@@ -137,8 +138,7 @@ extension Split: Equatable {
     /// - Returns: `true` if the splits are equal; otherwise, `false`.
     @inlinable
     public static func == (lhs: Split, rhs: Split) -> Bool {
-        // Hand-written because the synthesized `==` on this enum doesn't specialize across modules;
-        // the synthesized `hash(into:)` and the payloads' `==` do.
+        // Hand-written because the synthesized `==` doesn't specialize across modules.
         switch (lhs, rhs) {
         case let (.even(left), .even(right)):
             return left == right
@@ -165,8 +165,6 @@ extension Split {
         _ split: MinorUnitSplit,
         storage: C.Storage
     ) {
-        // Inlinable so a split specializes into the caller instead of building this enum through
-        // runtime metadata.
         switch split {
         case let .even(count, minorUnits):
             self = .even(
@@ -199,8 +197,6 @@ func split(
     _ amount: Int64,
     into parts: PartCount
 ) -> MinorUnitSplit {
-    // Not inlinable: the result is already concrete, so there is nothing for a caller to
-    // specialize.
     guard let amount = NonZeroInt64(amount) else {
         return .even(count: parts, minorUnits: 0)
     }
@@ -225,10 +221,12 @@ func split(
     }
 }
 
-// Unchecked because a non-zero value has a magnitude of at least one.
-//
-// Narrowing to `Int` is safe here even though the value is an `Int64`: every caller passes a remainder,
-// whose magnitude is always below the divisor, itself a `PartCount`, and so already within `Int`.
+/// Returns the magnitude of a non-zero value as a part count.
+///
+/// - Parameter value: The value to measure.
+/// - Returns: The magnitude of `value`.
+/// - Precondition: The magnitude of `value` must fit in `Int`.
 func abs(_ value: NonZeroInt64) -> PartCount {
+    // A non-zero value's magnitude is at least one, so it's a valid part count.
     PartCount(unchecked: Int(abs(value.rawValue)))
 }
