@@ -2529,6 +2529,7 @@ let benchmarks: @Sendable () -> Void = {
     // Two lengths of each long identifier: how the lookup's cost grows with length needs both.
     for length in [1_000, 2_000] {
         let rows: [(String, LocaleIdentifier)] = [
+            ("long language", LocaleIdentifier(String(repeating: "b", count: length) + "-US")),
             ("long second subtag", LocaleIdentifier("en-" + String(repeating: "B", count: length))),
             ("long tail", LocaleIdentifier("en-Latn-US-" + String(repeating: "x", count: length))),
         ]
