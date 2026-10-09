@@ -81,7 +81,8 @@ Exchange rates themselves are in the core. `SwiftMoneyFX` builds for Embedded Sw
 **Platforms:** macOS 13.3+, iOS 16.4+, watchOS 9.4+, tvOS 16.4+, visionOS 1+. Those point releases
 are the first with `StaticBigInt`, which the library's 128-bit integer literals need. Below iOS 18
 and macOS 15, parsing and the digits some locales use follow the system's Foundation, so some
-formatted amounts may not parse back there. Linux builds in CI.
+formatted amounts may not parse back there. Linux builds in CI. CI also builds every Apple platform
+at those minimum versions and runs the tests on iOS 17.
 
 ## Creating money
 

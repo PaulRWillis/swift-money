@@ -37,3 +37,78 @@ jobs:
 
     - name: Run tests (release)
       run: swift test -c release --parallel
+
+  build-at-floor:
+    runs-on: macos-26
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - platform: iOS
+          floor: apple-ios16.4
+        - platform: watchOS
+          floor: apple-watchos9.4
+        - platform: tvOS
+          floor: apple-tvos16.4
+        - platform: visionOS
+          floor: apple-xros1.0
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: '26.5'
+
+    # An explicit bash shell adds pipefail, without which the tee hides a failed build.
+    - name: Build
+      shell: bash
+      run: >-
+        xcodebuild build
+        -scheme SwiftMoney
+        -destination 'generic/platform=${{ matrix.platform }}'
+        CODE_SIGNING_ALLOWED=NO
+        | tee build.log
+
+    - name: Build SwiftMoneyFX
+      shell: bash
+      run: >-
+        xcodebuild build
+        -scheme SwiftMoneyFX
+        -destination 'generic/platform=${{ matrix.platform }}'
+        CODE_SIGNING_ALLOWED=NO
+
+    # The deployment target comes from Package.swift, so a passing build alone doesn't show which
+    # target the compiler used.
+    - name: Check the build targeted the package floor
+      run: grep -m 1 -o -E '[a-z0-9_]+-${{ matrix.floor }}' build.log
+
+  test-ios-17:
+    runs-on: macos-26
+    timeout-minutes: 60
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: '26.5'
+
+    # iOS 17 is below the iOS 18 that stdlib Int128 needs. The image ships only iOS 26 runtimes.
+    - name: Install the iOS 17.5 simulator runtime
+      run: xcodebuild -downloadPlatform iOS -buildVersion 17.5
+
+    - name: Create an iOS 17.5 simulator
+      run: xcrun simctl create iPhone-15-iOS-17 'iPhone 15' com.apple.CoreSimulator.SimRuntime.iOS-17-5
+
+    - name: Run tests
+      run: >-
+        xcodebuild test
+        -scheme SwiftMoney-Package
+        -destination 'platform=iOS Simulator,name=iPhone-15-iOS-17,OS=17.5'
+        -resultBundlePath TestResults.xcresult
+
+    - name: Test summary
+      if: always()
+      run: xcrun xcresulttool get test-results summary --path TestResults.xcresult
