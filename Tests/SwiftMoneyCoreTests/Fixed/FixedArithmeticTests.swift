@@ -1,4 +1,5 @@
 import SwiftMoneyCore
+import SwiftMoneyCoreTestSupport
 import Testing
 
 // A stored value and a power of ten, 10^-k, to multiply it by.

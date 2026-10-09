@@ -1,4 +1,5 @@
 import SwiftMoneyCore
+import SwiftMoneyCoreTestSupport
 import Testing
 
 // An amount and the number of parts it is split into.

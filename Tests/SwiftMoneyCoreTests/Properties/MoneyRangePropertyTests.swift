@@ -1,4 +1,5 @@
 import SwiftMoneyCore
+import SwiftMoneyCoreTestSupport
 import Testing
 
 // Two ordered pairs of minor units and a probe, the raw material for two ranges and an amount. The

@@ -1,4 +1,5 @@
 import SwiftMoneyCore
+import SwiftMoneyCoreTestSupport
 import Testing
 
 private enum LoyaltyPoints: CurrencyType {

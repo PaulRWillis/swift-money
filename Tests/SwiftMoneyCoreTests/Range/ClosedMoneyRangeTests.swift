@@ -1,4 +1,5 @@
 import SwiftMoneyCore
+import SwiftMoneyCoreTestSupport
 import Testing
 
 private func pounds(_ minorUnits: Int64) -> Money {

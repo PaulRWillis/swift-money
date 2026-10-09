@@ -1,5 +1,6 @@
 import Foundation
 import SwiftMoneyCore
+import SwiftMoneyCoreTestSupport
 import Testing
 
 // Market quotes from 10⁻⁶ to 10¹², on grids of zero to six places.

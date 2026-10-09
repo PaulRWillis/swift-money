@@ -6,7 +6,7 @@ extension Gen where Value == PartCount {
     /// - Precondition: `range`'s lower bound is at least one, which every caller passes, so
     ///   `PartCount(exactly:)` never returns `nil`; `?? 1` names that unreachable fallback without a
     ///   force unwrap.
-    static func partCount(in range: ClosedRange<Int64>) -> Gen<PartCount> {
+    package static func partCount(in range: ClosedRange<Int64>) -> Gen<PartCount> {
         precondition(range.lowerBound >= 1, "A part count is at least one")
 
         return Gen<Int64>.int(in: range).map { PartCount(exactly: Int($0)) ?? 1 }
@@ -19,7 +19,7 @@ extension Gen where Value == Weight {
     /// - Precondition: `range`'s lower bound is not negative, which every caller passes, so
     ///   `Weight(exactly:)` never returns `nil`; `?? 0` names that unreachable fallback without a force
     ///   unwrap.
-    static func weight(in range: ClosedRange<Int64>) -> Gen<Weight> {
+    package static func weight(in range: ClosedRange<Int64>) -> Gen<Weight> {
         precondition(range.lowerBound >= 0, "A weight is not negative")
 
         return Gen<Int64>.int(in: range).map { Weight(exactly: Int($0)) ?? 0 }
@@ -33,7 +33,7 @@ extension Gen where Value == [Weight] {
     /// weight — exactly the two conditions `Weights.init` needs — while the rest may be zero. The sum of
     /// at most `countRange.upperBound` weights of at most `weightRange.upperBound` each is far inside
     /// `Int64`, so the sum is always representable too.
-    static func weightList(
+    package static func weightList(
         countIn countRange: ClosedRange<Int64>,
         weightIn weightRange: ClosedRange<Int64>
     ) -> Gen<[Weight]> {

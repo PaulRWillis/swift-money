@@ -54,6 +54,12 @@ let package = Package(
             name: "SwiftMoneyFoundation",
             dependencies: ["SwiftMoneyCore", "SwiftMoneyLocalization"]
         ),
+        // Dev-only. The property-test generators and test helpers, shared by the suites that test the
+        // core. Not in any library product.
+        .target(
+            name: "SwiftMoneyCoreTestSupport",
+            dependencies: ["SwiftMoneyCore"]
+        ),
         // Dev-only. Shares the format-matrix inputs between the golden test and the ICU deviation
         // report, so they can't drift apart. Not in any library product.
         .target(
@@ -93,7 +99,7 @@ let package = Package(
         ),
         .testTarget(
             name: "SwiftMoneyCoreTests",
-            dependencies: ["SwiftMoneyCore"],
+            dependencies: ["SwiftMoneyCore", "SwiftMoneyCoreTestSupport"],
             // The General Decimal Arithmetic conformance corpus, parsed at runtime by GDATests.
             resources: [.copy("Resources")]
         ),

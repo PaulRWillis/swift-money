@@ -1,4 +1,5 @@
 import SwiftMoneyCore
+import SwiftMoneyCoreTestSupport
 import Testing
 
 // Format-then-parse does no arithmetic — only `description` and the parser run — so the whole Int64 range

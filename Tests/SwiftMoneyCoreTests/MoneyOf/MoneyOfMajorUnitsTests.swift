@@ -1,4 +1,5 @@
 import SwiftMoneyCore
+import SwiftMoneyCoreTestSupport
 import Testing
 
 // Whole-number counts spread across both signs and the range every currency here can hold.

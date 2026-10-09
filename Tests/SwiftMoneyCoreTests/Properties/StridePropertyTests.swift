@@ -1,4 +1,5 @@
 import SwiftMoneyCore
+import SwiftMoneyCoreTestSupport
 import Testing
 
 // A start, an end and a non-zero stride in minor units. Two bands: a narrow one where sequences are

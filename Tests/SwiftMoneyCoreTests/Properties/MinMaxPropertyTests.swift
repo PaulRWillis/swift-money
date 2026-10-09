@@ -1,4 +1,5 @@
 import SwiftMoneyCore
+import SwiftMoneyCoreTestSupport
 import Testing
 
 // Two runtime amounts, in one currency or in two, for the min and max properties.
