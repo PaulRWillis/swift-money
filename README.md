@@ -67,7 +67,9 @@ import SwiftMoney   // the core types and the Foundation-backed formatting, in o
   `Decimal` interop, and JSON configuration.
 
 **Requires Swift 6.2.**
-**Platforms:** macOS 15+, iOS 18+, watchOS 11+, tvOS 18+, visionOS 2+. Linux builds in CI.
+**Platforms:** macOS 13.3+, iOS 16.4+, watchOS 9.4+, tvOS 16.4+, visionOS 1+. Those point releases
+are the first with `StaticBigInt`, which the library's 128-bit integer literals need. Linux builds in
+CI.
 
 ## Creating money
 

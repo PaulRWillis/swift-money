@@ -35,6 +35,7 @@ struct RateTests {
     }
 
     @Test("A rate too large to represent traps")
+    @available(macOS 15, iOS 18, watchOS 11, tvOS 18, visionOS 2, *)
     func oversizedRateTraps() async {
         await #expect(processExitsWith: .failure) {
             blackHole(Rate.basisPoints(Int128.max))

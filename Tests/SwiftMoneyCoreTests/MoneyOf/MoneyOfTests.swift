@@ -29,6 +29,7 @@ struct MoneyOfTests {
     }
 
     @Test("when constructed exactly from representable value should hold same amount")
+    @available(macOS 15, iOS 18, watchOS 11, tvOS 18, visionOS 2, *)
     func whenConstructedExactlyFromRepresentableValue_shouldHoldSameAmount() {
         let sut = GBP(exactly: Int128(4_99))
 
@@ -36,12 +37,14 @@ struct MoneyOfTests {
     }
 
     @Test("when constructed exactly from value beyond storage should return nil")
+    @available(macOS 15, iOS 18, watchOS 11, tvOS 18, visionOS 2, *)
     func whenConstructedExactlyFromValueBeyondStorage_shouldReturnNil() {
         #expect(GBP(exactly: Int128.max) == nil)
         #expect(GBP(exactly: UInt64.max) == nil)
     }
 
     @Test("when constructed from value beyond storage should trap")
+    @available(macOS 15, iOS 18, watchOS 11, tvOS 18, visionOS 2, *)
     func whenConstructedFromValueBeyondStorage_shouldTrap() async {
         await #expect(processExitsWith: .failure) {
             blackHole(GBP(minorUnits: Int128.max))

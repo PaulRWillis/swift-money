@@ -40,6 +40,7 @@ struct MoneyBinaryIntegerTests {
     }
 
     @Test("when extracting minor units into a wider integer should hold the bounds")
+    @available(macOS 15, iOS 18, watchOS 11, tvOS 18, visionOS 2, *)
     func whenExtractingMinorUnitsIntoWiderInteger_shouldHoldBounds() {
         #expect(Int128(minorUnitsOf: GBP.max) == Int128(Int64.max))
         #expect(Int128(minorUnitsOf: GBP.min) == Int128(Int64.min))

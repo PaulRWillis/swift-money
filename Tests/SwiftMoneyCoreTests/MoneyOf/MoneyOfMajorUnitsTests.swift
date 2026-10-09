@@ -55,6 +55,7 @@ struct MoneyOfMajorUnitsTests {
     }
 
     @Test("A count wider than an amount is nil, however it is scaled")
+    @available(macOS 15, iOS 18, watchOS 11, tvOS 18, visionOS 2, *)
     func widerThanAnAmount() {
         #expect(JPY(majorUnits: Int128(Int64.max) + 1) == nil)
         #expect(JPY(majorUnits: UInt64.max) == nil)
@@ -62,6 +63,7 @@ struct MoneyOfMajorUnitsTests {
     }
 
     @Test("A wide integer type that holds a representable count still converts")
+    @available(macOS 15, iOS 18, watchOS 11, tvOS 18, visionOS 2, *)
     func wideTypeNarrowValue() {
         #expect(GBP(majorUnits: Int128(15)) == GBP(minorUnits: 15_00))
         #expect(Money(majorUnits: UInt8(15), currency: .gbp) == Money(minorUnits: 15_00, currency: .gbp))
@@ -75,6 +77,7 @@ struct MoneyOfMajorUnitsTests {
     }
 
     @Test("Int, Int64 and generic counts agree, typed and runtime", arguments: wholeCounts)
+    @available(macOS 15, iOS 18, watchOS 11, tvOS 18, visionOS 2, *)
     func overloadsAgree(_ count: Int64) {
         let fromInt64 = GBP(majorUnits: count)
         let runtimeFromInt64 = Money(majorUnits: count, currency: .gbp)

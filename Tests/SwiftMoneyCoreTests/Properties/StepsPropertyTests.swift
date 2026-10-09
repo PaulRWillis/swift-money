@@ -74,8 +74,8 @@ struct StepsPropertyTests {
         let steps = try runtimeSteps(sample, by: sample.stride)
         let minorUnits = steps.map(\.minorUnits)
         let ascending = sample.stride > 0
-        let gaps = zip(minorUnits, minorUnits.dropFirst()).map { Int128($1) - Int128($0) }
-        let magnitude = Int128(sample.stride.magnitude)
+        let gaps = zip(minorUnits, minorUnits.dropFirst()).map { Int128Words($1) - Int128Words($0) }
+        let magnitude = Int128Words(sample.stride).magnitude
 
         #expect(minorUnits.first == (ascending ? sample.lower : sample.upper))
         #expect(minorUnits.last == (ascending ? sample.upper : sample.lower))
@@ -174,7 +174,10 @@ private func probes(around steps: Money.Steps) -> [Int64] {
             .map(\.partialValue))
         if offset + 1 < steps.count {
             let next = steps[steps.index(steps.startIndex, offsetBy: offset + 1)].minorUnits
-            probes.append(Int64(truncatingIfNeeded: (Int128(here) + Int128(next)) / 2))
+            // The midpoint of two `Int64`s is always an `Int64`, so this never drops a probe.
+            if let midpoint = Int64(exactly: (Int128Words(here) + Int128Words(next)) / 2) {
+                probes.append(midpoint)
+            }
         }
     }
 
@@ -241,8 +244,8 @@ private func searchedIndex(
 ) -> Money.Steps.Index {
 
     let positive = probe >= 0
-    let belowSize = Int128(steps[below].minorUnits).magnitude
-    let aboveSize = Int128(steps[above].minorUnits).magnitude
+    let belowSize = steps[below].minorUnits.magnitude
+    let aboveSize = steps[above].minorUnits.magnitude
     let acrossZero = steps[below].minorUnits < 0 && steps[above].minorUnits > 0
     let sameSign = positive ? above : below
     let smaller = belowSize == aboveSize ? sameSign : (belowSize < aboveSize ? below : above)
@@ -266,8 +269,8 @@ private func searchedNearestIndex(
 ) -> Money.Steps.Index? {
     switch searchedNeighbors(of: probe, in: steps) {
     case let (below?, above?):
-        let toBelow = (Int128(probe) - Int128(steps[below].minorUnits)).magnitude
-        let toAbove = (Int128(steps[above].minorUnits) - Int128(probe)).magnitude
+        let toBelow = (Int128Words(probe) - Int128Words(steps[below].minorUnits)).magnitude
+        let toAbove = (Int128Words(steps[above].minorUnits) - Int128Words(probe)).magnitude
         guard toBelow == toAbove else {
             return toBelow < toAbove ? below : above
         }
