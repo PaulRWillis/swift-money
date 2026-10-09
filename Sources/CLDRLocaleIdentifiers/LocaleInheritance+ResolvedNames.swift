@@ -197,7 +197,7 @@ extension LocaleInheritance {
                 subtags.script == nil,
                 subtags.rest.isEmpty,
                 let region = subtags.region,
-                subtags.language != LocaleInheritance.undetermined
+                subtags.language != LocaleInheritance.rootName
             else {
                 return nil
             }
@@ -205,7 +205,4 @@ extension LocaleInheritance {
             name = "\(subtags.language)-\(region)"
         }
     }
-
-    /// The language subtag CLDR uses for "undetermined".
-    private static let undetermined: Substring = "und"
 }

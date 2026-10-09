@@ -222,8 +222,8 @@ package struct LocaleInheritance: Sendable {
         }
     }
 
-    /// The name of CLDR's root locale folder.
-    private static let rootName = "und"
+    /// The name of CLDR's root locale folder, which is also the language subtag for "undetermined".
+    static let rootName = "und"
 
     /// The older name CLDR's parent locales may give the root locale.
     private static let legacyRootName = "root"
