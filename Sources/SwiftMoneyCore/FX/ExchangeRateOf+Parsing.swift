@@ -1,4 +1,4 @@
-public extension FX.ExchangeRate {
+public extension FX.ExchangeRateOf{
     /// Creates an exchange rate from a market quote's text: `To` major units per one `From` major
     /// unit, as a plain decimal.
     ///
@@ -6,9 +6,9 @@ public extension FX.ExchangeRate {
     /// `From`'s smallest unit, so how many places a quote may have depends on the two currencies.
     ///
     /// ```swift
-    /// let eurGbp = try FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(string: "0.87")
-    /// let usdJpy = try FX.ExchangeRate<Currencies.USD, Currencies.JPY>(string: "149.5")
-    /// let tooFine = try FX.ExchangeRate<Currencies.USD, Currencies.JPY>(string: "149.12345678901234567")   // throws
+    /// let eurGbp = try FX.ExchangeRateOf<Currencies.EUR, Currencies.GBP>(string: "0.87")
+    /// let usdJpy = try FX.ExchangeRateOf<Currencies.USD, Currencies.JPY>(string: "149.5")
+    /// let tooFine = try FX.ExchangeRateOf<Currencies.USD, Currencies.JPY>(string: "149.12345678901234567")   // throws
     /// ```
     ///
     /// - Parameter quote: The market quote, such as `"0.87"`.
@@ -35,11 +35,11 @@ public extension FX.ExchangeRate {
     }
 }
 
-extension FX.ExchangeRate: CustomStringConvertible {
+extension FX.ExchangeRateOf: CustomStringConvertible {
     /// The market quote, with every digit the rate holds and no trailing zeros.
     ///
     /// ```swift
-    /// let eurGbp = try FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(string: "0.870")
+    /// let eurGbp = try FX.ExchangeRateOf<Currencies.EUR, Currencies.GBP>(string: "0.870")
     /// eurGbp.description   // "0.87"
     /// ```
     public var description: String {
@@ -133,7 +133,7 @@ private extension UInt128 {
     }
 }
 
-extension FX.ExchangeRate {
+extension FX.ExchangeRateOf{
     /// The decimal places a quote gains when rescaled from major units to smallest units: `To`'s
     /// places less `From`'s, from `-18` to `18`.
     static var placesGained: Int {

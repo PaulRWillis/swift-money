@@ -5,7 +5,7 @@ import Testing
 
 // A conversion to exercise: an amount, a mid rate (EUR→GBP), a second leg (GBP→USD) to cross with, a
 // margin, and an ordered pair of amounts for the monotonicity check. The rates are stored rather than the
-// `FX.ExchangeRate` values, which are built in the tests: a positive rate always yields one, so
+// `FX.ExchangeRateOf` values, which are built in the tests: a positive rate always yields one, so
 // `#require` unwraps it there without a fallback.
 private struct ConvertCase: Sendable {
     let amount: EUR
@@ -118,7 +118,7 @@ struct ExchangeRatePropertyTests {
 
     @Test("A positive amount converts to a positive amount", arguments: convertCases)
     private func conversionIsPositive(_ convert: ConvertCase) throws {
-        let rate = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(convert.rate))
+        let rate = try #require(FX.ExchangeRateOf<Currencies.EUR, Currencies.GBP>(convert.rate))
 
         for rule in roundingRules {
             #expect(try convert.amount.converted(using: rate).rounded(rule) > .zero)
@@ -127,8 +127,8 @@ struct ExchangeRatePropertyTests {
 
     @Test("A crossed rate keeps a positive amount positive", arguments: convertCases)
     private func crossedConversionIsPositive(_ convert: ConvertCase) throws {
-        let eurGbp = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(convert.rate))
-        let gbpUsd = try #require(FX.ExchangeRate<Currencies.GBP, Currencies.USD>(convert.onwardRate))
+        let eurGbp = try #require(FX.ExchangeRateOf<Currencies.EUR, Currencies.GBP>(convert.rate))
+        let gbpUsd = try #require(FX.ExchangeRateOf<Currencies.GBP, Currencies.USD>(convert.onwardRate))
         let eurUsd = try eurGbp.crossed(with: gbpUsd)
 
         for rule in roundingRules {
@@ -138,7 +138,7 @@ struct ExchangeRatePropertyTests {
 
     @Test("Applying a margin never exceeds the mid rate and stays positive", arguments: convertCases)
     private func marginStaysBelowMidAndPositive(_ convert: ConvertCase) throws {
-        let rate = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(convert.rate))
+        let rate = try #require(FX.ExchangeRateOf<Currencies.EUR, Currencies.GBP>(convert.rate))
         let margin = try #require(FX.Margin(.basisPoints(convert.marginBasisPoints)))
 
         for rule in roundingRules {
@@ -152,9 +152,9 @@ struct ExchangeRatePropertyTests {
 
     @Test("A rate of one is an identity for crossing and converting", arguments: convertCases)
     private func rateOfOneIsAnIdentity(_ convert: ConvertCase) throws {
-        let eurGbp = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(convert.rate))
-        let eurEur = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.EUR>("1"))
-        let gbpGbp = try #require(FX.ExchangeRate<Currencies.GBP, Currencies.GBP>("1"))
+        let eurGbp = try #require(FX.ExchangeRateOf<Currencies.EUR, Currencies.GBP>(convert.rate))
+        let eurEur = try #require(FX.ExchangeRateOf<Currencies.EUR, Currencies.EUR>("1"))
+        let gbpGbp = try #require(FX.ExchangeRateOf<Currencies.GBP, Currencies.GBP>("1"))
 
         #expect(try eurEur.crossed(with: eurGbp) == eurGbp)
         #expect(try eurGbp.crossed(with: gbpGbp) == eurGbp)
@@ -166,9 +166,9 @@ struct ExchangeRatePropertyTests {
 
     @Test("Crossing is associative to within one minor unit", arguments: crossCases)
     private func crossingIsAssociative(_ cross: CrossCase) throws {
-        let eurGbp = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(cross.first))
-        let gbpUsd = try #require(FX.ExchangeRate<Currencies.GBP, Currencies.USD>(cross.second))
-        let usdJpy = try #require(FX.ExchangeRate<Currencies.USD, Currencies.JPY>(cross.third))
+        let eurGbp = try #require(FX.ExchangeRateOf<Currencies.EUR, Currencies.GBP>(cross.first))
+        let gbpUsd = try #require(FX.ExchangeRateOf<Currencies.GBP, Currencies.USD>(cross.second))
+        let usdJpy = try #require(FX.ExchangeRateOf<Currencies.USD, Currencies.JPY>(cross.third))
 
         let leftFirst = try eurGbp.crossed(with: gbpUsd).crossed(with: usdJpy)
         let rightFirst = try eurGbp.crossed(with: gbpUsd.crossed(with: usdJpy))
@@ -186,7 +186,7 @@ struct ExchangeRatePropertyTests {
 
     @Test("Inverting twice converts to within one minor unit of the original rate", arguments: convertCases)
     private func invertingTwiceIsNearlyAnIdentity(_ convert: ConvertCase) throws {
-        let rate = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(convert.rate))
+        let rate = try #require(FX.ExchangeRateOf<Currencies.EUR, Currencies.GBP>(convert.rate))
         let twice = try rate.inverted().inverted()
 
         // Each inverse rounds by at most 0.5 × 10⁻¹⁸, which the second grows by at most the rate
@@ -202,7 +202,7 @@ struct ExchangeRatePropertyTests {
 
     @Test("Converting is monotonic in the amount", arguments: convertCases)
     private func conversionIsMonotonic(_ convert: ConvertCase) throws {
-        let rate = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(convert.rate))
+        let rate = try #require(FX.ExchangeRateOf<Currencies.EUR, Currencies.GBP>(convert.rate))
 
         for rule in roundingRules {
             let lower = try convert.smaller.converted(using: rate).rounded(rule)

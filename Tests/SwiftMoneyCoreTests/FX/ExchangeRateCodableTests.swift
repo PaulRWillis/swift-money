@@ -2,7 +2,7 @@ import Foundation
 import SwiftMoneyCore
 import Testing
 
-private typealias EURGBP = FX.ExchangeRate<Currencies.EUR, Currencies.GBP>
+private typealias EURGBP = FX.ExchangeRateOf<Currencies.EUR, Currencies.GBP>
 
 // Keys are sorted because `JSONEncoder` does not otherwise fix their order.
 private func json<T: Encodable>(_ value: T) throws -> String {
@@ -29,7 +29,7 @@ struct ExchangeRateCodableTests {
 
     @Test("A rate between currencies of different scales is written per major unit")
     func encodesPerMajorUnit() throws {
-        let rate = try #require(FX.ExchangeRate<Currencies.USD, Currencies.JPY>("149.5"))
+        let rate = try #require(FX.ExchangeRateOf<Currencies.USD, Currencies.JPY>("149.5"))
 
         #expect(try json(rate) == #"{"from":"USD","rate":"149.5","to":"JPY"}"#)
     }
@@ -51,10 +51,10 @@ struct ExchangeRateCodableTests {
     // ¥1 = $0.0066889632107023411… needs more than eighteen places once quoted per major unit.
     @Test("A rate whose market quote needs more than eighteen places keeps every digit")
     func roundTripsBeyondEighteenPlaces() throws {
-        let jpyUsd = try #require(FX.ExchangeRate<Currencies.USD, Currencies.JPY>("149.5")).inverted()
+        let jpyUsd = try #require(FX.ExchangeRateOf<Currencies.USD, Currencies.JPY>("149.5")).inverted()
         let text = try json(jpyUsd)
 
-        #expect(try decoded(FX.ExchangeRate<Currencies.JPY, Currencies.USD>.self, from: text) == jpyUsd)
+        #expect(try decoded(FX.ExchangeRateOf<Currencies.JPY, Currencies.USD>.self, from: text) == jpyUsd)
     }
 
     @Test(
@@ -81,8 +81,8 @@ struct ExchangeRateCodableTests {
     // and dollars two, so a USD→JPY quote holds sixteen places and a JPY→USD quote twenty.
     @Test("How many places a quote may have depends on the two currencies' scales")
     func placesDependOnTheScales() throws {
-        let usdJpy = FX.ExchangeRate<Currencies.USD, Currencies.JPY>.self
-        let jpyUsd = FX.ExchangeRate<Currencies.JPY, Currencies.USD>.self
+        let usdJpy = FX.ExchangeRateOf<Currencies.USD, Currencies.JPY>.self
+        let jpyUsd = FX.ExchangeRateOf<Currencies.JPY, Currencies.USD>.self
 
         #expect(throws: Never.self) {
             try decoded(usdJpy, from: #"{"from":"USD","to":"JPY","rate":"149.1234567890123456"}"#)

@@ -2110,7 +2110,7 @@ let benchmarks: @Sendable () -> Void = {
     // registration and fails loudly, rather than an `if let` that would silently drop this row — the
     // only coverage `converted(using:)` has.
     let eurGbpRate: Rate = "0.8765262907"
-    guard let eurGbp = FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(eurGbpRate) else {
+    guard let eurGbp = FX.ExchangeRateOf<Currencies.EUR, Currencies.GBP>(eurGbpRate) else {
         preconditionFailure("0.8765262907 is a positive EUR/GBP rate")
     }
 
@@ -2125,8 +2125,8 @@ let benchmarks: @Sendable () -> Void = {
 
     let eurUsdRate: Rate = "1.1"
     let usdGbpRate: Rate = "0.8"
-    guard let eurUsd = FX.ExchangeRate<Currencies.EUR, Currencies.USD>(eurUsdRate),
-          let usdGbp = FX.ExchangeRate<Currencies.USD, Currencies.GBP>(usdGbpRate) else {
+    guard let eurUsd = FX.ExchangeRateOf<Currencies.EUR, Currencies.USD>(eurUsdRate),
+          let usdGbp = FX.ExchangeRateOf<Currencies.USD, Currencies.GBP>(usdGbpRate) else {
         preconditionFailure("1.1 and 0.8 are positive rates")
     }
 
@@ -2150,9 +2150,9 @@ let benchmarks: @Sendable () -> Void = {
 
     // Rates cycled rather than one constant, so the work can't be hoisted out of the loop. USD→JPY
     // changes scale, so its JSON quote is rescaled on the way out and in.
-    let eurGbpRates = rateOperands.compactMap { FX.ExchangeRate<Currencies.EUR, Currencies.GBP>($0) }
+    let eurGbpRates = rateOperands.compactMap { FX.ExchangeRateOf<Currencies.EUR, Currencies.GBP>($0) }
     let usdJpyQuotes: [Rate] = ["149.5", "150.25", "148", "151.125", "147.8"]
-    let usdJpyRates = usdJpyQuotes.compactMap { FX.ExchangeRate<Currencies.USD, Currencies.JPY>($0) }
+    let usdJpyRates = usdJpyQuotes.compactMap { FX.ExchangeRateOf<Currencies.USD, Currencies.JPY>($0) }
     let rateEncoder = JSONEncoder()
 
     guard eurGbpRates.count == rateOperands.count, usdJpyRates.count == usdJpyQuotes.count else {
@@ -2186,7 +2186,7 @@ let benchmarks: @Sendable () -> Void = {
         var index = 0
 
         for _ in benchmark.scaledIterations {
-            blackHole(try FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(string: eurGbpQuotes[index % eurGbpQuotes.count]))
+            blackHole(try FX.ExchangeRateOf<Currencies.EUR, Currencies.GBP>(string: eurGbpQuotes[index % eurGbpQuotes.count]))
             index &+= 1
         }
     }
@@ -2195,7 +2195,7 @@ let benchmarks: @Sendable () -> Void = {
         var index = 0
 
         for _ in benchmark.scaledIterations {
-            blackHole(try FX.ExchangeRate<Currencies.USD, Currencies.JPY>(string: usdJpyQuoteTexts[index % usdJpyQuoteTexts.count]))
+            blackHole(try FX.ExchangeRateOf<Currencies.USD, Currencies.JPY>(string: usdJpyQuoteTexts[index % usdJpyQuoteTexts.count]))
             index &+= 1
         }
     }
@@ -2284,7 +2284,7 @@ let benchmarks: @Sendable () -> Void = {
 
         for _ in benchmark.scaledIterations {
             blackHole(try decoder.decode(
-                FX.ExchangeRate<Currencies.EUR, Currencies.GBP>.self,
+                FX.ExchangeRateOf<Currencies.EUR, Currencies.GBP>.self,
                 from: payloads[index % payloads.count]
             ))
             index &+= 1
@@ -2298,7 +2298,7 @@ let benchmarks: @Sendable () -> Void = {
 
         for _ in benchmark.scaledIterations {
             blackHole(try decoder.decode(
-                FX.ExchangeRate<Currencies.USD, Currencies.JPY>.self,
+                FX.ExchangeRateOf<Currencies.USD, Currencies.JPY>.self,
                 from: payloads[index % payloads.count]
             ))
             index &+= 1

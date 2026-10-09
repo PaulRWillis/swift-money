@@ -1,13 +1,13 @@
 #if !hasFeature(Embedded)
 
-extension FX.ExchangeRate: Codable {
+extension FX.ExchangeRateOf: Codable {
     /// Writes the rate as its two currency codes and its market quote.
     ///
     /// The quote is `To` major units per one `From` major unit, as a decimal string carrying every
     /// digit the rate holds, so it reads back unchanged.
     ///
     /// ```swift
-    /// let eurGbp = FX.ExchangeRate<Currencies.EUR, Currencies.GBP>("0.87")!
+    /// let eurGbp = FX.ExchangeRateOf<Currencies.EUR, Currencies.GBP>("0.87")!
     /// try encoder.encode(eurGbp)   // {"from":"EUR","rate":"0.87","to":"GBP"}
     /// ```
     ///
@@ -55,7 +55,7 @@ extension FX.ExchangeRate: Codable {
     }
 }
 
-extension FX.ExchangeRate {
+extension FX.ExchangeRateOf {
     /// The keys a rate's fields are written under.
     private enum CodingKeys: String, CodingKey {
         /// The code of the currency the rate converts from.

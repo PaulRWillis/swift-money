@@ -12,9 +12,9 @@ public extension FX {
     /// quotes, not reciprocals, so build each from its own quote rather than with ``inverted()``.
     ///
     /// ```swift
-    /// let eurGbp = Rate(string: "0.87").flatMap(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>.init)
+    /// let eurGbp = Rate(string: "0.87").flatMap(FX.ExchangeRateOf<Currencies.EUR, Currencies.GBP>.init)
     /// ```
-    struct ExchangeRate<From: CurrencyType, To: CurrencyType>: Sendable, Equatable, Hashable {
+    struct ExchangeRateOf<From: CurrencyType, To: CurrencyType>: Sendable, Equatable, Hashable {
         /// The rate in `To` minor units per one `From` minor unit. It differs from the public
         /// per-major-unit quote only when the two currencies' scales differ.
         @usableFromInline let minorPerMinorRate: Rate
@@ -54,7 +54,7 @@ public extension FX {
         /// never larger than the mid rate.
         ///
         /// ```swift
-        /// let mid = FX.ExchangeRate<Currencies.EUR, Currencies.GBP>("1.5")!
+        /// let mid = FX.ExchangeRateOf<Currencies.EUR, Currencies.GBP>("1.5")!
         /// let margin = FX.Margin(.percent(20))!
         /// let customer = try mid.applyingMargin(margin)   // 1.2
         /// ```
@@ -80,8 +80,8 @@ public extension FX {
         /// `EUR→GBP` is `EUR→USD` crossed with `USD→GBP`.
         ///
         /// ```swift
-        /// let eurUsd = FX.ExchangeRate<Currencies.EUR, Currencies.USD>("1.1")!
-        /// let usdGbp = FX.ExchangeRate<Currencies.USD, Currencies.GBP>("0.8")!
+        /// let eurUsd = FX.ExchangeRateOf<Currencies.EUR, Currencies.USD>("1.1")!
+        /// let usdGbp = FX.ExchangeRateOf<Currencies.USD, Currencies.GBP>("0.8")!
         /// let eurGbp = try eurUsd.crossed(with: usdGbp)   // 0.88
         /// ```
         ///
@@ -90,14 +90,14 @@ public extension FX {
         /// - Throws: ``FX/ExchangeError/overflow`` if the product is too large to represent;
         ///   ``FX/ExchangeError/roundsToZero`` if it is too close to zero to represent.
         public func crossed<Onward>(
-            with other: ExchangeRate<To, Onward>
-        ) throws(ExchangeError) -> ExchangeRate<From, Onward> {
+            with other: ExchangeRateOf<To, Onward>
+        ) throws(ExchangeError) -> ExchangeRateOf<From, Onward> {
             // Both are minor-per-minor, so the shared `To` minor unit cancels and the product is
             // already `Onward` minor units per one `From` minor unit, with no scale adjustment needed.
             guard let composed = minorPerMinorRate.multiplied(by: other.minorPerMinorRate) else {
                 throw .overflow
             }
-            guard let result = ExchangeRate<From, Onward>(minorPerMinor: composed) else {
+            guard let result = ExchangeRateOf<From, Onward>(minorPerMinor: composed) else {
                 throw .roundsToZero
             }
 
@@ -111,18 +111,18 @@ public extension FX {
         /// back this rate exactly. It is never a provider's sell rate, which is a quote of its own.
         ///
         /// ```swift
-        /// let eurGbp = FX.ExchangeRate<Currencies.EUR, Currencies.GBP>("0.8")!
+        /// let eurGbp = FX.ExchangeRateOf<Currencies.EUR, Currencies.GBP>("0.8")!
         /// let gbpEur = try eurGbp.inverted()   // 1.25
         /// ```
         ///
         /// - Returns: The inverse of this rate.
         /// - Throws: ``FX/ExchangeError/roundsToZero`` if the inverse is too close to zero to
         ///   represent.
-        public func inverted() throws(ExchangeError) -> ExchangeRate<To, From> {
+        public func inverted() throws(ExchangeError) -> ExchangeRateOf<To, From> {
             // The inverse of `To` minor units per `From` minor unit is `From` per `To`, so it needs no
             // rescaling. A positive rate is at least 10⁻¹⁸, so the inverse is at most 10¹⁸ and the
             // divide can't overflow, only round to zero.
-            guard let result = ExchangeRate<To, From>(
+            guard let result = ExchangeRateOf<To, From>(
                 minorPerMinor: Rate(Rate.par.value / minorPerMinorRate.value)
             ) else {
                 throw .roundsToZero

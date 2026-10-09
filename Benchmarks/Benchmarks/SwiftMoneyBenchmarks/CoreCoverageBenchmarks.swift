@@ -295,7 +295,7 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
     }
 
     Benchmark("MoneyOf unrounded converted", configuration: configuration) { benchmark in
-        guard let eurGbp = FX.ExchangeRate<Currencies.EUR, Currencies.GBP>("0.8765262907") else {
+        guard let eurGbp = FX.ExchangeRateOf<Currencies.EUR, Currencies.GBP>("0.8765262907") else {
             preconditionFailure("0.8765262907 is a positive rate")
         }
         let euros = operands.map { EUR(minorUnits: $0 * 100).unrounded * "0.333333333333333333" }
@@ -600,7 +600,7 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         var index = 0
 
         for _ in benchmark.scaledIterations {
-            blackHole(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(quotes[index % quotes.count]))
+            blackHole(FX.ExchangeRateOf<Currencies.EUR, Currencies.GBP>(quotes[index % quotes.count]))
             index &+= 1
         }
     }
@@ -611,7 +611,7 @@ func coreCoverageBenchmarks(configuration: Benchmark.Configuration) {
         var index = 0
 
         for _ in benchmark.scaledIterations {
-            blackHole(FX.ExchangeRate<Currencies.USD, Currencies.JPY>(quotes[index % quotes.count]))
+            blackHole(FX.ExchangeRateOf<Currencies.USD, Currencies.JPY>(quotes[index % quotes.count]))
             index &+= 1
         }
     }

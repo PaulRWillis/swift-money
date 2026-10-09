@@ -3,7 +3,7 @@ public extension FX {
     ///
     /// ```swift
     /// do throws(FX.ExchangeRateParsingError) {
-    ///     let rate = try FX.ExchangeRate<Currencies.EUR, Currencies.GBP>(string: text)
+    ///     let rate = try FX.ExchangeRateOf<Currencies.EUR, Currencies.GBP>(string: text)
     /// } catch {
     ///     switch error {
     ///     case .unrecognizedText: …

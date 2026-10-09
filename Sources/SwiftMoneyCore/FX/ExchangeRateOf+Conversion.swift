@@ -1,8 +1,8 @@
-extension FX.ExchangeRate {
+extension FX.ExchangeRateOf {
     /// Returns an amount converted to `To` at this rate, keeping the fraction for a single settling.
     ///
     /// ```swift
-    /// let eurGbp = FX.ExchangeRate<Currencies.EUR, Currencies.GBP>("0.87")!
+    /// let eurGbp = FX.ExchangeRateOf<Currencies.EUR, Currencies.GBP>("0.87")!
     /// let gbp = try eurGbp.applied(to: EUR(minorUnits: 100_00))
     ///     .rounded(.toNearestOrEven)   // £87.00
     /// ```
@@ -25,7 +25,7 @@ extension FX.ExchangeRate {
     /// settling.
     ///
     /// ```swift
-    /// let eurGbp = FX.ExchangeRate<Currencies.EUR, Currencies.GBP>("0.87")!
+    /// let eurGbp = FX.ExchangeRateOf<Currencies.EUR, Currencies.GBP>("0.87")!
     /// let third = Rate(string: "1/3")!
     /// let gbp = try eurGbp.applied(to: EUR(minorUnits: 300_00).unrounded * third)
     ///     .rounded(.toNearestOrEven)   // £87.00
