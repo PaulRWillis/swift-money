@@ -114,6 +114,16 @@ struct ExchangeRateTests {
         }
     }
 
+    @Test("Equal rates hash alike, however they were reached, and different rates stay apart")
+    func hashing() throws {
+        let quoted = try #require(FX.ExchangeRate<Currencies.GBP, Currencies.EUR>("1.25"))
+        let inverted = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>("0.8")).inverted()
+        let other = try #require(FX.ExchangeRate<Currencies.GBP, Currencies.EUR>("1.2"))
+
+        #expect(quoted.hashValue == inverted.hashValue)
+        #expect(Set([quoted, inverted, other]).count == 2)
+    }
+
     @Test("Inverting a rate gives the rate the other way")
     func inverting() throws {
         let eurGbp = try #require(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>("0.8"))

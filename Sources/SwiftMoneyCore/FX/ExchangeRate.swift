@@ -9,7 +9,7 @@ public extension FX {
     /// ```swift
     /// let eurGbp = Rate(string: "0.87").flatMap(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>.init)
     /// ```
-    struct ExchangeRate<From: CurrencyType, To: CurrencyType>: Sendable, Equatable {
+    struct ExchangeRate<From: CurrencyType, To: CurrencyType>: Sendable, Equatable, Hashable {
         // Stored as `To` minor units per one `From` minor unit, the form `converted` and `crossed`
         // use directly. The public quote is per major unit; the two differ only when the currencies'
         // scales differ, and the conversion between them lives solely in `init?(_:)`.
