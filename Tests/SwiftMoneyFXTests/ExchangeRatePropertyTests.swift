@@ -16,7 +16,7 @@ private struct ConvertCase: Sendable {
     let larger: EUR
 }
 
-// Amounts run from £1.00 up to a million minor units. The floor keeps a settled conversion positive:
+// Amounts run from €1.00 up to a million minor units. The floor keeps a settled conversion positive:
 // even at the smallest rate (0.1) less the largest margin (just under 0.5), 100 × 0.1 × 0.5 = 5 minor
 // units, so rounding never reaches zero.
 private let conversionAmountFloor: Int64 = 100

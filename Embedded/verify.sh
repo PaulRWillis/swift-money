@@ -24,7 +24,7 @@ REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 # A bare-metal, no-OS triple: the strictest Embedded target, so passing it is the strongest guarantee.
 TARGET="arm64-apple-none-macho"
 PACKAGE="swift-money"
-# Embedded-facing modules, in dependency order: each emits a module the next compiles against.
+# Embedded-facing modules, in dependency order: each after the modules it imports.
 MODULES=(SwiftMoneyCore SwiftMoneyFX SwiftMoneyLocalization)
 
 # Prints the swift.org toolchain bundles in the standard directories, one per line: releases newest
