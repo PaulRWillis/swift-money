@@ -5,11 +5,11 @@ import PackageDescription
 let package = Package(
     name: "SwiftMoney",
     platforms: [
-        .macOS(.v15),
-        .iOS(.v18),
-        .watchOS(.v11),
-        .tvOS(.v18),
-        .visionOS(.v2),
+        .macOS("13.3"),
+        .iOS("16.4"),
+        .watchOS("9.4"),
+        .tvOS("16.4"),
+        .visionOS(.v1),
     ],
     products: [
         .library(

@@ -124,6 +124,7 @@ struct UnroundedTests {
     }
 
     @Test("Scaling by an integer wider than Int128 traps")
+    @available(macOS 15, iOS 18, watchOS 11, tvOS 18, visionOS 2, *)
     func scalingByIntegerWiderThanInt128Traps() async {
         await #expect(processExitsWith: .failure) {
             blackHole(GBP(minorUnits: 1).unrounded * UInt128.max)

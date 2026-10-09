@@ -13,6 +13,7 @@ struct MoneyOfArithmeticWidenedMultiplicationTests {
     }
 
     @Test("Zero times a multiplier wider than Int128 stays zero")
+    @available(macOS 15, iOS 18, watchOS 11, tvOS 18, visionOS 2, *)
     func zeroTimesUInt128BiggerThanInt128() {
         let zero = GBP(minorUnits: 0)
         let biggerThanInt128Max: UInt128 = UInt128(Int128.max) + 1
@@ -45,6 +46,7 @@ struct MoneyOfArithmeticWidenedMultiplicationTests {
     }
 
     @Test("Minus one times two to the 63rd, in any wide type, is the smallest amount")
+    @available(macOS 15, iOS 18, watchOS 11, tvOS 18, visionOS 2, *)
     func minusOneTimesTwoToThe63InEveryWideType() {
         let typed = GBP(minorUnits: -1)
         let runtime = Money(minorUnits: -1, currency: .gbp)
@@ -59,6 +61,7 @@ struct MoneyOfArithmeticWidenedMultiplicationTests {
     }
 
     @Test("Zero times any wide multiplier stays zero")
+    @available(macOS 15, iOS 18, watchOS 11, tvOS 18, visionOS 2, *)
     func zeroTimesEveryWideMultiplier() {
         let typed = GBP(minorUnits: 0)
         let runtime = Money(minorUnits: 0, currency: .gbp)
@@ -83,6 +86,7 @@ struct MoneyOfArithmeticWidenedMultiplicationTests {
     }
 
     @Test("Minus one times one below the smallest Int64 traps")
+    @available(macOS 15, iOS 18, watchOS 11, tvOS 18, visionOS 2, *)
     func minusOneTimesBelowInt64Traps() async {
         await #expect(processExitsWith: .failure) {
             blackHole(GBP(minorUnits: -1) * (Int128(Int64.min) - 1))
@@ -123,6 +127,7 @@ struct MoneyOfArithmeticWidenedMultiplicationTests {
     }
 
     @Test("One times one below the smallest Int64 traps")
+    @available(macOS 15, iOS 18, watchOS 11, tvOS 18, visionOS 2, *)
     func oneTimesBelowInt64Traps() async {
         await #expect(processExitsWith: .failure) {
             blackHole(GBP(minorUnits: 1) * (Int128(Int64.min) - 1))
@@ -133,6 +138,7 @@ struct MoneyOfArithmeticWidenedMultiplicationTests {
     }
 
     @Test("A multiplier at the 128-bit extremes traps")
+    @available(macOS 15, iOS 18, watchOS 11, tvOS 18, visionOS 2, *)
     func multiplierAt128BitExtremesTraps() async {
         await #expect(processExitsWith: .failure) {
             blackHole(GBP(minorUnits: -1) * UInt128.max)
@@ -149,6 +155,7 @@ struct MoneyOfArithmeticWidenedMultiplicationTests {
     }
 
     @Test("Minus one times the smallest Int64 traps")
+    @available(macOS 15, iOS 18, watchOS 11, tvOS 18, visionOS 2, *)
     func minusOneTimesSmallestInt64Traps() async {
         await #expect(processExitsWith: .failure) {
             blackHole(GBP(minorUnits: -1) * Int128(Int64.min))
@@ -173,6 +180,7 @@ struct MoneyOfArithmeticWidenedMultiplicationTests {
     }
 
     @Test("The reversed operand order (Int × Money) also stays zero, not just Money × Int")
+    @available(macOS 15, iOS 18, watchOS 11, tvOS 18, visionOS 2, *)
     func reversedOrderZeroTimesWideMultiplierStaysZero() {
         let zero = GBP(minorUnits: 0)
         let biggerThanInt128Max: UInt128 = UInt128(Int128.max) + 1
