@@ -51,23 +51,38 @@ package struct LocaleKey: Sendable {
         Bytes(utf8: utf8, span: span)
     }
 
-    /// Returns a byte as the lookup compares it: `_` as `-`, and every other byte unchanged.
+    /// Returns a byte as the lookup compares it: `_` as `-`, `A` to `Z` as `a` to `z`, and every other
+    /// byte unchanged.
     ///
     /// This alone defines the order keys are sorted and searched in.
     ///
     /// ```swift
     /// LocaleKey.folded(UInt8(ascii: "_"))  // UInt8(ascii: "-")
+    /// LocaleKey.folded(UInt8(ascii: "G"))  // UInt8(ascii: "g")
     /// LocaleKey.folded(UInt8(ascii: "a"))  // UInt8(ascii: "a")
     /// ```
     ///
     /// - Parameter byte: A byte of an identifier.
     /// - Returns: The byte the lookup compares in its place.
+    // Forced inline: left to the optimizer, a binary search calls out twice for every probe.
+    @inline(__always)
     package static func folded(_ byte: UInt8) -> UInt8 {
-        byte == UInt8(ascii: "_") ? separator : byte
+        // One unsigned compare tests the whole capital range: bytes below `A` wrap past 25.
+        if byte &- UInt8(ascii: "A") < letterCount {
+            return byte | asciiCaseBit
+        }
+
+        return byte == UInt8(ascii: "_") ? separator : byte
     }
 
     /// The separator a key's bytes use between subtags.
-    static let separator = UInt8(ascii: "-")
+    static var separator: UInt8 { UInt8(ascii: "-") }
+
+    /// How many letters the ASCII alphabet has.
+    private static var letterCount: UInt8 { 26 }
+
+    /// The bit that tells an ASCII capital letter from its small letter.
+    private static var asciiCaseBit: UInt8 { 0x20 }
 }
 
 extension LocaleKey {
@@ -134,12 +149,20 @@ extension LocaleKey {
         /// Returns the key's next byte.
         ///
         /// - Returns: The next byte, folded, or `nil` after the last.
+        package mutating func next() -> UInt8? {
+            nextUnfolded().map(LocaleKey.folded)
+        }
+
+        /// Returns the key's next byte as the identifier spells it, with the separator before a region
+        /// that skips a script.
+        ///
+        /// - Returns: The next byte, not folded, or `nil` after the last.
         // Forced inline: left to the optimizer, a binary search calls out for every byte it compares.
         @inline(__always)
-        package mutating func next() -> UInt8? {
+        mutating func nextUnfolded() -> UInt8? {
             if remaining > 0 {
                 remaining -= 1
-                return utf8.next().map(LocaleKey.folded)
+                return utf8.next()
             }
 
             guard let region else {

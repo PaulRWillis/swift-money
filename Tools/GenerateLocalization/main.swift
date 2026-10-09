@@ -1488,13 +1488,13 @@ for group in scripts.groups(of: candidates) {
     }
 }
 
-// In the byte order the runtime's binary search assumes.
-let emitted = built.sorted { $0.key.utf8.lexicographicallyPrecedes($1.key.utf8) }
+// In the order the runtime's binary search assumes.
+let emitted = built.sorted { LocaleLookupOrder.precedes($0.key, $1.key) }
 
-// A repeated key would make the binary search return either row without saying so.
-for (earlier, later) in zip(emitted, emitted.dropFirst())
-where !earlier.key.utf8.lexicographicallyPrecedes(later.key.utf8) {
-    fatalError("\(later.key) is filed more than once")
+// A repeated key, or two keys differing only in letter case, would make the binary search return
+// either row without saying so.
+if let (earlier, later) = LocaleLookupOrder.firstPairOutOfOrder(in: emitted.map(\.key)) {
+    fatalError("\(later) is filed more than once, or differs from \(earlier) only in letter case")
 }
 
 // Derived from what was emitted rather than from the candidates, so the tables carry rules only for
@@ -1505,10 +1505,11 @@ let languages = emitted.map { language(of: $0.key) }.uniqued()
 // the order is for that reproducibility rather than for a search. A language that draws no plural
 // distinctions, such as Japanese, has rules for no category and takes `other` for every amount.
 for language in languages.sorted(by: { $0.utf8.lexicographicallyPrecedes($1.utf8) }) {
-    packedPluralLanguages.append(PackedPluralLanguage(
-        key: pool.insert(language),
-        rules: pluralRules.usable[language, default: LanguageRules(rules: [], samples: [])].rules
-    ))
+    guard let rules = pluralRules.usable[language] else {
+        fatalError("\(language) has an emitted locale but no plural rules")
+    }
+
+    packedPluralLanguages.append(PackedPluralLanguage(key: pool.insert(language), rules: rules.rules))
 }
 
 for (locale, tables) in emitted {

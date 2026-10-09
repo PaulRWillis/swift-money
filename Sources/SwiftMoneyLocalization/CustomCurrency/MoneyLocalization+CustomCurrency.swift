@@ -115,12 +115,15 @@ package extension MoneyLocalization {
         locale: LocaleIdentifier,
         numberingSystem: NumberingSystemSelection = .automatic
     ) -> MoneyFormat? {
-        guard let localeIndex = cldr.locales.index(of: locale) else {
+        let operands = PluralOperandValues(minorUnits: minorUnits, unitScale: currency.unitScale)
+
+        guard
+            let localeIndex = cldr.locales.index(of: locale),
+            let category = pluralCategory(of: operands, at: localeIndex)
+        else {
             return nil
         }
 
-        let operands = PluralOperandValues(minorUnits: minorUnits, unitScale: currency.unitScale)
-        let category = pluralCategory(of: operands, inLanguageOf: locale)
         let name = names.name(for: category)
 
         let format = numberFormat(at: localeIndex, numberingSystem: numberingSystem)

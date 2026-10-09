@@ -19,8 +19,8 @@ public enum MoneyLocalization {
     ///
     /// - Parameters:
     ///   - currency: The currency to format. Its code selects the symbol; its scale sets the digits.
-    ///   - locale: The locale identifier, e.g. `"en-GB"` or `"de_DE"` (either separator; a
-    ///     language-region identifier falls back to its language).
+    ///   - locale: The locale identifier, with `-` or `_` between subtags, in any letter case, such as
+    ///     `"en-GB"` or `"de_DE"`. A language-region identifier falls back to its language.
     ///   - presentation: Whether to show the symbol, the ISO code, or the narrow symbol.
     ///   - numberingSystem: The digits and separators to render in. ``NumberingSystemSelection/automatic``
     ///     (the default) uses the locale's own default system, so the output is unchanged.
@@ -103,11 +103,13 @@ public enum MoneyLocalization {
 
         // The category first, so only the name the amount calls for is read out of the tables.
         let operands = PluralOperandValues(minorUnits: minorUnits, unitScale: currency.unitScale)
-        let category = pluralCategory(of: operands, inLanguageOf: locale)
 
-        guard let name = cldr.currencyFullNames.name(
-            localeIndex: localeIndex, code: currency.code, category: category
-        ) else {
+        guard
+            let category = pluralCategory(of: operands, at: localeIndex),
+            let name = cldr.currencyFullNames.name(
+                localeIndex: localeIndex, code: currency.code, category: category
+            )
+        else {
             return nil
         }
 
@@ -124,17 +126,29 @@ public enum MoneyLocalization {
         )
     }
 
-    // The first category whose rule the amount satisfies, in the order CLDR resolves them. CLDR gives
-    // `other` no rule at all, so it stands in when none holds, and publishes the rules per language, so
-    // the identifier's region plays no part.
-    static func pluralCategory(
+    /// Returns the plural category an amount takes in a locale.
+    ///
+    /// The category is the first whose rule the amount satisfies, in the order CLDR resolves them, and
+    /// ``PluralCategory/other`` when none holds, since CLDR gives `other` no rule. The rules are the
+    /// locale's language's, so a region names amounts as its language does.
+    ///
+    /// ```swift
+    /// let one = PluralOperandValues(minorUnits: 1, unitScale: Currency.jpy.unitScale)
+    /// MoneyLocalization.pluralCategory(of: one, at: englishIndex)  // .one
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - operands: The amount's plural operands.
+    ///   - localeIndex: The locale's position, as ``LocaleTable/index(of:)`` returns it.
+    /// - Returns: The amount's category, or `nil` when the data holds no rules for the locale's
+    ///   language.
+    package static func pluralCategory(
         of operands: PluralOperandValues,
-        inLanguageOf locale: LocaleIdentifier
-    ) -> PluralCategory {
-        let language = String(locale.value.prefix { $0 != "-" && $0 != "_" })
-        let rules = pluralRules[language] ?? [:]
-
-        return PluralCategory.allCases.first { rules[$0]?.matches(operands) == true } ?? .other
+        at localeIndex: LocaleIndex
+    ) -> PluralCategory? {
+        pluralRulesByLocale[localeIndex.position].map { rules in
+            PluralCategory.allCases.first { rules[$0]?.matches(operands) == true } ?? .other
+        }
     }
 
     /// Every locale identifier the CLDR data covers, in the blob's sorted order. A caller enumerating
@@ -204,9 +218,15 @@ public enum MoneyLocalization {
         }
     }
 
-    // Every language's plural rules, decoded once from the blob. A language with no rule for a category
-    // takes `other`, which carries none; a language absent here does too, through the `?? [:]` above.
-    private static let pluralRules = cldr.pluralRules.allRules()
+    /// Each covered locale's plural rules by category, at the locale's position, decoded once from the
+    /// blob. An entry is `nil` when the blob holds no rules for the locale's language.
+    private static let pluralRulesByLocale: [[PluralCategory: PluralRule]?] = {
+        let rulesByLanguage = cldr.pluralRules.allRules()
+
+        return cldr.locales.identifiers().map { identifier in
+            rulesByLanguage[String(identifier.prefix { $0 != "-" })]
+        }
+    }()
 
     // Each supported system's index by name, built once, so resolving a requested system is a dictionary
     // lookup rather than a binary search over the pooled names on every format.

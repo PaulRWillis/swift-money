@@ -2,14 +2,14 @@ import SwiftMoneyLocalization
 import Testing
 
 // Resolving a locale identifier to the position its data sits at. What matters here is the resolution
-// rules, not the bytes: either separator reads the same, a region falls back to its language, and an
-// identifier no entry covers resolves to nothing rather than to a neighbour.
+// rules, not the bytes: either separator and either letter case read the same, a region falls back to
+// its language, and an identifier no entry covers resolves to nothing rather than to a neighbour.
 @Suite("Locale Table Tests")
 struct LocaleTableTests {
 
-    // Keys in the byte order the generator sorts them into. "en" sits next to "en-GB" so a lookup for
-    // either has to stop on the right one.
-    static let keys = ["de", "en", "en-GB", "ja"]
+    // Keys in the order the generator sorts them into, ASCII letters compared as small letters. "en"
+    // sits next to "en-GB" so a lookup for either has to stop on the right one.
+    static let keys = ["de", "en", "en-GB", "ja", "sr-Latn", "zh"]
 
     static func makeBlob() -> (bytes: [UInt8], entriesOffset: Int) {
         var builder = BlobTestBuilder()
@@ -59,6 +59,16 @@ struct LocaleTableTests {
         }
     }
 
+    @Test(
+        "Letter case doesn't matter",
+        arguments: [("EN_gb", 2), ("en-gb", 2), ("SR-LATN", 4), ("ZH", 5)] as [(LocaleIdentifier, Int)]
+    )
+    func letterCase(_ identifier: LocaleIdentifier, _ position: Int) {
+        Self.withTable { table in
+            #expect(table.index(of: identifier) == LocaleIndex(position: position))
+        }
+    }
+
     @Test("A region the tables do not cover falls back to its language", arguments: ["en-US", "en_US", "de-AT", "ja-JP"])
     func regionFallsBackToLanguage(_ identifier: LocaleIdentifier) {
         Self.withTable { table in
@@ -82,6 +92,22 @@ struct LocaleTableTests {
         Self.withTable { table in
             #expect(table.index(of: "en") == LocaleIndex(position: 1))
             #expect(table.index(of: "en-GB") == LocaleIndex(position: 2))
+        }
+    }
+
+    // Every shipped key, in both cases, against the real blob: the generator's sort and the search's
+    // comparison have to agree on every pair, or some key lands on a neighbour.
+    @Test("Every shipped identifier, upper-cased and lower-cased, reaches its own position")
+    func shippedIdentifiersInEitherCase() {
+        let table = MoneyLocalization.cldr.locales
+
+        for (position, identifier) in table.identifiers().enumerated() {
+            for spelling in [identifier.uppercased(), identifier.lowercased()] {
+                #expect(
+                    table.index(of: LocaleIdentifier(spelling)) == LocaleIndex(position: position),
+                    "\(spelling) misses \(identifier)"
+                )
+            }
         }
     }
 }

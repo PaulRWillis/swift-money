@@ -69,6 +69,55 @@ struct LocaleNameTests {
         #expect(cyrillic.contains("КМ"))
     }
 
+    /// Returns an amount as a locale writes it with the currency named in full.
+    ///
+    /// - Parameters:
+    ///   - minorUnits: The amount in the currency's minor units.
+    ///   - code: The currency's ISO code.
+    ///   - locale: The locale to write it in.
+    /// - Returns: The formatted amount.
+    /// - Throws: An issue when the locale isn't covered, CLDR doesn't name the currency there, or the
+    ///   code isn't a shipped currency.
+    private static func fullName(
+        _ minorUnits: Int64,
+        _ code: CurrencyCode,
+        in locale: LocaleIdentifier
+    ) throws -> String {
+        let currency = try #require(Currency(iso: code))
+        let format = try #require(
+            MoneyLocalization.fullNameMoneyFormat(for: currency, minorUnits: minorUnits, locale: locale)
+        )
+
+        return format.format(Money(minorUnits: minorUnits, currency: currency))
+    }
+
+    @Test("An identifier in another letter case reaches the same locale")
+    func letterCaseReachesTheSameLocale() {
+        let locales = MoneyLocalization.cldr.locales
+
+        #expect(locales.index(of: "EN_gb") == locales.index(of: "en-GB"))
+        #expect(locales.index(of: "EN_gb") != nil)
+    }
+
+    // English names one whole króna in the singular, so the singular shows the plural rules come
+    // from the locale found rather than from the identifier's spelling of its language.
+    @Test("An identifier in another letter case names a currency with its locale's plural rules")
+    func letterCaseKeepsThePluralRules() throws {
+        #expect(try Self.fullName(1_00, "USD", in: "EN_gb") == "1.00 US dollars")
+        #expect(try Self.fullName(1, "ISK", in: "EN_gb") == "1 Icelandic króna")
+    }
+
+    @Test("Every covered locale has plural rules")
+    func everyLocaleHasPluralRules() {
+        let operands = PluralOperandValues(minorUnits: 1, unitScale: Currency.jpy.unitScale)
+
+        for position in 0 ..< MoneyLocalization.cldr.locales.localeCount {
+            let index = LocaleIndex(position: position)
+
+            #expect(MoneyLocalization.pluralCategory(of: operands, at: index) != nil, "\(position)")
+        }
+    }
+
     // The Arabic-script folder writes a decimal point where plain Azerbaijani writes a comma.
     @Test("Iraqi Azerbaijani reaches the Arabic-script data, not plain Azerbaijani")
     func iraqiAzerbaijani() throws {

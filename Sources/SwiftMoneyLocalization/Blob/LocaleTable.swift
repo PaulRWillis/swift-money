@@ -1,7 +1,7 @@
 /// The locale section of the packed blob: every covered locale's identifier, one ``StringRef`` each,
-/// sorted by their UTF-8 bytes so an identifier is found by binary search rather than by a dictionary
-/// keyed on strings. An entry's position is the ``LocaleIndex`` every other per-locale section is read
-/// with.
+/// sorted by their bytes with ASCII letters compared as small letters, so an identifier is found by
+/// binary search rather than by a dictionary keyed on strings. An entry's position is the
+/// ``LocaleIndex`` every other per-locale section is read with.
 package struct LocaleTable: Sendable {
     let reader: BlobReader
     let entriesOffset: Int
@@ -29,7 +29,8 @@ package struct LocaleTable: Sendable {
     }
 
     /// The index of the locale `identifier` names, or of the language it belongs to when its region is
-    /// not covered on its own, as CLDR inheritance resolves it (`de_DE` to `de`).
+    /// not covered on its own, as CLDR inheritance resolves it (`de_DE` to `de`). ASCII letter case is
+    /// ignored.
     ///
     /// - Returns: `nil` when neither the identifier nor its language is covered.
     package func index(of identifier: LocaleIdentifier) -> LocaleIndex? {
@@ -66,14 +67,24 @@ package struct LocaleTable: Sendable {
         let stored = reader.stringRef(at: entriesOffset + entry * Entry.stride + Entry.key)
         var position = 0
 
-        for wanted in key.bytes {
+        var bytes = key.bytes.makeIterator()
+
+        while let unfolded = bytes.nextUnfolded() {
             guard position < Int(stored.length) else {
                 return .before  // the stored key is a prefix of the one wanted
             }
 
-            let byte = reader.byte(at: Int(stored.offset) + position)
-            guard byte == wanted else {
-                return byte < wanted ? .before : .after
+            // Equal bytes fold equal, so only a mismatch pays for folding both sides; most bytes match
+            // as spelled.
+            let raw = reader.byte(at: Int(stored.offset) + position)
+
+            if raw != unfolded {
+                let byte = LocaleKey.folded(raw)
+                let wanted = LocaleKey.folded(unfolded)
+
+                guard byte == wanted else {
+                    return byte < wanted ? .before : .after
+                }
             }
 
             position += 1
