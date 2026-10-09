@@ -223,8 +223,8 @@ extension UInt128Words {
 
         guard high != 0 else {
             // `dividend.high` is below this one-word divisor, so it is its own lower word.
-            let (upper, carried) = low.dividingFullWidth((dividend.high.low, dividend.low.high))
-            let (lower, remainder) = low.dividingFullWidth((carried, dividend.low.low))
+            let (upper, carried) = UInt128Words.divide(dividend.high.low, dividend.low.high, by: low)
+            let (lower, remainder) = UInt128Words.divide(carried, dividend.low.low, by: low)
             return (UInt128Words(high: upper, low: lower), UInt128Words(remainder))
         }
 
@@ -257,7 +257,7 @@ extension UInt128Words {
 
         guard divisor.high != 0 else {
             let (upper, carried) = high.quotientAndRemainder(dividingBy: divisor.low)
-            let (lower, remainder) = divisor.low.dividingFullWidth((carried, low))
+            let (lower, remainder) = UInt128Words.divide(carried, low, by: divisor.low)
             return (UInt128Words(high: upper, low: lower), UInt128Words(remainder))
         }
 
@@ -269,6 +269,50 @@ extension UInt128Words {
             high >> (64 - shift), shifted.high, shifted.low, by: divisor << shift
         )
         return (UInt128Words(quotient), remainder >> shift)
+    }
+
+    /// Returns the quotient and remainder of dividing a two-word value by a one-word divisor.
+    ///
+    /// The same result as `divisor.dividingFullWidth((high, low))`.
+    ///
+    /// - Parameters:
+    ///   - high: The dividend's upper word.
+    ///   - low: The dividend's lower word.
+    ///   - divisor: The divisor.
+    /// - Returns: The one-word quotient and the remainder.
+    /// - Precondition: `high` must be below `divisor`, so the quotient fits one word.
+    @inline(__always)
+    private static func divide(
+        _ high: UInt64,
+        _ low: UInt64,
+        by divisor: UInt64
+    ) -> (quotient: UInt64, remainder: UInt64) {
+        // `dividingFullWidth` is a library call on arm64; each divide below is one instruction.
+        guard high != 0 else {
+            return low.quotientAndRemainder(dividingBy: divisor)
+        }
+
+        guard divisor >> halfWordWidth != 0 else {
+            // `high` and every remainder are below this half-word divisor, so each step's dividend
+            // fits one word and each step's quotient fits half a word.
+            let (upper, carried) = (high << halfWordWidth | low >> halfWordWidth)
+                .quotientAndRemainder(dividingBy: divisor)
+            let (lower, remainder) = (carried << halfWordWidth | low & lowerHalfMask)
+                .quotientAndRemainder(dividingBy: divisor)
+            return (upper << halfWordWidth | lower, remainder)
+        }
+
+        return divisor.dividingFullWidth((high, low))
+    }
+
+    /// The width of half a word, in bits.
+    private static var halfWordWidth: Int {
+        UInt64.bitWidth / 2
+    }
+
+    /// The mask that keeps a word's lower half.
+    private static var lowerHalfMask: UInt64 {
+        UInt64(UInt32.max)
     }
 
     /// Returns the quotient and remainder of dividing a three-word value by a two-word divisor whose
@@ -334,7 +378,7 @@ extension UInt128Words {
             return (.max, overflow ? nil : remainder)
         }
 
-        let (quotient, remainder) = divisorHigh.dividingFullWidth((top, middle))
+        let (quotient, remainder) = divide(top, middle, by: divisorHigh)
         return (quotient, remainder)
     }
 }

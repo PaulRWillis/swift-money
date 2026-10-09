@@ -31,6 +31,7 @@ extension RoundingRule {
 
 // Applies the rounding step and the sign, or `nil` when the true value doesn't fit 128 signed bits.
 // One function for the divides and construction, so the overflow and `Int128Words.min` handling live once.
+@inline(__always)
 func signedRounded(quotient: UInt128Words, step: RoundingStep, sign: Sign) -> Int128Words? {
     guard step == .awayFromZero else {
         return Int128Words(magnitude: quotient, sign: sign)
