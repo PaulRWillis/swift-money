@@ -182,9 +182,15 @@ A typed row should cost no more than its `Money.Unrounded` twin, which also comp
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
 | ExchangeRate applying a margin | 252 | 0 | 7 |
-| ExchangeRate construction | 264 | 0 | 8 |
-| ExchangeRate construction, across scales | 264 | 0 | 8 |
+| ExchangeRate construction | 161 | 0 | 5 |
+| ExchangeRate construction, across scales | 259 | 0 | 8 |
 | ExchangeRate crossed | 240 | 0 | 7 |
+| ExchangeRate description | 712 | 0 | 25 |
+| ExchangeRate description, across scales | 721 | 0 | 24 |
+| ExchangeRate from a decimal string | 688 | 0 | 24 |
+| ExchangeRate from a decimal string, across scales | 639 | 0 | 20 |
+| ExchangeRate hashing | 195 | 0 | 10 |
+| ExchangeRate inverted | 362 | 0 | 12 |
 | Margin construction | 44 | 0 | 2 |
 | MoneyOf converted | 57 | 0 | 2 |
 
@@ -370,6 +376,10 @@ The JSON rows are mostly Foundation's coder; the `Control` peer (a plain `Int64`
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
+| ExchangeRate JSON decode | 33,171 | 12 | 1174 |
+| ExchangeRate JSON decode, across scales | 33,032 | 12 | 1179 |
+| ExchangeRate JSON encode | 23,037 | 10 | 832 |
+| ExchangeRate JSON encode, across scales | 23,002 | 10 | 855 |
 | Money bytes decode | 210 | 0 | 6 |
 | Money bytes encode | 255 | 0 | 10 |
 | Money encode, no coder | 786 | 0 | 31 |
@@ -438,6 +448,12 @@ The engine alone, rendering with a prebuilt descriptor. The `MoneyOf format` row
 | FixedPoint addition | 13 | 0 | 1 |
 | FixedPoint chained scaling | 473 | 0 | 30 |
 | FixedPoint comparison | 15 | 0 | 1 |
+| FixedPoint description | 1,078 | 1 | 35 |
+| FixedPoint division | 163 | 0 | 6 |
+| FixedPoint from a decimal string | 195 | 0 | 7 |
+| FixedPoint hashing | 152 | 0 | 7 |
+| FixedPoint JSON decode | 8,506 | 6 | 301 |
+| FixedPoint JSON encode | 6,819 | 3 | 247 |
 | FixedPoint scalar multiplication | 150 | 0 | 5 |
 | FixedPoint scaled and rounded | 179 | 0 | 8 |
 | FixedPoint subtraction | 13 | 0 | 1 |

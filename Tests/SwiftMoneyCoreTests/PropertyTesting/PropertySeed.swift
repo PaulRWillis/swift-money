@@ -21,4 +21,6 @@ enum PropertySeed {
     static let stride: UInt64 = 0x700D
     static let steps: UInt64 = 0x800E
     static let minMax: UInt64 = 0x900F
+    static let exchangeRateCrossing: UInt64 = 0xA010
+    static let exchangeRateCoding: UInt64 = 0xB011
 }

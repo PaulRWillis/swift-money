@@ -6,16 +6,20 @@ public extension FX {
     /// the currencies are part of the type, so a rate can only convert the currency it was quoted for
     /// and the direction cannot be mixed up.
     ///
+    /// A provider's buy and sell rates for a pair are two rates, one each way. They are separate
+    /// quotes, not reciprocals, so build each from its own quote rather than with ``inverted()``.
+    ///
     /// ```swift
     /// let eurGbp = Rate(string: "0.87").flatMap(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>.init)
     /// ```
-    struct ExchangeRate<From: CurrencyType, To: CurrencyType>: Sendable, Equatable {
+    struct ExchangeRate<From: CurrencyType, To: CurrencyType>: Sendable, Equatable, Hashable {
         // Stored as `To` minor units per one `From` minor unit, the form `converted` and `crossed`
         // use directly. The public quote is per major unit; the two differ only when the currencies'
-        // scales differ, and the conversion between them lives solely in `init?(_:)`.
+        // scales differ.
         @usableFromInline let minorPerMinorRate: Rate
 
-        private init?(minorPerMinor rate: Rate) {
+        // Internal, not private: parsing a quote builds the stored rate from its own file.
+        init?(minorPerMinor rate: Rate) {
             guard rate.isPositive else {
                 return nil
             }
@@ -25,23 +29,22 @@ public extension FX {
 
         /// Creates an exchange rate from a market quote: `To` major units per one `From` major unit.
         ///
+        /// The quote is never rounded. Use ``init(string:)`` to learn why a quote was refused.
+        ///
+        /// - Parameter marketRate: The market quote.
         /// - Returns: `nil` if the rate is not strictly positive (a zero or negative exchange rate
-        ///   would zero or sign-flip a conversion), or if rescaling it between the two currencies
-        ///   overflows the representable range.
+        ///   would zero or sign-flip a conversion), if it has more decimal places than a rate between
+        ///   the two currencies holds, or if it is too large to hold.
         public init?(_ marketRate: Rate) {
-            // A major-unit rate scaled to minor units: multiplying a `From`-minor amount by the result
-            // gives a `To`-minor amount. `× toScale ÷ fromScale` converts between the two quote
-            // forms. For example, $1 = ¥149.5 (per major) becomes 1.495 ¥-minor per ¢, since ¥ has
-            // scale 1 and $ has 100. The multiply is checked because the two scales can differ widely
-            // enough to overflow; the divide that follows only shrinks an already-representable value,
-            // so it cannot.
-            guard let scaled = marketRate.value
-                .multipliedIfRepresentable(by: Int128(Int64(To.currency.unitScale)))?
-                .divided(by: Fixed.Divisor(From.currency.unitScale)) else {
+            guard let rate = try? FX.minorPerMinorRate(
+                significand: marketRate.value.storageBits,
+                exponent: -Fixed.fractionalDigits,
+                placesGained: Self.placesGained
+            ) else {
                 return nil
             }
 
-            self.init(minorPerMinor: Rate(scaled))
+            self.init(minorPerMinor: rate)
         }
 
         /// Returns the customer rate for this mid-market rate: the rate less the provider's margin.
@@ -94,6 +97,33 @@ public extension FX {
                 throw .overflow
             }
             guard let result = ExchangeRate<From, Onward>(minorPerMinor: composed) else {
+                throw .roundsToZero
+            }
+
+            return result
+        }
+
+        /// Returns the rate the other way round: how many major units of `From` one major unit of
+        /// `To` buys.
+        ///
+        /// The inverse is rounded to the nearest representable rate, so inverting twice may not give
+        /// back this rate exactly. It is never a provider's sell rate, which is a quote of its own.
+        ///
+        /// ```swift
+        /// let eurGbp = FX.ExchangeRate<Currencies.EUR, Currencies.GBP>("0.8")!
+        /// let gbpEur = try eurGbp.inverted()   // 1.25
+        /// ```
+        ///
+        /// - Returns: The inverse of this rate.
+        /// - Throws: ``FX/ExchangeError/roundsToZero`` if the inverse is too close to zero to
+        ///   represent.
+        public func inverted() throws(ExchangeError) -> ExchangeRate<To, From> {
+            // The inverse of `To` minor units per `From` minor unit is `From` per `To`, so it needs no
+            // rescaling. A positive rate is at least 10⁻¹⁸, so the inverse is at most 10¹⁸ and the
+            // divide can't overflow, only round to zero.
+            guard let result = ExchangeRate<To, From>(
+                minorPerMinor: Rate(Rate.par.value / minorPerMinorRate.value)
+            ) else {
                 throw .roundsToZero
             }
 

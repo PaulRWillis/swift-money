@@ -9,7 +9,7 @@ public extension FX {
     /// let margin = FX.Margin(.basisPoints(5))   // five basis points, 0.05%
     /// let markup = FX.Margin(.percent(2))       // two percent
     /// ```
-    struct Margin: Sendable, Equatable {
+    struct Margin: Sendable, Equatable, Hashable {
         let rate: Rate
 
         /// Creates a margin from a rate.

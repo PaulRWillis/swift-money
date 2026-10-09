@@ -30,4 +30,14 @@ struct MarginTests {
         #expect(FX.Margin(.basisPoints(5)) == FX.Margin(.basisPoints(5)))
         #expect(FX.Margin(.percent(2)) != FX.Margin(.percent(3)))
     }
+
+    @Test("Equal margins hash alike, however they were written, and different margins stay apart")
+    func hashing() throws {
+        let percent = try #require(FX.Margin(.percent(2)))
+        let basisPoints = try #require(FX.Margin(.basisPoints(200)))
+        let other = try #require(FX.Margin(.percent(3)))
+
+        #expect(percent.hashValue == basisPoints.hashValue)
+        #expect(Set([percent, basisPoints, other]).count == 2)
+    }
 }
