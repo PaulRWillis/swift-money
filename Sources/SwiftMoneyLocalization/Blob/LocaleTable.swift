@@ -33,13 +33,17 @@ package struct LocaleTable: Sendable {
     ///
     /// - Returns: `nil` when neither the identifier nor its language is covered.
     package func index(of identifier: LocaleIdentifier) -> LocaleIndex? {
-        let key = Key(identifier)
+        var keys = LocaleFallbackChain(identifier).makeIterator()
 
-        return index(of: key) ?? key.language.flatMap(index(of:))
+        // The chain yields the identifier first and, when anything follows it, the language last.
+        return keys.next().flatMap(index(of:))
+            ?? IteratorSequence(keys).reduce(nil) { _, key in Optional(key) }.flatMap(index(of:))
     }
 
-    // Binary search over the keys, in the byte order the generator sorted them into.
-    private func index(of key: Key) -> LocaleIndex? {
+    // Binary search over the keys, in the byte order the generator sorted them into. Forced inline:
+    // left to the optimizer, every lookup calls out to this search and to each probe.
+    @inline(__always)
+    private func index(of key: LocaleKey) -> LocaleIndex? {
         var low = 0
         var high = localeCount
 
@@ -57,7 +61,8 @@ package struct LocaleTable: Sendable {
 
     // Where the stored key at `entry` sorts against the key being looked up. Compared byte by byte out
     // of the pool, so neither side is copied into a string to compare it.
-    private func order(ofKeyAt entry: Int, against key: Key) -> Order {
+    @inline(__always)
+    private func order(ofKeyAt entry: Int, against key: LocaleKey) -> Order {
         let stored = reader.stringRef(at: entriesOffset + entry * Entry.stride + Entry.key)
         var position = 0
 
@@ -82,42 +87,5 @@ package struct LocaleTable: Sendable {
         case before
         case equal
         case after
-    }
-
-    // The bytes a locale is looked up by: the identifier's UTF-8 with `_` read as `-`, since either
-    // separates a language from its region. A view over the identifier rather than a normalized copy of
-    // it, so a lookup allocates nothing.
-    private struct Key {
-        private let utf8: String.UTF8View
-        private let length: Int
-
-        init(_ identifier: LocaleIdentifier) {
-            self.init(utf8: identifier.value.utf8, length: identifier.value.utf8.count)
-        }
-
-        private init(utf8: String.UTF8View, length: Int) {
-            self.utf8 = utf8
-            self.length = length
-        }
-
-        // The key for the language alone, or `nil` when this key is the language already, so a lookup
-        // never searches twice for the same bytes.
-        var language: Key? {
-            let languageLength = utf8.prefix(length).prefix { !Self.isSeparator($0) }.count
-
-            guard languageLength < length else {
-                return nil
-            }
-
-            return Key(utf8: utf8, length: languageLength)
-        }
-
-        var bytes: some Sequence<UInt8> {
-            utf8.prefix(length).lazy.map { Self.isSeparator($0) ? UInt8(ascii: "-") : $0 }
-        }
-
-        private static func isSeparator(_ byte: UInt8) -> Bool {
-            byte == UInt8(ascii: "-") || byte == UInt8(ascii: "_")
-        }
     }
 }
