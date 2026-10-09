@@ -3,12 +3,15 @@
 /// The identifier comes first, then its language and script, then its language and region, then its
 /// language. Each of the last three comes only when the identifier has more than that part, so no
 /// key repeats. A script counts only as the second subtag, and a region only as the second, or third
-/// after a script; nothing later is classified, so `de-u-nu-latn` has no region `nu`.
+/// after a script; nothing later is classified, so `de-u-nu-latn` has no region `nu`. A language
+/// longer than 8 bytes, BCP 47's longest, leaves the identifier alone, since no covered locale's
+/// language is that long.
 ///
 /// ```swift
-/// LocaleFallbackChain("zh-Hant_TW")   // zh-Hant-TW, zh-Hant, zh-TW, zh
-/// LocaleFallbackChain("en_US")        // en-US, en
-/// LocaleFallbackChain("en_US_POSIX")  // en-US-POSIX, en-US, en
+/// LocaleFallbackChain("zh-Hant_TW")    // zh-Hant-TW, zh-Hant, zh-TW, zh
+/// LocaleFallbackChain("en_US")         // en-US, en
+/// LocaleFallbackChain("en_US_POSIX")   // en-US-POSIX, en-US, en
+/// LocaleFallbackChain("abcdefghi-US")  // abcdefghi-US
 /// ```
 package struct LocaleFallbackChain: Sendable {
     /// The identifier's UTF-8.
@@ -57,8 +60,6 @@ extension LocaleFallbackChain {
         /// Returns the chain's next key.
         ///
         /// - Returns: The next key, or `nil` after the last.
-        /// - Complexity: O(*m*) for the second key, where *m* is the length of the identifier's
-        ///   language subtag; O(1) for the others.
         package mutating func next() -> LocaleKey? {
             nextKey()
         }
@@ -66,8 +67,6 @@ extension LocaleFallbackChain {
         /// Returns the chain's next key.
         ///
         /// - Returns: The next key, or `nil` after the last.
-        /// - Complexity: O(*m*) for the second key, where *m* is the length of the identifier's
-        ///   language subtag; O(1) for the others.
         // Forced inline: left to the optimizer, every lookup calls out once per key.
         @inline(__always)
         mutating func nextKey() -> LocaleKey? {
@@ -92,25 +91,28 @@ extension LocaleFallbackChain {
         private mutating func key(at step: Step) -> LocaleKey? {
             switch step {
             case .requested: LocaleKey(utf8, prefixLength: utf8.count)
-            case .languageAndScript: subtags().languageAndScriptKey(in: utf8)
-            case .languageAndRegion: subtags().languageAndRegionKey(in: utf8)
-            case .language: subtags().languageKey(in: utf8)
+            case .languageAndScript: subtags()?.languageAndScriptKey(in: utf8)
+            case .languageAndRegion: subtags()?.languageAndRegionKey(in: utf8)
+            case .language: subtags()?.languageKey(in: utf8)
             }
         }
 
-        /// Returns where the identifier's subtags lie, reading them the first time only.
+        /// Returns where the identifier's subtags lie, reading them the first time only, or ends the
+        /// chain when the language is longer than any covered locale's.
         ///
-        /// - Returns: The identifier's subtags.
-        /// - Complexity: O(*m*) the first time, where *m* is the length of the identifier's language
-        ///   subtag; O(1) after.
+        /// - Returns: The identifier's subtags, or `nil` when its language is longer than 8 bytes.
         // Out of line: the parse runs at most once per lookup, and inlined it is copied into each step.
         @inline(never)
-        private mutating func subtags() -> Subtags {
+        private mutating func subtags() -> Subtags? {
             if let parsedSubtags {
                 return parsedSubtags
             }
 
-            let subtags = Subtags(utf8)
+            guard let subtags = Subtags(utf8) else {
+                step = nil
+                return nil
+            }
+
             parsedSubtags = subtags
             return subtags
         }
@@ -156,15 +158,19 @@ extension LocaleFallbackChain {
         /// shape.
         private let region: Range<Int>?
 
-        /// Reads where an identifier's subtags lie, in one pass over its language and the first few
-        /// bytes of at most the next two subtags.
+        /// Reads where an identifier's subtags lie, in one pass over the first few bytes of its
+        /// language and of at most the next two subtags, or returns `nil` when the language is longer
+        /// than 8 bytes.
         ///
         /// - Parameter utf8: The identifier's UTF-8.
-        /// - Complexity: O(*m*), where *m* is the length of the identifier's language subtag.
-        init(_ utf8: String.UTF8View) {
+        /// - Returns: `nil` when the language subtag is longer than BCP 47's longest, 8 bytes.
+        init?(_ utf8: String.UTF8View) {
             var bytes = utf8.makeIterator()
             let length = utf8.count
-            let language = Self.languageLength(&bytes)
+
+            guard let language = Self.languageLength(&bytes) else {
+                return nil
+            }
 
             self.length = length
             self.language = language
@@ -224,20 +230,27 @@ extension LocaleFallbackChain {
             return LocaleKey(utf8, prefixLength: language)
         }
 
-        /// Reads the language subtag and the separator after it.
+        /// Reads the language subtag and the separator after it, or stops at the ninth byte of a
+        /// language longer than BCP 47 allows.
         ///
         /// - Parameter bytes: The identifier's bytes, from its first.
-        /// - Returns: The length of the language subtag.
-        /// - Complexity: O(*m*), where *m* is the length of the language subtag.
-        private static func languageLength(_ bytes: inout String.UTF8View.Iterator) -> Int {
+        /// - Returns: The length of the language subtag, or `nil` when it is longer than 8 bytes.
+        private static func languageLength(_ bytes: inout String.UTF8View.Iterator) -> Int? {
             var length = 0
 
             while let byte = bytes.next(), LocaleKey.folded(byte) != LocaleKey.separator {
+                guard length < longestLanguage else {
+                    return nil
+                }
+
                 length += 1
             }
 
             return length
         }
+
+        /// The length of BCP 47's longest language subtag, in bytes.
+        private static let longestLanguage = 8
 
         /// Reads a subtag and the separator after it, stopping as soon as the subtag can't be a script
         /// or a region.

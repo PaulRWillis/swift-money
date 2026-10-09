@@ -13,6 +13,10 @@ struct LocaleSubtagsTests {
         + (1 ... 4).map { String("1234".prefix($0)) }
         + ["a1", "1a", "ab1d", "Ääää", "é", "\u{301}x"]
 
+    /// The length of BCP 47's longest language subtag, in bytes, past which the runtime chain yields
+    /// the identifier alone.
+    private static let longestLanguage = 8
+
     /// The letter case a generated name is spelled in.
     enum LetterCase: CaseIterable {
         /// As the shapes spell it.
@@ -57,11 +61,16 @@ struct LocaleSubtagsTests {
     ///
     /// - Parameter name: A hyphen-separated name.
     /// - Returns: The name, then its language and script, language and region, and language, each only
-    ///   when the name has more than that part.
+    ///   when the name has more than that part; the name alone when its language is longer than 8
+    ///   bytes.
     private static func expectedChain(of name: String) -> [String] {
         let subtags = LocaleSubtags(name)
         let language = String(subtags.language)
         var keys = [name]
+
+        guard language.utf8.count <= longestLanguage else {
+            return keys
+        }
 
         if let script = subtags.script, subtags.region != nil || !subtags.rest.isEmpty {
             keys.append("\(language)-\(script)")

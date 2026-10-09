@@ -93,6 +93,22 @@ struct LocaleFallbackChainTests {
         #expect(Self.keys(of: LocaleIdentifier(identifier)) == Self.keys(expected))
     }
 
+    // BCP 47's longest language subtag is 8 letters, and no stored key's language is longer, so a
+    // longer language leaves nothing after the identifier that could match.
+    @Test(
+        "A language longer than 8 bytes yields the identifier alone",
+        arguments: [
+            ("abcdefgh-US", ["abcdefgh-US", "abcdefgh"]),
+            ("abcdefghi-US", ["abcdefghi-US"]),
+            ("abcdefghi_Latn_US", ["abcdefghi_Latn_US"]),
+            ("abcdefghi-", ["abcdefghi-"]),
+            (String(repeating: "b", count: 1_000) + "-US", [String(repeating: "b", count: 1_000) + "-US"]),
+        ] as [(String, [String])]
+    )
+    func longLanguages(_ identifier: String, _ expected: [String]) {
+        #expect(Self.keys(of: LocaleIdentifier(identifier)) == Self.keys(expected))
+    }
+
     @Test("An empty identifier yields itself alone")
     func emptyIdentifier() {
         #expect(Self.keys(of: "") == [[]])

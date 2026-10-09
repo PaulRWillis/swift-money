@@ -16,4 +16,15 @@ struct GeneratedLocaleKeysTests {
             #expect(earlierBytes.lexicographicallyPrecedes(laterBytes), "\(earlier) is not before \(later)")
         }
     }
+
+    // The lookup tries nothing after the identifier itself once its language passes 8 bytes, which
+    // finds every stored key only while no stored language is longer.
+    @Test("No covered identifier's language is longer than 8 bytes")
+    func languagesFitBCP47() {
+        let tooLong = MoneyLocalization.coveredLocaleIdentifiers.filter { identifier in
+            identifier.utf8.prefix { $0 != UInt8(ascii: "-") }.count > 8
+        }
+
+        #expect(tooLong.isEmpty)
+    }
 }
