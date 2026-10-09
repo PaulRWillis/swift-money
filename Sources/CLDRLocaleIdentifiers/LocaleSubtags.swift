@@ -34,9 +34,14 @@ package struct LocaleSubtags: Sendable, Equatable, Hashable {
     /// - Parameter name: A hyphen-separated locale name.
     /// - Complexity: O(*n*), where *n* is the length of `name`.
     package init(_ name: String) {
-        language = name.prefix { $0 != "-" }
+        // Split on the byte: a combining mark after `-` joins the two into one `Character`, which a
+        // split on `Character` wouldn't break at.
+        let separator = UInt8(ascii: "-")
+        language = Substring(name.utf8.prefix { $0 != separator })
 
-        var remaining = name.split(separator: "-", omittingEmptySubsequences: false).dropFirst()
+        var remaining = name.utf8.split(separator: separator, omittingEmptySubsequences: false)
+            .dropFirst()
+            .map(Substring.init)[...]
 
         if let next = remaining.first, LocaleSubtagShape(next.utf8) == .script {
             script = next
