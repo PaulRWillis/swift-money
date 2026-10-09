@@ -43,11 +43,10 @@ extension FX.ExchangeRate: CustomStringConvertible {
     /// eurGbp.description   // "0.87"
     /// ```
     public var description: String {
-        withUnsafeTemporaryAllocation(of: UInt8.self, capacity: UInt128.maximumDecimalDigits) { buffer in
+        withUnsafeTemporaryAllocation(of: UInt8.self, capacity: UInt128Words.maximumDecimalDigits) { buffer in
             // The stored rate is a positive whole number of 10⁻¹⁸ smallest-unit parts, so its digits
             // are the quote's with the point moved `18 + placesGained` places in: from 0 to 36.
-            let words = minorPerMinorRate.value.storageBits.magnitude
-            let start = (UInt128(words.high) << 64 | UInt128(words.low)).writeDecimalDigits(endingAt: buffer)
+            let start = minorPerMinorRate.value.storageBits.magnitude.writeDecimalDigits(endingAt: buffer)
             var end = buffer.count
             var places = Fixed.fractionalDigits + Self.placesGained
 
@@ -96,18 +95,15 @@ extension FX.ExchangeRate: CustomStringConvertible {
     }
 }
 
-private extension UInt128 {
-    /// The most decimal digits a value can have: `UInt128.max` is about 3.4 × 10³⁸.
-    static let maximumDecimalDigits = 39
+private extension UInt128Words {
+    /// The most decimal digits a value can have: ``max`` is about 3.4 × 10³⁸.
+    static var maximumDecimalDigits: Int { 39 }
 
     /// Writes the value's decimal digits as ASCII at the end of a buffer, and returns where they start.
     ///
     /// - Parameter buffer: Space for at least ``maximumDecimalDigits`` bytes.
     /// - Returns: The index of the most significant digit; the digits run to the buffer's end.
     func writeDecimalDigits(endingAt buffer: UnsafeMutableBufferPointer<UInt8>) -> Int {
-        // Ten to the nineteenth is the largest power of ten a `UInt64` holds, so each chunk of 19
-        // digits is written with cheap 64-bit division, and the 128-bit division runs at most twice.
-        let chunk: UInt64 = 10_000_000_000_000_000_000
         var remaining = self
         var index = buffer.count
 
@@ -123,12 +119,15 @@ private extension UInt128 {
             } while value > 0 || written < width
         }
 
-        while remaining > UInt128(UInt64.max) {
-            let (quotient, low) = remaining.quotientAndRemainder(dividingBy: UInt128(chunk))
-            write(UInt64(low), padTo: 19)
-            remaining = quotient
+        // Each pass splits off 18 digits in one-word steps: a hardware divide of the top word, then
+        // 10¹⁸'s reciprocal on the remainder and the low word. A value below 2¹²⁸ takes at most two.
+        while remaining.high != 0 {
+            let (upper, carried) = remaining.high.quotientAndRemainder(dividingBy: Fixed.Scale.divisor)
+            let (lower, chunk) = Fixed.Scale.divide(high: carried, low: remaining.low)
+            write(chunk, padTo: Fixed.fractionalDigits)
+            remaining = UInt128Words(high: upper, low: lower)
         }
-        write(UInt64(remaining), padTo: 1)
+        write(remaining.low, padTo: 1)
 
         return index
     }

@@ -111,6 +111,53 @@ struct ExchangeRateParsingTests {
         #expect(rate.description == quote)
     }
 
+    // A EUR/GBP rate stores its quote times 10¹⁸, so these quotes store the smallest and largest
+    // values, values either side of 10¹⁸, 10¹⁹, 2⁶⁴ and 10³⁶, and values with long runs of zeros.
+    @Test("A rate at the edges of what it stores is described as its quote", arguments: [
+        "0.000000000000000001",
+        "0.999999999999999999",
+        "1",
+        "1.000000000000000001",
+        "9.999999999999999999",
+        "10",
+        "10.000000000000000001",
+        "18.446744073709551615",
+        "18.446744073709551616",
+        "999999999999999999.999999999999999999",
+        "1000000000000000000",
+        "1000000000000000000.000000000000000001",
+        "10000000000000000000.000000000000000001",
+        "100000000000000000000",
+        "100000000000000000000.000000000000000001",
+        "170141183460469231731.687303715884105727",
+    ])
+    func describesTheEdges(_ quote: String) throws {
+        #expect(try EURGBP(string: quote).description == quote)
+    }
+
+    @Test("A rate between currencies of different scales is described with every place it holds")
+    func describesTheMostPlaces() throws {
+        let quote = "0.0003125123456789012345678901234567"
+        let rate = try FX.ExchangeRate<Currencies.GBP, Ether>(string: quote)
+
+        #expect(rate.description == quote)
+    }
+
+    // One past the largest stored value has no significand to read, so the text isn't a quote.
+    @Test("A quote one past the largest the rate stores is not read")
+    func refusesOnePastTheLargest() {
+        #expect(throws: FX.ExchangeRateParsingError.unrecognizedText) {
+            try EURGBP(string: "170141183460469231731.687303715884105728")
+        }
+    }
+
+    @Test("The most negative quote the rate could store is refused as not positive")
+    func refusesTheMostNegative() {
+        #expect(throws: FX.ExchangeRateParsingError.notPositive) {
+            try EURGBP(string: "-170141183460469231731.687303715884105728")
+        }
+    }
+
     // ¥1 = $0.0066889632107023411… needs more than eighteen places once quoted per major unit.
     @Test("A rate whose quote needs more than eighteen places is described with every digit")
     func describesBeyondEighteenPlaces() throws {
