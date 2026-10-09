@@ -6,6 +6,9 @@ public extension FX {
     /// the currencies are part of the type, so a rate can only convert the currency it was quoted for
     /// and the direction cannot be mixed up.
     ///
+    /// A provider's buy and sell rates for a pair are two rates, one each way. They are separate
+    /// quotes, not reciprocals, so build each from its own quote rather than with ``inverted()``.
+    ///
     /// ```swift
     /// let eurGbp = Rate(string: "0.87").flatMap(FX.ExchangeRate<Currencies.EUR, Currencies.GBP>.init)
     /// ```
