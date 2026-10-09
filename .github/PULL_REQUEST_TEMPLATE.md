@@ -6,7 +6,7 @@
 
 ## Changes
 
-<!-- What's different for callers, riskiest first. A breaking change goes first, with how callers migrate. -->
+<!-- What's different for callers, riskiest first. A breaking change goes first, with how callers migrate. A risk goes on that change's bullet, with what guards it in the code: a check, a type or a narrow access level, never a test. -->
 
 ## Screenshots
 
@@ -15,7 +15,3 @@
 ## Benchmarks
 
 <!-- Required when the PR adds benchmarks or is about performance; otherwise delete. Exact figures, never rounded. Changed rows: Benchmark | Before | After | Change | Change (%). New rows: Benchmark | Instructions. Put a table of more than about five rows in a <details> block. -->
-
-## Notes
-
-<!-- Only what the reviewer must judge: a risk and how the code guards against it, a design choice, a known limitation, or why there's no test. Delete if not needed. -->
