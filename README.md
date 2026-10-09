@@ -66,6 +66,10 @@ import SwiftMoney   // the core types and the Foundation-backed formatting, in o
 - **`SwiftMoneyFoundation`** — the pieces that need Foundation: formatting, localized parsing,
   `Decimal` interop, and JSON configuration.
 
+Converting an amount to another currency lives in **`SwiftMoneyFX`**, which `SwiftMoney` does not
+re-export, so converting always takes its own dependency and `import SwiftMoneyFX`. Exchange rates
+themselves are in the core. Like the core, it builds for Embedded Swift.
+
 **Requires Swift 6.2.**
 **Platforms:** macOS 15+, iOS 18+, watchOS 11+, tvOS 18+, visionOS 2+. Linux builds in CI.
 
