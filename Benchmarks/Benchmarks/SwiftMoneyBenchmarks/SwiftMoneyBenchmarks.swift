@@ -2147,6 +2147,127 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    // Rates cycled rather than one constant, so the work can't be hoisted out of the loop. USD→JPY
+    // changes scale, so its JSON quote is rescaled on the way out and in.
+    let eurGbpRates = rateOperands.compactMap { FX.ExchangeRate<Currencies.EUR, Currencies.GBP>($0) }
+    let usdJpyQuotes: [Rate] = ["149.5", "150.25", "148", "151.125", "147.8"]
+    let usdJpyRates = usdJpyQuotes.compactMap { FX.ExchangeRate<Currencies.USD, Currencies.JPY>($0) }
+    let rateEncoder = JSONEncoder()
+
+    guard eurGbpRates.count == rateOperands.count, usdJpyRates.count == usdJpyQuotes.count else {
+        preconditionFailure("Every operand is a positive rate")
+    }
+
+    Benchmark("ExchangeRate inverted", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(try eurGbpRates[index % eurGbpRates.count].inverted())
+            index &+= 1
+        }
+    }
+
+    // The peer's nearest operation: one decimal divided by another.
+    Benchmark("FixedPoint division", configuration: defaultConfiguration) { benchmark in
+        let one = FixedPointDecimal(integerValue: 1)
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(one / fixedOperands[index % fixedOperands.count])
+            index &+= 1
+        }
+    }
+
+    Benchmark("ExchangeRate hashing", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            var hasher = Hasher()
+            hasher.combine(eurGbpRates[index % eurGbpRates.count])
+            blackHole(hasher.finalize())
+            index &+= 1
+        }
+    }
+
+    Benchmark("FixedPoint hashing", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            var hasher = Hasher()
+            hasher.combine(fixedOperands[index % fixedOperands.count])
+            blackHole(hasher.finalize())
+            index &+= 1
+        }
+    }
+
+    Benchmark("ExchangeRate JSON encode", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(try rateEncoder.encode(eurGbpRates[index % eurGbpRates.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("ExchangeRate JSON encode, across scales", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(try rateEncoder.encode(usdJpyRates[index % usdJpyRates.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("ExchangeRate JSON decode", configuration: defaultConfiguration) { benchmark in
+        let decoder = JSONDecoder()
+        let payloads = try eurGbpRates.map { try rateEncoder.encode($0) }
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(try decoder.decode(
+                FX.ExchangeRate<Currencies.EUR, Currencies.GBP>.self,
+                from: payloads[index % payloads.count]
+            ))
+            index &+= 1
+        }
+    }
+
+    Benchmark("ExchangeRate JSON decode, across scales", configuration: defaultConfiguration) { benchmark in
+        let decoder = JSONDecoder()
+        let payloads = try usdJpyRates.map { try rateEncoder.encode($0) }
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(try decoder.decode(
+                FX.ExchangeRate<Currencies.USD, Currencies.JPY>.self,
+                from: payloads[index % payloads.count]
+            ))
+            index &+= 1
+        }
+    }
+
+    // The peer writes one string, not three fields, so read these against the rows above as a floor
+    // for the coder, not like for like.
+    Benchmark("FixedPoint JSON encode", configuration: defaultConfiguration) { benchmark in
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(try rateEncoder.encode(fixedOperands[index % fixedOperands.count]))
+            index &+= 1
+        }
+    }
+
+    Benchmark("FixedPoint JSON decode", configuration: defaultConfiguration) { benchmark in
+        let decoder = JSONDecoder()
+        let payloads = try fixedOperands.map { try rateEncoder.encode($0) }
+        var index = 0
+
+        for _ in benchmark.scaledIterations {
+            blackHole(try decoder.decode(FixedPointDecimal.self, from: payloads[index % payloads.count]))
+            index &+= 1
+        }
+    }
+
     // Constructing the margin itself: validation that the rate is in [0, 1). Cycles the prebuilt rates so
     // the construction cannot be hoisted.
     Benchmark("Margin construction", configuration: defaultConfiguration) { benchmark in

@@ -185,6 +185,8 @@ A typed row should cost no more than its `Money.Unrounded` twin, which also comp
 | ExchangeRate construction | 264 | 0 | 8 |
 | ExchangeRate construction, across scales | 264 | 0 | 8 |
 | ExchangeRate crossed | 240 | 0 | 7 |
+| ExchangeRate hashing | 195 | 0 | 10 |
+| ExchangeRate inverted | 362 | 0 | 12 |
 | Margin construction | 44 | 0 | 2 |
 | MoneyOf converted | 57 | 0 | 2 |
 
@@ -370,6 +372,10 @@ The JSON rows are mostly Foundation's coder; the `Control` peer (a plain `Int64`
 
 | Operation | Instructions | Malloc | Wall (ns) |
 |---|--:|--:|--:|
+| ExchangeRate JSON decode | 33,023 | 12 | 1155 |
+| ExchangeRate JSON decode, across scales | 33,050 | 12 | 1164 |
+| ExchangeRate JSON encode | 33,780 | 11 | 1217 |
+| ExchangeRate JSON encode, across scales | 33,406 | 11 | 1217 |
 | Money bytes decode | 210 | 0 | 6 |
 | Money bytes encode | 255 | 0 | 10 |
 | Money encode, no coder | 786 | 0 | 31 |
@@ -438,6 +444,10 @@ The engine alone, rendering with a prebuilt descriptor. The `MoneyOf format` row
 | FixedPoint addition | 13 | 0 | 1 |
 | FixedPoint chained scaling | 473 | 0 | 30 |
 | FixedPoint comparison | 15 | 0 | 1 |
+| FixedPoint division | 163 | 0 | 6 |
+| FixedPoint hashing | 152 | 0 | 7 |
+| FixedPoint JSON decode | 8,506 | 6 | 301 |
+| FixedPoint JSON encode | 6,819 | 3 | 247 |
 | FixedPoint scalar multiplication | 150 | 0 | 5 |
 | FixedPoint scaled and rounded | 179 | 0 | 8 |
 | FixedPoint subtraction | 13 | 0 | 1 |
