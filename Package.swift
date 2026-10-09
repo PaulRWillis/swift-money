@@ -62,8 +62,8 @@ let package = Package(
             name: "SwiftMoneyFoundation",
             dependencies: ["SwiftMoneyCore", "SwiftMoneyLocalization"]
         ),
-        // Dev-only. The property-test generators and test helpers, shared by the suites that test the
-        // core. Not in any library product.
+        // Dev-only. The property-test generators and test helpers, shared by the Core, FX and
+        // Foundation test suites. Not in any library product.
         .target(
             name: "SwiftMoneyCoreTestSupport",
             dependencies: ["SwiftMoneyCore"]
@@ -121,7 +121,12 @@ let package = Package(
         ),
         .testTarget(
             name: "SwiftMoneyFoundationTests",
-            dependencies: ["SwiftMoneyFoundation", "SwiftMoneyFormatMatrix", "SwiftMoneyLocalization"]
+            dependencies: [
+                "SwiftMoneyFoundation",
+                "SwiftMoneyFormatMatrix",
+                "SwiftMoneyLocalization",
+                "SwiftMoneyCoreTestSupport",
+            ]
         ),
         .testTarget(
             name: "SwiftMoneyFormatMatrixTests",
