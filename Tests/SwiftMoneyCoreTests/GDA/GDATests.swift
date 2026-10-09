@@ -78,7 +78,7 @@ struct GDATests {
         var summary = GDASummary()
         for file in files {
             let url = try #require(
-                Bundle.module.url(forResource: file, withExtension: "decTest", subdirectory: "Resources/GDA"),
+                Bundle.module.url(forResource: file, withExtension: "decTest", subdirectory: "GDA"),
                 "missing GDA resource \(file).decTest"
             )
             summary.merge(try runner(url, operations))
