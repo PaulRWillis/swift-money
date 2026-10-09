@@ -103,12 +103,6 @@ extension FX.ExchangeRate {
         case rate
     }
 
-    /// The decimal places a quote gains when rescaled from major units to minor units: `To`'s
-    /// places less `From`'s, from `-18` to `18`.
-    private static var placesGained: Int {
-        To.currency.unitScale.decimalPlaces - From.currency.unitScale.decimalPlaces
-    }
-
     /// The market quote written out in full, with no trailing zeros.
     private var marketQuoteText: String {
         // The stored rate is a whole number of 10⁻¹⁸ minor-unit parts, and positive, so its digits
