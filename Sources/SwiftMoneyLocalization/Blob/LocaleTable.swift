@@ -53,7 +53,17 @@ package struct LocaleTable: Sendable {
     /// - Complexity: O(*m* log *n*), where *m* is the length of `identifier` and *n* is the number of
     ///   locales.
     package func index(of identifier: LocaleIdentifier) -> LocaleIndex? {
-        LocaleFallbackChain(identifier).lazy.compactMap(index(of:)).first
+        var keys = LocaleFallbackChain(identifier).makeIterator()
+
+        // A loop, not `lazy.compactMap(_:).first`: measured in release, the lazy form makes an exact
+        // match cost about half as much again.
+        while let key = keys.next() {
+            if let index = index(of: key) {
+                return index
+            }
+        }
+
+        return nil
     }
 
     // Binary search over the keys, in the byte order the generator sorted them into. Forced inline:
