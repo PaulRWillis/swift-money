@@ -2136,6 +2136,30 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    let runtimeEurUsd = FX.ExchangeRate(eurUsd)
+    let runtimeUsdGbp = FX.ExchangeRate(usdGbp)
+
+    Benchmark("Runtime ExchangeRate crossed", configuration: defaultConfiguration) { benchmark in
+        for _ in benchmark.scaledIterations {
+            blackHole(try runtimeEurUsd.crossed(with: runtimeUsdGbp))
+        }
+    }
+
+    // The second rate starts from GBP, not USD, so every call throws the mismatch.
+    guard let runtimeGbpUsd = FX.ExchangeRate("1.25", from: .gbp, to: .usd) else {
+        preconditionFailure("1.25 is a positive rate")
+    }
+
+    Benchmark("Runtime ExchangeRate crossed, mismatched", configuration: defaultConfiguration) { benchmark in
+        for _ in benchmark.scaledIterations {
+            do {
+                blackHole(try runtimeEurUsd.crossed(with: runtimeGbpUsd))
+            } catch {
+                blackHole(error)
+            }
+        }
+    }
+
     // Applying a provider's spread to a mid-market rate — the customer-rate step. The margin is built at
     // registration (it is failable), like the rates above.
     guard let providerMargin = FX.Margin(.percent(2)) else {

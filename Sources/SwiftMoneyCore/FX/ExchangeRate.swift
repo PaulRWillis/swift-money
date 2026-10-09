@@ -60,4 +60,52 @@ public extension FX.ExchangeRateOf where From == AnyCurrency, To == AnyCurrency 
     init(string quote: String, from: Currency, to: Currency) throws(FX.ExchangeRateParsingError) {
         try self.init(quote: quote, fromStorage: from, toStorage: to)
     }
+
+    /// Returns the rate that converts ``ExchangeRateOf/from`` all the way to `other`'s
+    /// ``ExchangeRateOf/to``, via this rate and `other`.
+    ///
+    /// `other` must start where this rate ends: `EUR→GBP` is `EUR→USD` crossed with `USD→GBP`. The
+    /// currencies are checked before the rates are multiplied, so a pair that both mismatches and
+    /// overflows reports the mismatch.
+    ///
+    /// ```swift
+    /// let eurUsd = FX.ExchangeRate("1.1", from: .eur, to: .usd)!
+    /// let usdGbp = FX.ExchangeRate("0.8", from: .usd, to: .gbp)!
+    /// let eurGbp = try eurUsd.crossed(with: usdGbp)   // 0.88
+    /// ```
+    ///
+    /// - Parameter other: The rate from this rate's ``ExchangeRateOf/to`` currency onward.
+    /// - Returns: The product of this rate and `other`.
+    /// - Throws: ``FX/ExchangeError/currencyMismatch(_:)`` with `other`'s ``ExchangeRateOf/from`` if
+    ///   it is not this rate's ``ExchangeRateOf/to``; ``FX/ExchangeError/overflow`` if the product is
+    ///   too large to represent; ``FX/ExchangeError/roundsToZero`` if it is too close to zero to
+    ///   represent.
+    func crossed(with other: FX.ExchangeRate) throws(FX.ExchangeError<Currency>) -> FX.ExchangeRate {
+        guard toStorage == other.fromStorage else {
+            try Self.mismatch(other.fromStorage)
+        }
+
+        switch FX.crossedRate(minorPerMinorRate, onward: other.minorPerMinorRate) {
+        case let .success(composed):
+            return Self(unchecked: composed, fromStorage: fromStorage, toStorage: other.toStorage)
+
+        case .failure(.overflow):
+            throw .overflow
+
+        case .failure(.roundsToZero):
+            throw .roundsToZero
+        }
+    }
+}
+
+extension FX.ExchangeRateOf where From == AnyCurrency, To == AnyCurrency {
+    // Out of line so that crossing a matching pair, the common path, builds no error.
+    /// Throws a currency mismatch.
+    ///
+    /// - Parameter currency: The currency the second rate converts from.
+    /// - Throws: ``FX/ExchangeError/currencyMismatch(_:)`` with `currency`, always.
+    @inline(never)
+    private static func mismatch(_ currency: Currency) throws(FX.ExchangeError<Currency>) -> Never {
+        throw .currencyMismatch(currency)
+    }
 }
