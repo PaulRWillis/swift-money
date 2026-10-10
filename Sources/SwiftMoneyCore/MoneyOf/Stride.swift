@@ -43,9 +43,9 @@ public extension MoneyOf {
         ///
         /// Negative moves downward.
         @inlinable
-        var minorUnits: NonZeroInt64 {
+        var minorUnits: NonZero<MinorUnits> {
             // Every initializer either rejects a zero amount or builds a non-zero one.
-            NonZeroInt64(unchecked: amount.minorUnits)
+            NonZero(unchecked: amount.minorUnits)
         }
     }
 }

@@ -194,10 +194,10 @@ extension Split {
 /// - Returns: The split, with larger parts one minor unit further from zero.
 @usableFromInline
 func split(
-    _ amount: Int64,
+    _ amount: Money.MinorUnits,
     into parts: PartCount
 ) -> MinorUnitSplit {
-    guard let amount = NonZeroInt64(amount) else {
+    guard let amount = NonZero(amount) else {
         return .even(count: parts, minorUnits: 0)
     }
 
@@ -215,7 +215,7 @@ func split(
             largerCount: largerCount,
             // The quotient is zero or has the amount's sign, so adding the sign moves it away
             // from zero. Two or more parts keep it at most half the amount, so it can't overflow.
-            largerMinorUnits: NonZeroInt64(unchecked: quotient + amount.signum),
+            largerMinorUnits: NonZero(unchecked: quotient + amount.signum),
             smallerCount: parts - largerCount
         )
     }
@@ -226,7 +226,7 @@ func split(
 /// - Parameter value: The value to measure.
 /// - Returns: The magnitude of `value`.
 /// - Precondition: The magnitude of `value` must fit in `Int`.
-func abs(_ value: NonZeroInt64) -> PartCount {
+func abs(_ value: NonZero<Money.MinorUnits>) -> PartCount {
     // A non-zero value's magnitude is at least one, so it's a valid part count.
     PartCount(unchecked: Int(abs(value.rawValue)))
 }

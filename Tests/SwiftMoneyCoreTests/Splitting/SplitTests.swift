@@ -256,7 +256,61 @@ struct SplitTests {
         #expect(even.count == maxParts)
         #expect(even.amount == GBP(minorUnits: 1))
     }
+
+    @Test("One unit short of the largest amount, into the most parts, has one smaller part")
+    func nearLargestAmountIntoMostParts() throws {
+        let maxParts = try #require(PartCount(exactly: .max))
+        let largerCount = try #require(PartCount(exactly: .max - 1))
+
+        let split = GBP(minorUnits: Int64.max - 1).split(into: maxParts)
+
+        guard case let .uneven(uneven) = split else {
+            Issue.record("Expected an uneven split")
+            return
+        }
+        #expect(uneven.largerCount == largerCount)
+        #expect(uneven.largerAmount == GBP(minorUnits: 1))
+        #expect(uneven.smallerCount == 1)
+        #expect(uneven.smallerAmount == GBP(minorUnits: 0))
+    }
+
+    @Test("A refund one unit short of the largest, into the most parts, has one smaller part")
+    func nearLargestRefundIntoMostParts() throws {
+        let maxParts = try #require(PartCount(exactly: .max))
+        let largerCount = try #require(PartCount(exactly: .max - 1))
+
+        let split = GBP(minorUnits: -(Int64.max - 1)).split(into: maxParts)
+
+        guard case let .uneven(uneven) = split else {
+            Issue.record("Expected an uneven split")
+            return
+        }
+        #expect(uneven.largerCount == largerCount)
+        #expect(uneven.largerAmount == GBP(minorUnits: -1))
+        #expect(uneven.smallerCount == 1)
+        #expect(uneven.smallerAmount == GBP(minorUnits: 0))
+    }
     #endif
+
+    @Test("The smallest amount into one part is even")
+    func smallestAmountIntoOneIsEven() {
+        guard case let .even(even) = GBP.min.split(into: 1) else {
+            Issue.record("Expected an even split")
+            return
+        }
+        #expect(even.count == 1)
+        #expect(even.amount == GBP.min)
+    }
+
+    @Test("The smallest amount into two parts is even")
+    func smallestAmountIntoTwoIsEven() {
+        guard case let .even(even) = GBP.min.split(into: 2) else {
+            Issue.record("Expected an even split")
+            return
+        }
+        #expect(even.count == 2)
+        #expect(even.amount == GBP(minorUnits: -4_611_686_018_427_387_904))
+    }
 
     @Test("The smallest amount into three")
     func smallestAmountIntoThree() {
