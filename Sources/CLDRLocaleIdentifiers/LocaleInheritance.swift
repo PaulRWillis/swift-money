@@ -99,7 +99,7 @@ package struct LocaleInheritance: Sendable {
     ///
     /// - Parameter name: A hyphen-separated locale name, spelled as CLDR spells it.
     /// - Returns: The first group the lookup finds, or the root's when it finds none.
-    /// - Complexity: O(*m*) per step, where *m* is the length of the name; at most one step per
+    /// - Complexity: O(*m*) per step, where *m* is the length of the name; at most two steps per
     ///   subtag, plus one per parent locale on the way.
     package func group(reachedFrom name: String) -> LocaleGroup {
         switch hop(from: name) {
@@ -115,6 +115,7 @@ package struct LocaleInheritance: Sendable {
     /// - Parameter name: The name the lookup has reached.
     /// - Returns: The group holding the name, its short name, or its parent's root; otherwise the next
     ///   name to look up.
+    /// - Complexity: O(*m*), where *m* is the length of the name.
     private func hop(from name: String) -> Hop {
         let shortName = scripts.shortened(name)
 
@@ -130,38 +131,40 @@ package struct LocaleInheritance: Sendable {
         case .root:
             return .reached(root)
         case nil:
-            return truncated(name, withScript: withScript).map(Hop.next) ?? .reached(root)
+            return truncated(name, withScript: withScript)
         }
     }
 
-    /// Returns a name with its last subtag removed, as TR35 truncates it.
+    /// Returns where TR35's truncation takes a name.
     ///
     /// - Parameters:
     ///   - name: The name to truncate.
     ///   - withScript: The name with its implied script inserted.
     /// - Returns: The name without its last subtag after any variants are gone, `L-S` for `L-R` or
-    ///   `L-S-R`, `L` for `L-S` when `S` is the language's own script, or `nil` when the lookup goes to
-    ///   root.
-    private func truncated(_ name: String, withScript: String) -> String? {
+    ///   `L-S-R`, or `L` for `L-S` when `S` is the language's own script; otherwise the root's group.
+    /// - Complexity: O(*m*), where *m* is the length of the name.
+    private func truncated(_ name: String, withScript: String) -> Hop {
         let subtags = LocaleSubtags(name)
 
         if !subtags.rest.isEmpty {
-            return LocaleSubtags(
+            return .next(LocaleSubtags(
                 language: subtags.language, script: subtags.script, region: subtags.region,
                 rest: Array(subtags.rest.dropLast())
-            ).name
+            ).name)
         }
 
         if subtags.region != nil {
             let full = LocaleSubtags(withScript)
-            return LocaleSubtags(language: full.language, script: full.script, region: nil, rest: []).name
+            return .next(
+                LocaleSubtags(language: full.language, script: full.script, region: nil, rest: []).name
+            )
         }
 
         guard let script = subtags.script, script == ownScript(of: subtags.language) else {
-            return nil
+            return .reached(root)
         }
 
-        return String(subtags.language)
+        return .next(String(subtags.language))
     }
 
     /// Returns the script CLDR implies for a bare language.
@@ -174,8 +177,8 @@ package struct LocaleInheritance: Sendable {
 
     /// Follows the lookup from every parent locale's key, and throws on the first that loops.
     ///
-    /// Any other lookup ends: truncation removes a subtag each step, and a lookup that meets a parent
-    /// joins a path checked here.
+    /// Any other lookup ends: truncation shortens the name within two steps, and a lookup that meets a
+    /// parent joins a path checked here.
     ///
     /// - Throws: ``InheritanceError/cycle(through:)`` with the first name a lookup passes twice.
     /// - Complexity: O(*p* × *d*) steps, where *p* is the number of parent locales and *d* the longest
@@ -201,6 +204,7 @@ package struct LocaleInheritance: Sendable {
     ///   - likelySubtags: CLDR's `likelySubtags` map.
     ///   - parentLocales: CLDR's `parentLocales` map.
     /// - Returns: Every key and value, and their `L-S` and `L-R` parts.
+    /// - Complexity: O(*t*), where *t* is the total length of every key and value in both maps.
     private static func names(
         mentionedIn likelySubtags: [String: String],
         and parentLocales: [String: String]
@@ -220,8 +224,8 @@ package struct LocaleInheritance: Sendable {
         }
     }
 
-    /// The name of CLDR's root locale folder.
-    private static let rootName = "und"
+    /// The name of CLDR's root locale folder, which is also the language subtag for "undetermined".
+    static let rootName = "und"
 
     /// The older name CLDR's parent locales may give the root locale.
     private static let legacyRootName = "root"

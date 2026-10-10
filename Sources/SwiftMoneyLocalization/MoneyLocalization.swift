@@ -12,8 +12,8 @@ public enum MoneyLocalization {
 
     /// The currency format for an amount's currency in a locale, or `nil` if the locale is not covered.
     ///
-    /// An identifier the data doesn't cover falls back as CLDR resolves it, through its language and
-    /// script, then language and region, then language, so `zh-TW` is Traditional Chinese.
+    /// An identifier the data doesn't cover falls back through its language and script, then language
+    /// and region, then language, so `zh-TW` is Traditional Chinese.
     ///
     /// ```swift
     /// let format = MoneyLocalization.moneyFormat(for: .gbp, locale: "en-GB")   // £ before, ","/"."
@@ -92,8 +92,8 @@ public enum MoneyLocalization {
     ///   - locale: The locale identifier, as ``moneyFormat(for:locale:presentation:)`` takes it.
     ///   - numberingSystem: The digits and separators to render in. ``NumberingSystemSelection/automatic``
     ///     (the default) uses the locale's own default system, so the output is unchanged.
-    /// - Returns: A ``MoneyFormat``, or `nil` when the locale is outside the covered set or CLDR
-    ///   gives the currency no name there.
+    /// - Returns: A ``MoneyFormat``, or `nil` when the locale is outside the covered set, the data
+    ///   holds no plural rules for its language, or CLDR gives the currency no name there.
     public static func fullNameMoneyFormat(
         for currency: Currency,
         minorUnits: Int64,
@@ -143,13 +143,17 @@ public enum MoneyLocalization {
     /// - Parameters:
     ///   - operands: The amount's plural operands.
     ///   - localeIndex: The locale's position, as ``LocaleTable/index(of:)`` returns it.
-    /// - Returns: The amount's category, or `nil` when the data holds no rules for the locale's
-    ///   language.
+    /// - Returns: The amount's category, or `nil` when `localeIndex` isn't a position in the table, or
+    ///   the data holds no rules for the locale's language.
     package static func pluralCategory(
         of operands: PluralOperandValues,
         at localeIndex: LocaleIndex
     ) -> PluralCategory? {
-        pluralRulesByLocale[localeIndex.position].map { rules in
+        guard pluralRulesByLocale.indices.contains(localeIndex.position) else {
+            return nil
+        }
+
+        return pluralRulesByLocale[localeIndex.position].map { rules in
             PluralCategory.allCases.first { rules[$0]?.matches(operands) == true } ?? .other
         }
     }

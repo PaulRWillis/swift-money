@@ -20,7 +20,8 @@ package enum LocaleLookupOrder {
     /// - Returns: `true` if `lhs` sorts strictly before `rhs`; otherwise, `false`.
     /// - Complexity: O(*m*), where *m* is the length of the shorter name.
     package static func precedes(_ lhs: String, _ rhs: String) -> Bool {
-        LocaleKey(LocaleIdentifier(lhs)).bytes.lexicographicallyPrecedes(LocaleKey(LocaleIdentifier(rhs)).bytes)
+        IteratorSequence(LocaleKey(LocaleIdentifier(lhs)).bytes.makeIterator())
+            .lexicographicallyPrecedes(IteratorSequence(LocaleKey(LocaleIdentifier(rhs)).bytes.makeIterator()))
     }
 
     /// Returns the first two neighboring names that aren't strictly in the order the runtime searches

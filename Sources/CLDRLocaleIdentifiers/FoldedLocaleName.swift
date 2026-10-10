@@ -19,7 +19,7 @@ package struct FoldedLocaleName: Hashable, Sendable {
     /// - Parameter key: The lookup key.
     /// - Complexity: O(*m*), where *m* is the length of the key.
     package init(_ key: LocaleKey) {
-        bytes = Array(key.bytes)
+        bytes = Array(IteratorSequence(key.bytes.makeIterator()))
     }
 
     /// Creates the name a spelling compares as.

@@ -2526,6 +2526,28 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    // Two lengths of each long identifier: how the lookup's cost grows with length needs both.
+    for length in [1_000, 2_000] {
+        let rows: [(String, LocaleIdentifier)] = [
+            ("long language", LocaleIdentifier(String(repeating: "b", count: length) + "-US")),
+            ("long second subtag", LocaleIdentifier("en-" + String(repeating: "B", count: length))),
+            ("long tail", LocaleIdentifier("en-Latn-US-" + String(repeating: "x", count: length))),
+        ]
+
+        for (name, identifier) in rows {
+            Benchmark("MoneyLocalization moneyFormat, \(name) \(length)", configuration: defaultConfiguration) { benchmark in
+                var index = 0
+
+                for _ in benchmark.scaledIterations {
+                    blackHole(MoneyLocalization.moneyFormat(
+                        for: formatCurrencies[index % formatCurrencies.count], locale: identifier
+                    ))
+                    index &+= 1
+                }
+            }
+        }
+    }
+
     // The ISO presentation always stringifies the code, so this is where a change to the code's
     // representation lands even after the common path stops building the string.
     Benchmark("MoneyLocalization moneyFormat, ISO code, en_GB", configuration: defaultConfiguration) { benchmark in

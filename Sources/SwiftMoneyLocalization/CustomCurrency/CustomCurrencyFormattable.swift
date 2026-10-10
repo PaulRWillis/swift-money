@@ -26,7 +26,7 @@ import SwiftMoneyCore
 public protocol CustomCurrencyFormattable: CurrencyType {
     /// The currency's symbol display for a locale, or `nil` where the currency has no display there.
     ///
-    /// The identifier arrives as the caller wrote it, in any letter case and with either separator.
+    /// The identifier isn't normalized: it may use either separator and any letter case.
     ///
     /// - Parameter locale: The locale to display in.
     static func display(for locale: LocaleIdentifier) -> CustomCurrencyDisplay?
@@ -34,7 +34,7 @@ public protocol CustomCurrencyFormattable: CurrencyType {
     /// The currency's full names for a locale, or `nil` when it is not named in full there.
     ///
     /// Opt in only when the full-name presentation is wanted; the default is `nil`. The identifier
-    /// arrives as the caller wrote it, in any letter case and with either separator.
+    /// isn't normalized: it may use either separator and any letter case.
     ///
     /// - Parameter locale: The locale to name the currency in.
     static func names(for locale: LocaleIdentifier) -> CustomCurrencyNames?

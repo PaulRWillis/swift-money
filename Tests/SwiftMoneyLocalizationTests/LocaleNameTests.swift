@@ -118,6 +118,15 @@ struct LocaleNameTests {
         }
     }
 
+    @Test("A position outside the locale table has no plural category")
+    func positionOutsideTheTableHasNoPluralCategory() {
+        let operands = PluralOperandValues(minorUnits: 1, unitScale: Currency.jpy.unitScale)
+        let pastTheEnd = LocaleIndex(position: MoneyLocalization.cldr.locales.localeCount)
+
+        #expect(MoneyLocalization.pluralCategory(of: operands, at: pastTheEnd) == nil)
+        #expect(MoneyLocalization.pluralCategory(of: operands, at: LocaleIndex(position: -1)) == nil)
+    }
+
     // The Arabic-script folder writes a decimal point where plain Azerbaijani writes a comma.
     @Test("Iraqi Azerbaijani reaches the Arabic-script data, not plain Azerbaijani")
     func iraqiAzerbaijani() throws {

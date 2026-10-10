@@ -27,7 +27,7 @@ package enum LocaleSubtagShape: Sendable, Equatable {
     ///   digits.
     /// - Complexity: O(*n*), where *n* is the length of `subtag`.
     package init?(_ subtag: some Collection<UInt8>) {
-        let tally = subtag.reduce(into: Tally()) { $0.count($1) }
+        let tally = subtag.reduce(into: Tally.empty) { $0.count($1) }
 
         guard let shape = tally.shape else {
             return nil
@@ -38,45 +38,78 @@ package enum LocaleSubtagShape: Sendable, Equatable {
 }
 
 extension LocaleSubtagShape {
-    /// What a subtag's bytes are so far, read one byte at a time: how many, and whether all are
-    /// letters or all digits.
-    struct Tally {
-        /// How many bytes have been read.
-        private(set) var length = 0
+    /// What a subtag's bytes read so far could still be, one byte at a time.
+    enum Tally {
+        /// No bytes.
+        case empty
 
-        /// Whether every byte read is an ASCII letter.
-        private var allLetters = true
+        /// One ASCII letter.
+        case oneLetter
 
-        /// Whether every byte read is an ASCII digit.
-        private var allDigits = true
+        /// Two ASCII letters, a letter region's length.
+        case twoLetters
+
+        /// Three ASCII letters.
+        case threeLetters
+
+        /// Four ASCII letters, a script's length.
+        case fourLetters
+
+        /// One ASCII digit.
+        case oneDigit
+
+        /// Two ASCII digits.
+        case twoDigits
+
+        /// Three ASCII digits, a numeric region's length.
+        case threeDigits
+
+        /// Bytes no script or region starts with: a byte that is neither an ASCII letter nor an ASCII
+        /// digit, a mix of the two, or more of either than any shape has.
+        case shapeless
 
         /// Counts one more byte of the subtag.
         ///
         /// - Parameter byte: The subtag's next byte.
         mutating func count(_ byte: UInt8) {
-            length += 1
-            allLetters = allLetters && Self.isLetter(byte)
-            allDigits = allDigits && Self.isDigit(byte)
+            self = if Self.isLetter(byte) {
+                afterLetter
+            } else if Self.isDigit(byte) {
+                afterDigit
+            } else {
+                .shapeless
+            }
         }
 
         /// The shape of the bytes read, or `nil` when they are neither a script's nor a region's.
         var shape: LocaleSubtagShape? {
-            switch length {
-            case Self.scriptLength where allLetters: .script
-            case Self.letterRegionLength where allLetters: .region
-            case Self.numericRegionLength where allDigits: .region
-            default: nil
+            switch self {
+            case .fourLetters: .script
+            case .twoLetters, .threeDigits: .region
+            case .empty, .oneLetter, .threeLetters, .oneDigit, .twoDigits, .shapeless: nil
             }
         }
 
-        /// The length of a script subtag, such as `Latn`.
-        private static let scriptLength = 4
+        /// The tally after one more ASCII letter.
+        private var afterLetter: Tally {
+            switch self {
+            case .empty: .oneLetter
+            case .oneLetter: .twoLetters
+            case .twoLetters: .threeLetters
+            case .threeLetters: .fourLetters
+            case .fourLetters, .oneDigit, .twoDigits, .threeDigits, .shapeless: .shapeless
+            }
+        }
 
-        /// The length of a letter region subtag, such as `GB`.
-        private static let letterRegionLength = 2
-
-        /// The length of a numeric region subtag, such as `419`.
-        private static let numericRegionLength = 3
+        /// The tally after one more ASCII digit.
+        private var afterDigit: Tally {
+            switch self {
+            case .empty: .oneDigit
+            case .oneDigit: .twoDigits
+            case .twoDigits: .threeDigits
+            case .oneLetter, .twoLetters, .threeLetters, .fourLetters, .threeDigits, .shapeless: .shapeless
+            }
+        }
 
         /// The bit that tells an ASCII capital letter from its small letter.
         private static let asciiCaseBit: UInt8 = 0x20
